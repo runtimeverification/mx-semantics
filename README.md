@@ -1,48 +1,32 @@
-# A Prototype Formal Semantics of WebAssembly in K
+Semantics of Elrond and Mandos
+==============================
 
-This repository presents a prototype formal semantics of [WebAssembly](https://github.com/WebAssembly/design/blob/master/README.md) based on the [prototype ML interpreter](https://github.com/WebAssembly/spec/tree/master/ml-proto). Note that the language specification is still under development and expected to change, and this prototype semantics is to demonstrate the feasibility of having a formal semantics as (a supplement of) the language specification.
+This repository is work-in-progress, and currently a fork of [KWasm](https://github.com/kframework/wasm-semantics).
 
-Currently, as a quick draft, the semantics specifies most of language constructs, as well as basic memory and arithmetic operations. Being executable, the semantics can run test programs, [fac.wasm](test/fac.wasm) and [memory.wasm](test/memory.wasm), provided by the prototype ML interpreter (albeit with minor modification), with which we will try to keep in sync.
+Elrond-specific code is in `elrond.md` and `run-elrond-tests.py`.
 
-Details of current limitations and minor syntactic modifications (for quick prototyping) are following:
- * Semantics
-  * `switch`, `dispatch` and `table` are not specified yet
-  * currently only `int32` is specified, thus no type conversion is specified yet
- * Syntax
-  * comment syntax `//` is used instead of `;;`
-  * explicit function declaration components: `params`, `result`, and `local`
+Build and Run
+-------------
 
+Follow the "Installing/Building" instructions below, for KWasm.
+Instead of building the KWasm test embedder, it will build the `MANDOS` module as the main module.
 
+**Important**: Some KWasm functionality is broken, such as running the `tests/simple` tests.
 
-## How to Run Semantics
+After building, make the Elrond dependencies:
 
-### 1. Install K
-
-This semantics is compatible with the latest K framework. 
-See http://kframework.org for download and installation details.
-
-
-
-### 2. Compile semantics
-
-Currently, the semantics needs to be adjusted to work around a parsing issue in K framework that will be fixed in the upcoming K 4.0 release. To adjust and compile the semantics:
 ```
-$ patch -p1 <wasm.k.patch
-$ kompile --kore wasm.k
+make elrond-deps
 ```
 
-### 3. Run semantics
+Then the tests can be run with:
 
-You can run a program:
 ```
-$ krun --kore <pgm>.wasm
+make elrond-test
 ```
-For example,
+
+If you modify the Wasm contracts in Erlond, or update the K files, you should re-build the pre-made sources:
+
 ```
-$ krun --kore test/fac.wasm
-$ krun --kore test/memory.wasm
-```
-By default, `krun` prints out the final configuration (i.e., program state). To suppress the output, use `--output none` option:
-```
-$ krun --kore --output none <pgm>.wasm
+make elrond-loaded
 ```

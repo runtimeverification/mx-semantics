@@ -1,0 +1,1 @@
+{"format":"KAST","version":1,"term":{"node":"KApply","label":"mandosSteps","variable":false,"arity":2,"args":[{"node":"KApply","label":"noop_MANDOS_Step","variable":false,"arity":0,"args":[]},{"node":"KApply","label":".List{\"mandosSteps\"}_Steps","variable":false,"arity":0,"args":[]}]}}

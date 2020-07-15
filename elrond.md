@@ -31,6 +31,27 @@ module AUTO-ALLOCATE
          <moduleRegistry> MR </moduleRegistry>
       requires autoAllocModules(MD, MR) =/=K .Stmts
 
+    syntax Instr ::= hostCall(String, String)
+ // -----------------------------------------
+    rule <instrs> (import MOD NAME #funcDesc(... type: TIDX) #as FDESC) => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(#parseWasmString(MOD), #parseWasmString(NAME)) .Instrs, #meta(... id: , localIds: .Map )) ~> (import MOD NAME FDESC) ... </instrs>
+         <curModIdx> CUR </curModIdx>
+         <moduleInst>
+           <modIdx> CUR </modIdx>
+           <types> ... TIDX |-> TYPE ... </types>
+           ...
+        </moduleInst>
+        <nextFuncAddr> NEXTADDR => NEXTADDR +Int 1 </nextFuncAddr>
+        <moduleRegistry> ... MOD |-> HOSTMOD ... </moduleRegistry>
+        <moduleInst>
+          <modIdx> HOSTMOD </modIdx>
+          <exports> EXPORTS => EXPORTS [NAME <- NEXTFUNC ] </exports>
+          <nextFuncIdx> NEXTFUNC => NEXTFUNC +Int 1 </nextFuncIdx>
+          <nextTypeIdx> NEXTTYPE => NEXTTYPE +Int 1 </nextTypeIdx>
+          <types> TYPES => TYPES [ NEXTTYPE <- TYPE ] </types>
+          ...
+        </moduleInst>
+      requires notBool NAME in_keys(EXPORTS)
+
 
 endmodule
 

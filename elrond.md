@@ -4,11 +4,18 @@ require "wasm-text.md"
 
 module ELROND-SYNTAX
     imports ELROND
-    imports WASM-TEST-SYNTAX
+    imports WASM-TEXT-SYNTAX
 endmodule
 
 module AUTO-ALLOCATE
-    imports WASM-TEST
+    imports WASM
+
+    syntax Stmt ::= "newEmptyModule" WasmString
+ // -------------------------------------------
+    rule <instrs> newEmptyModule MODNAME => . ... </instrs>
+         <moduleRegistry> MR => MR [ MODNAME <- NEXT ] </moduleRegistry>
+         <nextModuleIdx> NEXT => NEXT +Int 1 </nextModuleIdx>
+         <moduleInstances> ( .Bag => <moduleInst> <modIdx> NEXT </modIdx> ... </moduleInst>) ... </moduleInstances>
 
     syntax Stmts ::=  autoAllocModules( ModuleDecl, Map ) [function]
                    | #autoAllocModules( Defns     , Map ) [function]
@@ -18,9 +25,7 @@ module AUTO-ALLOCATE
     rule #autoAllocModules(.Defns, _) => .Stmts
     rule #autoAllocModules(((import MOD _ _) DS) => DS, MR) requires MOD in_keys(MR)
     rule #autoAllocModules(((import MOD _ _) DS), MR)
-      => #emptyModule()
-         (register(MOD))
-         #autoAllocModules(DS, MR)
+      => newEmptyModule MOD #autoAllocModules(DS, MR [MOD <- -1])
       requires notBool MOD in_keys(MR)
 
     rule <instrs> MD:ModuleDecl
@@ -57,7 +62,7 @@ module AUTO-ALLOCATE
 endmodule
 
 module ELROND
-    imports WASM-TEST
+    imports WASM-TEXT
     imports AUTO-ALLOCATE
 
 endmodule

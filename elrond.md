@@ -45,6 +45,7 @@ module AUTO-ALLOCATE
         <moduleInst>
           <modIdx> HOSTMOD </modIdx>
           <exports> EXPORTS => EXPORTS [NAME <- NEXTFUNC ] </exports>
+          <funcAddrs> FS => FS [NEXTFUNC <- NEXTADDR] </funcAddrs>
           <nextFuncIdx> NEXTFUNC => NEXTFUNC +Int 1 </nextFuncIdx>
           <nextTypeIdx> NEXTTYPE => NEXTTYPE +Int 1 </nextTypeIdx>
           <types> TYPES => TYPES [ NEXTTYPE <- TYPE ] </types>

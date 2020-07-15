@@ -55,6 +55,7 @@ HASKELL_KOMPILE_OPTS :=
 tangle_selector := k
 
 SOURCE_FILES       := data         \
+                      elrond       \
                       kwasm-lemmas \
                       numeric      \
                       test         \
@@ -88,9 +89,9 @@ KOMPILE_HASKELL := kompile --backend haskell --md-selector "$(tangle_selector)" 
 
 llvm_dir           := $(DEFN_DIR)/llvm
 llvm_files         := $(ALL_SOURCE_FILES)
-llvm_main_module   := WASM-TEST
+llvm_main_module   := ELROND
 llvm_syntax_module := $(llvm_main_module)-SYNTAX
-llvm_main_file     := test
+llvm_main_file     := elrond
 llvm_kompiled      := $(llvm_dir)/$(llvm_main_file)-kompiled/interpreter
 
 build-llvm: $(llvm_kompiled)
@@ -107,7 +108,7 @@ haskell_dir           := $(DEFN_DIR)/haskell
 haskell_files         := $(ALL_SOURCE_FILES)
 haskell_main_module   := WASM-TEXT
 haskell_syntax_module := $(haskell_main_module)-SYNTAX
-haskell_main_file     := test
+haskell_main_file     := wasm-text
 haskell_kompiled      := $(haskell_dir)/$(haskell_main_file)-kompiled/definition.kore
 
 build-haskell: $(haskell_kompiled)

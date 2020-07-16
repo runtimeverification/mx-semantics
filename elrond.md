@@ -38,7 +38,10 @@ module AUTO-ALLOCATE
 
     syntax Instr ::= hostCall(String, String)
  // -----------------------------------------
-    rule <instrs> (import MOD NAME #funcDesc(... type: TIDX) #as FDESC) => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(#parseWasmString(MOD), #parseWasmString(NAME)) .Instrs, #meta(... id: , localIds: .Map )) ~> (import MOD NAME FDESC) ... </instrs>
+    rule <instrs> (. => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(#parseWasmString(MOD), #parseWasmString(NAME)) .Instrs, #meta(... id: , localIds: .Map )))
+               ~> (import MOD NAME #funcDesc(... type: TIDX))
+              ...
+         </instrs>
          <curModIdx> CUR </curModIdx>
          <moduleInst>
            <modIdx> CUR </modIdx>

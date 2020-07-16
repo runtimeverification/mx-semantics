@@ -61,12 +61,24 @@ module AUTO-ALLOCATE
         </moduleInst>
       requires notBool NAME in_keys(EXPORTS)
 
-
 endmodule
 
 module ELROND
     imports WASM-TEXT
     imports AUTO-ALLOCATE
+
+
+    configuration
+      <wasm-test>
+        <k> $PGM:Stmts </k>
+        <wasm/>
+      </wasm-test>
+
+    rule <k> PGM => . </k>
+         <instrs> .K => sequenceStmts(text2abstract(PGM)) </instrs>
+
+    syntax Stmt ::= "#clearConfig"
+ // ------------------------------
 
 endmodule
 ```

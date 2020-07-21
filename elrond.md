@@ -125,5 +125,9 @@ module MANDOS
            ...
          </wasm>
 
+    syntax Step ::= "foo" | "bar"
+ // -----------------------------
+    rule <k> foo => bar </k>
+
 endmodule
 ```

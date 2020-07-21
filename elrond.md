@@ -97,9 +97,17 @@ module ELROND
            <instrs> .K => sequenceStmts(text2abstract(PGM)) </instrs>
            ...
          </wasm>
+```
+
+The (incorrect) default implementation of a host call is to just return zero values of the correct type.
+
+```k
+    rule <instrs> hostCall("env", "asyncCall", [ DOM ] -> [ CODOM ]) => . ... </instrs>
+         <valstack> VS => #zero(CODOM) ++ #drop(lengthValTypes(DOM), VS) </valstack>
 
     syntax Stmt ::= "#clearConfig"
  // ------------------------------
 
 endmodule
+
 ```

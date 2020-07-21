@@ -63,19 +63,40 @@ module AUTO-ALLOCATE
 
 endmodule
 
+module ELROND-NODE
+    imports DOMAINS
+
+    configuration
+      <node>
+         <accounts>
+            <account multiplicity="*" type="Map">
+               <address> 0 </address>
+            </account>
+         </accounts>
+      </node>
+
+endmodule
+
 module ELROND
     imports WASM-TEXT
     imports AUTO-ALLOCATE
-
+    imports ELROND-NODE
 
     configuration
-      <wasm-test>
-        <k> $PGM:Stmts </k>
-        <wasm/>
-      </wasm-test>
+      <elrond>
+         <k> $PGM:Stmts </k>
+         <wasm/>
+         <node/>
+         <bigIntHeap> .BigIntHeap </bigIntHeap>
+      </elrond>
+
+    syntax BigIntHeap ::= List{Int, ":"}
 
     rule <k> PGM => . </k>
-         <instrs> .K => sequenceStmts(text2abstract(PGM)) </instrs>
+         <wasm>
+           <instrs> .K => sequenceStmts(text2abstract(PGM)) </instrs>
+           ...
+         </wasm>
 
     syntax Stmt ::= "#clearConfig"
  // ------------------------------

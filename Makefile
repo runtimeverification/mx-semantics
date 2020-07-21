@@ -28,6 +28,7 @@ export PATH
         build build-llvm build-haskell                                     \
         test test-execution test-simple test-prove                         \
         test-conformance test-conformance-parse test-conformance-supported \
+        elrond-test                                                        \
         media presentations reports
 
 all: build
@@ -186,6 +187,12 @@ test-conformance: test-conformance-parse test-conformance-supported
 proof_tests:=$(wildcard tests/proofs/*-spec.k)
 
 test-prove: $(proof_tests:=.prove)
+
+### Elrond tests
+
+elrond_tests=$(DEPS_DIR)/sc-delegation-rs/test/integration/main/01a_init_accounts.steps.json
+elrond-test:
+	python3 run-elrond-tests.py $(elrond_tests)
 
 # Presentation
 # ------------

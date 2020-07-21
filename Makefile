@@ -190,6 +190,21 @@ test-prove: $(proof_tests:=.prove)
 
 ### Elrond tests
 
+ELROND_SOURCES      := src/auction-mock.wat src/delegation.wat
+ELROND_RUNTIME_JSON := src/elrond_runtime.wat.json
+ELROND_LOADED_JSON  := src/elrond_runtime_loaded.wat.json
+
+elrond-loaded: $(ELROND_LOADED_JSON)
+
+elrond-clean-sources:
+	rm $(ELROND_RUNTIME_JSON) $(ELROND_LOADED_JSON)
+
+$(ELROND_LOADED_JSON): $(ELROND_RUNTIME_JSON)
+	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< --parser cat --output json > $@
+
+$(ELROND_RUNTIME_JSON): $(ELROND_SOURCES)
+	cat $^ | $(TEST) kast - json > $@
+
 elrond_tests=$(DEPS_DIR)/sc-delegation-rs/test/integration/main/01a_init_accounts.steps.json
 elrond-test:
 	python3 run-elrond-tests.py $(elrond_tests)

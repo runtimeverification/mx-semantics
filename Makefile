@@ -90,7 +90,7 @@ KOMPILE_HASKELL := kompile --backend haskell --md-selector "$(tangle_selector)" 
 
 llvm_dir           := $(DEFN_DIR)/llvm
 llvm_files         := $(ALL_SOURCE_FILES)
-llvm_main_module   := ELROND
+llvm_main_module   := MANDOS
 llvm_syntax_module := $(llvm_main_module)-SYNTAX
 llvm_main_file     := elrond
 llvm_kompiled      := $(llvm_dir)/$(llvm_main_file)-kompiled/interpreter
@@ -191,8 +191,8 @@ test-prove: $(proof_tests:=.prove)
 ### Elrond tests
 
 ELROND_SOURCES      := src/auction-mock.wat src/delegation.wat
-ELROND_RUNTIME_JSON := src/elrond_runtime.wat.json
-ELROND_LOADED_JSON  := src/elrond_runtime_loaded.wat.json
+ELROND_RUNTIME_JSON := src/elrond-runtime.wat.json
+ELROND_LOADED_JSON  := src/elrond-runtime.loaded.json
 
 elrond-loaded: $(ELROND_LOADED_JSON)
 

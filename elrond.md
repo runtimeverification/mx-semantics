@@ -2,8 +2,8 @@
 require "test.md"
 require "wasm-text.md"
 
-module ELROND-SYNTAX
-    imports ELROND
+module MANDOS-SYNTAX
+    imports MANDOS
     imports WASM-TEXT-SYNTAX
 endmodule
 
@@ -84,19 +84,12 @@ module ELROND
 
     configuration
       <elrond>
-         <k> $PGM:Stmts </k>
          <wasm/>
          <node/>
          <bigIntHeap> .BigIntHeap </bigIntHeap>
       </elrond>
 
     syntax BigIntHeap ::= List{Int, ":"}
-
-    rule <k> PGM => . </k>
-         <wasm>
-           <instrs> .K => sequenceStmts(text2abstract(PGM)) </instrs>
-           ...
-         </wasm>
 ```
 
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.
@@ -110,4 +103,27 @@ The (incorrect) default implementation of a host call is to just return zero val
 
 endmodule
 
+module MANDOS
+    imports ELROND
+
+    configuration
+      <mandos>
+         <k> $PGM:Steps </k>
+         <elrond/>
+      </mandos>
+
+    syntax Steps ::= List{Step, ""}
+
+    syntax Step ::= ModuleDecl
+ // --------------------------
+
+    rule <k> .Steps => . </k>
+    rule <k> S:Step SS:Steps => S ~> SS ... </k>
+
+    rule <k> M:ModuleDecl => . ... </k>
+         <wasm>
+           <instrs> .K => sequenceStmts(text2abstract(M .Stmts)) </instrs>
+           ...
+         </wasm>
+endmodule
 ```

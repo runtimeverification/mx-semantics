@@ -36,9 +36,9 @@ module AUTO-ALLOCATE
          <moduleRegistry> MR </moduleRegistry>
       requires autoAllocModules(MD, MR) =/=K .Stmts
 
-    syntax Instr ::= hostCall(String, String)
- // -----------------------------------------
-    rule <instrs> (. => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(#parseWasmString(MOD), #parseWasmString(NAME)) .Instrs, #meta(... id: , localIds: .Map )))
+    syntax Instr ::= hostCall(String, String, FuncType)
+ // ---------------------------------------------------
+    rule <instrs> (. => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(#parseWasmString(MOD), #parseWasmString(NAME), TYPE) .Instrs, #meta(... id: , localIds: .Map )))
                ~> (import MOD NAME #funcDesc(... type: TIDX))
               ...
          </instrs>

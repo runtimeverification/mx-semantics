@@ -113,17 +113,17 @@ module MANDOS
       </mandos>
 
     syntax Steps ::= List{Step, ""}
-
-    syntax Step ::= ModuleDecl
- // --------------------------
-
+ // -------------------------------
     rule <k> .Steps => . </k>
     rule <k> S:Step SS:Steps => S ~> SS ... </k>
 
+    syntax Step ::= ModuleDecl
+ // --------------------------
     rule <k> M:ModuleDecl => . ... </k>
          <wasm>
            <instrs> .K => sequenceStmts(text2abstract(M .Stmts)) </instrs>
            ...
          </wasm>
+
 endmodule
 ```

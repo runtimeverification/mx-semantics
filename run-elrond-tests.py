@@ -6,6 +6,7 @@ import pyk
 import resource
 import sys
 import tempfile
+import os
 
 from pyk.kast import KSequence, KConstant
 
@@ -47,14 +48,17 @@ def run_test_file(wasm_state, filename):
     krun_args = [ '--term']
 
     # Run: generate a new JSON as a temporary file, then read that as the new wasm state.
-    (rc, json_result, _) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args)
-
-    with open('my_output.tmp', 'w') as f:
-        f.write(json.dumps(json_result))
+    (_rc, json_result, _) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args)
 
     return json_result
 
 wasm_state = pyk.readKastTerm('src/elrond-runtime.loaded.json')
 
+tmpdir = tempfile.mkdtemp()
+print("Intermediate test outputs stored in:\n%s" % tmpdir)
+
 for test in tests:
     wasm_state = run_test_file(wasm_state, test)
+    test_name = os.path.basename(test)
+    with open('%s/%s' % (tmpdir, test_name), 'w') as f:
+        f.write(json.dumps(wasm_state))

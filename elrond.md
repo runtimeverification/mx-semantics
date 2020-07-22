@@ -68,12 +68,27 @@ module ELROND-NODE
 
     configuration
       <node>
-         <accounts>
-            <account multiplicity="*" type="Map">
-               <address> 0 </address>
-            </account>
+        <accounts>
+          <account multiplicity="*" type="Map">
+             <address> "" </address>
+             <nonce> 0 </nonce>
+             <balance> 0 </balance>
+```
+
+If the code is "", it means the account is not a contract.
+If the code is "file:<some_path>", then it is a contract, and the corresponding Wasm module is stored in the module registry, with the account's name as key.
+
+```k
+             <code> "" </code>
+```
+Storage maps byte arrays to byte arrays.
+
+```k
+             <storage> .Map </storage>
+
+           </account>
          </accounts>
-      </node>
+       </node>
 
 endmodule
 
@@ -84,9 +99,9 @@ module ELROND
 
     configuration
       <elrond>
-         <wasm/>
-         <node/>
-         <bigIntHeap> .BigIntHeap </bigIntHeap>
+        <wasm/>
+        <node/>
+        <bigIntHeap> .BigIntHeap </bigIntHeap>
       </elrond>
 
     syntax BigIntHeap ::= List{Int, ":"}
@@ -108,8 +123,8 @@ module MANDOS
 
     configuration
       <mandos>
-         <k> $PGM:Steps </k>
-         <elrond/>
+        <k> $PGM:Steps </k>
+        <elrond/>
       </mandos>
 
     syntax Steps ::= List{Step, ""}

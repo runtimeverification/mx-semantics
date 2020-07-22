@@ -49,7 +49,7 @@ $(K_JAR):
 # Building Definition
 # -------------------
 
-KOMPILE_OPTS         :=
+KOMPILE_OPTS         := --emit-json
 LLVM_KOMPILE_OPTS    :=
 HASKELL_KOMPILE_OPTS :=
 

@@ -140,9 +140,21 @@ module MANDOS
            ...
          </wasm>
 
-    syntax Step ::= "foo" | "bar"
- // -----------------------------
-    rule <k> foo => bar </k>
+    syntax Step ::= "setAccount" String Int Int String Map [klabel(setAccount), symbol]
+ // -----------------------------------------------------------------------------------
+    rule <k> setAccount ADDRESS NONCE BALANCE CODE STORAGE => . ... </k>
+         <accounts>
+           ( .Bag
+          => <account>
+               <address> ADDRESS </address>
+               <nonce> NONCE </nonce>
+               <balance> BALANCE </balance>
+               <code> CODE </code>
+               <storage> STORAGE </storage>
+             </account>
+           )
+           ...
+         </accounts>
 
 endmodule
 ```

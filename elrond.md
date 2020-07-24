@@ -132,6 +132,10 @@ module MANDOS
     rule <k> .Steps => . </k>
     rule <k> S:Step SS:Steps => S ~> SS ... </k>
 
+    syntax Step ::= "noop"
+ // ----------------------
+    rule <k> noop => . ... </k>
+
     syntax Step ::= ModuleDecl
  // --------------------------
     rule <k> M:ModuleDecl => . ... </k>

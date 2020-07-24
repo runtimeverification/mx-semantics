@@ -195,7 +195,6 @@ test-prove: $(proof_tests:=.prove)
 elrond-deps:
 	cd $(ELROND_DELEGATION_SUBMODULE)         && rustup toolchain install nightly  				&& rustup target add wasm32-unknown-unknown  && rustc --version                           && cargo install wasm-snip                            && cargo build
 
-ELROND_SOURCES      := src/auction-mock.wat src/delegation.wat
 ELROND_RUNTIME_JSON := src/elrond-runtime.wat.json
 ELROND_LOADED       := src/elrond-runtime.loaded.wat
 ELROND_LOADED_JSON  := src/elrond-runtime.loaded.json
@@ -211,8 +210,8 @@ $(ELROND_LOADED): $(ELROND_RUNTIME_JSON)
 $(ELROND_LOADED_JSON): $(ELROND_RUNTIME_JSON)
 	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< --parser cat --output json > $@
 
-$(ELROND_RUNTIME_JSON): $(ELROND_SOURCES)
-	cat $^ | $(TEST) kast - json > $@
+$(ELROND_RUNTIME_JSON):
+	echo "noop" | $(TEST) kast - json > $@
 
 elrond_tests=$(DEPS_DIR)/sc-delegation-rs/test/integration/main/01a_init_accounts.steps.json
 elrond-test:

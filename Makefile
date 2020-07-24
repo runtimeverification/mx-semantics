@@ -192,12 +192,16 @@ test-prove: $(proof_tests:=.prove)
 
 ELROND_SOURCES      := src/auction-mock.wat src/delegation.wat
 ELROND_RUNTIME_JSON := src/elrond-runtime.wat.json
+ELROND_LOADED       := src/elrond-runtime.loaded.wat
 ELROND_LOADED_JSON  := src/elrond-runtime.loaded.json
 
-elrond-loaded: $(ELROND_LOADED_JSON)
+elrond-loaded: $(ELROND_LOADED_JSON) $(ELROND_LOADED)
 
 elrond-clean-sources:
 	rm $(ELROND_RUNTIME_JSON) $(ELROND_LOADED_JSON)
+
+$(ELROND_LOADED): $(ELROND_RUNTIME_JSON)
+	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< --parser cat > $(ELROND_LOADED)
 
 $(ELROND_LOADED_JSON): $(ELROND_RUNTIME_JSON)
 	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< --parser cat --output json > $@

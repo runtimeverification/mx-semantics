@@ -21,6 +21,8 @@ else
     K_BUILD_TYPE := Debug
 endif
 
+ELROND_DELEGATION_SUBMODULE := $(DEPS_DIR)/sc-delegation-rs
+
 PATH := $(K_BIN):$(PATH)
 export PATH
 
@@ -189,6 +191,9 @@ proof_tests:=$(wildcard tests/proofs/*-spec.k)
 test-prove: $(proof_tests:=.prove)
 
 ### Elrond tests
+
+elrond-deps:
+	cd $(ELROND_DELEGATION_SUBMODULE)         && rustup toolchain install nightly  				&& rustup target add wasm32-unknown-unknown  && rustc --version                           && cargo install wasm-snip                            && cargo build
 
 ELROND_SOURCES      := src/auction-mock.wat src/delegation.wat
 ELROND_RUNTIME_JSON := src/elrond-runtime.wat.json

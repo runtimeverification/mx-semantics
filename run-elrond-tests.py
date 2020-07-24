@@ -123,6 +123,8 @@ def run_test_file(wasm_state, filename):
 # ... Setup Elrond Wasm
 
 wasm_state = pyk.readKastTerm('src/elrond-runtime.loaded.json')
+cells = pyk.splitConfigFrom(wasm_state)[1]
+assert cells['K_CELL']['arity'] == 0
 
 tmpdir = tempfile.mkdtemp(prefix="mandos_")
 print("Intermediate test outputs stored in:\n%s" % tmpdir)

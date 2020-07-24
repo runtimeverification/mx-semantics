@@ -105,7 +105,7 @@ def run_test_file(wasm_state, filename):
             contract_module_decls = [ [wasm_file_to_module_decl(f), register(a) ] for (a, f) in contracts_files ]
             # Flatten:
             contract_setups = [ step for pair in contract_module_decls for step in pair ]
-            k_steps = k_steps + contract_setups[0:1]
+            k_steps = k_steps + contract_setups
             k_steps = k_steps + set_accounts
 
     init_subst['K_CELL'] = KSequence(k_steps)

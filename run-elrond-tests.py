@@ -136,7 +136,8 @@ for test in tests:
     test_name = os.path.basename(test)
     with open('%s/%s' % (tmpdir, test_name), 'w') as f:
         f.write(json.dumps(wasm_state))
-    k_cell = pyk.splitConfigFrom(wasm_state)[1]['K_CELL']
+    cells = pyk.splitConfigFrom(wasm_state)[1]
+    k_cell = cells['K_CELL']
 
     # Check that K cell is empty
-    assert(k_cell['node'] == 'KSequence' and k_cell['arity'] == 0)
+    assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items" % k_cell['arity']

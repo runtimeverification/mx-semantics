@@ -138,6 +138,9 @@ for test in tests:
     test_name = os.path.basename(test)
     with open('%s/%s' % (tmpdir, test_name), 'w') as f:
         f.write(json.dumps(wasm_state))
+    with open('%s/%s.pretty.wat' % (tmpdir, test_name), 'w') as f:
+        pretty = pyk.prettyPrintKast(wasm_state, WASM_symbols_llvm_no_coverage)
+        f.write(pretty)
     cells = pyk.splitConfigFrom(wasm_state)[1]
     k_cell = cells['K_CELL']
 

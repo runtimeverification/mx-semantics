@@ -127,8 +127,8 @@ module MANDOS
         <elrond/>
       </mandos>
 
-    syntax Steps ::= List{Step, ""}
- // -------------------------------
+    syntax Steps ::= List{Step, ""} [klabel(mandosSteps), symbol]
+ // -------------------------------------------------------------
     rule <k> .Steps => . </k>
     rule <k> S:Step SS:Steps => S ~> SS ... </k>
 
@@ -139,6 +139,12 @@ module MANDOS
            <instrs> .K => sequenceStmts(text2abstract(M .Stmts)) </instrs>
            ...
          </wasm>
+
+    syntax Step ::= "register" String [klabel(register), symbol]
+ // ------------------------------------------------------------
+    rule <k> register NAME => . ... </k>
+         <moduleRegistry> REG => REG [NAME <- IDX -Int 1] </moduleRegistry>
+         <nextModuleIdx> IDX </nextModuleIdx>
 
     syntax Step ::= "setAccount" String Int Int String Map [klabel(setAccount), symbol]
  // -----------------------------------------------------------------------------------

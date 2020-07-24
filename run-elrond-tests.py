@@ -4,6 +4,7 @@ import argparse
 import json
 import pyk
 import resource
+import subprocess
 import sys
 import tempfile
 import os
@@ -33,7 +34,8 @@ def KInt(value : int):
 
 WASM_definition_main_file = 'elrond'
 WASM_definition_llvm_no_coverage_dir = '.build/defn/llvm'
-WASM_definition_llvm_no_coverage = pyk.readKastTerm(WASM_definition_llvm_no_coverage_dir + '/' + WASM_definition_main_file + '-kompiled/compiled.json')
+WASM_definition_llvm_no_coverage_kompiled_dir = WASM_definition_llvm_no_coverage_dir + '/' + WASM_definition_main_file + '-kompiled'
+WASM_definition_llvm_no_coverage = pyk.readKastTerm(WASM_definition_llvm_no_coverage_kompiled_dir + '/compiled.json')
 WASM_symbols_llvm_no_coverage = pyk.buildSymbolTable(WASM_definition_llvm_no_coverage)
 
 sys.setrecursionlimit(1500000000)
@@ -63,10 +65,21 @@ def mandos_to_set_account(address, sections):
     set_account_step  = KApply('setAccount', [address_value, nonce_value, balance_value, code_value, storage_value])
     return set_account_step
 
-# TODO: Make this run wasm2wat on the file, parse the result and give it back.
-def wasm_file_to_module_decl(filename):
-             # subprocess.check_output()
-    pass
+def register(with_name : str):
+    return KApply('register', [KString(with_name)])
+
+def wasm_file_to_module_decl(filename : str):
+    wat = subprocess.check_output("wasm2wat %s" % filename, shell=True)
+    temp = tempfile.NamedTemporaryFile()
+    temp.write(wat)
+    temp.seek(0)
+    (rc, kasted, err) = pyk.kast(WASM_definition_llvm_no_coverage_dir, temp.name, kastArgs = ['--output json'], teeOutput=True)
+    if rc != 0:
+        print(err, file=sys.stderr)
+        sys.exit(rc)
+    kasted_json = json.loads(kasted)
+    module = kasted_json['term']['args'][0]
+    return module
 
 def run_test_file(wasm_state, filename):
     with open(filename, 'r') as f:
@@ -79,17 +92,21 @@ def run_test_file(wasm_state, filename):
     (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_state)
     k_steps = []
     for step in mandos_test['steps']:
+        # TODO: newAddress and previousBlock
         if step['step'] == 'setState':
             set_accounts = [ mandos_to_set_account(address, sections) for (address, sections) in step['accounts'].items()]
             # Get paths of Wasm code, relative to the test location.
             test_file_path = os.path.dirname(filename)
             # TODO: Read the files, convert to text, parse, declare them and register them (with address as key)
-            contracts_module_decls = [ (address, os.path.normpath(os.path.join(test_file_path, sections['code'][5:])))
-                          for (address, sections) in step['accounts'].items()
-                          if sections['code'][0:5] == "file:" ]
-            contract_setups = []
-            # TODO: newAddress and previousBlock
-            k_steps = k_steps + contract_setups + set_accounts
+            contracts_files = [ (addr, os.path.normpath(os.path.join(test_file_path, sects['code'][5:])))
+                          for (addr, sects) in step['accounts'].items()
+                          if sects['code'][0:5] == "file:" ]
+            # First declare module, then register it
+            contract_module_decls = [ [wasm_file_to_module_decl(f), register(a) ] for (a, f) in contracts_files ]
+            # Flatten:
+            contract_setups = [ step for pair in contract_module_decls for step in pair ]
+            k_steps = k_steps + contract_setups[0:1]
+            k_steps = k_steps + set_accounts
 
     init_subst['K_CELL'] = KSequence(k_steps)
 

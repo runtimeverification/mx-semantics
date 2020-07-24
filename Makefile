@@ -213,7 +213,8 @@ $(ELROND_LOADED_JSON): $(ELROND_RUNTIME_JSON)
 $(ELROND_RUNTIME_JSON):
 	echo "noop" | $(TEST) kast - json > $@
 
-elrond_tests=$(DEPS_DIR)/sc-delegation-rs/test/integration/main/01a_init_accounts.steps.json
+ELROND_TESTS_DIR=$(DEPS_DIR)/sc-delegation-rs/test/integration/main
+elrond_tests=$(sort $(wildcard $(ELROND_TESTS_DIR)/*.steps.json))
 elrond-test:
 	python3 run-elrond-tests.py $(elrond_tests)
 

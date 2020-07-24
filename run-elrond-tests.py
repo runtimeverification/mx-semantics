@@ -81,6 +81,27 @@ def wasm_file_to_module_decl(filename : str):
     module = kasted_json['term']['args'][0]
     return module
 
+def get_steps_set_state(step, filename):
+    if 'accounts' in step:
+        set_accounts = [ mandos_to_set_account(address, sections) for (address, sections) in step['accounts'].items()]
+        # Get paths of Wasm code, relative to the test location.
+        test_file_path = os.path.dirname(filename)
+        # TODO: Read the files, convert to text, parse, declare them and register them (with address as key)
+        contracts_files = [ (addr, os.path.normpath(os.path.join(test_file_path, sects['code'][5:])))
+                        for (addr, sects) in step['accounts'].items()
+                        if sects['code'][0:5] == "file:" ]
+        # First declare module, then register it
+        contract_module_decls = [ [wasm_file_to_module_decl(f), register(a) ] for (a, f) in contracts_files ]
+        # Flatten:
+        contract_setups = [ step for pair in contract_module_decls for step in pair ]
+        k_steps = contract_setups
+        k_steps = k_steps + set_accounts
+    else:
+        # TODO: newAddress and previousBlock
+        print('Step not implemented: %s' % step, file=sys.stderr)
+        sys.exit(1)
+    return k_steps
+
 def run_test_file(wasm_state, filename):
     with open(filename, 'r') as f:
         mandos_test = json.loads(f.read())
@@ -92,21 +113,11 @@ def run_test_file(wasm_state, filename):
     (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_state)
     k_steps = []
     for step in mandos_test['steps']:
-        # TODO: newAddress and previousBlock
         if step['step'] == 'setState':
-            set_accounts = [ mandos_to_set_account(address, sections) for (address, sections) in step['accounts'].items()]
-            # Get paths of Wasm code, relative to the test location.
-            test_file_path = os.path.dirname(filename)
-            # TODO: Read the files, convert to text, parse, declare them and register them (with address as key)
-            contracts_files = [ (addr, os.path.normpath(os.path.join(test_file_path, sects['code'][5:])))
-                          for (addr, sects) in step['accounts'].items()
-                          if sects['code'][0:5] == "file:" ]
-            # First declare module, then register it
-            contract_module_decls = [ [wasm_file_to_module_decl(f), register(a) ] for (a, f) in contracts_files ]
-            # Flatten:
-            contract_setups = [ step for pair in contract_module_decls for step in pair ]
-            k_steps = k_steps + contract_setups
-            k_steps = k_steps + set_accounts
+            k_steps = k_steps + get_steps_set_state(step, filename)
+        else:
+            print('Step %s not implemented yet' % step['step'], file=sys.stderr)
+            sys.exit(1)
 
     init_subst['K_CELL'] = KSequence(k_steps)
 

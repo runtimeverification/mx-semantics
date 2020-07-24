@@ -193,7 +193,7 @@ test-prove: $(proof_tests:=.prove)
 ### Elrond tests
 
 elrond-deps:
-	cd $(ELROND_DELEGATION_SUBMODULE)         && rustup toolchain install nightly  				&& rustup target add wasm32-unknown-unknown  && rustc --version                           && cargo install wasm-snip                            && cargo build
+	cd $(ELROND_DELEGATION_SUBMODULE) && rustup toolchain install nightly && rustup target add wasm32-unknown-unknown  && rustc --version && cargo install wasm-snip && cargo build
 
 ELROND_RUNTIME_JSON := src/elrond-runtime.wat.json
 ELROND_LOADED       := src/elrond-runtime.loaded.wat

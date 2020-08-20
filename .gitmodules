@@ -9,3 +9,6 @@
 [submodule "deps/sc-delegation-rs"]
 	path = deps/sc-delegation-rs
 	url = https://github.com/ElrondNetwork/sc-delegation-rs
+[submodule "deps/wasm-semantics"]
+	path = deps/wasm-semantics
+	url = https://github.com/kframework/wasm-semantics

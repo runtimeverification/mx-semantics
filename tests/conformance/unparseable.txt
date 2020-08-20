@@ -1,9 +1,0 @@
-br_table.wast
-comments.wast
-conversions.wast
-endianness.wast
-float_exprs.wast
-float_literals.wast
-globals.wast
-memory.wast
-names.wast

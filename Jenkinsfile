@@ -12,8 +12,10 @@ pipeline {
       steps { script { currentBuild.displayName = "PR ${env.CHANGE_ID}: ${env.CHANGE_TITLE}" } }
     }
     stage('Build and Test') {
-      stage('Build') { steps { sh 'echo build' } }
-      stage('Test')  { steps { sh 'echo test'  } }
+      stages {
+        stage('Build') { steps { sh 'echo build' } }
+        stage('Test')  { steps { sh 'echo test'  } }
+      }
     }
   }
 }

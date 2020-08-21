@@ -1,4 +1,0 @@
-tests/simple/f64_bitwise-cs.wast
-tests/simple/f64_cmp-cs.wast
-tests/simple/f64-cs.wast
-tests/simple/fconversions-c.wast

@@ -1,7 +1,3 @@
-[submodule "deps/k"]
-	path = deps/k
-	url = https://github.com/kframework/k
-	ignore = untracked
 [submodule "deps/sc-delegation-rs"]
 	path = deps/sc-delegation-rs
 	url = https://github.com/ElrondNetwork/sc-delegation-rs

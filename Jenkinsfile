@@ -13,8 +13,8 @@ pipeline {
     }
     stage('Build and Test') {
       stages {
-        stage('Build') { steps { sh 'echo build' } }
-        stage('Test')  { steps { sh 'echo test'  } }
+        stage('Build') { steps { sh 'make build RELEASE=true' } }
+        stage('Unit Test') { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-simple -j4'    } }
       }
     }
   }

@@ -48,6 +48,8 @@ args = testArgs.parse_args()
 tests = args.files
 
 def mandos_int_to_int(mandos_int : str):
+    if mandos_int[0:2] == '0x':
+        return int(mandos_int, 16)
     unseparated_int = mandos_int.replace(',', '')
     parsed_int = int(unseparated_int)
     return KInt(parsed_int)

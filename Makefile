@@ -13,6 +13,7 @@ KWASM_SUBMODULE := $(DEPS_DIR)/wasm-semantics
 K_SUBMODULE     := $(KWASM_SUBMODULE)/deps/k
 
 ELROND_DELEGATION_SUBMODULE := $(DEPS_DIR)/sc-delegation-rs/v0_3
+ELROND_ADDER_SUBMODULE      := $(DEPS_DIR)/arwen-wasm-vm/test/adder
 
 ifneq (,$(wildcard $(K_SUBMODULE)/k-distribution/target/release/k/bin/*))
     K_RELEASE ?= $(abspath $(K_SUBMODULE)/k-distribution/target/release/k)
@@ -41,7 +42,7 @@ clean:
 
 K_JAR := $(K_SUBMODULE)/k-distribution/target/release/k/lib/java/kernel-1.0-SNAPSHOT.jar
 
-deps: elrond-deps wasm-deps
+deps: wasm-deps
 
 wasm-deps:
 	$(KWASM_MAKE) deps
@@ -91,9 +92,9 @@ test-simple: $(simple_tests:=.run)
 # Elrond Wasm Definitions
 # -----------------------
 
-ELROND_RUNTIME_JSON := src/elrond-runtime.wat.json
 ELROND_LOADED       := src/elrond-runtime.loaded.wat
 ELROND_LOADED_JSON  := src/elrond-runtime.loaded.json
+ELROND_RUNTIME_JSON := src/elrond-runtime.wat.json
 
 elrond-loaded: $(ELROND_LOADED_JSON) $(ELROND_LOADED)
 
@@ -112,9 +113,19 @@ $(ELROND_RUNTIME_JSON):
 # Elrond Tests
 # ------------
 
+TEST_ELROND := python3 run-elrond-tests.py
+
 ELROND_TESTS_DIR := tests/mandos
-
 elrond_tests=$(sort $(wildcard $(ELROND_TESTS_DIR)/*.steps.json))
-elrond-test:
-	python3 run-elrond-tests.py $(elrond_tests)
+elrond-test: $(llvm_kompiled)
+	$(TEST_ELROND) $(elrond_tests)
 
+ELROND_DELEGATION_TESTS_DIR=$(ELROND_DELEGATION_SUBMODULE)/test/integration/main
+elrond_delegation_tests=$(sort $(wildcard $(ELROND_DELEGATION_TESTS_DIR)/*.steps.json))
+elrond-delegation-test:
+	$(TEST_ELROND) $(elrond_delegation_tests)
+
+ELROND_ADDER_TESTS_DIR=$(ELROND_ADDER_SUBMODULE)
+elrond_adder_tests=$(ELROND_ADDER_TESTS_DIR)/adder.scen.json
+elrond-adder-test:
+	$(TEST_ELROND) $(elrond_adder_tests)

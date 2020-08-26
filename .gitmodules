@@ -5,3 +5,6 @@
 	path = deps/wasm-semantics
 	url = https://github.com/kframework/wasm-semantics
 	ignore = untracked
+[submodule "deps/arwen-wasm-vm"]
+	path = deps/arwen-wasm-vm
+	url = https://github.com/ElrondNetwork/arwen-wasm-vm

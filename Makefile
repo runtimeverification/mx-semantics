@@ -72,6 +72,23 @@ build-llvm: $(KWASM_SUBMODULE)/$(MAIN_DEFN_FILE).md
 $(KWASM_SUBMODULE)/$(MAIN_DEFN_FILE).md: $(MAIN_DEFN_FILE).md
 	cp $< $@
 
+# Unit Tests
+# ----------
+
+TEST  := ./kelrond
+CHECK := git --no-pager diff --no-index --ignore-all-space -R
+
+TEST_CONCRETE_BACKEND:= llvm
+
+tests/%.run: tests/% $(llvm_kompiled)
+	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< > tests/$*.$(TEST_CONCRETE_BACKEND)-out
+	$(CHECK) tests/$*.$(TEST_CONCRETE_BACKEND)-out tests/success-$(TEST_CONCRETE_BACKEND).out
+	rm -rf tests/$*.$(TEST_CONCRETE_BACKEND)-out
+
+simple_tests := $(wildcard tests/simple/*.wast)
+
+test-simple: $(simple_tests:=.run)
+
 # Elrond Wasm Definitions
 # -----------------------
 

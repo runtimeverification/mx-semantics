@@ -68,6 +68,7 @@ module ELROND-NODE
 
     configuration
       <node>
+        <commands> .K </commands>
         <accounts>
           <account multiplicity="*" type="Map">
              <address> "" </address>
@@ -89,6 +90,11 @@ Storage maps byte arrays to byte arrays.
            </account>
          </accounts>
        </node>
+
+    syntax NodeCmd ::= "#clearNodeState"
+ // ------------------------------------
+    rule <commands> #clearNodeState => . ... </commands>
+         <accounts> _ => .Bag </accounts>
 
 endmodule
 
@@ -113,13 +119,11 @@ The (incorrect) default implementation of a host call is to just return zero val
     rule <instrs> hostCall("env", "asyncCall", [ DOM ] -> [ CODOM ]) => . ... </instrs>
          <valstack> VS => #zero(CODOM) ++ #drop(lengthValTypes(DOM), VS) </valstack>
 
-    syntax Stmt ::= "#clearConfig"
- // ------------------------------
-
 endmodule
 
 module MANDOS
     imports ELROND
+    imports WASM-AUXIL
 
     configuration
       <mandos>
@@ -143,6 +147,12 @@ module MANDOS
            <instrs> .K => sequenceStmts(text2abstract(M .Stmts)) </instrs>
            ...
          </wasm>
+
+    syntax Step ::= "#clearAllState"
+ // --------------------------------
+    rule <k> #clearAllState => . ... </k>
+         <instrs> .K => #clearConfig </instrs>
+         <commands> .K => #clearNodeState </commands>
 
     syntax Step ::= "register" String [klabel(register), symbol]
  // ------------------------------------------------------------

@@ -211,7 +211,7 @@ If the program halts without any remaining steps to take, we report a successful
     syntax DeployTx ::= deployTx(Address, Int /*Value*/, ModuleDecl, Arguments, Int /*gasLimit*/, Int /*gasPrice*/) [klabel(deployTx), symbol]
  // --------------------------------------------------------------------------------------------------------------------------------------
 
-    syntax Step ::= scCall(CallTx, Expect) [klabel(scCall), symbol]
+    syntax Step ::= scCall( CallTx, Expect ) [klabel(scCall), symbol]
  // ----------------------------------------------------------------
 
     syntax CallTx ::= callTx(Address /*From*/, Address /*To*/, Int /*Value*/, WasmString /*Function*/, Arguments, Int /*gasLimit*/, Int /*gasPrice*/) [klabel(callTx), symbol]

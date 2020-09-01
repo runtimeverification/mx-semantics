@@ -148,7 +148,7 @@ def get_steps_sc_deploy(step, filename):
 def get_steps_sc_call(step, filename):
     tx = mandos_to_call_tx(step['tx'], filename)
     expect = mandos_to_expect(step['expect'])
-    return [KApply('scDeploy', [tx, expect])]
+    return [KApply('scCall', [tx, expect])]
 
 def get_steps_set_state(step, filename):
     if 'accounts' in step:

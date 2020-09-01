@@ -65,13 +65,14 @@ endmodule
 
 module ELROND-NODE
     imports DOMAINS
+    imports WASM-TEXT
 
     configuration
       <node>
         <commands> .K </commands>
         <accounts>
           <account multiplicity="*" type="Map">
-             <address> "" </address>
+             <address> .Address </address>
              <nonce> 0 </nonce>
              <balance> 0 </balance>
 ```
@@ -80,7 +81,7 @@ If the code is "", it means the account is not a contract.
 If the code is "file:<some_path>", then it is a contract, and the corresponding Wasm module is stored in the module registry, with the account's name as key.
 
 ```k
-             <code> "" </code>
+             <code> .Code </code>
 ```
 Storage maps byte arrays to byte arrays.
 
@@ -90,6 +91,34 @@ Storage maps byte arrays to byte arrays.
            </account>
          </accounts>
        </node>
+
+    syntax ReturnStatus ::= ".ReturnStatus"
+                          | "Finish"
+ // --------------------------------
+
+    syntax Address ::= ".Address" | WasmString
+    syntax String  ::= address2String(Address) [function]
+ // -----------------------------------------------------
+    rule address2String(.Address) => ".Address"
+    rule address2String(WS:WasmStringToken) => #parseWasmString(WS)
+
+    syntax Code ::= ".Code" | WasmString | Int
+ // ------------------------------------------
+
+    syntax Argument ::= arg(Int, Int) [klabel(tupleArg), symbol]
+ // ------------------------------------------------------------
+
+    syntax Int ::= valueArg  ( Argument ) [function, functional]
+                 | lengthArg ( Argument ) [function, functional]
+ // ------------------------------------------------------------
+    rule valueArg (arg(V, _)) => V
+    rule lengthArg(arg(_, L)) => L
+
+    syntax Address ::= ".Address" | WasmString
+ // ------------------------------------------
+
+    syntax Code ::= ".Code" | WasmString
+ // ------------------------------------
 
 endmodule
 
@@ -160,9 +189,9 @@ If the program halts without any remaining steps to take, we report a successful
          <moduleRegistry> REG => REG [NAME <- IDX -Int 1] </moduleRegistry>
          <nextModuleIdx> IDX </nextModuleIdx>
 
-    syntax Step ::= "setAccount" String Int Int String Map [klabel(setAccount), symbol]
+    syntax Step ::= setAccount(Address, Int, Int, WasmString, Map) [klabel(setAccount), symbol]
  // -----------------------------------------------------------------------------------
-    rule <k> setAccount ADDRESS NONCE BALANCE CODE STORAGE => . ... </k>
+    rule <k> setAccount(ADDRESS, NONCE, BALANCE, CODE, STORAGE) => . ... </k>
          <accounts>
            ( .Bag
           => <account>
@@ -175,6 +204,27 @@ If the program halts without any remaining steps to take, we report a successful
            )
            ...
          </accounts>
+
+    syntax Step ::= scDeploy( DeployTx, Expect ) [klabel(scDeploy), symbol]
+ // ----------------------------------------------------------------------
+
+    syntax DeployTx ::= deployTx(Address, Int /*Value*/, ModuleDecl, Arguments, Int /*gasLimit*/, Int /*gasPrice*/) [klabel(deployTx), symbol]
+ // --------------------------------------------------------------------------------------------------------------------------------------
+
+    syntax Step ::= scCall(CallTx, Expect) [klabel(scCall), symbol]
+ // ----------------------------------------------------------------
+
+    syntax CallTx ::= callTx(Address /*From*/, Address /*To*/, Int /*Value*/, WasmString /*Function*/, Arguments, Int /*gasLimit*/, Int /*gasPrice*/) [klabel(callTx), symbol]
+ // ---------------------------------------------------------------------------------------------------------------------------------------------
+
+    syntax Expect ::= ".Expect" [klabel(.Expect), symbol]
+ // -------------------------------------------------------
+
+    syntax Arguments ::= List{WasmString, ""} [klabel(arguments), symbol]
+ // ------------------------------------------------------------------
+
+    syntax Step ::= checkState() [klabel(checkState), symbol]
+ // ---------------------------------------------------------
 
 endmodule
 ```

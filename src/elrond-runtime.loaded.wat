@@ -61,6 +61,9 @@
       </deterministicMemoryGrowth>
     </wasm>
     <node>
+      <commands>
+        .
+      </commands>
       <accounts>
         .AccountCellMap
       </accounts>

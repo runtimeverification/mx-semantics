@@ -167,9 +167,6 @@ If the program halts without any remaining steps to take, we report a successful
          <exit-code> 1 => 0 </exit-code>
 
 
-    syntax AddressNonce ::= tuple( Address , Int )
- // ----------------------------------------------
-
     syntax Steps ::= List{Step, ""} [klabel(mandosSteps), symbol]
  // -------------------------------------------------------------
     rule <k> .Steps => . </k>
@@ -211,6 +208,11 @@ If the program halts without any remaining steps to take, we report a successful
 
     syntax Step ::= newAddress(Address, Int, Address) [klabel(newAddress), symbol]
  // ------------------------------------------------------------------------------
+    rule <k> newAddress(CREATOR, NONCE, NEW) => . ... </k>
+         <newAddresses> NEWADDRESSES => NEWADDRESSES [tuple(CREATOR, NONCE) <- NEW] </newAddresses>
+
+    syntax AddressNonce ::= tuple( Address , Int )
+ // ----------------------------------------------
 
     syntax Step ::= scDeploy( DeployTx, Expect ) [klabel(scDeploy), symbol]
  // ----------------------------------------------------------------------

@@ -2,6 +2,9 @@
   <k>
     .
   </k>
+  <newAddresses>
+    .Map
+  </newAddresses>
   <elrond>
     <wasm>
       <instrs>

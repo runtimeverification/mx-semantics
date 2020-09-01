@@ -150,6 +150,17 @@ def get_steps_sc_call(step, filename):
     expect = mandos_to_expect(step['expect'])
     return [KApply('scCall', [tx, expect])]
 
+def get_steps_new_addresses(new_addresses):
+        if new_addresses is None:
+            return []
+        ret = []
+        for new_address in new_addresses:
+            creator = KWasmString(new_address['creatorAddress'])
+            nonce   = mandos_int_to_int(new_address['creatorNonce'])
+            new     = KWasmString(new_address['newAddress'])
+            ret.append(KApply('newAddress', [creator, nonce, new]))
+        return ret
+
 def get_steps_set_state(step, filename):
     if 'accounts' in step:
         set_accounts = [ mandos_to_set_account(address, sections) for (address, sections) in step['accounts'].items()]
@@ -163,6 +174,9 @@ def get_steps_set_state(step, filename):
         contract_setups = [ step for pair in contract_module_decls for step in pair ]
         k_steps = contract_setups
         k_steps = k_steps + set_accounts
+
+        new_addresses = get_steps_new_addresses(step['newAddresses'])
+        k_steps = k_steps + new_addresses
     else:
         print('Step not implemented: %s' % step, file=sys.stderr)
         sys.exit(1)

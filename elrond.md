@@ -152,6 +152,7 @@ module MANDOS
     configuration
       <mandos>
         <k> $PGM:Steps </k>
+        <newAddresses> .Map </newAddresses>
         <elrond/>
         <exit-code exit=""> 1 </exit-code>
       </mandos>
@@ -165,6 +166,9 @@ If the program halts without any remaining steps to take, we report a successful
          <instrs> . </instrs>
          <exit-code> 1 => 0 </exit-code>
 
+
+    syntax AddressNonce ::= tuple( Address , Int )
+ // ----------------------------------------------
 
     syntax Steps ::= List{Step, ""} [klabel(mandosSteps), symbol]
  // -------------------------------------------------------------
@@ -205,14 +209,19 @@ If the program halts without any remaining steps to take, we report a successful
            ...
          </accounts>
 
+    syntax Step ::= newAddress(Address, Int, Address) [klabel(newAddress), symbol]
+ // ------------------------------------------------------------------------------
+
     syntax Step ::= scDeploy( DeployTx, Expect ) [klabel(scDeploy), symbol]
  // ----------------------------------------------------------------------
+    rule <k> scDeploy( TX, EXPECT ) => TX ~> EXPECT ... </k>
 
-    syntax DeployTx ::= deployTx(Address, Int /*Value*/, ModuleDecl, Arguments, Int /*gasLimit*/, Int /*gasPrice*/) [klabel(deployTx), symbol]
- // --------------------------------------------------------------------------------------------------------------------------------------
+    syntax DeployTx ::= deployTx( Address, Int , ModuleDecl , Arguments , Int , Int ) [klabel(deployTx), symbol]
+ // ------------------------------------------------------------------------------------------------------------
 
     syntax Step ::= scCall( CallTx, Expect ) [klabel(scCall), symbol]
  // ----------------------------------------------------------------
+    rule <k> scCall( TX, EXPECT ) => TX ~> EXPECT ... </k>
 
     syntax CallTx ::= callTx(Address /*From*/, Address /*To*/, Int /*Value*/, WasmString /*Function*/, Arguments, Int /*gasLimit*/, Int /*gasPrice*/) [klabel(callTx), symbol]
  // ---------------------------------------------------------------------------------------------------------------------------------------------

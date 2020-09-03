@@ -156,21 +156,23 @@ The (incorrect) default implementation of a host call is to just return zero val
 Initialize account: if the address is already present with some value, add value to it, otherwise create the account.
 
 ```k
-    syntax InitAccount ::= initAccount ( Address , Int )
- // ----------------------------------------------------
-    rule <commands> initAccount(ADDR, VALUE) => . ... </commands>
+    syntax InitAccount ::= initAccount ( Address , Int , Code )
+ // -----------------------------------------------------------
+    rule <commands> initAccount(ADDR, VALUE, CODE) => . ... </commands>
          <account>
            <address> ADDR </address>
            <balance> BAL => BAL +Int VALUE </balance>
+           <code> .Code => CODE </code>
            ...
          </account>
 
-    rule <commands> initAccount(ADDR, VALUE) => . ... </commands>
+    rule <commands> initAccount(ADDR, VALUE, CODE) => . ... </commands>
          <accounts>
            ( .Bag
           => <account>
                <address> ADDR </address>
                <balance> VALUE </balance>
+               <code> CODE </code>
                ...
              </account>
            )
@@ -277,12 +279,13 @@ If the program halts without any remaining steps to take, we report a successful
     syntax Deployment ::= deployLastModule( Address, Int, Arguments, Int, Int )
  // ---------------------------------------------------------------------------
     rule <k> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) => . ... </k>
-         <commands> . => initAccount(NEWADDR, VALUE) ~> callContract(FROM, NEWADDR, "init", ARGS, GASLIMIT, GASPRICE) </commands>
+         <commands> . => initAccount(NEWADDR, VALUE, NEXTIDX -Int 1) ~> callContract(FROM, NEWADDR, "init", ARGS, GASLIMIT, GASPRICE) </commands>
          <account>
             <address> FROM </address>
             <nonce> NONCE </nonce>
             ...
          </account>
+         <nextModuleIdx> NEXTIDX </nextModuleIdx>
          <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Address ... </newAddresses>
 
     syntax Step ::= scCall( CallTx, Expect ) [klabel(scCall), symbol]

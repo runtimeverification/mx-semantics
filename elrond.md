@@ -70,6 +70,10 @@ module ELROND-NODE
     configuration
       <node>
         <commands> .K </commands>
+        <callState>
+          <callingArguments> .Arguments </callingArguments>
+          <caller> .Address </caller>
+        </callState>
         <accounts>
           <account multiplicity="*" type="Map">
              <address> .Address </address>
@@ -79,6 +83,7 @@ module ELROND-NODE
 
 If the code is "", it means the account is not a contract.
 If the code is "file:<some_path>", then it is a contract, and the corresponding Wasm module is stored in the module registry, with the account's name as key.
+If the code is an index, it is the exact module index from the Wasm store which specifies the contract.
 
 ```k
              <code> .Code </code>
@@ -87,7 +92,6 @@ Storage maps byte arrays to byte arrays.
 
 ```k
              <storage> .Map </storage>
-
            </account>
          </accounts>
        </node>
@@ -114,11 +118,14 @@ Storage maps byte arrays to byte arrays.
     rule valueArg (arg(V, _)) => V
     rule lengthArg(arg(_, L)) => L
 
+    syntax Arguments ::= List{WasmString, ""} [klabel(arguments), symbol]
+ // ------------------------------------------------------------------
+
     syntax Address ::= ".Address" | WasmString
  // ------------------------------------------
 
-    syntax Code ::= ".Code" | WasmString
- // ------------------------------------
+    syntax Code ::= ".Code" | WasmString | Int
+ // ------------------------------------------
 
 endmodule
 
@@ -135,6 +142,7 @@ module ELROND
       </elrond>
 
     syntax BigIntHeap ::= List{Int, ":"}
+ // ------------------------------------
 ```
 
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.
@@ -142,6 +150,50 @@ The (incorrect) default implementation of a host call is to just return zero val
 ```k
     rule <instrs> hostCall("env", "asyncCall", [ DOM ] -> [ CODOM ]) => . ... </instrs>
          <valstack> VS => #zero(CODOM) ++ #drop(lengthValTypes(DOM), VS) </valstack>
+
+```
+
+Initialize account: if the address is already present with some value, add value to it, otherwise create the account.
+
+```k
+    syntax InitAccount ::= initAccount ( Address , Int )
+ // ----------------------------------------------------
+    rule <commands> initAccount(ADDR, VALUE) => . ... </commands>
+         <account>
+           <address> ADDR </address>
+           <balance> BAL => BAL +Int VALUE </balance>
+           ...
+         </account>
+
+    rule <commands> initAccount(ADDR, VALUE) => . ... </commands>
+         <accounts>
+           ( .Bag
+          => <account>
+               <address> ADDR </address>
+               <balance> VALUE </balance>
+               ...
+             </account>
+           )
+           ...
+         </accounts>
+
+    syntax CallContract ::= callContract ( Address , Address , String , Arguments , Int , Int )
+ // -------------------------------------------------------------------------------------------
+    rule <commands> callContract(FROM, ADDRESS, FUNCNAME, ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
+         <callingArguments> _ => ARGS </callingArguments>
+         <caller> _ => FROM </caller>
+         <account>
+           <address> ADDRESS </address>
+           <code> CODE:Int </code>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> CODE </modIdx>
+           <exports> ... #unparseWasmString("\"" +String FUNCNAME +String "\"") |-> FUNCIDX:Int </exports>
+           <funcAddrs> ... FUNCIDX |-> FUNCADDR:Int ... </funcAddrs>
+           ...
+         </moduleInst>
+         <instrs> . => ( invoke FUNCADDR ) </instrs>
 
 endmodule
 
@@ -220,6 +272,18 @@ If the program halts without any remaining steps to take, we report a successful
 
     syntax DeployTx ::= deployTx( Address, Int , ModuleDecl , Arguments , Int , Int ) [klabel(deployTx), symbol]
  // ------------------------------------------------------------------------------------------------------------
+    rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) => MODULE ~> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) ... </k>
+
+    syntax Deployment ::= deployLastModule( Address, Int, Arguments, Int, Int )
+ // ---------------------------------------------------------------------------
+    rule <k> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) => . ... </k>
+         <commands> . => initAccount(NEWADDR, VALUE) ~> callContract(FROM, NEWADDR, "init", ARGS, GASLIMIT, GASPRICE) </commands>
+         <account>
+            <address> FROM </address>
+            <nonce> NONCE </nonce>
+            ...
+         </account>
+         <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Address ... </newAddresses>
 
     syntax Step ::= scCall( CallTx, Expect ) [klabel(scCall), symbol]
  // ----------------------------------------------------------------
@@ -230,9 +294,7 @@ If the program halts without any remaining steps to take, we report a successful
 
     syntax Expect ::= ".Expect" [klabel(.Expect), symbol]
  // -------------------------------------------------------
-
-    syntax Arguments ::= List{WasmString, ""} [klabel(arguments), symbol]
- // ------------------------------------------------------------------
+    rule <k> .Expect => . ... </k>
 
     syntax Step ::= checkState() [klabel(checkState), symbol]
  // ---------------------------------------------------------

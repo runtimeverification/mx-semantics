@@ -179,19 +179,22 @@ Initialize account: if the address is already present with some value, add value
            ...
          </accounts>
 
-    syntax CallContract ::= callContract ( Address , Address , String , Arguments , Int , Int )
- // -------------------------------------------------------------------------------------------
-    rule <commands> callContract(FROM, ADDRESS, FUNCNAME, ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
+    syntax CallContract ::= callContract ( Address , Address ,     String , Arguments , Int , Int ) [klabel(callContractString)]
+                          | callContract ( Address , Address , WasmString , Arguments , Int , Int ) [klabel(callContractWasmString)]
+ // --------------------------------------------------------------------------------------------------------------------------------
+    rule <commands> callContract(FROM, TO, FUNCNAME:String, ARGS, GASLIMIT, GASPRICE) => callContract(FROM, TO, #unparseWasmString("\"" +String FUNCNAME +String "\""), ARGS, GASLIMIT, GASPRICE) ... </commands>
+
+    rule <commands> callContract(FROM, TO, FUNCNAME:WasmString, ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
          <callingArguments> _ => ARGS </callingArguments>
          <caller> _ => FROM </caller>
          <account>
-           <address> ADDRESS </address>
+           <address> TO </address>
            <code> CODE:Int </code>
            ...
          </account>
          <moduleInst>
            <modIdx> CODE </modIdx>
-           <exports> ... #unparseWasmString("\"" +String FUNCNAME +String "\"") |-> FUNCIDX:Int </exports>
+           <exports> ... FUNCNAME |-> FUNCIDX:Int </exports>
            <funcAddrs> ... FUNCIDX |-> FUNCADDR:Int ... </funcAddrs>
            ...
          </moduleInst>
@@ -294,6 +297,8 @@ If the program halts without any remaining steps to take, we report a successful
 
     syntax CallTx ::= callTx(Address /*From*/, Address /*To*/, Int /*Value*/, WasmString /*Function*/, Arguments, Int /*gasLimit*/, Int /*gasPrice*/) [klabel(callTx), symbol]
  // ---------------------------------------------------------------------------------------------------------------------------------------------
+    rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => . ... </k>
+         <commands> . => callContract(FROM, TO, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>
 
     syntax Expect ::= ".Expect" [klabel(.Expect), symbol]
  // -------------------------------------------------------

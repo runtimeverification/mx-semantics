@@ -97,6 +97,7 @@ module ELROND-NODE
         <callState>
           <callingArguments> .List </callingArguments>
           <caller> .Address </caller>
+          <callee> .Address </callee>
           <callValue> 0 </callValue>
         </callState>
         <accounts>
@@ -205,6 +206,42 @@ Parallelized semantics can be achieved by instead using the following rule:
 
 Here, host calls are implemented, by defining the semantics when `hostCall(MODULE_NAME, EXPORT_NAME, TYPE)` is left on top of the `instrs` cell.
 
+#### Call State
+
+```k
+    rule <instrs> hostCall("env", "getNumArguments", [ .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(ARGS) ... </instrs>
+         <callingArguments> ARGS </callingArguments>
+
+    rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthArg({ARGS[IDX]}:>Argument) ... </instrs>
+         <locals> 0 |-> <i32> IDX </locals>
+         <callingArguments> ARGS </callingArguments>
+
+    rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthArg({ARGS[IDX]}:>Argument) ... </instrs>
+         <locals>
+           0 |-> <i32> IDX
+           1 |-> <i32> OFFSET
+         </locals>
+         <callingArguments> ARGS </callingArguments>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <code> MODIDX:Int </code>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA => #setRange(DATA, OFFSET, valueArg({ARGS[IDX]}:>Argument), lengthArg({ARGS[IDX]}:>Argument)) </mdata>
+           ...
+         </memInst>
+         requires (OFFSET +Int lengthArg({ARGS[IDX]}:>Argument)) <=Int (SIZE *Int #pageSize())
+```
+
 #### BigInt Heap
 
 ```k
@@ -273,6 +310,7 @@ Initialize account: if the address is already present with some value, add value
     rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => #wait ... </commands>
          <callingArguments> _ => ARGS </callingArguments>
          <caller> _ => FROM </caller>
+         <callee> _ => TO   </callee>
          <callValue> _ => VALUE </callValue>
          <bigIntHeap> _ => .BigIntHeap </bigIntHeap>
          <account>

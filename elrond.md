@@ -122,7 +122,10 @@ Storage maps byte arrays to byte arrays.
  // ------------------------------------------------------------------
 
     syntax Address ::= ".Address" | WasmString
- // ------------------------------------------
+    syntax String  ::= address2String(Address) [function]
+ // -----------------------------------------------------
+    rule address2String(.Address) => ".Address"
+    rule address2String(WS:WasmStringToken) => #parseWasmString(WS)
 
     syntax Code ::= ".Code" | WasmString | Int
  // ------------------------------------------
@@ -139,6 +142,7 @@ module ELROND
         <wasm/>
         <node/>
         <bigIntHeap> .BigIntHeap </bigIntHeap>
+        <logging> "" </logging>
       </elrond>
 
     syntax BigIntHeap ::= List{Int, ":"}
@@ -165,6 +169,7 @@ Initialize account: if the address is already present with some value, add value
            <code> .Code => CODE </code>
            ...
          </account>
+         <logging> S => S +String " -- initAccount existing " +String address2String(ADDR) </logging>
 
     rule <commands> initAccount(ADDR, VALUE, CODE) => . ... </commands>
          <accounts>
@@ -178,6 +183,7 @@ Initialize account: if the address is already present with some value, add value
            )
            ...
          </accounts>
+         <logging> S => S +String " -- initAccount new" +String address2String(ADDR) </logging>
 
     syntax CallContract ::= callContract ( Address , Address ,     String , Arguments , Int , Int ) [klabel(callContractString)]
                           | callContract ( Address , Address , WasmString , Arguments , Int , Int ) [klabel(callContractWasmString)]
@@ -199,6 +205,7 @@ Initialize account: if the address is already present with some value, add value
            ...
          </moduleInst>
          <instrs> . => ( invoke FUNCADDR ) </instrs>
+         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
 
 endmodule
 
@@ -290,6 +297,7 @@ If the program halts without any remaining steps to take, we report a successful
          </account>
          <nextModuleIdx> NEXTIDX </nextModuleIdx>
          <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Address ... </newAddresses>
+         <logging> S => S +String " -- deployLastModule: " +String Int2String(NEXTIDX -Int 1) </logging>
 
     syntax Step ::= scCall( CallTx, Expect ) [klabel(scCall), symbol]
  // ----------------------------------------------------------------
@@ -299,6 +307,7 @@ If the program halts without any remaining steps to take, we report a successful
  // ---------------------------------------------------------------------------------------------------------------------------------------------
     rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => . ... </k>
          <commands> . => callContract(FROM, TO, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>
+         <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
 
     syntax Expect ::= ".Expect" [klabel(.Expect), symbol]
  // -------------------------------------------------------

@@ -205,6 +205,31 @@ Parallelized semantics can be achieved by instead using the following rule:
 
 Here, host calls are implemented, by defining the semantics when `hostCall(MODULE_NAME, EXPORT_NAME, TYPE)` is left on top of the `instrs` cell.
 
+#### BigInt Heap
+
+```k
+    rule <instrs> hostCall("env", "bigIntNew", [ i64 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(HEAP) ... </instrs>
+         <locals> 0 |-> <i64> INITIAL </locals>
+         <bigIntHeap> HEAP => HEAP[size(HEAP) <- INITIAL] </bigIntHeap>
+
+    rule <instrs> hostCall("env", "bigIntGetCallValue", [ i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+         <locals> 0 |-> <i32> IDX </locals>
+         <bigIntHeap> HEAP => HEAP[IDX <- VALUE] </bigIntHeap>
+         <callValue> VALUE </callValue>
+
+    rule <instrs> hostCall("env", "bigIntCmp", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const cmpInt({HEAP[IDX1]}:>Int, {HEAP[IDX2]}:>Int) ... </instrs>
+         <locals> 0 |-> <i32> IDX1  1 |-> <i32> IDX2 </locals>
+         <bigIntHeap> HEAP </bigIntHeap>
+```
+
+```k
+    syntax Int ::= cmpInt ( Int , Int ) [function, functional]
+ // ----------------------------------------------------------
+    rule cmpInt(I1, I2) => -1 requires I1  <Int I2
+    rule cmpInt(I1, I2) =>  1 requires I1  >Int I2
+    rule cmpInt(I1, I2) =>  0 requires I1 ==Int I2
+```
+
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.
 
 ```k

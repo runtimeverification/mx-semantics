@@ -6,7 +6,20 @@ module MANDOS-SYNTAX
     imports MANDOS
     imports WASM-TEXT-SYNTAX
 endmodule
+```
 
+## Auto Allocate Host Modules
+
+
+When `AUTO-ALLOCATE` is imported, an new module will be automatically created and registered whenever necessary to resolve an import.
+This makes it possible to implement host modules easily in K.
+Accessing the import will result in an instruction being left on the `instrs` cell that can't be resolved in the regular Wasm semantics.
+Instead, the embedder can add rules for handling the host import.
+
+Currently, only function imports are supported.
+Calling an imported host function will result in `hostCall(MODULE_NAME, FUNCTION_NAME, FUNCTION_TYPE)` being left on the `instrs` cell.
+
+```k
 module AUTO-ALLOCATE
     imports WASM
 
@@ -21,7 +34,12 @@ module AUTO-ALLOCATE
                    | #autoAllocModules( Defns     , Map ) [function]
  // -----------------------------------------------------
     rule  autoAllocModules(#module(... importDefns: IS), MR) => #autoAllocModules(IS, MR)
+```
 
+In helper function `#autoAllocModules`, the module registry map is passed along to check if the module being imported from is present.
+It is treated purely as a key set -- the actual stored values are not used or stored anywhere.
+
+```k
     rule #autoAllocModules(.Defns, _) => .Stmts
     rule #autoAllocModules(((import MOD _ _) DS) => DS, MR) requires MOD in_keys(MR)
     rule #autoAllocModules(((import MOD _ _) DS), MR)
@@ -179,6 +197,8 @@ Parallelized semantics can be achieved by instead using the following rule:
 ```
 
 ### Host Calls
+
+Here, host calls are implemented, by defining the semantics when `hostCall(MODULE_NAME, EXPORT_NAME, TYPE)` is left on top of the `instrs` cell.
 
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.
 

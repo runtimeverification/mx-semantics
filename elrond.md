@@ -166,12 +166,9 @@ module ELROND
       <elrond>
         <wasm/>
         <node/>
-        <bigIntHeap> .BigIntHeap </bigIntHeap>
+        <bigIntHeap> .Map </bigIntHeap>
         <logging> "" </logging>
       </elrond>
-
-    syntax BigIntHeap ::= List{Int, ":"}
- // ------------------------------------
 ```
 
 ### Synchronization
@@ -199,6 +196,14 @@ Parallelized semantics can be achieved by instead using the following rule:
 ### Host Calls
 
 Here, host calls are implemented, by defining the semantics when `hostCall(MODULE_NAME, EXPORT_NAME, TYPE)` is left on top of the `instrs` cell.
+
+#### BigInt Heap
+
+```k
+    rule <instrs> hostCall("env", "bigIntNew", [ i64 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(HEAP) ... </instrs>
+         <locals> 0 |-> <i64> INITIAL </locals>
+         <bigIntHeap> HEAP => HEAP[size(HEAP) <- INITIAL] </bigIntHeap>
+```
 
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.
 

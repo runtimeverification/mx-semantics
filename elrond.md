@@ -230,6 +230,8 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
     rule cmpInt(I1, I2) =>  0 requires I1 ==Int I2
 ```
 
+#### Other Host Calls
+
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.
 
 ```k

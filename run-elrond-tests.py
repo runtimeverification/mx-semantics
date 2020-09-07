@@ -30,11 +30,11 @@ def KMap(kitem_pairs):
         res = KApply("_Map_", [res, new_item])
     return res
 
-def KList(klabel, sort, items):
+def KNamedList(klabel, sort, items):
     if items == []:
         return KApply('.List{\"%s\"}_%s' % (klabel, sort), [])
     head = items[0]
-    tail = KList(klabel, sort, items[1:])
+    tail = KNamedList(klabel, sort, items[1:])
     return KApply(klabel, [head, tail])
 
 def KInt(value : int):
@@ -79,7 +79,7 @@ def mandos_to_set_account(address, sections):
 
 def mandos_arguments_to_arguments(arguments):
     tokenized = list(map(lambda x: KWasmString(x), arguments))
-    return KList("arguments", "Arguments", tokenized)
+    return KNamedList("arguments", "Arguments", tokenized)
 
 def mandos_to_deploy_tx(tx, filename):
     sender = KWasmString(tx['from'])

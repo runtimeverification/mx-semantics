@@ -38,7 +38,7 @@ module AUTO-ALLOCATE
 
     syntax Instr ::= hostCall(String, String, FuncType)
  // ---------------------------------------------------
-    rule <instrs> (. => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(#parseWasmString(MOD), #parseWasmString(NAME), TYPE) .Instrs, #meta(... id: , localIds: .Map )))
+    rule <instrs> (. => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(wasmString2StringStripped(MOD), wasmString2StringStripped(NAME), TYPE) .Instrs, #meta(... id: , localIds: .Map )))
                ~> (import MOD NAME #funcDesc(... type: TIDX))
               ...
          </instrs>
@@ -60,6 +60,13 @@ module AUTO-ALLOCATE
           ...
         </moduleInst>
       requires notBool NAME in_keys(EXPORTS)
+
+    syntax String ::= wasmString2StringStripped ( WasmString ) [function]
+                    | #stripQuotes ( String ) [function]
+ // ----------------------------------------------------
+    rule wasmString2StringStripped(WS) => #stripQuotes(#parseWasmString(WS))
+
+    rule #stripQuotes(S) => replaceAll(S, "\"", "")
 
 endmodule
 

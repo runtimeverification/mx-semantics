@@ -149,6 +149,30 @@ module ELROND
  // ------------------------------------
 ```
 
+### Synchronization
+
+In theory, the node and the Wasm engine can run in parallel.
+For simplicity of debugging and profiling, we want to keep the semantics deterministic.
+When control gets passed to the Wasm engine by putting commands on the `instrs` cell, the node will `#wait` until the Wasm engine is done executing.
+
+```k
+    syntax Wait ::= "#wait"
+ // --------------------
+    rule <commands> #wait => . ... </commands>
+         <instrs> . </instrs>
+
+```
+
+Parallelized semantics can be achieved by instead using the following rule:
+
+```
+    syntax Wait ::= "#wait"
+ // --------------------
+    rule <commands> #wait => . ... </commands>
+```
+
+### Host Calls
+
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.
 
 ```k
@@ -190,7 +214,7 @@ Initialize account: if the address is already present with some value, add value
  // --------------------------------------------------------------------------------------------------------------------------------
     rule <commands> callContract(FROM, TO, FUNCNAME:String, ARGS, GASLIMIT, GASPRICE) => callContract(FROM, TO, #unparseWasmString("\"" +String FUNCNAME +String "\""), ARGS, GASLIMIT, GASPRICE) ... </commands>
 
-    rule <commands> callContract(FROM, TO, FUNCNAME:WasmString, ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
+    rule <commands> callContract(FROM, TO, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => #wait ... </commands>
          <callingArguments> _ => ARGS </callingArguments>
          <caller> _ => FROM </caller>
          <account>
@@ -231,6 +255,10 @@ If the program halts without any remaining steps to take, we report a successful
          <exit-code> 1 => 0 </exit-code>
 
 
+    rule <k> #wait => . ... </k>
+         <commands> . </commands>
+         <instrs> . </instrs>
+
     syntax Steps ::= List{Step, ""} [klabel(mandosSteps), symbol]
  // -------------------------------------------------------------
     rule <k> .Steps => . </k>
@@ -242,11 +270,8 @@ If the program halts without any remaining steps to take, we report a successful
 
     syntax Step ::= ModuleDecl
  // --------------------------
-    rule <k> M:ModuleDecl => . ... </k>
-         <wasm>
-           <instrs> .K => sequenceStmts(text2abstract(M .Stmts)) </instrs>
-           ...
-         </wasm>
+    rule <k> M:ModuleDecl => #wait ... </k>
+          <instrs> . => sequenceStmts(text2abstract(M .Stmts)) </instrs>
 
     syntax Step ::= "register" String [klabel(register), symbol]
  // ------------------------------------------------------------
@@ -288,7 +313,7 @@ If the program halts without any remaining steps to take, we report a successful
 
     syntax Deployment ::= deployLastModule( Address, Int, Arguments, Int, Int )
  // ---------------------------------------------------------------------------
-    rule <k> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) => . ... </k>
+    rule <k> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => initAccount(NEWADDR, VALUE, NEXTIDX -Int 1) ~> callContract(FROM, NEWADDR, "init", ARGS, GASLIMIT, GASPRICE) </commands>
          <account>
             <address> FROM </address>
@@ -305,7 +330,7 @@ If the program halts without any remaining steps to take, we report a successful
 
     syntax CallTx ::= callTx(Address /*From*/, Address /*To*/, Int /*Value*/, WasmString /*Function*/, Arguments, Int /*gasLimit*/, Int /*gasPrice*/) [klabel(callTx), symbol]
  // ---------------------------------------------------------------------------------------------------------------------------------------------
-    rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => . ... </k>
+    rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => callContract(FROM, TO, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>
          <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
 

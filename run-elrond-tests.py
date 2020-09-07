@@ -30,6 +30,16 @@ def KMap(kitem_pairs):
         res = KApply("_Map_", [res, new_item])
     return res
 
+def KList(items):
+    list_items = list(map(lambda x: KApply("ListItem", [x]), items))
+    def KList_aux(lis):
+        if lis == []:
+            return KApply(".List", [])
+        head = lis[0]
+        tail = KList_aux(lis[1:])
+        return KApply("_List_", [head, tail])
+    return KList_aux(list_items)
+
 def KNamedList(klabel, sort, items):
     if items == []:
         return KApply('.List{\"%s\"}_%s' % (klabel, sort), [])
@@ -77,9 +87,24 @@ def mandos_to_set_account(address, sections):
     set_account_step  = KApply('setAccount', [address_value, nonce_value, balance_value, code_value, storage_value])
     return set_account_step
 
+def mandos_argument_to_bytes(argument : str):
+    try:
+        as_int = int(argument)
+        num_bytes = 1 + (as_int.bit_length() // 8)
+        return KApply('tupleArg', [KInt(as_int), KInt(num_bytes)])
+    except ValueError:
+        pass
+    if argument[0:2] == '0x':
+        as_int = int(argument, 16)
+        byte_array = bytes.fromhex(argument[2:])
+        num_bytes = len(byte_array)
+        return KApply('tupleArg', [KInt(as_int), KInt(num_bytes)])
+
+    raise ValueError("Argument type not yet supported: %s" % argument)
+
 def mandos_arguments_to_arguments(arguments):
-    tokenized = list(map(lambda x: KWasmString(x), arguments))
-    return KNamedList("arguments", "Arguments", tokenized)
+    tokenized = list(map(lambda x: mandos_argument_to_bytes(x), arguments))
+    return KList(tokenized)
 
 def mandos_to_deploy_tx(tx, filename):
     sender = KWasmString(tx['from'])

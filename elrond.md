@@ -96,7 +96,7 @@ module ELROND-NODE
       <node>
         <commands> .K </commands>
         <callState>
-          <callingArguments> .Arguments </callingArguments>
+          <callingArguments> .List </callingArguments>
           <caller> .Address </caller>
           <callValue> 0 </callValue>
         </callState>
@@ -144,9 +144,6 @@ Storage maps byte arrays to byte arrays.
     rule valueArg (arg(V, _)) => V
     rule lengthArg(arg(_, L)) => L
 
-    syntax Arguments ::= List{WasmString, ""} [klabel(arguments), symbol]
- // ------------------------------------------------------------------
-
     syntax Address ::= ".Address" | WasmString
     syntax String  ::= address2String(Address) [function]
  // -----------------------------------------------------
@@ -155,6 +152,15 @@ Storage maps byte arrays to byte arrays.
 
     syntax Code ::= ".Code" | WasmString | Int
  // ------------------------------------------
+
+    syntax Argument ::= arg(Int, Int) [klabel(tupleArg), symbol]
+ // ------------------------------------------------------------
+
+    syntax Int ::= valueArg  ( Argument ) [function, functional]
+                 | lengthArg ( Argument ) [function, functional]
+ // ------------------------------------------------------------
+    rule valueArg (arg(V, _)) => V
+    rule lengthArg(arg(_, L)) => L
 
 endmodule
 
@@ -234,9 +240,9 @@ Initialize account: if the address is already present with some value, add value
          </accounts>
          <logging> S => S +String " -- initAccount new" +String address2String(ADDR) </logging>
 
-    syntax CallContract ::= callContract ( Address , Address , Int ,     String , Arguments , Int , Int ) [klabel(callContractString)]
-                          | callContract ( Address , Address , Int , WasmString , Arguments , Int , Int ) [klabel(callContractWasmString)]
- // --------------------------------------------------------------------------------------------------------------------------------------
+    syntax CallContract ::= callContract ( Address , Address , Int ,     String , List , Int , Int ) [klabel(callContractString)]
+                          | callContract ( Address , Address , Int , WasmString , List , Int , Int ) [klabel(callContractWasmString)]
+ // ---------------------------------------------------------------------------------------------------------------------------------
     rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:String, ARGS, GASLIMIT, GASPRICE) => callContract(FROM, TO, VALUE, #unparseWasmString("\"" +String FUNCNAME +String "\""), ARGS, GASLIMIT, GASPRICE) ... </commands>
 
     rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => #wait ... </commands>
@@ -333,12 +339,12 @@ If the program halts without any remaining steps to take, we report a successful
  // ----------------------------------------------------------------------
     rule <k> scDeploy( TX, EXPECT ) => TX ~> EXPECT ... </k>
 
-    syntax DeployTx ::= deployTx( Address, Int , ModuleDecl , Arguments , Int , Int ) [klabel(deployTx), symbol]
- // ------------------------------------------------------------------------------------------------------------
+    syntax DeployTx ::= deployTx( Address, Int , ModuleDecl , List , Int , Int ) [klabel(deployTx), symbol]
+ // -------------------------------------------------------------------------------------------------------
     rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) => MODULE ~> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) ... </k>
 
-    syntax Deployment ::= deployLastModule( Address, Int, Arguments, Int, Int )
- // ---------------------------------------------------------------------------
+    syntax Deployment ::= deployLastModule( Address, Int, List, Int, Int )
+ // ----------------------------------------------------------------------
     rule <k> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => initAccount(NEWADDR, NEXTIDX -Int 1) ~> callContract(FROM, NEWADDR, VALUE, "init", ARGS, GASLIMIT, GASPRICE) </commands>
          <account>
@@ -354,8 +360,8 @@ If the program halts without any remaining steps to take, we report a successful
  // ----------------------------------------------------------------
     rule <k> scCall( TX, EXPECT ) => TX ~> EXPECT ... </k>
 
-    syntax CallTx ::= callTx(Address /*From*/, Address /*To*/, Int /*Value*/, WasmString /*Function*/, Arguments, Int /*gasLimit*/, Int /*gasPrice*/) [klabel(callTx), symbol]
- // ---------------------------------------------------------------------------------------------------------------------------------------------
+    syntax CallTx ::= callTx(Address /*From*/, Address /*To*/, Int /*Value*/, WasmString /*Function*/, List, Int /*gasLimit*/, Int /*gasPrice*/) [klabel(callTx), symbol]
+ // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
     rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => callContract(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>
          <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>

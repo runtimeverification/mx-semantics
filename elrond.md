@@ -185,7 +185,6 @@ The (incorrect) default implementation of a host call is to just return zero val
 ```k
     rule <instrs> hostCall("env", "asyncCall", [ DOM ] -> [ CODOM ]) => . ... </instrs>
          <valstack> VS => #zero(CODOM) ++ #drop(lengthValTypes(DOM), VS) </valstack>
-
 ```
 
 Initialize account: if the address is already present with some value, add value to it, otherwise create the account.

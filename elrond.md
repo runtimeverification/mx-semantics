@@ -91,11 +91,6 @@ Storage maps byte arrays to byte arrays.
          </accounts>
        </node>
 
-    syntax NodeCmd ::= "#clearNodeState"
- // ------------------------------------
-    rule <commands> #clearNodeState => . ... </commands>
-         <accounts> _ => .Bag </accounts>
-
 endmodule
 
 module ELROND
@@ -124,6 +119,7 @@ endmodule
 module MANDOS
     imports ELROND
     imports WASM-AUXIL
+    imports K-IO
 
     configuration
       <mandos>
@@ -136,6 +132,10 @@ module MANDOS
     rule <k> .Steps => . </k>
     rule <k> S:Step SS:Steps => S ~> SS ... </k>
 
+    syntax Step ::= "#reportDone"
+ // ----------------------------
+    rule <k> #reportDone => #write(#stdout, "Done\n") ... </k>
+
     syntax Step ::= "noop"
  // ----------------------
     rule <k> noop => . ... </k>
@@ -147,12 +147,6 @@ module MANDOS
            <instrs> .K => sequenceStmts(text2abstract(M .Stmts)) </instrs>
            ...
          </wasm>
-
-    syntax Step ::= "#clearAllState"
- // --------------------------------
-    rule <k> #clearAllState => . ... </k>
-         <instrs> .K => #clearConfig </instrs>
-         <commands> .K => #clearNodeState </commands>
 
     syntax Step ::= "register" String [klabel(register), symbol]
  // ------------------------------------------------------------

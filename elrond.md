@@ -264,11 +264,37 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
     rule <instrs> hostCall("env", "bigIntSignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes(Int2Bytes({HEAP[IDX]}:>Int, BE, Signed)) ... </instrs>
          <locals> 0 |-> <i32> IDX </locals>
          <bigIntHeap> HEAP </bigIntHeap>
+
+    rule <instrs> hostCall("env", "bigIntGetSignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ]) => #getBigInt(IDX, OFFSET, Signed) ... </instrs>
+         <locals> 0 |-> <i32> IDX  1 |-> <i32> OFFSET </locals>
 ```
 
 Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
 
 ```k
+    syntax BigIntOp ::= #getBigInt ( Int , Int , Signedness )
+ // ---------------------------------------------------------------
+    rule <instrs> #getBigInt(BIGINT_IDX, OFFSET, SIGN) => i32.const lengthBytes(Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN)) ...</instrs>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <code> MODIDX:Int </code>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA => #setBytesRange(DATA, OFFSET, Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN)) </mdata>
+           ...
+         </memInst>
+         <bigIntHeap> HEAP </bigIntHeap>
+         requires (OFFSET +Int lengthBytes(Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN))) <=Int (SIZE *Int #pageSize())
+
     syntax BigIntOp ::= #setBigInt ( Int , Int , Int , Signedness )
  // ---------------------------------------------------------------
     rule <instrs> #setBigInt(BIGINT_IDX, OFFSET, LENGTH, SIGN) => . ... </instrs>
@@ -295,6 +321,10 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
     syntax Bytes ::= #getBytesRange ( Bytes , Int , Int ) [function]
  // ----------------------------------------------------------------
     rule #getBytesRange(BS, OFFSET, LENGTH) => substrBytes(BS, OFFSET, OFFSET +Int LENGTH)
+
+    syntax Bytes ::= #setBytesRange ( Bytes , Int , Bytes ) [function]
+ // ------------------------------------------------------------------
+    rule #setBytesRange(BS, OFFSET, NEW) => replaceAtBytes(BS, OFFSET, NEW)
 ```
 
 ```k

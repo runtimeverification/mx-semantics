@@ -274,7 +274,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
          <memInst>
            <mAddr> MEMADDR </mAddr>
            <msize> SIZE </msize>
-           <mdata> DATA => #setRange(DATA, OFFSET, valueArg({ARGS[IDX]}:>Argument), lengthArg({ARGS[IDX]}:>Argument)) </mdata>
+           <mdata> DATA => #setBytesRange(DATA, OFFSET, Int2Bytes(valueArg({ARGS[IDX]}:>Argument), lengthArg({ARGS[IDX]}:>Argument), BE)) </mdata>
            ...
          </memInst>
          requires (OFFSET +Int lengthArg({ARGS[IDX]}:>Argument)) <=Int (SIZE *Int #pageSize())

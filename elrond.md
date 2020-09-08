@@ -257,6 +257,40 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
     rule <instrs> hostCall("env", "bigIntCmp", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const cmpInt({HEAP[IDX1]}:>Int, {HEAP[IDX2]}:>Int) ... </instrs>
          <locals> 0 |-> <i32> IDX1  1 |-> <i32> IDX2 </locals>
          <bigIntHeap> HEAP </bigIntHeap>
+
+    rule <instrs> hostCall("env", "bigIntSetSignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => #setBigInt(IDX, OFFSET, LENGTH, Signed) ... </instrs>
+         <locals> 0 |-> <i32> IDX 1 |-> <i32> OFFSET 2 |-> <i32> LENGTH </locals>
+```
+
+Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
+
+```k
+    syntax BigIntOp ::= #setBigInt ( Int , Int , Int , Signedness )
+ // ---------------------------------------------------------------
+    rule <instrs> #setBigInt(BIGINT_IDX, OFFSET, LENGTH, SIGN) => . ... </instrs>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <code> MODIDX:Int </code>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA </mdata>
+           ...
+         </memInst>
+         <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- Bytes2Int(#getBytesRange(DATA, OFFSET, LENGTH), BE, SIGN)] </bigIntHeap>
+         requires (OFFSET +Int LENGTH) <=Int (SIZE *Int #pageSize())
+
+    syntax Bytes ::= #getBytesRange ( Bytes , Int , Int ) [function]
+ // ----------------------------------------------------------------
+    rule #getBytesRange(BS, OFFSET, LENGTH) => substrBytes(BS, OFFSET, OFFSET +Int LENGTH)
 ```
 
 ```k

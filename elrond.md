@@ -99,6 +99,8 @@ module ELROND-NODE
           <caller> .Address </caller>
           <callee> .Address </callee>
           <callValue> 0 </callValue>
+          <returnData> .Bytes </returnData>
+          <returnStatus> .ReturnStatus </returnStatus>
         </callState>
         <accounts>
           <account multiplicity="*" type="Map">
@@ -205,6 +207,42 @@ Parallelized semantics can be achieved by instead using the following rule:
 ### Host Calls
 
 Here, host calls are implemented, by defining the semantics when `hostCall(MODULE_NAME, EXPORT_NAME, TYPE)` is left on top of the `instrs` cell.
+
+#### Completing the Call
+
+```k
+    rule <instrs> hostCall("env", "finish", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) => #done ... </instrs>
+         <locals>
+           0 |-> <i32> OFFSET
+           1 |-> <i32> LENGTH
+         </locals>
+         <callee> CALLEE </callee>
+         <returnData> _ => #getBytesRange(DATA, OFFSET, LENGTH) </returnData>
+         <returnStatus> _ => Finish </returnStatus>
+         <account>
+           <address> CALLEE </address>
+           <code> MODIDX:Int </code>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA </mdata>
+           ...
+         </memInst>
+         requires (OFFSET +Int LENGTH) <=Int (SIZE *Int #pageSize())
+
+
+    syntax Done ::= "#done"
+ // -----------------------
+    rule <instrs> #done ~> REST => . </instrs>
+
+```
 
 #### Call State
 

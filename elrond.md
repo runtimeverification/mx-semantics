@@ -240,7 +240,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
 
     syntax Done ::= "#done"
  // -----------------------
-    rule <instrs> #done ~> REST => . </instrs>
+    rule <instrs> #done ~> _REST => . </instrs>
 
 ```
 

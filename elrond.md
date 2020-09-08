@@ -530,7 +530,7 @@ Initialize account: if the address is already present with some value, add value
          <caller> _ => FROM </caller>
          <callee> _ => TO   </callee>
          <callValue> _ => VALUE </callValue>
-         <bigIntHeap> _ => .BigIntHeap </bigIntHeap>
+         <bigIntHeap> _ => .Map </bigIntHeap>
          <account>
            <address> TO </address>
            <code> CODE:Int </code>

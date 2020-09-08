@@ -366,7 +366,7 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
 
     syntax Bytes ::= #setBytesRange ( Bytes , Int , Bytes ) [function]
  // ------------------------------------------------------------------
-    rule #setBytesRange(BS, OFFSET, NEW) => replaceAtBytes(BS, OFFSET, NEW)
+    rule #setBytesRange(BS, OFFSET, NEW) => replaceAtBytes(padRightBytes(BS, OFFSET +Int lengthBytes(NEW), 0), OFFSET, NEW)
 ```
 
 ```k

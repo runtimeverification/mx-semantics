@@ -249,6 +249,7 @@ Initialize account: if the address is already present with some value, add value
          <callingArguments> _ => ARGS </callingArguments>
          <caller> _ => FROM </caller>
          <callValue> _ => VALUE </callValue>
+         <bigIntHeap> _ => .Map </bigIntHeap>
          <account>
            <address> TO </address>
            <code> CODE:Int </code>

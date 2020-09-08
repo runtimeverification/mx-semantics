@@ -335,6 +335,87 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
     rule cmpInt(I1, I2) =>  0 requires I1 ==Int I2
 ```
 
+#### Storage
+
+Storing a value returns a status code indicating if and how the storage was modified.
+
+TODO: Implement [reserved keys and read-only runtimes](https://github.com/ElrondNetwork/arwen-wasm-vm/blob/d6ea0489081f81fefba002609c34ece1365373dd/arwen/contexts/storage.go#L111).
+
+```k
+    rule <instrs> hostCall("env", "storageLoadLength", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) => i32.const lengthBytes({STORAGE[#getBytesRange(DATA, KEYOFFSET, KEYLENGTH)]}:>Bytes) ... </instrs>
+         <locals>
+           0 |-> <i32> KEYOFFSET
+           1 |-> <i32> KEYLENGTH
+         </locals>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <storage> STORAGE </storage>
+           <code> MODIDX </code>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA </mdata>
+           ...
+         </memInst>
+         requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
+
+    rule <instrs> hostCall("env", "storageStore", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
+               => i32.const #storageStatus(STORAGE, #getBytesRange(DATA, KEYOFFSET, KEYLENGTH),  #getBytesRange(DATA, VALOFFSET, VALLENGTH))
+               ...
+         </instrs>
+         <locals>
+           0 |-> <i32> KEYOFFSET
+           1 |-> <i32> KEYLENGTH
+           2 |-> <i32> VALOFFSET
+           3 |-> <i32> VALLENGTH
+         </locals>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <storage> STORAGE => STORAGE [ #getBytesRange(DATA, KEYOFFSET, KEYLENGTH) <- #getBytesRange(DATA, VALOFFSET, VALLENGTH)] </storage>
+           <code> MODIDX </code>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA </mdata>
+           ...
+         </memInst>
+         requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
+          andBool (VALOFFSET +Int VALLENGTH) <=Int (SIZE *Int #pageSize())
+
+    syntax Int ::= #storageStatus ( Map , key : Bytes , val : Bytes ) [function, functional]
+                 | #StorageUnmodified () [function, functional]
+                 | #StorageModified   () [function, functional]
+                 | #StorageAdded      () [function, functional]
+                 | #StorageDeleted    () [function, functional]
+ // -----------------------------------------------------------
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL  ==K .Bytes andBool notBool KEY in_keys(STOR)
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL =/=K .Bytes andBool         KEY in_keys(STOR) andBool STOR[KEY]  ==K VAL
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageModified  () requires VAL =/=K .Bytes andBool         KEY in_keys(STOR) andBool STOR[KEY] =/=K VAL
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageAdded     () requires VAL =/=K .Bytes andBool notBool KEY in_keys(STOR)
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageDeleted   () requires VAL  ==K .Bytes andBool         KEY in_keys(STOR)
+
+    rule #StorageUnmodified() => 0
+    rule #StorageModified  () => 1
+    rule #StorageAdded     () => 2
+    rule #StorageDeleted   () => 3
+```
+
 #### Other Host Calls
 
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.

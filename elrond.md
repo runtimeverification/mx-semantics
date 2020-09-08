@@ -241,7 +241,6 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
     syntax Done ::= "#done"
  // -----------------------
     rule <instrs> #done ~> _REST => . </instrs>
-
 ```
 
 #### Call State

@@ -114,8 +114,8 @@ $(ELROND_RUNTIME_JSON):
 # Elrond Tests
 # ------------
 
-ELROND_TESTS_DIR=$(ELROND_DELEGATION_SUBMODULE)/test/integration/main
+ELROND_TESTS_DIR=tests/mandos
 elrond_tests=$(sort $(wildcard $(ELROND_TESTS_DIR)/*.steps.json))
-elrond-test:
+elrond-test: $(llvm_kompiled)
 	python3 run-elrond-tests.py $(elrond_tests)
 

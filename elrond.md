@@ -125,6 +125,7 @@ module MANDOS
       <mandos>
         <k> $PGM:Steps </k>
         <elrond/>
+        <exit-code exit=""> 1 </exit-code>
       </mandos>
 
     syntax Steps ::= List{Step, ""} [klabel(mandosSteps), symbol]
@@ -132,9 +133,10 @@ module MANDOS
     rule <k> .Steps => . </k>
     rule <k> S:Step SS:Steps => S ~> SS ... </k>
 
-    syntax Step ::= "#reportDone"
- // ----------------------------
-    rule <k> #reportDone => #write(#stdout, "Done\n") ... </k>
+    rule <k> . </k>
+         <commands> . </commands>
+         <instrs> . </instrs>
+         <exit-code> 1 => 0 </exit-code>
 
     syntax Step ::= "noop"
  // ----------------------

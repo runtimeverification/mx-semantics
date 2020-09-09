@@ -82,10 +82,7 @@ TEST_CONCRETE_BACKEND:= llvm
 
 tests/%.run: tests/% $(llvm_kompiled)
 	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< > tests/$*.$(TEST_CONCRETE_BACKEND)-out
-	head -n1 tests/$*.$(TEST_CONCRETE_BACKEND)-out > tests/$*.$(TEST_CONCRETE_BACKEND)-status
-	$(CHECK) tests/$*.$(TEST_CONCRETE_BACKEND)-status tests/success-$(TEST_CONCRETE_BACKEND).out
 	rm -rf tests/$*.$(TEST_CONCRETE_BACKEND)-out
-	rm -rf tests/$*.$(TEST_CONCRETE_BACKEND)-status
 
 simple_tests := $(wildcard tests/simple/*.wast)
 

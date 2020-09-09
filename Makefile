@@ -80,9 +80,7 @@ CHECK := git --no-pager diff --no-index --ignore-all-space -R
 
 TEST_CONCRETE_BACKEND:= llvm
 
-llvm_kompiled := $(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE)-kompiled/compiled.txt
-
-tests/%.run: tests/% $(llvm_kompiled)
+tests/%.run: tests/%
 	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< > tests/$*.$(TEST_CONCRETE_BACKEND)-out
 	rm -rf tests/$*.$(TEST_CONCRETE_BACKEND)-out
 
@@ -116,6 +114,6 @@ $(ELROND_RUNTIME_JSON):
 
 ELROND_TESTS_DIR=tests/mandos
 elrond_tests=$(sort $(wildcard $(ELROND_TESTS_DIR)/*.steps.json))
-elrond-test: $(llvm_kompiled)
+elrond-test:
 	python3 run-elrond-tests.py $(elrond_tests)
 

@@ -175,12 +175,9 @@ module ELROND
       <elrond>
         <wasm/>
         <node/>
-        <bigIntHeap> .BigIntHeap </bigIntHeap>
+        <bigIntHeap> .Map </bigIntHeap>
         <logging> "" </logging>
       </elrond>
-
-    syntax BigIntHeap ::= List{Int, ":"}
- // ------------------------------------
 ```
 
 ### Synchronization

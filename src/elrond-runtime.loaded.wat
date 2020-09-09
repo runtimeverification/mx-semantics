@@ -67,6 +67,14 @@
       <commands>
         .
       </commands>
+      <callState>
+        <callingArguments>
+          .Arguments
+        </callingArguments>
+        <caller>
+          .Address
+        </caller>
+      </callState>
       <accounts>
         .AccountCellMap
       </accounts>
@@ -74,5 +82,11 @@
     <bigIntHeap>
       .BigIntHeap
     </bigIntHeap>
+    <logging>
+      ""
+    </logging>
   </elrond>
+  <exit-code>
+    0
+  </exit-code>
 </mandos>

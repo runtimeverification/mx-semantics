@@ -119,7 +119,6 @@ endmodule
 module MANDOS
     imports ELROND
     imports WASM-AUXIL
-    imports K-IO
 
     configuration
       <mandos>

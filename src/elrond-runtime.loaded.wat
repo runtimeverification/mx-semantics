@@ -69,11 +69,14 @@
       </commands>
       <callState>
         <callingArguments>
-          .Arguments
+          .List
         </callingArguments>
         <caller>
           .Address
         </caller>
+        <callValue>
+          0
+        </callValue>
       </callState>
       <accounts>
         .AccountCellMap

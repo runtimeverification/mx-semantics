@@ -88,6 +88,8 @@ def mandos_to_set_account(address, sections):
     return set_account_step
 
 def mandos_argument_to_bytes(argument : str):
+    if argument == "":
+        return KApply('tupleArg', [KInt(0), KInt(0)])
     try:
         as_int = int(argument)
         num_bytes = 1 + (as_int.bit_length() // 8)

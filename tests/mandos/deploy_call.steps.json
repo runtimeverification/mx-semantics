@@ -1,0 +1,68 @@
+{
+    "name": "deploy-call",
+    "comment": "deploy and call a contract",
+    "steps": [
+        {
+            "step": "setState",
+            "comment": "not much to comment here, but we can",
+            "accounts": {
+                "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b000000000000000000000000": {
+                    "comment": "we can comment on individual account initializations",
+                    "nonce": "0",
+                    "balance": "0xe8d4a51000",
+                    "storage": {},
+                    "code": ""
+                }
+            },
+            "newAddresses": [
+                {
+                    "creatorAddress": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b000000000000000000000000",
+                    "creatorNonce": "0",
+                    "newAddress": "0x1000000000000000000000000000000000000000000000000000000000000000"
+                }
+            ]
+        },
+        {
+            "step": "scDeploy",
+            "txId": "2",
+            "comment": "deploy example",
+            "tx": {
+                "from": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b000000000000000000000000",
+                "value": "0x00",
+                "contractCode": "file:dummy_contract.wasm",
+                "arguments": [ ],
+                "gasLimit": "0x100000",
+                "gasPrice": "0x01"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "tx-name-or-id",
+            "comment": "just an example",
+            "tx": {
+                "from": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b000000000000000000000000",
+                "to": "0x1000000000000000000000000000000000000000000000000000000000000000",
+                "value": "0x00",
+                "function": "someFunctionName",
+                "arguments": [
+                ],
+                "gasLimit": "0x100000",
+                "gasPrice": "0x01"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "0"
+            }
+        }
+    ]
+}

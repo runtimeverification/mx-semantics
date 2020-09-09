@@ -1,0 +1,26 @@
+{
+    "name": "set state",
+    "comment": "set up state and contract names",
+    "steps": [
+        {
+            "step": "setState",
+            "comment": "not much to comment here, but we can",
+            "accounts": {
+                "``test name''": {
+                    "comment": "we can comment on individual account initializations",
+                    "nonce": "1337",
+                    "balance": "0xe8d4a51000",
+                    "storage": {},
+                    "code": ""
+                }
+            },
+            "newAddresses": [
+                {
+                    "creatorAddress": "``test name''",
+                    "creatorNonce": "1337",
+                    "newAddress": "0x1000000000000000000000000000000000000000000000000000000000000000"
+                }
+            ]
+        }
+    ]
+}

@@ -40,13 +40,6 @@ def KList(items):
         return KApply("_List_", [head, tail])
     return KList_aux(list_items)
 
-def KNamedList(klabel, sort, items):
-    if items == []:
-        return KApply('.List{\"%s\"}_%s' % (klabel, sort), [])
-    head = items[0]
-    tail = KNamedList(klabel, sort, items[1:])
-    return KApply(klabel, [head, tail])
-
 def KInt(value : int):
     return KToken(str(value), 'Int')
 

@@ -1,3 +1,5 @@
+setExitCode 1
+
 setAccount("testDeployer", 0, 0, "", .Map)
 newAddress("testDeployer", 0, "testContract")
 
@@ -27,3 +29,5 @@ scCall(
     , 0)
   , .Expect
 )
+
+setExitCode 0

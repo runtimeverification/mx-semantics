@@ -282,20 +282,21 @@ module MANDOS
 If the program halts without any remaining steps to take, we report a successful exit.
 
 ```k
-    rule <k> . </k>
-         <commands> . </commands>
-         <instrs> . </instrs>
-         <exit-code> 1 => 0 </exit-code>
-
-
-    rule <k> #wait => . ... </k>
-         <commands> . </commands>
-         <instrs> . </instrs>
-
     syntax Steps ::= List{Step, ""} [klabel(mandosSteps), symbol]
  // -------------------------------------------------------------
     rule <k> .Steps => . </k>
     rule <k> S:Step SS:Steps => S ~> SS ... </k>
+
+    syntax Step ::= "setExitCode" Int
+ // ---------------------------------
+    rule <k> #setExitCode I => . ... </k>
+         <commands> . </commands>
+         <instrs> . </instrs>
+         <exit-code> _ => I </exit-code>
+
+    rule <k> #wait => . ... </k>
+         <commands> . </commands>
+         <instrs> . </instrs>
 
     syntax Step ::= "noop"
  // ----------------------

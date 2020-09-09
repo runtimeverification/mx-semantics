@@ -289,7 +289,7 @@ If the program halts without any remaining steps to take, we report a successful
 
     syntax Step ::= "setExitCode" Int
  // ---------------------------------
-    rule <k> #setExitCode I => . ... </k>
+    rule <k> setExitCode I => . ... </k>
          <commands> . </commands>
          <instrs> . </instrs>
          <exit-code> _ => I </exit-code>

@@ -80,6 +80,8 @@ CHECK := git --no-pager diff --no-index --ignore-all-space -R
 
 TEST_CONCRETE_BACKEND:= llvm
 
+llvm_kompiled := $(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE)-kompiled/compiled.txt
+
 tests/%.run: tests/% $(llvm_kompiled)
 	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< > tests/$*.$(TEST_CONCRETE_BACKEND)-out
 	rm -rf tests/$*.$(TEST_CONCRETE_BACKEND)-out

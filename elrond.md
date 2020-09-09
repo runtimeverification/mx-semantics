@@ -91,11 +91,6 @@ Storage maps byte arrays to byte arrays.
          </accounts>
        </node>
 
-    syntax NodeCmd ::= "#clearNodeState"
- // ------------------------------------
-    rule <commands> #clearNodeState => . ... </commands>
-         <accounts> _ => .Bag </accounts>
-
 endmodule
 
 module ELROND
@@ -129,7 +124,18 @@ module MANDOS
       <mandos>
         <k> $PGM:Steps </k>
         <elrond/>
+        <exit-code exit=""> 1 </exit-code>
       </mandos>
+```
+
+If the program halts without any remaining steps to take, we report a successful exit.
+
+```k
+    rule <k> . </k>
+         <commands> . </commands>
+         <instrs> . </instrs>
+         <exit-code> 1 => 0 </exit-code>
+
 
     syntax Steps ::= List{Step, ""} [klabel(mandosSteps), symbol]
  // -------------------------------------------------------------
@@ -147,12 +153,6 @@ module MANDOS
            <instrs> .K => sequenceStmts(text2abstract(M .Stmts)) </instrs>
            ...
          </wasm>
-
-    syntax Step ::= "#clearAllState"
- // --------------------------------
-    rule <k> #clearAllState => . ... </k>
-         <instrs> .K => #clearConfig </instrs>
-         <commands> .K => #clearNodeState </commands>
 
     syntax Step ::= "register" String [klabel(register), symbol]
  // ------------------------------------------------------------

@@ -192,7 +192,6 @@ When control gets passed to the Wasm engine by putting commands on the `instrs` 
  // --------------------
     rule <commands> #wait => . ... </commands>
          <instrs> . </instrs>
-
 ```
 
 Parallelized semantics can be achieved by instead using the following rule:

@@ -11,15 +11,12 @@ pipeline {
       when { changeRequest() }
       steps { script { currentBuild.displayName = "PR ${env.CHANGE_ID}: ${env.CHANGE_TITLE}" } }
     }
-    stage('Build and Test') {
-      stages {
-        stage('Build') { steps { sh 'make build RELEASE=true'                         } }
-        stage('Test') {
-          options { timeout(time: 5, unit: 'MINUTES') }
-          parallel {
-            stage('Unit Test')   { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-simple -j4' } }
-            stage('Mandos Test') { steps { sh 'make TEST_CONCRETE_BACKEND=llvm elrond-test -j4' } }
-        }
+    stage('Build') { steps { sh 'make build RELEASE=true' } }
+    stage('Test') {
+      options { timeout(time: 5, unit: 'MINUTES') }
+      parallel {
+        stage('Unit Test')   { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-simple -j4' } }
+        stage('Mandos Test') { steps { sh 'make TEST_CONCRETE_BACKEND=llvm elrond-test -j4' } }
       }
     }
   }

@@ -115,7 +115,8 @@ $(ELROND_RUNTIME_JSON):
 # Elrond Tests
 # ------------
 
-ELROND_TESTS_DIR=tests/mandos
+ELROND_TESTS_DIR := tests/mandos
+
 elrond_tests=$(sort $(wildcard $(ELROND_TESTS_DIR)/*.steps.json))
 elrond-test:
 	python3 run-elrond-tests.py $(elrond_tests)

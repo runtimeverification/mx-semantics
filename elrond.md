@@ -10,7 +10,6 @@ endmodule
 
 ## Auto Allocate Host Modules
 
-
 When `AUTO-ALLOCATE` is imported, an new module will be automatically created and registered whenever necessary to resolve an import.
 This makes it possible to implement host modules easily in K.
 Accessing the import will result in an instruction being left on the `instrs` cell that can't be resolved in the regular Wasm semantics.

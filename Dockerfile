@@ -12,6 +12,9 @@ ARG USER_ID=1000
 ARG GROUP_ID=1000
 RUN groupadd -g $GROUP_ID user && useradd -m -u $USER_ID -s /bin/sh -g user user
 
+USER user:user
+WORKDIR /home/user
+
 RUN    git clone 'https://github.com/WebAssembly/wabt' --branch 1.0.13 --recurse-submodules wabt \
     && cd wabt                                                                                   \
     && mkdir build                                                                               \
@@ -19,5 +22,4 @@ RUN    git clone 'https://github.com/WebAssembly/wabt' --branch 1.0.13 --recurse
     && cmake ..                                                                                  \
     && cmake --build .
 
-USER user:user
-WORKDIR /home/user
+ENV PATH=/home/user/wabt/build:$PATH

@@ -1,7 +1,8 @@
 
 .PHONY: all clean deps wasm-deps                                           \
         build build-llvm build-haskell                                     \
-        elrond-deps elrond-test elrond-loaded
+        elrond-deps elrond-test elrond-loaded                              \
+        test
 
 # Settings
 # --------
@@ -72,6 +73,11 @@ build-llvm: $(KWASM_SUBMODULE)/$(MAIN_DEFN_FILE).md
 
 $(KWASM_SUBMODULE)/$(MAIN_DEFN_FILE).md: $(MAIN_DEFN_FILE).md
 	cp $< $@
+
+# Testing
+# -------
+
+test: test-simple elrond-test
 
 # Unit Tests
 # ----------

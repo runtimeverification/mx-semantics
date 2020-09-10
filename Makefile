@@ -23,6 +23,9 @@ K_BIN := $(K_RELEASE)/bin
 K_LIB := $(K_RELEASE)/lib/kframework
 export K_RELEASE
 
+PYTHONPATH := $(K_LIB)
+export PYTHONPATH
+
 KWASM_DIR  := .
 KWASM_MAKE := make --directory $(KWASM_SUBMODULE) BUILD_DIR=../../$(BUILD_DIR) RELEASE=$(RELEASE)
 

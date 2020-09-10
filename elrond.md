@@ -556,9 +556,13 @@ module MANDOS
       </mandos>
 ```
 
-If the program halts without any remaining steps to take, we report a successful exit.
+Only take the next step once both the Elrond node and Wasm are done executing.
 
 ```k
+    rule <k> #wait => . ... </k>
+         <commands> . </commands>
+         <instrs> . </instrs>
+
     syntax Steps ::= List{Step, ""} [klabel(mandosSteps), symbol]
  // -------------------------------------------------------------
     rule <k> .Steps => . </k>
@@ -570,10 +574,6 @@ If the program halts without any remaining steps to take, we report a successful
          <commands> . </commands>
          <instrs> . </instrs>
          <exit-code> _ => I </exit-code>
-
-    rule <k> #wait => . ... </k>
-         <commands> . </commands>
-         <instrs> . </instrs>
 
     syntax Step ::= "noop"
  // ----------------------

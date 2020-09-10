@@ -109,7 +109,7 @@ def mandos_to_deploy_tx(tx, filename):
     gasPrice = mandos_int_to_int(tx['gasPrice'])
 
     code = get_contract_code(tx['contractCode'], filename)
-    module = wasm_file_to_module_decl(code)
+    module = file_to_module_decl(code)
 
     deployTx = KApply('deployTx', [sender, value, module, arguments, gasLimit, gasPrice])
     return deployTx
@@ -133,6 +133,13 @@ def mandos_to_expect(expect):
 def register(with_name : str):
     return KApply('register', [KString(with_name)])
 
+def file_to_module_decl(filename : str):
+    if filename[-5:] == '.wasm':
+        return wasm_file_to_module_decl(filename)
+    if filename[-5:] == '.wast' or filename[-4:] == '.wat':
+        return wat_file_to_module_decl(filename)
+    raise ValueError('Filetype not yet supported: %s' % filename)
+
 def wasm_file_to_module_decl(filename : str):
     try:
         wat = subprocess.check_output("wasm2wat %s" % filename, shell=True)
@@ -147,8 +154,10 @@ def wasm_file_to_module_decl(filename : str):
     temp = tempfile.NamedTemporaryFile()
     temp.write(wat)
     temp.seek(0)
+    return wat_file_to_module_decl(temp.name)
 
-    (rc, kasted, err) = pyk.kast(WASM_definition_llvm_no_coverage_dir, temp.name, kastArgs = ['--output', 'json'], teeOutput=True)
+def wat_file_to_module_decl(filename : str):
+    (rc, kasted, err) = pyk.kast(WASM_definition_llvm_no_coverage_dir, filename, kastArgs = ['--output', 'json'], teeOutput=True)
     if rc != 0:
         raise Exception("Received error while kast-ing: " + err )
     kasted_json = json.loads(kasted)
@@ -198,7 +207,7 @@ def get_steps_set_state(step, filename):
         contracts_files = [ (addr, get_contract_code(sects['code'], filename)) for (addr, sects) in step['accounts'].items() ]
         contracts_files = [ (addr, code) for (addr, code) in contracts_files if code is not None ]
         # First declare module, then register it
-        contract_module_decls = [ [wasm_file_to_module_decl(f), register(a) ] for (a, f) in contracts_files ]
+        contract_module_decls = [ [file_to_module_decl(f), register(a) ] for (a, f) in contracts_files ]
         # Flatten:
         contract_setups = [ step for pair in contract_module_decls for step in pair ]
         k_steps = contract_setups

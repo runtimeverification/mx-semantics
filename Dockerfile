@@ -4,7 +4,8 @@ FROM runtimeverificationinc/kframework-k:ubuntu-bionic-${K_COMMIT}
 RUN    apt-get update         \
     && apt-get upgrade --yes  \
     && apt-get install --yes  \
-                       pandoc
+                       pandoc \
+                       python3
 
 ARG USER_ID=1000
 ARG GROUP_ID=1000

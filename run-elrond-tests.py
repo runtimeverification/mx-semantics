@@ -134,7 +134,16 @@ def register(with_name : str):
     return KApply('register', [KString(with_name)])
 
 def wasm_file_to_module_decl(filename : str):
-    wat = subprocess.check_output("wasm2wat %s" % filename, shell=True)
+    try:
+        wat = subprocess.check_output("wasm2wat %s" % filename, shell=True)
+    except subprocess.CalledProcessError as e:
+        print("Failed: %s" % e.cmd)
+        print("return code: %d" % e.returncode)
+        print("stdout:")
+        print(e.output)
+        print("stderr:")
+        print(e.stderr)
+        raise e
     temp = tempfile.NamedTemporaryFile()
     temp.write(wat)
     temp.seek(0)

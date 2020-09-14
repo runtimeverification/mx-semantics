@@ -213,7 +213,7 @@ def get_steps_set_state(step, filename):
         k_steps = contract_setups
         k_steps = k_steps + set_accounts
 
-        new_addresses = get_steps_new_addresses(step['newAddresses'])
+        new_addresses = get_steps_new_addresses(step['newAddresses']) if 'newAddresses' in step else []
         k_steps = k_steps + new_addresses
     else:
         print('Step not implemented: %s' % step, file=sys.stderr)

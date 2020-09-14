@@ -14,7 +14,7 @@ KWASM_SUBMODULE := $(DEPS_DIR)/wasm-semantics
 K_SUBMODULE     := $(KWASM_SUBMODULE)/deps/k
 
 ELROND_DELEGATION_SUBMODULE := $(DEPS_DIR)/sc-delegation-rs/v0_3
-ELROND_ADDER_SUBMODULE      := $(DEPS_DIR)/arwen-wasm-vm/test/adder
+ELROND_ADDER_SUBMODULE      := $(DEPS_DIR)/elrond-wasm-rs/examples/adder/mandos
 
 ifneq (,$(wildcard $(K_SUBMODULE)/k-distribution/target/release/k/bin/*))
     K_RELEASE ?= $(abspath $(K_SUBMODULE)/k-distribution/target/release/k)

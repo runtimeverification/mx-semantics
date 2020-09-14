@@ -117,7 +117,7 @@ $(ELROND_LOADED_JSON): $(ELROND_RUNTIME_JSON)
 	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< --parser cat --output json > $@
 
 $(ELROND_RUNTIME_JSON):
-	echo "noop" | $(TEST) kast - json > $@
+	echo "setExitCode 0" | $(TEST) kast - json > $@
 
 # Elrond Tests
 # ------------

@@ -552,7 +552,7 @@ module MANDOS
         <k> $PGM:Steps </k>
         <newAddresses> .Map </newAddresses>
         <elrond/>
-        <exit-code exit=""> 1 </exit-code>
+        <exit-code exit=""> 0 </exit-code>
       </mandos>
 ```
 
@@ -574,10 +574,6 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <commands> . </commands>
          <instrs> . </instrs>
          <exit-code> _ => I </exit-code>
-
-    syntax Step ::= "noop"
- // ----------------------
-    rule <k> noop => . ... </k>
 
     syntax Step ::= ModuleDecl
  // --------------------------

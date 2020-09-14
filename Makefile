@@ -13,7 +13,8 @@ DEFN_DIR  := $(BUILD_DIR)/defn
 KWASM_SUBMODULE := $(DEPS_DIR)/wasm-semantics
 K_SUBMODULE     := $(KWASM_SUBMODULE)/deps/k
 
-ELROND_ADDER_SUBMODULE      := $(DEPS_DIR)/elrond-wasm-rs/examples/adder/mandos
+ELROND_WASM_SUBMODULE  := $(DEPS_DIR)/elrond-wasm-rs
+ELROND_ADDER_SUBMODULE := $(ELROND_WASM_SUBMODULE)/examples/adder/mandos
 
 ifneq (,$(wildcard $(K_SUBMODULE)/k-distribution/target/release/k/bin/*))
     K_RELEASE ?= $(abspath $(K_SUBMODULE)/k-distribution/target/release/k)
@@ -42,10 +43,13 @@ clean:
 
 K_JAR := $(K_SUBMODULE)/k-distribution/target/release/k/lib/java/kernel-1.0-SNAPSHOT.jar
 
-deps: wasm-deps
+deps: wasm-deps elrond-deps
 
 wasm-deps:
 	$(KWASM_MAKE) deps
+
+elrond-deps:
+	cd $(ELROND_WASM_SUBMODULE) && ./build-wasm.sh
 
 # Building Definition
 # -------------------

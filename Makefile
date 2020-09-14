@@ -13,7 +13,6 @@ DEFN_DIR  := $(BUILD_DIR)/defn
 KWASM_SUBMODULE := $(DEPS_DIR)/wasm-semantics
 K_SUBMODULE     := $(KWASM_SUBMODULE)/deps/k
 
-ELROND_DELEGATION_SUBMODULE := $(DEPS_DIR)/sc-delegation-rs/v0_3
 ELROND_ADDER_SUBMODULE      := $(DEPS_DIR)/elrond-wasm-rs/examples/adder/mandos
 
 ifneq (,$(wildcard $(K_SUBMODULE)/k-distribution/target/release/k/bin/*))
@@ -125,11 +124,6 @@ ELROND_TESTS_DIR := tests/mandos
 elrond_tests=$(sort $(wildcard $(ELROND_TESTS_DIR)/*.steps.json))
 elrond-test: $(llvm_kompiled)
 	$(TEST_ELROND) $(elrond_tests)
-
-ELROND_DELEGATION_TESTS_DIR=$(ELROND_DELEGATION_SUBMODULE)/test/integration/main
-elrond_delegation_tests=$(sort $(wildcard $(ELROND_DELEGATION_TESTS_DIR)/*.steps.json))
-elrond-delegation-test:
-	$(TEST_ELROND) $(elrond_delegation_tests)
 
 ELROND_ADDER_TESTS_DIR=$(ELROND_ADDER_SUBMODULE)
 elrond_adder_tests=$(ELROND_ADDER_TESTS_DIR)/adder.scen.json

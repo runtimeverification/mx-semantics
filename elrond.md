@@ -208,11 +208,12 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
 #### Completing the Call
 
 ```k
-    rule <instrs> hostCall("env", "finish", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) => #done ... </instrs>
-         <locals>
-           0 |-> <i32> OFFSET
-           1 |-> <i32> LENGTH
-         </locals>
+    rule <instrs> hostCall("env", "finish", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) => local.get 0 ~> local.get 1 ~> #finish ... </instrs>
+
+    syntax EndCall ::= "#finish"
+ // ----------------------------
+    rule <instrs> #finish => #done ... </instrs>
+         <valstack> <i32> LENGTH : <i32> OFFSET : VS => VS </valstack>
          <callee> CALLEE </callee>
          <returnData> _ => #getBytesRange(DATA, OFFSET, LENGTH) </returnData>
          <returnStatus> _ => Finish </returnStatus>
@@ -305,6 +306,19 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
 
     rule <instrs> hostCall("env", "bigIntGetSignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ]) => #getBigInt(IDX, OFFSET, Signed) ... </instrs>
          <locals> 0 |-> <i32> IDX  1 |-> <i32> OFFSET </locals>
+
+    rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
+         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
+         <callingArguments> ARGS </callingArguments>
+         <bigIntHeap> HEAP => HEAP [BIG_IDX <- valueArg({ARGS[ARG_IDX]}:>Argument)] </bigIntHeap>
+
+    rule <instrs> hostCall("env", "bigIntFinishSigned", [ i32 .ValTypes ] -> [ .ValTypes ])
+               => i32.const 0
+               ~> #getBigInt(IDX, 0, Signed)
+               ~> #finish
+               ...
+         </instrs>
+         <locals> 0 |-> <i32> IDX </locals>
 ```
 
 Note: The Elrond host API interprets bytes as big-endian when setting BigInts.

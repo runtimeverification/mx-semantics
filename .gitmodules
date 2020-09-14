@@ -8,3 +8,6 @@
 [submodule "deps/arwen-wasm-vm"]
 	path = deps/arwen-wasm-vm
 	url = https://github.com/ElrondNetwork/arwen-wasm-vm
+[submodule "deps/elrond-wasm-rs"]
+	path = deps/elrond-wasm-rs
+	url = https://github.com/ElrondNetwork/elrond-wasm-rs

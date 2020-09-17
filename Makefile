@@ -49,7 +49,7 @@ wasm-deps:
 	$(KWASM_MAKE) deps
 
 elrond-contracts:
-	cd $(ELROND_WASM_SUBMODULE) && ./build-wasm.sh
+	cd $(ELROND_WASM_SUBMODULE) && env RUSTFLAGS="" ./build-wasm.sh
 	ls $(ELROND_ADDER_SUBMODULE)/output/adder.wasm
 
 # Building Definition

@@ -88,6 +88,26 @@ It is treated purely as a key set -- the actual stored values are not used or st
 endmodule
 ```
 
+## Coverage
+
+```k
+module WASM-COVERAGE
+    imports WASM
+
+    configuration
+      <wasmCoverage>
+          <coveredFuncs> .Set </coveredFuncs>
+          <wasm/>
+      </wasmCoverage>
+
+    rule <instrs> ( invoke I ):Instr ... </instrs>
+         <coveredFuncs> COV => COV SetItem(I) </coveredFuncs>
+       requires notBool I in COV
+      [priority(10)]
+
+endmodule
+```
+
 ## Elrond Node
 
 ```k
@@ -173,12 +193,13 @@ endmodule
 ```k
 module ELROND
     imports WASM-TEXT
+    imports WASM-COVERAGE
     imports AUTO-ALLOCATE
     imports ELROND-NODE
 
     configuration
       <elrond>
-        <wasm/>
+        <wasmCoverage/>
         <node/>
         <bigIntHeap> .Map </bigIntHeap>
         <logging> "" </logging>

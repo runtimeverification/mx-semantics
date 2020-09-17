@@ -20,7 +20,7 @@ Calling an imported host function will result in `hostCall(MODULE_NAME, FUNCTION
 
 ```k
 module AUTO-ALLOCATE
-    imports WASM
+    imports WASM-TEXT
 
     syntax Stmt ::= "newEmptyModule" WasmString
  // -------------------------------------------
@@ -55,7 +55,7 @@ It is treated purely as a key set -- the actual stored values are not used or st
 
     syntax Instr ::= hostCall(String, String, FuncType)
  // ---------------------------------------------------
-    rule <instrs> (. => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(wasmString2StringStripped(MOD), wasmString2StringStripped(NAME), TYPE) .Instrs, #meta(... id: , localIds: .Map )))
+    rule <instrs> (. => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(wasmString2StringStripped(MOD), wasmString2StringStripped(NAME), TYPE) .Instrs, #meta(... id: String2Identifier("$auto-alloc:" +String #parseWasmString(MOD) +String ":" +String #parseWasmString(NAME) ), localIds: .Map )))
                ~> (import MOD NAME #funcDesc(... type: TIDX))
               ...
          </instrs>

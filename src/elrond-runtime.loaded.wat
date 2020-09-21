@@ -2,6 +2,9 @@
   <k>
     .
   </k>
+  <newAddresses>
+    .Map
+  </newAddresses>
   <elrond>
     <wasm>
       <instrs>
@@ -61,6 +64,20 @@
       </deterministicMemoryGrowth>
     </wasm>
     <node>
+      <commands>
+        .
+      </commands>
+      <callState>
+        <callingArguments>
+          .List
+        </callingArguments>
+        <caller>
+          .Address
+        </caller>
+        <callValue>
+          0
+        </callValue>
+      </callState>
       <accounts>
         .AccountCellMap
       </accounts>
@@ -68,5 +85,11 @@
     <bigIntHeap>
       .BigIntHeap
     </bigIntHeap>
+    <logging>
+      ""
+    </logging>
   </elrond>
+  <exit-code>
+    0
+  </exit-code>
 </mandos>

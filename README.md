@@ -5,6 +5,14 @@ This repository is work-in-progress, and currently a fork of [KWasm](https://git
 
 Elrond-specific code is in `elrond.md` and `run-elrond-tests.py`.
 
+Dependencies
+------------
+
+For running tests in the Mandos JSON format:
+
+* Python3
+* WABT (see Dockerfile for installation)
+
 Build and Run
 -------------
 

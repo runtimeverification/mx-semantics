@@ -23,6 +23,9 @@ K_BIN := $(K_RELEASE)/bin
 K_LIB := $(K_RELEASE)/lib/kframework
 export K_RELEASE
 
+PYTHONPATH := $(K_LIB)
+export PYTHONPATH
+
 KWASM_DIR  := .
 KWASM_MAKE := make --directory $(KWASM_SUBMODULE) BUILD_DIR=../../$(BUILD_DIR) RELEASE=$(RELEASE)
 
@@ -80,7 +83,7 @@ CHECK := git --no-pager diff --no-index --ignore-all-space -R
 
 TEST_CONCRETE_BACKEND:= llvm
 
-tests/%.run: tests/% $(llvm_kompiled)
+tests/%.run: tests/%
 	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< > tests/$*.$(TEST_CONCRETE_BACKEND)-out
 	rm -rf tests/$*.$(TEST_CONCRETE_BACKEND)-out
 
@@ -112,7 +115,8 @@ $(ELROND_RUNTIME_JSON):
 # Elrond Tests
 # ------------
 
-ELROND_TESTS_DIR=$(ELROND_DELEGATION_SUBMODULE)/test/integration/main
+ELROND_TESTS_DIR := tests/mandos
+
 elrond_tests=$(sort $(wildcard $(ELROND_TESTS_DIR)/*.steps.json))
 elrond-test:
 	python3 run-elrond-tests.py $(elrond_tests)

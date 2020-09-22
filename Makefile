@@ -43,9 +43,6 @@ K_JAR := $(K_SUBMODULE)/k-distribution/target/release/k/lib/java/kernel-1.0-SNAP
 
 deps: elrond-deps wasm-deps
 
-elrond-deps:
-	cd $(ELROND_DELEGATION_SUBMODULE) && rustup toolchain install nightly && rustup target add wasm32-unknown-unknown  && rustc --version && cargo install wasm-snip && cargo build
-
 wasm-deps:
 	$(KWASM_MAKE) deps
 

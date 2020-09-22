@@ -10,6 +10,9 @@
       <coveredFuncs>
         .Set
       </coveredFuncs>
+      <notCoveredFuncs>
+        .Map
+      </notCoveredFuncs>
       <wasm>
         <instrs>
           .

@@ -56,9 +56,11 @@ resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM
 
 testArgs = argparse.ArgumentParser(description='')
 testArgs.add_argument('files', metavar='N', type=str, nargs='+', help='')
+testArgs.add_argument('--coverage', type=bool, required=False, default=False, help='Display test coverage data.')
 args = testArgs.parse_args()
 
 tests = args.files
+coverage = args.coverage
 
 def mandos_int_to_int(mandos_int : str):
     if mandos_int[0:2] == '0x':
@@ -287,3 +289,6 @@ for test in tests:
 
     # Check that K cell is empty
     assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items" % k_cell['arity']
+
+if coverage:
+    print ("TODO")

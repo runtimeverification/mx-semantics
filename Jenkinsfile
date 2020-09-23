@@ -11,7 +11,12 @@ pipeline {
       when { changeRequest() }
       steps { script { currentBuild.displayName = "PR ${env.CHANGE_ID}: ${env.CHANGE_TITLE}" } }
     }
-    stage('Build') { steps { sh 'make build RELEASE=true' } }
+    stage('Build') {
+      parallel {
+        stage('Semantics') { steps { sh 'make build RELEASE=true' } }
+        stage('Contracts') { steps { sh 'make elrond-contracts' } }
+      }
+    }
     stage('Test') {
       options { timeout(time: 5, unit: 'MINUTES') }
       parallel {

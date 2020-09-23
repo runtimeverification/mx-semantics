@@ -1,7 +1,7 @@
 
 .PHONY: all clean deps wasm-deps                                           \
         build build-llvm build-haskell                                     \
-        elrond-deps elrond-test elrond-loaded                              \
+        elrond-contracts elrond-test elrond-loaded                         \
         test
 
 # Settings
@@ -43,12 +43,12 @@ clean:
 
 K_JAR := $(K_SUBMODULE)/k-distribution/target/release/k/lib/java/kernel-1.0-SNAPSHOT.jar
 
-deps: wasm-deps elrond-deps
+deps: wasm-deps elrond-contracts
 
 wasm-deps:
 	$(KWASM_MAKE) deps
 
-elrond-deps:
+elrond-contracts:
 	cd $(ELROND_WASM_SUBMODULE) && ./build-wasm.sh
 
 # Building Definition

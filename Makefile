@@ -14,7 +14,7 @@ KWASM_SUBMODULE := $(DEPS_DIR)/wasm-semantics
 K_SUBMODULE     := $(KWASM_SUBMODULE)/deps/k
 
 ELROND_WASM_SUBMODULE  := $(DEPS_DIR)/elrond-wasm-rs
-ELROND_ADDER_SUBMODULE := $(ELROND_WASM_SUBMODULE)/examples/adder/mandos
+ELROND_ADDER_SUBMODULE := $(ELROND_WASM_SUBMODULE)/examples/adder
 
 ifneq (,$(wildcard $(K_SUBMODULE)/k-distribution/target/release/k/bin/*))
     K_RELEASE ?= $(abspath $(K_SUBMODULE)/k-distribution/target/release/k)
@@ -50,6 +50,7 @@ wasm-deps:
 
 elrond-contracts:
 	cd $(ELROND_WASM_SUBMODULE) && ./build-wasm.sh
+	ls $(ELROND_ADDER_SUBMODULE)/output/adder.wasm
 
 # Building Definition
 # -------------------
@@ -129,7 +130,7 @@ elrond_tests=$(sort $(wildcard $(ELROND_TESTS_DIR)/*.steps.json))
 elrond-test: $(llvm_kompiled)
 	$(TEST_ELROND) $(elrond_tests)
 
-ELROND_ADDER_TESTS_DIR=$(ELROND_ADDER_SUBMODULE)
+ELROND_ADDER_TESTS_DIR=$(ELROND_ADDER_SUBMODULE)/mandos
 elrond_adder_tests=$(ELROND_ADDER_TESTS_DIR)/adder.scen.json
 elrond-adder-test:
 	$(TEST_ELROND) $(elrond_adder_tests)

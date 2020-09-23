@@ -141,6 +141,9 @@ def file_to_module_decl(filename : str):
     raise ValueError('Filetype not yet supported: %s' % filename)
 
 def wasm_file_to_module_decl(filename : str):
+    # Check that file exists.
+    with open(filename) as f:
+        pass
     try:
         wat = subprocess.check_output("wasm2wat %s" % filename, shell=True)
     except subprocess.CalledProcessError as e:

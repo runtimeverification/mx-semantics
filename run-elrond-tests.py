@@ -43,6 +43,9 @@ def KList(items):
 def KInt(value : int):
     return KToken(str(value), 'Int')
 
+def config_to_kast_term(config):
+    return { 'format' : 'KAST', 'version': 1, 'term': config }
+
 ###############################
 
 WASM_definition_main_file = 'elrond'
@@ -225,7 +228,7 @@ def get_steps_set_state(step, filename):
         sys.exit(1)
     return k_steps
 
-def run_test_file(wasm_state, filename):
+def run_test_file(wasm_config, filename):
     with open(filename, 'r') as f:
         mandos_test = json.loads(f.read())
     if 'name' in mandos_test:
@@ -233,7 +236,7 @@ def run_test_file(wasm_state, filename):
     if 'comment' in mandos_test:
         print('Comment:\n"%s"' % mandos_test['comment'])
 
-    (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_state)
+    (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_config)
     k_steps = []
     for step in mandos_test['steps']:
         if step['step'] == 'setState':
@@ -253,20 +256,20 @@ def run_test_file(wasm_state, filename):
 
     init_config = pyk.substitute(symbolic_config, init_subst)
 
-    input_json = { 'format' : 'KAST', 'version': 1, 'term': init_config }
+    input_json = config_to_kast_term(init_config)
     krun_args = [ '--term', '--debug']
 
     # Run: generate a new JSON as a temporary file, then read that as the new wasm state.
-    (rc, new_wasm_state, err) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
+    (rc, new_wasm_config, err) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
     if rc != 0:
         raise Exception("Received error while running: " + err )
 
-    return new_wasm_state
+    return new_wasm_config
 
 # ... Setup Elrond Wasm
 
-wasm_state = pyk.readKastTerm('src/elrond-runtime.loaded.json')
-cells = pyk.splitConfigFrom(wasm_state)[1]
+wasm_config = pyk.readKastTerm('src/elrond-runtime.loaded.json')
+cells = pyk.splitConfigFrom(wasm_config)[1]
 assert cells['K_CELL']['arity'] == 0
 
 tmpdir = tempfile.mkdtemp(prefix="mandos_")
@@ -274,17 +277,17 @@ print("Intermediate test outputs stored in:\n%s" % tmpdir)
 
 initial_name = "0000_initial_config"
 with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
-    f.write(json.dumps(wasm_state))
+    f.write(json.dumps(config_to_kast_term(wasm_config)))
 
 for test in tests:
-    wasm_state = run_test_file(wasm_state, test)
+    wasm_config = run_test_file(wasm_config, test)
     test_name = os.path.basename(test)
     with open('%s/%s' % (tmpdir, test_name), 'w') as f:
-        f.write(json.dumps(wasm_state))
+        f.write(json.dumps(config_to_kast_term(wasm_config)))
     with open('%s/%s.pretty.wat' % (tmpdir, test_name), 'w') as f:
-        pretty = pyk.prettyPrintKast(wasm_state, WASM_symbols_llvm_no_coverage)
+        pretty = pyk.prettyPrintKast(wasm_config, WASM_symbols_llvm_no_coverage)
         f.write(pretty)
-    cells = pyk.splitConfigFrom(wasm_state)[1]
+    cells = pyk.splitConfigFrom(wasm_config)[1]
     k_cell = cells['K_CELL']
 
     # Check that K cell is empty

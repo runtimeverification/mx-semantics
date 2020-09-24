@@ -59,7 +59,7 @@ resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM
 
 testArgs = argparse.ArgumentParser(description='')
 testArgs.add_argument('files', metavar='N', type=str, nargs='+', help='')
-testArgs.add_argument('--coverage', type=bool, required=False, default=False, help='Display test coverage data.')
+testArgs.add_argument('--coverage', action='store_true', help='Display test coverage data.')
 args = testArgs.parse_args()
 
 tests = args.files
@@ -268,6 +268,12 @@ def run_test_file(wasm_config, filename):
 
 # ... Setup Elrond Wasm
 
+# Displaying Coverage Data
+def get_coverage(term):
+    return (None, None)
+
+# Main Script
+
 wasm_config = pyk.readKastTerm('src/elrond-runtime.loaded.json')
 cells = pyk.splitConfigFrom(wasm_config)[1]
 assert cells['K_CELL']['arity'] == 0
@@ -293,5 +299,7 @@ for test in tests:
     # Check that K cell is empty
     assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items" % k_cell['arity']
 
-if coverage:
-    print ("TODO")
+    if coverage:
+        end_config = pyk.readKastTerm(os.path.join(tmpdir, test_name))
+        print(end_config)
+        (uncovered, covered) = get_coverage(end_config)

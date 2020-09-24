@@ -135,4 +135,4 @@ elrond-test: $(llvm_kompiled)
 ELROND_ADDER_TESTS_DIR=$(ELROND_ADDER_SUBMODULE)/mandos
 elrond_adder_tests=$(ELROND_ADDER_TESTS_DIR)/adder.scen.json
 elrond-adder-test:
-	$(TEST_ELROND) $(elrond_adder_tests)
+	$(TEST_ELROND) $(elrond_adder_tests) --coverage

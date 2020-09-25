@@ -89,7 +89,7 @@ scDeploy(
           call $finish
         )
       )
-      , ListItem(arg(0, 0)) ListItem(arg(32, 2 ^Int 32 -Int 1))
+      , ListItem(arg(0, 0)) ListItem(arg(2 ^Int 32 -Int 1, 32))
       , 0
       , 0)
     , .Expect

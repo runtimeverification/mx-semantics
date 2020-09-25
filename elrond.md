@@ -137,9 +137,6 @@ Storage maps byte arrays to byte arrays.
     syntax Code ::= ".Code" | WasmString | Int
  // ------------------------------------------
 
-    syntax Argument ::= arg(Int, Int) [klabel(tupleArg), symbol]
- // ------------------------------------------------------------
-
     syntax Int ::= valueArg  ( Argument ) [function, functional]
                  | lengthArg ( Argument ) [function, functional]
  // ------------------------------------------------------------

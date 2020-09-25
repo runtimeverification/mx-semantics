@@ -15,6 +15,7 @@ scDeploy(
 
         (import "env" "getNumArguments" (func $getNumArguments (result i32)))
         (import "env" "getArgumentLength" (func $getArgumentLength (param i32) (result i32)))
+        (import "env" "getArgument" (func $getArgument (param i32 i32) (result i32)))
 
         (memory 1)
 
@@ -78,6 +79,19 @@ scDeploy(
            call $getArgumentLength
            i32.const 0
            call $i32.assertEqual
+
+           i32.const 1
+           call $getArgumentLength
+           i32.const 32
+           call $i32.assertEqual
+
+           (call $getArgument (i32.const 0) (i32.const 16))
+           i32.const 0
+           call $i32.assertEqual
+           (i32.load i32.const 16)
+           i32.const 0
+           call $i32.assertEqual
+
         )
 
         (func (export "init")

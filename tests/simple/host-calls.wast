@@ -13,6 +13,7 @@ scDeploy(
         (import "env" "bigIntGetSignedBytes" (func $bigIntGetSignedBytes (param i32 i32) (result i32)))
         (import "env" "finish"   (func $finish (param i32 i32)))
 
+        (import "env" "getNumArguments" (func $getNumArguments (result i32)))
 
         (memory 1)
 
@@ -67,15 +68,22 @@ scDeploy(
           call $i64.assertEqual
         )
 
+        (func $argsTest
+           call $getNumArguments
+           i32.const 2
+           call $i32.assertEqual
+        )
+
         (func (export "init")
           call $bigIntTest
+          call $argsTest
 
           i32.const 0
           i32.const 0
           call $finish
         )
       )
-      , .List
+      , ListItem(arg(0, 0)) ListItem(arg(32, 2 ^Int 32 -Int 1))
       , 0
       , 0)
     , .Expect

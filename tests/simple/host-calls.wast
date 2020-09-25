@@ -11,6 +11,7 @@ scDeploy(
         (import "env" "bigIntAdd" (func $bigIntAdd (param i32 i32 i32)))
         (import "env" "bigIntNew" (func $bigIntNew (param i64) (result i32)))
         (import "env" "bigIntGetSignedBytes" (func $bigIntGetSignedBytes (param i32 i32) (result i32)))
+        (import "env" "finish"   (func $finish (param i32 i32)))
 
         (memory 1)
 
@@ -54,6 +55,10 @@ scDeploy(
 
         (func (export "init")
           call $bigIntTest
+
+          i32.const 0
+          i32.const 0
+          call $finish
         )
       )
       , .List

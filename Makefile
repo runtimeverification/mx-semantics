@@ -81,6 +81,8 @@ $(KWASM_SUBMODULE)/$(MAIN_DEFN_FILE).md: $(MAIN_DEFN_FILE).md
 # Testing
 # -------
 
+KRUN_OPTS :=
+
 test: test-simple elrond-test
 
 # Unit Tests
@@ -92,7 +94,7 @@ CHECK := git --no-pager diff --no-index --ignore-all-space -R
 TEST_CONCRETE_BACKEND:= llvm
 
 tests/%.run: tests/%
-	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< > tests/$*.$(TEST_CONCRETE_BACKEND)-out
+	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< $(KRUN_OPTS) > tests/$*.$(TEST_CONCRETE_BACKEND)-out
 	rm -rf tests/$*.$(TEST_CONCRETE_BACKEND)-out
 
 simple_tests := $(wildcard tests/simple/*.wast)

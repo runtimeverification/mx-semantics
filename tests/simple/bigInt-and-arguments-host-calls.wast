@@ -22,6 +22,10 @@ scDeploy(
         (import "env" "getArgumentLength" (func $getArgumentLength (param i32)     (result i32)))
         (import "env" "getNumArguments"   (func $getNumArguments                   (result i32)))
 
+        (import "env" "storageLoadLength" (func $storageLoadLength (param i32 i32)         (result i32)))
+        (import "env" "storageLoad"       (func $storageLoad       (param i32 i32 i32)     (result i32)))
+        (import "env" "storageStore"      (func $storageStore      (param i32 i32 i32 i32) (result i32)))
+
         (memory 1)
 
         (func $i32.assertEqual (param i32 i32)
@@ -171,9 +175,48 @@ scDeploy(
            call $i32.assertEqual
         )
 
+        (func $storageTest
+          i32.const 0
+          i64.const 1848529
+          i64.store
+          i32.const 8
+          i64.const 99999999999
+          i64.store
+          (call $storageStore (i32.const 0) (i32.const 8) (i32.const 8) (i32.const 8))
+          i32.const #StorageAdded()
+          call $i32.assertEqual
+          (call $storageLoadLength (i32.const 0) (i32.const 8))
+          i32.const 8
+          call $i32.assertEqual
+          (call $storageLoad (i32.const 0) (i32.const 8) (i32.const 16))
+          i32.const 16
+          i64.load
+          i64.const 99999999999
+          call $i64.assertEqual
+
+          i32.const 8
+          i64.const 99999999999
+          i64.store
+          (call $storageStore (i32.const 0) (i32.const 8) (i32.const 8) (i32.const 8))
+          i32.const #StorageUnmodified()
+          call $i32.assertEqual
+
+          i32.const 8
+          i64.const 77777777777
+          i64.store
+          (call $storageStore (i32.const 0) (i32.const 8) (i32.const 8) (i32.const 8))
+          i32.const #StorageModified()
+          call $i32.assertEqual
+
+          (call $storageStore (i32.const 0) (i32.const 8) (i32.const 8) (i32.const 0))
+          i32.const #StorageDeleted()
+          call $i32.assertEqual
+        )
+
         (func (export "init")
           call $bigIntTest
           call $argsTest
+          call $storageTest
 
           i64.const 777
           call $bigIntNew

@@ -16,7 +16,7 @@ scDeploy(
         (import "env" "bigIntCmp" (func $bigIntCmp (param i32 i32) (result i32)))
         (import "env" "bigIntSetSignedBytes" (func $bigIntSetSignedBytes (param i32 i32 i32)))
         (import "env" "bigIntSignedByteLength" (func $bigIntSignedByteLength (param i32) (result i32)))
-        (import "env" "finish"   (func $finish (param i32 i32)))
+        (import "env" "bigIntFinishSigned"   (func $bigIntFinishSigned (param i32)))
 
         (import "env" "getNumArguments" (func $getNumArguments (result i32)))
         (import "env" "getArgumentLength" (func $getArgumentLength (param i32) (result i32)))
@@ -175,9 +175,9 @@ scDeploy(
           call $bigIntTest
           call $argsTest
 
-          i32.const 0
-          i32.const 0
-          call $finish
+          i64.const 777
+          call $bigIntNew
+          call $bigIntFinishSigned
         )
       )
       , ListItem(arg(0, 0)) ListItem(arg(2 ^Int 256 -Int 1, 32))
@@ -185,5 +185,7 @@ scDeploy(
       , 0)
     , .Expect
 )
+
+#assertReturnData(Int2Bytes(777, BE, Signed))
 
 setExitCode 0

@@ -15,6 +15,7 @@ scDeploy(
         (import "env" "bigIntGetSignedArgument" (func $bigIntGetSignedArgument (param i32 i32)))
         (import "env" "bigIntCmp" (func $bigIntCmp (param i32 i32) (result i32)))
         (import "env" "bigIntSetSignedBytes" (func $bigIntSetSignedBytes (param i32 i32 i32)))
+        (import "env" "bigIntSignedByteLength" (func $bigIntSignedByteLength (param i32) (result i32)))
         (import "env" "finish"   (func $finish (param i32 i32)))
 
         (import "env" "getNumArguments" (func $getNumArguments (result i32)))
@@ -108,6 +109,17 @@ scDeploy(
           (call $bigIntCmp (local.get 0) (local.get 2))
           i32.const -1
           call $i32.assertEqual
+
+          local.get 0
+          call $bigIntSignedByteLength
+          i32.const 8
+          call $i32.assertEqual
+          (call $bigIntGetCallValue (local.get 0))
+          local.get 0
+          call $bigIntSignedByteLength
+          i32.const 33
+          call $i32.assertEqual
+
         )
 
         (func $argsTest

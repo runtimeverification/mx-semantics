@@ -11,6 +11,9 @@ import os
 
 from pyk.kast import KSequence, KConstant, KApply, KToken
 
+POSITIVE_COVERAGE_CELL = "COVEREDFUNCS_CELL"
+NEGATIVE_COVERAGE_CELL = "NOTCOVEREDFUNCS_CELL"
+
 #### SHOULD BE UPSTREAMED ####
 
 def KString(value):
@@ -45,6 +48,16 @@ def KInt(value : int):
 
 def config_to_kast_term(config):
     return { 'format' : 'KAST', 'version': 1, 'term': config }
+
+def filter_term(filter_func, term):
+    res = []
+    if filter_func(term):
+        res.append(term)
+    if 'args' in term:
+        for arg in term['args']:
+            for child in filter_term(filter_func, arg):
+                res.append(child)
+    return res
 
 ###############################
 
@@ -151,6 +164,8 @@ def wasm_file_to_module_decl(filename : str):
         pass
     try:
         wat = subprocess.check_output("wasm2wat %s" % filename, shell=True)
+        with open('%s/%s' % (tmpdir, os.path.basename(filename) + ".pretty.wat"), 'wb') as f:
+            f.write(wat)
     except subprocess.CalledProcessError as e:
         print("Failed: %s" % e.cmd)
         print("return code: %d" % e.returncode)
@@ -270,7 +285,15 @@ def run_test_file(wasm_config, filename):
 
 # Displaying Coverage Data
 def get_coverage(term):
-    return (None, None)
+    cells = pyk.splitConfigFrom(term)[1]
+    pos = cells[POSITIVE_COVERAGE_CELL]
+    neg = cells[NEGATIVE_COVERAGE_CELL]
+    filter_func = lambda term: 'label' in term and term['label'] == 'fcd'
+    pos_fcds = filter_term(filter_func, pos)
+    neg_fcds = filter_term(filter_func, neg)
+    pos_ids = [ fcd['args'][2]['token'] for fcd in pos_fcds ]
+    neg_ids = [ fcd['args'][2]['token'] for fcd in neg_fcds ]
+    return (pos_ids, neg_ids)
 
 # Main Script
 
@@ -301,5 +324,12 @@ for test in tests:
 
     if coverage:
         end_config = pyk.readKastTerm(os.path.join(tmpdir, test_name))
-        print(end_config)
-        (uncovered, covered) = get_coverage(end_config)
+        (covered, uncovered) = get_coverage(end_config)
+        print('Covered:')
+        [ print(f) for f in covered ]
+        print()
+        print('Not Covered:')
+        [ print(f) for f in uncovered ]
+
+        print()
+        print('See %s' % tmpdir)

@@ -464,7 +464,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
-           <storage> STORAGE => STORAGE [ #getBytesRange(DATA, KEYOFFSET, KEYLENGTH) <- #getBytesRange(DATA, VALOFFSET, VALLENGTH)] </storage>
+           <storage> STORAGE => #updateStorage(STORAGE, #getBytesRange(DATA, KEYOFFSET, KEYLENGTH), #getBytesRange(DATA, VALOFFSET, VALLENGTH)) </storage>
            <code> MODIDX </code>
            ...
          </account>
@@ -481,6 +481,11 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </memInst>
          requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
           andBool (VALOFFSET +Int VALLENGTH) <=Int (SIZE *Int #pageSize())
+
+    syntax Map ::= #updateStorage ( Map , key : Bytes , val : Bytes ) [function, functional]
+ // ----------------------------------------------------------------------------------------
+    rule #updateStorage(STOR, KEY, VAL) => STOR [KEY <- undef] requires VAL  ==K .Bytes
+    rule #updateStorage(STOR, KEY, VAL) => STOR [KEY <- VAL  ] requires VAL =/=K .Bytes
 
     syntax Int ::= #storageStatus ( Map , key : Bytes , val : Bytes ) [function, functional]
                  | #StorageUnmodified () [function, functional]

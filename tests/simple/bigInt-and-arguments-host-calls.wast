@@ -211,6 +211,9 @@ scDeploy(
           (call $storageStore (i32.const 0) (i32.const 8) (i32.const 8) (i32.const 0))
           i32.const #StorageDeleted()
           call $i32.assertEqual
+          (call $storageStore (i32.const 0) (i32.const 8) (i32.const 8) (i32.const 8))
+          i32.const #StorageAdded()
+          call $i32.assertEqual
         )
 
         (func (export "init")

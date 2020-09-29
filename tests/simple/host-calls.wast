@@ -35,7 +35,7 @@ scDeploy(
           (if (i64.ne) (then unreachable))
         )
 
-        (func $bigIntTest
+        (func $bigIntTest (local i32 i32 i32)
           i64.const 1337
           call $bigIntNew
           i32.const 0
@@ -91,6 +91,22 @@ scDeploy(
           i32.const 0
           call $bigIntCmp
           i32.const 0
+          call $i32.assertEqual
+
+          i64.const 5865948865492394455
+          call $bigIntNew
+          local.set 0
+          i64.const 5865948865492394454
+          call $bigIntNew
+          local.set 1
+          i64.const 5865948865492394456
+          call $bigIntNew
+          local.set 2
+          (call $bigIntCmp (local.get 0) (local.get 1))
+          i32.const 1
+          call $i32.assertEqual
+          (call $bigIntCmp (local.get 0) (local.get 2))
+          i32.const -1
           call $i32.assertEqual
         )
 

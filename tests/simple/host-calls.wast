@@ -85,6 +85,7 @@ scDeploy(
            i32.const 32
            call $i32.assertEqual
 
+           ;; Load a 0 argument
            (call $getArgument (i32.const 0) (i32.const 16))
            i32.const 0
            call $i32.assertEqual
@@ -92,6 +93,30 @@ scDeploy(
            i32.const 0
            call $i32.assertEqual
 
+           ;; Load a 32-byte argument
+           (call $getArgument (i32.const 1) (i32.const 32))
+           i32.const 32
+           call $i32.assertEqual
+           ;; Check that it's all 1-bits frombyte 32 to byte 63
+           (i64.load (i32.const 32))
+           (i64.sub (i64.const 0) (i64.const 1))
+           call $i64.assertEqual
+           (i64.load (i32.const 40))
+           (i64.sub (i64.const 0) (i64.const 1))
+           call $i64.assertEqual
+           (i64.load (i32.const 48))
+           (i64.sub (i64.const 0) (i64.const 1))
+           call $i64.assertEqual
+           (i64.load (i32.const 56))
+           (i64.sub (i64.const 0) (i64.const 1))
+           call $i64.assertEqual
+           ;; Check that bytes weren't set adjacently.
+           (i32.load8_u (i32.const 31))
+           i32.const 0
+           call $i32.assertEqual
+           (i32.load8_u (i32.const 64))
+           i32.const 0
+           call $i32.assertEqual
         )
 
         (func (export "init")
@@ -103,7 +128,7 @@ scDeploy(
           call $finish
         )
       )
-      , ListItem(arg(0, 0)) ListItem(arg(2 ^Int 32 -Int 1, 32))
+      , ListItem(arg(0, 0)) ListItem(arg(2 ^Int 256 -Int 1, 32))
       , 0
       , 0)
     , .Expect

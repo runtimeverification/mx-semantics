@@ -321,8 +321,8 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
 Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
 
 ```k
-    syntax BigIntOp ::= #getBigInt ( Int , Int , Signedness )
- // ---------------------------------------------------------------
+    syntax BigIntOp ::= #getBigInt ( idx : Int , offset : Int , Signedness )
+ // ------------------------------------------------------------------------
     rule <instrs> #getBigInt(BIGINT_IDX, OFFSET, SIGN) => i32.const lengthBytes(Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN)) ...</instrs>
          <callee> CALLEE </callee>
          <account>
@@ -344,8 +344,8 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
          <bigIntHeap> HEAP </bigIntHeap>
          requires (OFFSET +Int lengthBytes(Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN))) <=Int (SIZE *Int #pageSize())
 
-    syntax BigIntOp ::= #setBigInt ( Int , Int , Int , Signedness )
- // ---------------------------------------------------------------
+    syntax BigIntOp ::= #setBigInt ( idx : Int , offset : Int , length : Int , Signedness )
+ // ---------------------------------------------------------------------------------------
     rule <instrs> #setBigInt(BIGINT_IDX, OFFSET, LENGTH, SIGN) => . ... </instrs>
          <callee> CALLEE </callee>
          <account>

@@ -86,7 +86,11 @@ It is treated purely as a key set -- the actual stored values are not used or st
     rule #stripQuotes(S) => replaceAll(S, "\"", "")
 
 endmodule
+```
 
+## Elrond Node
+
+```k
 module ELROND-NODE
     imports DOMAINS
     imports WASM-TEXT
@@ -162,7 +166,11 @@ Storage maps byte arrays to byte arrays.
     rule lengthArg(arg(_, L)) => L
 
 endmodule
+```
 
+## Connecting Node and Wasm
+
+```k
 module ELROND
     imports WASM-TEXT
     imports AUTO-ALLOCATE
@@ -501,6 +509,8 @@ The (incorrect) default implementation of a host call is to just return zero val
          <valstack> VS => #zero(CODOM) ++ #drop(lengthValTypes(DOM), VS) </valstack>
 ```
 
+### Managing Accounts
+
 Initialize account: if the address is already present with some value, add value to it, otherwise create the account.
 
 ```k
@@ -553,7 +563,11 @@ Initialize account: if the address is already present with some value, add value
          <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
 
 endmodule
+```
 
+## Mandos Testing Framework
+
+```k
 module MANDOS
     imports ELROND
     imports WASM-AUXIL

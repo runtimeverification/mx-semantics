@@ -672,6 +672,21 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 
     syntax Step ::= checkState() [klabel(checkState), symbol]
  // ---------------------------------------------------------
+```
 
+### Assertions About State
+
+```k
+    syntax Step ::= Assertion
+```
+
+```k
+    syntax Assertion ::= #assertReturnData(Bytes)
+ // ---------------------------------------------
+    rule <k> #assertReturnData(BS) => . ... </k>
+         <returnData> BS </returnData>
+```
+
+```k
 endmodule
 ```

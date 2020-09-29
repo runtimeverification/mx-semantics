@@ -14,6 +14,7 @@ scDeploy(
         (import "env" "bigIntGetCallValue" (func $bigIntGetCallValue (param i32)))
         (import "env" "bigIntGetSignedArgument" (func $bigIntGetSignedArgument (param i32 i32)))
         (import "env" "bigIntCmp" (func $bigIntCmp (param i32 i32) (result i32)))
+        (import "env" "bigIntSetSignedBytes" (func $bigIntSetSignedBytes (param i32 i32 i32)))
         (import "env" "finish"   (func $finish (param i32 i32)))
 
         (import "env" "getNumArguments" (func $getNumArguments (result i32)))
@@ -77,6 +78,18 @@ scDeploy(
           ;; Add 1 to bigInt 1, where the argument is stored.
           (call $bigIntAdd (i32.const 1) (call $bigIntNew (i64.const 1)) (i32.const 1))
           (call $bigIntCmp (i32.const 0) (i32.const 1))
+          i32.const 0
+          call $i32.assertEqual
+
+          ;; 15537779347414411345 is the little-endian interpretation of the big-endian 5865948865492394455
+          i32.const 0
+          i64.const 15537779347414411345
+          i64.store
+          (call $bigIntSetSignedBytes (i32.const 0) (i32.const 0) (i32.const 8))
+          i64.const 5865948865492394455
+          call $bigIntNew
+          i32.const 0
+          call $bigIntCmp
           i32.const 0
           call $i32.assertEqual
         )

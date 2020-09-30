@@ -238,7 +238,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
            <mdata> DATA </mdata>
            ...
          </memInst>
-         requires (OFFSET +Int LENGTH) <=Int (SIZE *Int #pageSize())
+      requires (OFFSET +Int LENGTH) <=Int (SIZE *Int #pageSize())
 
 
     syntax Done ::= "#done"
@@ -255,7 +255,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
     rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthArg({ARGS[IDX]}:>Argument) ... </instrs>
          <locals> 0 |-> <i32> IDX </locals>
          <callingArguments> ARGS </callingArguments>
-        requires IDX <Int size(ARGS)
+      requires IDX <Int size(ARGS)
 
     rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthArg({ARGS[IDX]}:>Argument) ... </instrs>
          <locals>
@@ -280,7 +280,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
            <mdata> DATA => #setBytesRange(DATA, OFFSET, Int2Bytes(lengthArg({ARGS[IDX]}:>Argument), valueArg({ARGS[IDX]}:>Argument), BE)) </mdata>
            ...
          </memInst>
-         requires (OFFSET +Int lengthArg({ARGS[IDX]}:>Argument)) <=Int (SIZE *Int #pageSize())
+      requires (OFFSET +Int lengthArg({ARGS[IDX]}:>Argument)) <=Int (SIZE *Int #pageSize())
           andBool IDX <Int size(ARGS)
 ```
 
@@ -352,7 +352,7 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
            ...
          </memInst>
          <bigIntHeap> HEAP </bigIntHeap>
-         requires (OFFSET +Int lengthBytes(Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN))) <=Int (SIZE *Int #pageSize())
+      requires (OFFSET +Int lengthBytes(Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN))) <=Int (SIZE *Int #pageSize())
 
     syntax BigIntOp ::= #setBigInt ( idx : Int , offset : Int , length : Int , Signedness )
  // ---------------------------------------------------------------------------------------
@@ -375,7 +375,7 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
            ...
          </memInst>
          <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- Bytes2Int(#getBytesRange(DATA, OFFSET, LENGTH), BE, SIGN)] </bigIntHeap>
-         requires (OFFSET +Int LENGTH) <=Int (SIZE *Int #pageSize())
+      requires (OFFSET +Int LENGTH) <=Int (SIZE *Int #pageSize())
 
     syntax Bytes ::= #getBytesRange ( Bytes , Int , Int ) [function]
  // ----------------------------------------------------------------
@@ -424,7 +424,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <mdata> DATA </mdata>
            ...
          </memInst>
-         requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
+      requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
 
     rule <instrs> hostCall("env", "storageLoad", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) => i32.const lengthBytes({STORAGE[#getBytesRange(DATA, KEYOFFSET, KEYLENGTH)]}:>Bytes) ... </instrs>
          <locals>
@@ -450,8 +450,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <mdata> DATA => #setBytesRange(DATA, VALOFFSET, {STORAGE[#getBytesRange(DATA, KEYOFFSET, KEYLENGTH)]}:>Bytes) </mdata>
            ...
          </memInst>
-         requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
-          andBool (VALOFFSET +Int lengthBytes({STORAGE[#getBytesRange(DATA, KEYOFFSET, KEYLENGTH)]}:>Bytes)) <=Int (SIZE *Int #pageSize())
+      requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
+       andBool (VALOFFSET +Int lengthBytes({STORAGE[#getBytesRange(DATA, KEYOFFSET, KEYLENGTH)]}:>Bytes)) <=Int (SIZE *Int #pageSize())
 
     rule <instrs> hostCall("env", "storageStore", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
                => i32.const #storageStatus(STORAGE, #getBytesRange(DATA, KEYOFFSET, KEYLENGTH),  #getBytesRange(DATA, VALOFFSET, VALLENGTH))
@@ -481,8 +481,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <mdata> DATA </mdata>
            ...
          </memInst>
-         requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
-          andBool (VALOFFSET +Int VALLENGTH) <=Int (SIZE *Int #pageSize())
+      requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
+       andBool (VALOFFSET +Int VALLENGTH) <=Int (SIZE *Int #pageSize())
 
     syntax Map ::= #updateStorage ( Map , key : Bytes , val : Bytes ) [function, functional]
  // ----------------------------------------------------------------------------------------

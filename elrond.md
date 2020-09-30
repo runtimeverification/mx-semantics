@@ -255,6 +255,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
     rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthArg({ARGS[IDX]}:>Argument) ... </instrs>
          <locals> 0 |-> <i32> IDX </locals>
          <callingArguments> ARGS </callingArguments>
+        requires IDX <Int size(ARGS)
 
     rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthArg({ARGS[IDX]}:>Argument) ... </instrs>
          <locals>
@@ -280,6 +281,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
            ...
          </memInst>
          requires (OFFSET +Int lengthArg({ARGS[IDX]}:>Argument)) <=Int (SIZE *Int #pageSize())
+          andBool IDX <Int size(ARGS)
 ```
 
 #### BigInt Heap

@@ -141,6 +141,9 @@ def file_to_module_decl(filename : str):
     raise ValueError('Filetype not yet supported: %s' % filename)
 
 def wasm_file_to_module_decl(filename : str):
+    # Check that file exists.
+    with open(filename) as f:
+        pass
     try:
         wat = subprocess.check_output("wasm2wat %s" % filename, shell=True)
     except subprocess.CalledProcessError as e:
@@ -213,7 +216,7 @@ def get_steps_set_state(step, filename):
         k_steps = contract_setups
         k_steps = k_steps + set_accounts
 
-        new_addresses = get_steps_new_addresses(step['newAddresses'])
+        new_addresses = get_steps_new_addresses(step['newAddresses']) if 'newAddresses' in step else []
         k_steps = k_steps + new_addresses
     else:
         print('Step not implemented: %s' % step, file=sys.stderr)

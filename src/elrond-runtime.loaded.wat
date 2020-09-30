@@ -74,16 +74,25 @@
         <caller>
           .Address
         </caller>
+        <callee>
+          .Address
+        </callee>
         <callValue>
           0
         </callValue>
+        <returnData>
+          b""
+        </returnData>
+        <returnStatus>
+          .ReturnStatus
+        </returnStatus>
       </callState>
       <accounts>
         .AccountCellMap
       </accounts>
     </node>
     <bigIntHeap>
-      .BigIntHeap
+      .Map
     </bigIntHeap>
     <logging>
       ""

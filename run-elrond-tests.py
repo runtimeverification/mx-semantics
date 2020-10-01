@@ -328,7 +328,6 @@ initial_name = "0000_initial_config"
 with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
     f.write(json.dumps(config_to_kast_term(wasm_config)))
 
-
 for test in tests:
     test_name = os.path.basename(test)
     wasm_config = run_test_file(wasm_config, test, test_name)

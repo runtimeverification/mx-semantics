@@ -283,11 +283,7 @@ def run_test_file(wasm_config, filename, test_name):
         if rc != 0:
             raise Exception("Received error while running: " + err )
 
-        with open('%s/%s' % (tmpdir, "%s_%d_%s" % (test_name, i, step['step'])), 'w') as f:
-            f.write(json.dumps(config_to_kast_term(new_wasm_config)))
-        with open('%s/%s.pretty.wat' % (tmpdir, "%s_%d_%s" % (test_name, i, step['step'])), 'w') as f:
-            pretty = pyk.prettyPrintKast(new_wasm_config, WASM_symbols_llvm_no_coverage)
-            f.write(pretty)
+        log_intermediate_state("%s_%d_%s" % (test_name, i, step['step']), new_wasm_config)
         i += 1
 
     return new_wasm_config
@@ -312,6 +308,13 @@ def get_coverage(term):
     neg_ids = [ fcd_data(fcd) for fcd in neg_fcds ]
     return (pos_ids, neg_ids)
 
+def log_intermediate_state(name, config):
+    with open('%s/%s' % (tmpdir, name), 'w') as f:
+        f.write(json.dumps(config_to_kast_term(config)))
+    with open('%s/%s.pretty.wat' % (tmpdir, name), 'w') as f:
+        pretty = pyk.prettyPrintKast(config, WASM_symbols_llvm_no_coverage)
+        f.write(pretty)
+
 # Main Script
 
 wasm_config = pyk.readKastTerm('src/elrond-runtime.loaded.json')
@@ -325,11 +328,7 @@ with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
 for test in tests:
     test_name = os.path.basename(test)
     wasm_config = run_test_file(wasm_config, test, test_name)
-    with open('%s/%s' % (tmpdir, test_name), 'w') as f:
-        f.write(json.dumps(config_to_kast_term(wasm_config)))
-    with open('%s/%s.pretty.wat' % (tmpdir, test_name), 'w') as f:
-        pretty = pyk.prettyPrintKast(wasm_config, WASM_symbols_llvm_no_coverage)
-        f.write(pretty)
+    log_intermediate_state(test_name, wasm_config)
     cells = pyk.splitConfigFrom(wasm_config)[1]
     k_cell = cells['K_CELL']
 

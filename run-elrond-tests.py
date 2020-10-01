@@ -14,6 +14,9 @@ from pyk.kast import KSequence, KConstant, KApply, KToken
 POSITIVE_COVERAGE_CELL = "COVEREDFUNCS_CELL"
 NEGATIVE_COVERAGE_CELL = "NOTCOVEREDFUNCS_CELL"
 
+tmpdir = tempfile.mkdtemp(prefix="mandos_")
+print("Intermediate test outputs stored in:\n%s" % tmpdir)
+
 #### SHOULD BE UPSTREAMED ####
 
 def KString(value):
@@ -243,7 +246,7 @@ def get_steps_set_state(step, filename):
         sys.exit(1)
     return k_steps
 
-def run_test_file(wasm_config, filename):
+def run_test_file(wasm_config, filename, test_name):
     with open(filename, 'r') as f:
         mandos_test = json.loads(f.read())
     if 'name' in mandos_test:
@@ -253,6 +256,7 @@ def run_test_file(wasm_config, filename):
 
     (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_config)
     k_steps = []
+    i = 0
     for step in mandos_test['steps']:
         if step['step'] == 'setState':
            k_steps = k_steps + get_steps_set_state(step, filename)
@@ -267,17 +271,24 @@ def run_test_file(wasm_config, filename):
             print('Step %s not implemented yet' % step['step'], file=sys.stderr)
             sys.exit(1)
 
-    init_subst['K_CELL'] = KSequence(k_steps)
+        init_subst['K_CELL'] = KSequence(k_steps)
 
-    init_config = pyk.substitute(symbolic_config, init_subst)
+        init_config = pyk.substitute(symbolic_config, init_subst)
 
-    input_json = config_to_kast_term(init_config)
-    krun_args = [ '--term', '--debug']
+        input_json = config_to_kast_term(init_config)
+        krun_args = [ '--term', '--debug']
 
-    # Run: generate a new JSON as a temporary file, then read that as the new wasm state.
-    (rc, new_wasm_config, err) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
-    if rc != 0:
-        raise Exception("Received error while running: " + err )
+        # Run: generate a new JSON as a temporary file, then read that as the new wasm state.
+        (rc, new_wasm_config, err) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
+        if rc != 0:
+            raise Exception("Received error while running: " + err )
+
+        with open('%s/%s' % (tmpdir, "%s_%d_%s" % (test_name, i, step['step'])), 'w') as f:
+            f.write(json.dumps(config_to_kast_term(new_wasm_config)))
+        with open('%s/%s.pretty.wat' % (tmpdir, "%s_%d_%s" % (test_name, i, step['step'])), 'w') as f:
+            pretty = pyk.prettyPrintKast(new_wasm_config, WASM_symbols_llvm_no_coverage)
+            f.write(pretty)
+        i += 1
 
     return new_wasm_config
 
@@ -307,16 +318,13 @@ wasm_config = pyk.readKastTerm('src/elrond-runtime.loaded.json')
 cells = pyk.splitConfigFrom(wasm_config)[1]
 assert cells['K_CELL']['arity'] == 0
 
-tmpdir = tempfile.mkdtemp(prefix="mandos_")
-print("Intermediate test outputs stored in:\n%s" % tmpdir)
-
 initial_name = "0000_initial_config"
 with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
     f.write(json.dumps(config_to_kast_term(wasm_config)))
 
 for test in tests:
-    wasm_config = run_test_file(wasm_config, test)
     test_name = os.path.basename(test)
+    wasm_config = run_test_file(wasm_config, test, test_name)
     with open('%s/%s' % (tmpdir, test_name), 'w') as f:
         f.write(json.dumps(config_to_kast_term(wasm_config)))
     with open('%s/%s.pretty.wat' % (tmpdir, test_name), 'w') as f:

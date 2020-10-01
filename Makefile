@@ -83,7 +83,7 @@ $(KWASM_SUBMODULE)/$(MAIN_DEFN_FILE).md: $(MAIN_DEFN_FILE).md
 
 KRUN_OPTS :=
 
-test: test-simple elrond-test
+test: test-simple elrond-test elrond-adder-test
 
 # Unit Tests
 # ----------

@@ -76,6 +76,7 @@ resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM
 testArgs = argparse.ArgumentParser(description='')
 testArgs.add_argument('files', metavar='N', type=str, nargs='+', help='')
 testArgs.add_argument('--coverage', action='store_true', help='Display test coverage data.')
+testArgs.add_argument('--log-level', choices=['none', 'per-file', 'per-step'], default='per-file')
 args = testArgs.parse_args()
 
 tests = args.files
@@ -255,22 +256,26 @@ def run_test_file(wasm_config, filename, test_name):
 
     (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_config)
     k_steps = []
-    i = 0
     for step in mandos_test['steps']:
         if step['step'] == 'setState':
-           k_steps = k_steps + get_steps_set_state(step, filename)
+            k_steps.append((step['step'], get_steps_set_state(step, filename)))
         elif step['step'] == 'scDeploy':
-           k_steps = k_steps + get_steps_sc_deploy(step, filename)
+            k_steps.append((step['step'], get_steps_sc_deploy(step, filename)))
         elif step['step'] == 'scCall':
-            k_steps = k_steps + get_steps_sc_call(step, filename)
+            k_steps.append((step['step'], get_steps_sc_call(step, filename)))
         elif step['step'] == 'checkState':
-            # Skipping for now, not important for coverage.
+            # TODO Skipping for now, not important for coverage.
             pass
         else:
-            print('Step %s not implemented yet' % step['step'], file=sys.stderr)
-            sys.exit(1)
+            raise Exception('Step %s not implemented yet' % step['step'])
 
-        init_subst['K_CELL'] = KSequence(k_steps)
+    if args.log_level == 'none' or args.log_level == 'per-file':
+        # Flatten the list of k_steps, just run them all in one go.
+        k_steps = [ ('full', [ y for (_, x) in k_steps for y in x ]) ]
+
+    for i in range(len(k_steps)):
+        step_name, curr_step = k_steps[i]
+        init_subst['K_CELL'] = KSequence(curr_step)
 
         init_config = pyk.substitute(symbolic_config, init_subst)
 
@@ -282,8 +287,7 @@ def run_test_file(wasm_config, filename, test_name):
         if rc != 0:
             raise Exception("Received error while running: " + err )
 
-        log_intermediate_state("%s_%d_%s" % (test_name, i, step['step']), new_wasm_config)
-        i += 1
+        log_intermediate_state("%s_%d_%s" % (test_name, i, step_name), new_wasm_config)
 
     return new_wasm_config
 
@@ -324,10 +328,10 @@ initial_name = "0000_initial_config"
 with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
     f.write(json.dumps(config_to_kast_term(wasm_config)))
 
+
 for test in tests:
     test_name = os.path.basename(test)
     wasm_config = run_test_file(wasm_config, test, test_name)
-    log_intermediate_state(test_name, wasm_config)
     cells = pyk.splitConfigFrom(wasm_config)[1]
     k_cell = cells['K_CELL']
 
@@ -335,7 +339,7 @@ for test in tests:
     assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items" % k_cell['arity']
 
     if args.coverage:
-        end_config = pyk.readKastTerm(os.path.join(tmpdir, test_name))
+        end_config = wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))
         (covered, uncovered) = get_coverage(end_config)
         print('Covered:')
         [ print(f) for f in covered ]

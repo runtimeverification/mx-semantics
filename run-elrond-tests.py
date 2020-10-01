@@ -291,13 +291,14 @@ def get_coverage(term):
     filter_func = lambda term: 'label' in term and term['label'] == 'fcd'
     pos_fcds = filter_term(filter_func, pos)
     neg_fcds = filter_term(filter_func, neg)
-    def id_or_addr(fcd):
-        mod = fcd['args'][0]
-        addr = fcd['args'][1]
-        oid = fcd['args'][2]
-        return oid['token'] if 'token' in oid else (mod['token'], addr['token'])
-    pos_ids = [ id_or_addr(fcd) for fcd in pos_fcds ]
-    neg_ids = [ id_or_addr(fcd) for fcd in neg_fcds ]
+    def fcd_data(fcd):
+        mod = fcd['args'][0]['token']
+        addr = fcd['args'][1]['token']
+        oid_node = fcd['args'][2]
+        oid = oid_node['token'] if 'token' in oid_node else None
+        return (mod, addr, oid)
+    pos_ids = [ fcd_data(fcd) for fcd in pos_fcds ]
+    neg_ids = [ fcd_data(fcd) for fcd in neg_fcds ]
     return (pos_ids, neg_ids)
 
 # Main Script

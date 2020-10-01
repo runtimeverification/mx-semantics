@@ -11,6 +11,9 @@ import os
 
 from pyk.kast import KSequence, KConstant, KApply, KToken
 
+POSITIVE_COVERAGE_CELL = "COVEREDFUNCS_CELL"
+NEGATIVE_COVERAGE_CELL = "NOTCOVEREDFUNCS_CELL"
+
 #### SHOULD BE UPSTREAMED ####
 
 def KString(value):
@@ -43,6 +46,19 @@ def KList(items):
 def KInt(value : int):
     return KToken(str(value), 'Int')
 
+def config_to_kast_term(config):
+    return { 'format' : 'KAST', 'version': 1, 'term': config }
+
+def filter_term(filter_func, term):
+    res = []
+    if filter_func(term):
+        res.append(term)
+    if 'args' in term:
+        for arg in term['args']:
+            for child in filter_term(filter_func, arg):
+                res.append(child)
+    return res
+
 ###############################
 
 WASM_definition_main_file = 'elrond'
@@ -56,9 +72,11 @@ resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM
 
 testArgs = argparse.ArgumentParser(description='')
 testArgs.add_argument('files', metavar='N', type=str, nargs='+', help='')
+testArgs.add_argument('--coverage', action='store_true', help='Display test coverage data.')
 args = testArgs.parse_args()
 
 tests = args.files
+coverage = args.coverage
 
 def mandos_int_to_int(mandos_int : str):
     if mandos_int[0:2] == '0x':
@@ -146,6 +164,8 @@ def wasm_file_to_module_decl(filename : str):
         pass
     try:
         wat = subprocess.check_output("wasm2wat %s" % filename, shell=True)
+        with open('%s/%s' % (tmpdir, os.path.basename(filename) + ".pretty.wat"), 'wb') as f:
+            f.write(wat)
     except subprocess.CalledProcessError as e:
         print("Failed: %s" % e.cmd)
         print("return code: %d" % e.returncode)
@@ -223,7 +243,7 @@ def get_steps_set_state(step, filename):
         sys.exit(1)
     return k_steps
 
-def run_test_file(wasm_state, filename):
+def run_test_file(wasm_config, filename):
     with open(filename, 'r') as f:
         mandos_test = json.loads(f.read())
     if 'name' in mandos_test:
@@ -231,7 +251,7 @@ def run_test_file(wasm_state, filename):
     if 'comment' in mandos_test:
         print('Comment:\n"%s"' % mandos_test['comment'])
 
-    (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_state)
+    (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_config)
     k_steps = []
     for step in mandos_test['steps']:
         if step['step'] == 'setState':
@@ -251,20 +271,40 @@ def run_test_file(wasm_state, filename):
 
     init_config = pyk.substitute(symbolic_config, init_subst)
 
-    input_json = { 'format' : 'KAST', 'version': 1, 'term': init_config }
+    input_json = config_to_kast_term(init_config)
     krun_args = [ '--term', '--debug']
 
     # Run: generate a new JSON as a temporary file, then read that as the new wasm state.
-    (rc, new_wasm_state, err) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
+    (rc, new_wasm_config, err) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
     if rc != 0:
         raise Exception("Received error while running: " + err )
 
-    return new_wasm_state
+    return new_wasm_config
 
 # ... Setup Elrond Wasm
 
-wasm_state = pyk.readKastTerm('src/elrond-runtime.loaded.json')
-cells = pyk.splitConfigFrom(wasm_state)[1]
+# Displaying Coverage Data
+def get_coverage(term):
+    cells = pyk.splitConfigFrom(term)[1]
+    pos = cells[POSITIVE_COVERAGE_CELL]
+    neg = cells[NEGATIVE_COVERAGE_CELL]
+    filter_func = lambda term: 'label' in term and term['label'] == 'fcd'
+    pos_fcds = filter_term(filter_func, pos)
+    neg_fcds = filter_term(filter_func, neg)
+    def fcd_data(fcd):
+        mod = fcd['args'][0]['token']
+        addr = fcd['args'][1]['token']
+        oid_node = fcd['args'][2]
+        oid = oid_node['token'] if 'token' in oid_node else None
+        return (mod, addr, oid)
+    pos_ids = [ fcd_data(fcd) for fcd in pos_fcds ]
+    neg_ids = [ fcd_data(fcd) for fcd in neg_fcds ]
+    return (pos_ids, neg_ids)
+
+# Main Script
+
+wasm_config = pyk.readKastTerm('src/elrond-runtime.loaded.json')
+cells = pyk.splitConfigFrom(wasm_config)[1]
 assert cells['K_CELL']['arity'] == 0
 
 tmpdir = tempfile.mkdtemp(prefix="mandos_")
@@ -272,18 +312,30 @@ print("Intermediate test outputs stored in:\n%s" % tmpdir)
 
 initial_name = "0000_initial_config"
 with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
-    f.write(json.dumps(wasm_state))
+    f.write(json.dumps(config_to_kast_term(wasm_config)))
 
 for test in tests:
-    wasm_state = run_test_file(wasm_state, test)
+    wasm_config = run_test_file(wasm_config, test)
     test_name = os.path.basename(test)
     with open('%s/%s' % (tmpdir, test_name), 'w') as f:
-        f.write(json.dumps(wasm_state))
+        f.write(json.dumps(config_to_kast_term(wasm_config)))
     with open('%s/%s.pretty.wat' % (tmpdir, test_name), 'w') as f:
-        pretty = pyk.prettyPrintKast(wasm_state, WASM_symbols_llvm_no_coverage)
+        pretty = pyk.prettyPrintKast(wasm_config, WASM_symbols_llvm_no_coverage)
         f.write(pretty)
-    cells = pyk.splitConfigFrom(wasm_state)[1]
+    cells = pyk.splitConfigFrom(wasm_config)[1]
     k_cell = cells['K_CELL']
 
     # Check that K cell is empty
     assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items" % k_cell['arity']
+
+    if coverage:
+        end_config = pyk.readKastTerm(os.path.join(tmpdir, test_name))
+        (covered, uncovered) = get_coverage(end_config)
+        print('Covered:')
+        [ print(f) for f in covered ]
+        print()
+        print('Not Covered:')
+        [ print(f) for f in uncovered ]
+
+        print()
+        print('See %s' % tmpdir)

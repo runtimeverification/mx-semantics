@@ -20,7 +20,7 @@ Calling an imported host function will result in `hostCall(MODULE_NAME, FUNCTION
 
 ```k
 module AUTO-ALLOCATE
-    imports WASM
+    imports WASM-TEXT
 
     syntax Stmt ::= "newEmptyModule" WasmString
  // -------------------------------------------
@@ -55,7 +55,7 @@ It is treated purely as a key set -- the actual stored values are not used or st
 
     syntax Instr ::= hostCall(String, String, FuncType)
  // ---------------------------------------------------
-    rule <instrs> (. => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(wasmString2StringStripped(MOD), wasmString2StringStripped(NAME), TYPE) .Instrs, #meta(... id: , localIds: .Map )))
+    rule <instrs> (. => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(wasmString2StringStripped(MOD), wasmString2StringStripped(NAME), TYPE) .Instrs, #meta(... id: String2Identifier("$auto-alloc:" +String #parseWasmString(MOD) +String ":" +String #parseWasmString(NAME) ), localIds: .Map )))
                ~> (import MOD NAME #funcDesc(... type: TIDX))
               ...
          </instrs>
@@ -84,6 +84,36 @@ It is treated purely as a key set -- the actual stored values are not used or st
     rule wasmString2StringStripped(WS) => #stripQuotes(#parseWasmString(WS))
 
     rule #stripQuotes(S) => replaceAll(S, "\"", "")
+
+endmodule
+```
+
+## Coverage
+
+```k
+module WASM-COVERAGE
+    imports WASM
+
+    configuration
+      <wasmCoverage>
+          <coveredFuncs> .Set </coveredFuncs>
+          <notCoveredFuncs> .Map </notCoveredFuncs>
+          <wasm/>
+      </wasmCoverage>
+
+    syntax FuncCoverageDescription ::= fcd(mod: Int, addr: Int, id: OptionalId) [klabel(fcd), symbol]
+ // -------------------------------------------------------------------------------------------------
+
+    rule <instrs> ( invoke I ):Instr ... </instrs>
+         <coveredFuncs> COV => COV SetItem(NCOV[I]) </coveredFuncs>
+         <notCoveredFuncs> NCOV => NCOV [I <- undef] </notCoveredFuncs>
+      requires I in_keys(NCOV)
+      [priority(10)]
+
+    rule <instrs> allocfunc(MOD, ADDR, _, _, _, #meta(... id: OID)) ... </instrs>
+         <notCoveredFuncs> NCOV => NCOV [ ADDR <- fcd(MOD, ADDR, OID)] </notCoveredFuncs>
+      requires notBool ADDR in_keys(NCOV)
+      [priority(10)]
 
 endmodule
 ```
@@ -173,12 +203,13 @@ endmodule
 ```k
 module ELROND
     imports WASM-TEXT
+    imports WASM-COVERAGE
     imports AUTO-ALLOCATE
     imports ELROND-NODE
 
     configuration
       <elrond>
-        <wasm/>
+        <wasmCoverage/>
         <node/>
         <bigIntHeap> .Map </bigIntHeap>
         <logging> "" </logging>

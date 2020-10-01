@@ -49,7 +49,7 @@ wasm-deps:
 	$(KWASM_MAKE) deps
 
 elrond-contracts:
-	cd $(ELROND_WASM_SUBMODULE) && ./build-wasm.sh
+	cd $(ELROND_WASM_SUBMODULE) && env RUSTFLAGS="" ./build-wasm.sh
 	ls $(ELROND_ADDER_SUBMODULE)/output/adder.wasm
 
 # Building Definition
@@ -83,7 +83,7 @@ $(KWASM_SUBMODULE)/$(MAIN_DEFN_FILE).md: $(MAIN_DEFN_FILE).md
 
 KRUN_OPTS :=
 
-test: test-simple elrond-test
+test: test-simple elrond-test elrond-adder-test
 
 # Unit Tests
 # ----------
@@ -135,4 +135,4 @@ elrond-test: $(llvm_kompiled)
 ELROND_ADDER_TESTS_DIR=$(ELROND_ADDER_SUBMODULE)/mandos
 elrond_adder_tests=$(ELROND_ADDER_TESTS_DIR)/adder.scen.json
 elrond-adder-test:
-	$(TEST_ELROND) $(elrond_adder_tests)
+	$(TEST_ELROND) $(elrond_adder_tests) --coverage

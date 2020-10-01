@@ -79,7 +79,6 @@ testArgs.add_argument('--coverage', action='store_true', help='Display test cove
 args = testArgs.parse_args()
 
 tests = args.files
-coverage = args.coverage
 
 def mandos_int_to_int(mandos_int : str):
     if mandos_int[0:2] == '0x':
@@ -335,7 +334,7 @@ for test in tests:
     # Check that K cell is empty
     assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items" % k_cell['arity']
 
-    if coverage:
+    if args.coverage:
         end_config = pyk.readKastTerm(os.path.join(tmpdir, test_name))
         (covered, uncovered) = get_coverage(end_config)
         print('Covered:')

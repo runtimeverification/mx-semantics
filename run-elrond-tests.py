@@ -113,7 +113,11 @@ def mandos_argument_to_bytes(argument : str):
         byte_array = bytes.fromhex(argument[2:])
         num_bytes = len(byte_array)
         return KApply('tupleArg', [KInt(as_int), KInt(num_bytes)])
-
+    if argument[0:2] == "''" or argument[0:2] == '``':
+        byte_array = bytes(argument[2:], 'ascii')
+        as_int = int.from_bytes(byte_array, 'big')
+        num_bytes = len(byte_array)
+        return KApply('tupleArg', [KInt(as_int), KInt(num_bytes)])
     raise ValueError("Argument type not yet supported: %s" % argument)
 
 def mandos_arguments_to_arguments(arguments):

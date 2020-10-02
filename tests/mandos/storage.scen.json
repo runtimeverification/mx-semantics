@@ -1,0 +1,19 @@
+{
+    "name": "storage",
+    "comment": "Set up storage for accounts",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "''auction_contract______________s1": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "''stake_per_node": "100,000,000,000,000"
+                    },
+                    "code": ""
+                }
+            }
+        }
+    ]
+}

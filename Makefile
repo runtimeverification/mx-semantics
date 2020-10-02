@@ -17,6 +17,8 @@ KWASM_BINARY_PARSER := $(KWASM_SUBMODULE)/binary-parser
 ELROND_WASM_SUBMODULE  := $(DEPS_DIR)/elrond-wasm-rs
 ELROND_ADDER_SUBMODULE := $(ELROND_WASM_SUBMODULE)/examples/adder
 
+ELROND_DELEGATION_SUBMODULE := $(DEPS_DIR)/sc-delegation-rs
+
 ifneq (,$(wildcard $(K_SUBMODULE)/k-distribution/target/release/k/bin/*))
     K_RELEASE ?= $(abspath $(K_SUBMODULE)/k-distribution/target/release/k)
 else
@@ -137,3 +139,7 @@ ELROND_ADDER_TESTS_DIR=$(ELROND_ADDER_SUBMODULE)/mandos
 elrond_adder_tests=$(ELROND_ADDER_TESTS_DIR)/adder.scen.json
 elrond-adder-test:
 	$(TEST_ELROND) $(elrond_adder_tests) --coverage
+
+elrond_delegation_tests=$(shell find $(ELROND_DELEGATION_SUBMODULE) -name "*.scen.json")
+elrond-delegation-test:
+	$(TEST_ELROND) $(elrond_delegation_tests) --coverage

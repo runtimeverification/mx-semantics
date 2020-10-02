@@ -237,9 +237,9 @@ def get_steps_set_state(step, filename):
     if 'newAddresses' in step:
         new_addresses = get_steps_new_addresses(step['newAddresses'])
         k_steps = k_steps + new_addresses
-    else:
-        print('Step not implemented: %s' % step, file=sys.stderr)
-        sys.exit(1)
+
+    if k_steps == []:
+        raise Exception('Step not implemented: %s' % step, file=sys.stderr)
     return k_steps
 
 def get_steps_as_kseq(filename):

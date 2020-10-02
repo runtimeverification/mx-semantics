@@ -2,6 +2,7 @@
 .PHONY: all clean deps wasm-deps                                           \
         build build-llvm build-haskell                                     \
         elrond-contracts elrond-test elrond-loaded                         \
+        elrond-contract-tests elrond-adder-test elrond-delegation-test     \
         test
 
 # Settings
@@ -86,7 +87,9 @@ $(KWASM_SUBMODULE)/$(MAIN_DEFN_FILE).md: $(MAIN_DEFN_FILE).md
 
 KRUN_OPTS :=
 
-test: test-simple elrond-test elrond-adder-test
+elrond-contract-tests: elrond-adder-test elrond-delegation-test
+
+test: test-simple elrond-test elrond-contract-tests
 
 # Unit Tests
 # ----------

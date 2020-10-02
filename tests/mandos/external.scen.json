@@ -1,0 +1,18 @@
+{
+    "name": "external steps",
+    "comment": "Running other contracts as imports",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "deploy_call.scen.json"
+        },
+        {
+            "step": "externalSteps",
+            "path": "empty.scen.json"
+        },
+        {
+            "step": "externalSteps",
+            "path": "set_state.scen.json"
+        }
+    ]
+}

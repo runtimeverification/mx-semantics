@@ -190,11 +190,14 @@ def wat_file_to_module_decl(filename : str):
     module = kasted_json['term']['args'][0]
     return module
 
+def get_external_file_path(test_file, rel_path_to_new_file):
+    test_file_path = os.path.dirname(test_file)
+    ext_file = os.path.normpath(os.path.join(test_file_path, rel_path_to_new_file))
+    return ext_file
+
 def get_contract_code(code, filename):
     if code[0:5] == 'file:':
-        test_file_path = os.path.dirname(filename)
-        code_file = os.path.normpath(os.path.join(test_file_path, code[5:]))
-        return code_file
+        return get_external_file_path(filename, code[5:])
     if code == '':
         return None
     raise Exception('Currently only support getting code from file, or empty code.')
@@ -246,7 +249,7 @@ def get_steps_set_state(step, filename):
         sys.exit(1)
     return k_steps
 
-def run_test_file(wasm_config, filename, test_name):
+def get_steps_as_kseq(filename):
     with open(filename, 'r') as f:
         mandos_test = json.loads(f.read())
     if 'name' in mandos_test:
@@ -254,7 +257,6 @@ def run_test_file(wasm_config, filename, test_name):
     if 'comment' in mandos_test:
         print('Comment:\n"%s"' % mandos_test['comment'])
 
-    (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_config)
     k_steps = []
     for step in mandos_test['steps']:
         if step['step'] == 'setState':
@@ -266,12 +268,21 @@ def run_test_file(wasm_config, filename, test_name):
         elif step['step'] == 'checkState':
             # TODO Skipping for now, not important for coverage.
             pass
+        elif step['step'] == 'externalSteps':
+            steps_file = get_external_file_path(filename, step['path'])
+            k_steps + get_steps_as_kseq(steps_file)
         else:
             raise Exception('Step %s not implemented yet' % step['step'])
+    return k_steps
+
+def run_test_file(wasm_config, filename, test_name):
+    k_steps = get_steps_as_kseq(filename)
 
     if args.log_level == 'none' or args.log_level == 'per-file':
         # Flatten the list of k_steps, just run them all in one go.
         k_steps = [ ('full', [ y for (_, x) in k_steps for y in x ]) ]
+
+    (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_config)
 
     for i in range(len(k_steps)):
         step_name, curr_step = k_steps[i]

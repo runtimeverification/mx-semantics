@@ -103,7 +103,7 @@ def mandos_argument_to_bytes(argument : str):
     if argument == "":
         return KApply('tupleArg', [KInt(0), KInt(0)])
     try:
-        as_int = int(argument)
+        as_int = int(argument.replace(',', ''))
         num_bytes = 1 + (as_int.bit_length() // 8)
         return KApply('tupleArg', [KInt(as_int), KInt(num_bytes)])
     except ValueError:

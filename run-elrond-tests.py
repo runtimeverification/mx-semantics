@@ -14,6 +14,9 @@ from pyk.kast import KSequence, KConstant, KApply, KToken
 POSITIVE_COVERAGE_CELL = "COVEREDFUNCS_CELL"
 NEGATIVE_COVERAGE_CELL = "NOTCOVEREDFUNCS_CELL"
 
+tmpdir = tempfile.mkdtemp(prefix="mandos_")
+print("Intermediate test outputs stored in:\n%s" % tmpdir)
+
 #### SHOULD BE UPSTREAMED ####
 
 def KString(value):
@@ -73,10 +76,10 @@ resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM
 testArgs = argparse.ArgumentParser(description='')
 testArgs.add_argument('files', metavar='N', type=str, nargs='+', help='')
 testArgs.add_argument('--coverage', action='store_true', help='Display test coverage data.')
+testArgs.add_argument('--log-level', choices=['none', 'per-file', 'per-step'], default='per-file')
 args = testArgs.parse_args()
 
 tests = args.files
-coverage = args.coverage
 
 def mandos_int_to_int(mandos_int : str):
     if mandos_int[0:2] == '0x':
@@ -187,11 +190,14 @@ def wat_file_to_module_decl(filename : str):
     module = kasted_json['term']['args'][0]
     return module
 
+def get_external_file_path(test_file, rel_path_to_new_file):
+    test_file_path = os.path.dirname(test_file)
+    ext_file = os.path.normpath(os.path.join(test_file_path, rel_path_to_new_file))
+    return ext_file
+
 def get_contract_code(code, filename):
     if code[0:5] == 'file:':
-        test_file_path = os.path.dirname(filename)
-        code_file = os.path.normpath(os.path.join(test_file_path, code[5:]))
-        return code_file
+        return get_external_file_path(filename, code[5:])
     if code == '':
         return None
     raise Exception('Currently only support getting code from file, or empty code.')
@@ -243,7 +249,7 @@ def get_steps_set_state(step, filename):
         sys.exit(1)
     return k_steps
 
-def run_test_file(wasm_config, filename):
+def get_steps_as_kseq(filename):
     with open(filename, 'r') as f:
         mandos_test = json.loads(f.read())
     if 'name' in mandos_test:
@@ -251,33 +257,48 @@ def run_test_file(wasm_config, filename):
     if 'comment' in mandos_test:
         print('Comment:\n"%s"' % mandos_test['comment'])
 
-    (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_config)
     k_steps = []
     for step in mandos_test['steps']:
         if step['step'] == 'setState':
-           k_steps = k_steps + get_steps_set_state(step, filename)
+            k_steps.append((step['step'], get_steps_set_state(step, filename)))
         elif step['step'] == 'scDeploy':
-           k_steps = k_steps + get_steps_sc_deploy(step, filename)
+            k_steps.append((step['step'], get_steps_sc_deploy(step, filename)))
         elif step['step'] == 'scCall':
-            k_steps = k_steps + get_steps_sc_call(step, filename)
+            k_steps.append((step['step'], get_steps_sc_call(step, filename)))
         elif step['step'] == 'checkState':
-            # Skipping for now, not important for coverage.
+            # TODO Skipping for now, not important for coverage.
             pass
+        elif step['step'] == 'externalSteps':
+            steps_file = get_external_file_path(filename, step['path'])
+            k_steps + get_steps_as_kseq(steps_file)
         else:
-            print('Step %s not implemented yet' % step['step'], file=sys.stderr)
-            sys.exit(1)
+            raise Exception('Step %s not implemented yet' % step['step'])
+    return k_steps
 
-    init_subst['K_CELL'] = KSequence(k_steps)
+def run_test_file(wasm_config, filename, test_name):
+    k_steps = get_steps_as_kseq(filename)
 
-    init_config = pyk.substitute(symbolic_config, init_subst)
+    if args.log_level == 'none' or args.log_level == 'per-file':
+        # Flatten the list of k_steps, just run them all in one go.
+        k_steps = [ ('full', [ y for (_, x) in k_steps for y in x ]) ]
 
-    input_json = config_to_kast_term(init_config)
-    krun_args = [ '--term', '--debug']
+    (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_config)
 
-    # Run: generate a new JSON as a temporary file, then read that as the new wasm state.
-    (rc, new_wasm_config, err) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
-    if rc != 0:
-        raise Exception("Received error while running: " + err )
+    for i in range(len(k_steps)):
+        step_name, curr_step = k_steps[i]
+        init_subst['K_CELL'] = KSequence(curr_step)
+
+        init_config = pyk.substitute(symbolic_config, init_subst)
+
+        input_json = config_to_kast_term(init_config)
+        krun_args = [ '--term', '--debug']
+
+        # Run: generate a new JSON as a temporary file, then read that as the new wasm state.
+        (rc, new_wasm_config, err) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
+        if rc != 0:
+            raise Exception("Received error while running: " + err )
+
+        log_intermediate_state("%s_%d_%s" % (test_name, i, step_name), new_wasm_config)
 
     return new_wasm_config
 
@@ -301,35 +322,34 @@ def get_coverage(term):
     neg_ids = [ fcd_data(fcd) for fcd in neg_fcds ]
     return (pos_ids, neg_ids)
 
+def log_intermediate_state(name, config):
+    with open('%s/%s' % (tmpdir, name), 'w') as f:
+        f.write(json.dumps(config_to_kast_term(config)))
+    with open('%s/%s.pretty.wat' % (tmpdir, name), 'w') as f:
+        pretty = pyk.prettyPrintKast(config, WASM_symbols_llvm_no_coverage)
+        f.write(pretty)
+
 # Main Script
 
 wasm_config = pyk.readKastTerm('src/elrond-runtime.loaded.json')
 cells = pyk.splitConfigFrom(wasm_config)[1]
 assert cells['K_CELL']['arity'] == 0
 
-tmpdir = tempfile.mkdtemp(prefix="mandos_")
-print("Intermediate test outputs stored in:\n%s" % tmpdir)
-
 initial_name = "0000_initial_config"
 with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
     f.write(json.dumps(config_to_kast_term(wasm_config)))
 
 for test in tests:
-    wasm_config = run_test_file(wasm_config, test)
     test_name = os.path.basename(test)
-    with open('%s/%s' % (tmpdir, test_name), 'w') as f:
-        f.write(json.dumps(config_to_kast_term(wasm_config)))
-    with open('%s/%s.pretty.wat' % (tmpdir, test_name), 'w') as f:
-        pretty = pyk.prettyPrintKast(wasm_config, WASM_symbols_llvm_no_coverage)
-        f.write(pretty)
+    wasm_config = run_test_file(wasm_config, test, test_name)
     cells = pyk.splitConfigFrom(wasm_config)[1]
     k_cell = cells['K_CELL']
 
     # Check that K cell is empty
     assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items" % k_cell['arity']
 
-    if coverage:
-        end_config = pyk.readKastTerm(os.path.join(tmpdir, test_name))
+    if args.coverage:
+        end_config = wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))
         (covered, uncovered) = get_coverage(end_config)
         print('Covered:')
         [ print(f) for f in covered ]

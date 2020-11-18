@@ -128,7 +128,7 @@ $(ELROND_RUNTIME_JSON):
 TEST_ELROND := python3 run-elrond-tests.py
 
 ELROND_TESTS_DIR := tests/mandos
-elrond_tests=$(sort $(wildcard $(ELROND_TESTS_DIR)/*.steps.json))
+elrond_tests=$(sort $(wildcard $(ELROND_TESTS_DIR)/*.scen.json))
 elrond-test: $(llvm_kompiled)
 	$(TEST_ELROND) $(elrond_tests)
 

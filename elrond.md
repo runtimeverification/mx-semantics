@@ -40,8 +40,8 @@ It is treated purely as a key set -- the actual stored values are not used or st
 
 ```k
     rule #autoAllocModules(.Defns, _) => .Stmts
-    rule #autoAllocModules(((import MOD _ _) DS) => DS, MR) requires MOD in_keys(MR)
-    rule #autoAllocModules(((import MOD _ _) DS), MR)
+    rule #autoAllocModules((#import(MOD, _, _) DS) => DS, MR) requires MOD in_keys(MR)
+    rule #autoAllocModules((#import(MOD, _, _) DS), MR)
       => newEmptyModule MOD #autoAllocModules(DS, MR [MOD <- -1])
       requires notBool MOD in_keys(MR)
 
@@ -56,7 +56,7 @@ It is treated purely as a key set -- the actual stored values are not used or st
     syntax Instr ::= hostCall(String, String, FuncType)
  // ---------------------------------------------------
     rule <instrs> (. => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(wasmString2StringStripped(MOD), wasmString2StringStripped(NAME), TYPE) .Instrs, #meta(... id: String2Identifier("$auto-alloc:" +String #parseWasmString(MOD) +String ":" +String #parseWasmString(NAME) ), localIds: .Map )))
-               ~> (import MOD NAME #funcDesc(... type: TIDX))
+               ~> #import(MOD, NAME, #funcDesc(... type: TIDX))
               ...
          </instrs>
          <curModIdx> CUR </curModIdx>

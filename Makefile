@@ -145,4 +145,4 @@ elrond-adder-test:
 
 elrond_delegation_tests=$(shell find $(ELROND_DELEGATION_SUBMODULE) -name "*.scen.json")
 elrond-delegation-test:
-	$(TEST_ELROND) $(elrond_delegation_tests) --coverage --log-level per-step
+	$(TEST_ELROND) $(elrond_delegation_tests) --coverage

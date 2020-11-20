@@ -701,8 +701,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // ----------------------------------------------------------------
     rule <k> scCall( TX, EXPECT ) => TX ~> EXPECT ... </k>
 
-    syntax CallTx ::= callTx(Address /*From*/, Address /*To*/, Int /*Value*/, WasmString /*Function*/, List, Int /*gasLimit*/, Int /*gasPrice*/) [klabel(callTx), symbol]
- // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    syntax CallTx ::= callTx(from : Address, to : Address, value : Int, func : WasmString, args : List, gasLimit : Int, gasPrice : Int) [klabel(callTx), symbol]
+ // ------------------------------------------------------------------------------------------------------------------------------------------------------------
     rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => callContract(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>
          <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
@@ -713,6 +713,25 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 
     syntax Step ::= checkState() [klabel(checkState), symbol]
  // ---------------------------------------------------------
+
+    syntax Step ::= transfer(TransferTx) [klabel(transfer), symbol]
+ // -----------------------------------------------------
+    rule <k> transfer(TX) => TX ... </k>
+
+    syntax TransferTx ::= transferTx(from : Address, to : Address, value : Int) [klabel(transferTx), symbol]
+ // --------------------------------------------------------------------------------------------------------
+    rule <k> transferTx(FROM, TO, VAL) => . ... </k>
+         <account>
+           <address> FROM </address>
+           <balance> FROM_BAL => FROM_BAL -Int VAL </balance>
+           ...
+         </account>
+         <account>
+           <address> TO </address>
+           <balance> TO_BAL => TO_BAL +Int VAL </balance>
+           ...
+         </account>
+      requires FROM_BAL >=Int VAL
 ```
 
 ### Assertions About State

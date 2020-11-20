@@ -732,6 +732,24 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            ...
          </account>
       requires FROM_BAL >=Int VAL
+
+    syntax Step ::= validatorReward(ValidatorRewardTx) [klabel(validatorReward), symbol]
+ // ------------------------------------------------------------------------------------
+    rule <k> validatorReward(TX) => TX ... </k>
+
+    syntax ValidatorRewardTx ::= validatorRewardTx(to : Address, value : Int) [klabel(validatorRewardTx), symbol]
+ // ------------------------------------------------------------------------------------------------
+    rule <k> validatorRewardTx(TO, VAL) => . ... </k>
+         <account>
+           <address> TO </address>
+            <storage> STOR => STOR[String2Bytes("ELRONDrewards") <- #incBytes({STOR[String2Bytes("ELRONDrewards")]}:>Bytes, VAL)] </storage>
+            ...
+         </account>
+
+    syntax Bytes ::= #incBytes(val : Bytes, inc : Int) [function]
+ // -------------------------------------------------------------
+    rule #incBytes(VAL, INC) => Int2Bytes(Bytes2Int(VAL, BE, Signed) +Int INC, BE, Signed)
+
 ```
 
 ### Assertions About State

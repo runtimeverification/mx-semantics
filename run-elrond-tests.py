@@ -149,6 +149,21 @@ def mandos_to_call_tx(tx, filename):
     callTx = KApply('callTx', [sender, to, value, function, arguments, gasLimit, gasPrice])
     return callTx
 
+def mandos_to_transfer_tx(tx):
+    sender = KWasmString(tx['from'])
+    to = KWasmString(tx['to'])
+    value = mandos_int_to_int(tx['value'])
+
+    transferTx = KApply('transferTx', [sender, to, value])
+    return transferTx
+
+def mandos_to_transfer_tx(tx):
+    to = KWasmString(tx['to'])
+    value = mandos_int_to_int(tx['value'])
+
+    rewardTx = KApply('validatorRewardTx', [to, value])
+    return rewardTx
+
 def mandos_to_expect(expect):
     """ TODO """
     return KApply('.Expect', [])
@@ -213,6 +228,14 @@ def get_steps_sc_call(step, filename):
     expect = mandos_to_expect(step['expect'])
     return [KApply('scCall', [tx, expect])]
 
+def get_steps_transfer(step):
+    tx = mandos_to_transfer_tx(step['tx'])
+    return [KApply('transfer', [tx])]
+
+def get_steps_validator_reward(step):
+    tx = mandos_to_validator_reward_tx(step['tx'])
+    return [KApply('validatorReward', [tx])]
+
 def get_steps_new_addresses(new_addresses):
         if new_addresses is None:
             return []
@@ -269,6 +292,10 @@ def get_steps_as_kseq(filename):
             steps_file = get_external_file_path(filename, step['path'])
             print('Load external: %s' % steps_file)
             k_steps = k_steps + get_steps_as_kseq(steps_file)
+        elif step['step'] == 'transfer':
+            k_steps.append((step['step'], get_steps_transfer(step, filename)))
+        elif step['step'] == 'validatorReward':
+            k_steps.append((step['step'], get_steps_validator_reward(step, filename)))
         else:
             raise Exception('Step %s not implemented yet' % step['step'])
     return k_steps

@@ -265,7 +265,7 @@ def get_steps_set_state(step, filename):
         k_steps = k_steps + new_addresses
 
     if k_steps == []:
-        raise Exception('Step not implemented: %s' % step, file=sys.stderr)
+        raise Exception('Step not implemented: %s' % step)
     return k_steps
 
 def get_steps_as_kseq(filename):
@@ -292,7 +292,7 @@ def get_steps_as_kseq(filename):
             print('Load external: %s' % steps_file)
             k_steps = k_steps + get_steps_as_kseq(steps_file)
         elif step['step'] == 'transfer':
-            k_steps.append((step['step'], get_steps_transfer(step, filename)))
+            k_steps.append((step['step'], get_steps_transfer(step)))
         elif step['step'] == 'validatorReward':
             k_steps.append((step['step'], get_steps_validator_reward(step, filename)))
         else:

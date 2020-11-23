@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import os
+import wasm2kast
 
 from pyk.kast import KSequence, KConstant, KApply, KToken
 
@@ -163,32 +164,9 @@ def file_to_module_decl(filename : str):
 
 def wasm_file_to_module_decl(filename : str):
     # Check that file exists.
-    with open(filename) as f:
-        pass
-    try:
-        wat = subprocess.check_output("wasm2wat %s" % filename, shell=True)
-        with open('%s/%s' % (tmpdir, os.path.basename(filename) + ".pretty.wat"), 'wb') as f:
-            f.write(wat)
-    except subprocess.CalledProcessError as e:
-        print("Failed: %s" % e.cmd)
-        print("return code: %d" % e.returncode)
-        print("stdout:")
-        print(e.output)
-        print("stderr:")
-        print(e.stderr)
-        raise e
-    temp = tempfile.NamedTemporaryFile()
-    temp.write(wat)
-    temp.seek(0)
-    return wat_file_to_module_decl(temp.name)
-
-def wat_file_to_module_decl(filename : str):
-    (rc, kasted, err) = pyk.kast(WASM_definition_llvm_no_coverage_dir, filename, kastArgs = ['--output', 'json'], teeOutput=True)
-    if rc != 0:
-        raise Exception("Received error while kast-ing: " + err )
-    kasted_json = json.loads(kasted)
-    module = kasted_json['term']['args'][0]
-    return module
+    with open(filename, 'rb') as f:
+        module = wasm2kast.wasm2kast(f)
+        return module
 
 def get_external_file_path(test_file, rel_path_to_new_file):
     test_file_path = os.path.dirname(test_file)

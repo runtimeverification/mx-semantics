@@ -200,7 +200,6 @@ def wat_file_to_module_decl(filename : str):
         raise e
     return wasm_file_to_module_decl(new_filename)
 
-
 def get_external_file_path(test_file, rel_path_to_new_file):
     test_file_path = os.path.dirname(test_file)
     ext_file = os.path.normpath(os.path.join(test_file_path, rel_path_to_new_file))

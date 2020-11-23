@@ -289,8 +289,11 @@ def run_test_file(wasm_config, filename, test_name):
         krun_args = [ '--term', '--debug']
 
         # Run: generate a new JSON as a temporary file, then read that as the new wasm state.
+        log_intermediate_state("%s_%d_%s.pre" % (test_name, i, step_name), init_config)
         (rc, new_wasm_config, err) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
         if rc != 0:
+            print('output:\n%s' % new_wasm_config, file=sys.stderr)
+            print(pyk.prettyPrintKast(new_wasm_config, WASM_symbols_llvm_no_coverage))
             raise Exception("Received error while running: " + err )
 
         log_intermediate_state("%s_%d_%s" % (test_name, i, step_name), new_wasm_config)
@@ -320,7 +323,7 @@ def get_coverage(term):
 def log_intermediate_state(name, config):
     with open('%s/%s' % (tmpdir, name), 'w') as f:
         f.write(json.dumps(config_to_kast_term(config)))
-    with open('%s/%s.pretty.wat' % (tmpdir, name), 'w') as f:
+    with open('%s/%s.pretty.k' % (tmpdir, name), 'w') as f:
         pretty = pyk.prettyPrintKast(config, WASM_symbols_llvm_no_coverage)
         f.write(pretty)
 

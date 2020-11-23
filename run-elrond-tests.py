@@ -310,7 +310,7 @@ def run_test_file(wasm_config, filename, test_name):
 
     for i in range(len(k_steps)):
         step_name, curr_step = k_steps[i]
-        print('Executing step %s' % step_name)
+        print('Executing step %s\n%s' % (curr_step, step_name))
         init_subst['K_CELL'] = KSequence(curr_step)
 
         init_config = pyk.substitute(symbolic_config, init_subst)

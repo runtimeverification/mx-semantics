@@ -157,7 +157,7 @@ def mandos_to_transfer_tx(tx):
     transferTx = KApply('transferTx', [sender, to, value])
     return transferTx
 
-def mandos_to_transfer_tx(tx):
+def mandos_to_validator_reward_tx(tx):
     to = KWasmString(tx['to'])
     value = mandos_int_to_int(tx['value'])
 

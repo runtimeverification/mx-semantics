@@ -640,8 +640,11 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 
     syntax Step ::= ModuleDecl
  // --------------------------
+    rule <k> (module DS:Defns):ModuleDecl #as M => #wait ... </k>
+          <instrs> . => sequenceStmts(text2abstract(M .Stmts)) </instrs>
     rule <k> M:ModuleDecl => #wait ... </k>
-          <instrs> . => sequenceStmts(M .Stmts) </instrs>
+          <instrs> . => M </instrs>
+      [owise]
 
     syntax Step ::= "register" String [klabel(register), symbol]
  // ------------------------------------------------------------

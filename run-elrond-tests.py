@@ -168,6 +168,18 @@ def mandos_to_expect(expect):
     """ TODO """
     return KApply('.Expect', [])
 
+def mandos_to_block_info(block_info):
+    block_infos = []
+    if 'blockTimestamp' in block_info:
+        block_infos += [KApply('blockTimestamp', [mandos_int_to_int(block_info['blockTimestamp'])])]
+    if 'blockNonce' in block_info:
+        block_infos += [KApply('blockNonce', [mandos_int_to_int(block_info['blockNonce'])])]
+    if 'blockRound' in block_info:
+        block_infos += [KApply('blockRound', [mandos_int_to_int(block_info['blockRound'])])]
+    if 'blockEpoch' in block_info:
+        block_infos += [KApply('blockEpoch', [mandos_int_to_int(block_info['blockEpoch'])])]
+    return block_infos
+
 def register(with_name : str):
     return KApply('register', [KString(with_name)])
 
@@ -280,7 +292,18 @@ def get_steps_set_state(step, filename):
     if 'newAddresses' in step:
         new_addresses = get_steps_new_addresses(step['newAddresses'])
         k_steps = k_steps + new_addresses
-
+    def block_infos_helper(state : str):
+        """State is either 'current' or 'previous'"""
+        label = state + 'BlockInfo'
+        block_infos = mandos_to_block_info(step[label])
+        state_block_infos = list(map(lambda x: KApply(label, [x]), block_infos))
+        return state_block_infos
+    if 'currentBlockInfo' in step:
+        curr = block_infos_helper('current')
+        k_steps = k_steps + curr
+    if 'previousBlockInfo' in step:
+        prev = block_infos_helper('previous')
+        k_steps = k_steps + prev
     if k_steps == []:
         raise Exception('Step not implemented: %s' % step)
     return k_steps

@@ -682,6 +682,22 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     syntax AddressNonce ::= tuple( Address , Int )
  // ----------------------------------------------
 
+    syntax Step      ::=  currentBlockInfo(BlockInfo) [klabel( currentBlockInfo), symbol]
+                       | previousBlockInfo(BlockInfo) [klabel(previousBlockInfo), symbol]
+    syntax BlockInfo ::= blockTimestamp(Int) [klabel(blockTimestamp), symbol]
+                       | blockNonce(Int)     [klabel(blockNonce), symbol]
+                       | blockRound(Int)     [klabel(blockRound), symbol]
+                       | blockEpoch(Int)     [klabel(blockEpoch), symbol]
+ // ---------------------------------------------------------------------
+    rule <k> currentBlockInfo(blockTimestamp(I)) => . ... </k>
+    rule <k> currentBlockInfo(blockNonce    (I)) => . ... </k>
+    rule <k> currentBlockInfo(blockRound    (I)) => . ... </k>
+    rule <k> currentBlockInfo(blockEpoch    (I)) => . ... </k>
+```
+
+### Contract Interactions
+
+```k
     syntax Step ::= scDeploy( DeployTx, Expect ) [klabel(scDeploy), symbol]
  // ----------------------------------------------------------------------
     rule <k> scDeploy( TX, EXPECT ) => TX ~> EXPECT ... </k>

@@ -223,8 +223,8 @@ For simplicity of debugging and profiling, we want to keep the semantics determi
 When control gets passed to the Wasm engine by putting commands on the `instrs` cell, the node will `#wait` until the Wasm engine is done executing.
 
 ```k
-    syntax Wait ::= "#wait"
- // --------------------
+    syntax Step ::= "#wait"
+ // ----------------------
     rule <commands> #wait => . ... </commands>
          <instrs> . </instrs>
 ```
@@ -714,7 +714,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     syntax Step ::= checkState() [klabel(checkState), symbol]
  // ---------------------------------------------------------
 ```
-
+    
 ### Assertions About State
 
 ```k

@@ -170,13 +170,10 @@ Storage maps byte arrays to byte arrays.
 
     syntax Code ::= ".Code" | WasmString | Int
  // ------------------------------------------
+```
 
-    syntax Int ::= valueArg  ( Argument ) [function, functional]
-                 | lengthArg ( Argument ) [function, functional]
- // ------------------------------------------------------------
-    rule valueArg (arg(V, _)) => V
-    rule lengthArg(arg(_, L)) => L
 
+```k
     syntax Address ::= ".Address" | WasmString
     syntax String  ::= address2String(Address) [function]
  // -----------------------------------------------------
@@ -185,7 +182,12 @@ Storage maps byte arrays to byte arrays.
 
     syntax Code ::= ".Code" | WasmString | Int
  // ------------------------------------------
+```
 
+The value is an unsigned integer representation of the bytes.
+The length is the number of bytes the argument represents.
+
+```k
     syntax Argument ::= arg(value : Int, length : Int) [klabel(tupleArg), symbol]
  // -----------------------------------------------------------------------------
 
@@ -194,7 +196,9 @@ Storage maps byte arrays to byte arrays.
  // ------------------------------------------------------------
     rule valueArg (arg(V, _)) => V
     rule lengthArg(arg(_, L)) => L
+```
 
+```k
 endmodule
 ```
 

@@ -351,7 +351,7 @@ def run_test_file(wasm_config, filename, test_name):
         k_cell = init_subst['K_CELL']
         assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items.\nSee %s" % (k_cell['arity'], tmpdir)
         step_name, curr_step = k_steps[i]
-        print('Executing step %s\n%s' % (curr_step, step_name))
+        print('Executing step %s' % step_name)
         init_subst['K_CELL'] = KSequence(curr_step)
 
         init_config = pyk.substitute(symbolic_config, init_subst)

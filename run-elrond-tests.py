@@ -346,9 +346,10 @@ def run_test_file(wasm_config, filename, test_name):
         # Flatten the list of k_steps, just run them all in one go.
         k_steps = [ ('full', [ y for (_, x) in k_steps for y in x ]) ]
 
-    (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_config)
-
     for i in range(len(k_steps)):
+        (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_config)
+        k_cell = init_subst['K_CELL']
+        assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items.\nSee %s" % (k_cell['arity'], tmpdir)
         step_name, curr_step = k_steps[i]
         print('Executing step %s\n%s' % (curr_step, step_name))
         init_subst['K_CELL'] = KSequence(curr_step)
@@ -367,8 +368,9 @@ def run_test_file(wasm_config, filename, test_name):
             raise Exception("Received error while running: " + err )
 
         log_intermediate_state("%s_%d_%s" % (test_name, i, step_name), new_wasm_config)
+        wasm_config = new_wasm_config
 
-    return new_wasm_config
+    return wasm_config
 
 # ... Setup Elrond Wasm
 
@@ -414,9 +416,6 @@ for test in tests:
     wasm_config = run_test_file(wasm_config, test, test_name)
     cells = pyk.splitConfigFrom(wasm_config)[1]
     k_cell = cells['K_CELL']
-
-    # Check that K cell is empty
-    assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items.\nSee %s" % (k_cell['arity'], tmpdir)
 
     if args.coverage:
         end_config = wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))

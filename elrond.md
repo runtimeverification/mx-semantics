@@ -505,8 +505,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
        andBool (VALOFFSET +Int lengthBytes({STORAGE[#getBytesRange(DATA, KEYOFFSET, KEYLENGTH)]}:>Bytes)) <=Int (SIZE *Int #pageSize())
 
     rule <instrs> hostCall("env", "storageStore", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
-               => i32.const #storageStatus(STORAGE, #getBytesRange(DATA, KEYOFFSET, KEYLENGTH),  #getBytesRange(DATA, VALOFFSET, VALLENGTH))
-               ...
+               => #storageStore(#getBytesRange(DATA, KEYOFFSET, KEYLENGTH), #getBytesRange(DATA, VALOFFSET, VALLENGTH))
+                  ...
          </instrs>
          <locals>
            0 |-> <i32> KEYOFFSET
@@ -514,10 +514,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            2 |-> <i32> VALOFFSET
            3 |-> <i32> VALLENGTH
          </locals>
-         <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
-           <storage> STORAGE => #updateStorage(STORAGE, #getBytesRange(DATA, KEYOFFSET, KEYLENGTH), #getBytesRange(DATA, VALOFFSET, VALLENGTH)) </storage>
            <code> MODIDX </code>
            ...
          </account>
@@ -534,6 +532,44 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </memInst>
       requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
        andBool (VALOFFSET +Int VALLENGTH) <=Int (SIZE *Int #pageSize())
+
+    rule <instrs> hostCall("env", "int64storageStore", [ i32 i32 i64 .ValTypes ] -> [ i32 .ValTypes ] )
+               => #storageStore(#getBytesRange(DATA, KEYOFFSET, KEYLENGTH), Int2Bytes(8, VALUE, BE))
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> KEYOFFSET
+           1 |-> <i32> KEYLENGTH
+           2 |-> <i64> VALUE
+         </locals>
+         <account>
+           <address> CALLEE </address>
+           <code> MODIDX </code>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA </mdata>
+           ...
+         </memInst>
+      requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
+
+    syntax StorageOp ::= #storageStore( key : Bytes, value : Bytes )
+ // ----------------------------------------------------------------
+    rule <instrs> #storageStore(KEY, VALUE) => i32.const #storageStatus(STORAGE, KEY, VALUE) ... </instrs>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <storage> STORAGE => #updateStorage(STORAGE, KEY, VALUE) </storage>
+           <code> MODIDX </code>
+           ...
+         </account>
 
     syntax Map ::= #updateStorage ( Map , key : Bytes , val : Bytes ) [function, functional]
  // ----------------------------------------------------------------------------------------

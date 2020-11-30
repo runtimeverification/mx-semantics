@@ -87,7 +87,6 @@ def mandos_int_to_int(mandos_int : str):
         return KInt(int(mandos_int, 16))
     unseparated_int = mandos_int.replace(',', '')
     parsed_int = int(unseparated_int)
-    print(parsed_int)
     return KInt(parsed_int)
 
 def mandos_to_set_account(address, sections):
@@ -107,7 +106,7 @@ def mandos_argument_to_bytes(argument : str):
     if argument == "":
         return KApply('tupleArg', [KInt(0), KInt(0)])
     try:
-        as_int = int(argument.replace(',', ''))
+        as_int = int(argument)
         num_bytes = 1 + (as_int.bit_length() // 8)
         return KApply('tupleArg', [KInt(as_int), KInt(num_bytes)])
     except ValueError:
@@ -117,11 +116,7 @@ def mandos_argument_to_bytes(argument : str):
         byte_array = bytes.fromhex(argument[2:])
         num_bytes = len(byte_array)
         return KApply('tupleArg', [KInt(as_int), KInt(num_bytes)])
-    if argument[0:2] == "''" or argument[0:2] == '``':
-        byte_array = bytes(argument[2:], 'ascii')
-        as_int = int.from_bytes(byte_array, 'big')
-        num_bytes = len(byte_array)
-        return KApply('tupleArg', [KInt(as_int), KInt(num_bytes)])
+
     raise ValueError("Argument type not yet supported: %s" % argument)
 
 def mandos_arguments_to_arguments(arguments):
@@ -153,36 +148,9 @@ def mandos_to_call_tx(tx, filename):
     callTx = KApply('callTx', [sender, to, value, function, arguments, gasLimit, gasPrice])
     return callTx
 
-def mandos_to_transfer_tx(tx):
-    sender = KWasmString(tx['from'])
-    to = KWasmString(tx['to'])
-    value = mandos_int_to_int(tx['value'])
-
-    transferTx = KApply('transferTx', [sender, to, value])
-    return transferTx
-
-def mandos_to_validator_reward_tx(tx):
-    to = KWasmString(tx['to'])
-    value = mandos_int_to_int(tx['value'])
-
-    rewardTx = KApply('validatorRewardTx', [to, value])
-    return rewardTx
-
 def mandos_to_expect(expect):
     """ TODO """
     return KApply('.Expect', [])
-
-def mandos_to_block_info(block_info):
-    block_infos = []
-    if 'blockTimestamp' in block_info:
-        block_infos += [KApply('blockTimestamp', [mandos_int_to_int(block_info['blockTimestamp'])])]
-    if 'blockNonce' in block_info:
-        block_infos += [KApply('blockNonce', [mandos_int_to_int(block_info['blockNonce'])])]
-    if 'blockRound' in block_info:
-        block_infos += [KApply('blockRound', [mandos_int_to_int(block_info['blockRound'])])]
-    if 'blockEpoch' in block_info:
-        block_infos += [KApply('blockEpoch', [mandos_int_to_int(block_info['blockEpoch'])])]
-    return block_infos
 
 def register(with_name : str):
     return KApply('register', [KString(with_name)])
@@ -198,17 +166,24 @@ def wasm_file_to_module_decl(filename : str):
     # Check that file exists.
     with open(filename, 'rb') as f:
         module = wasm2kast.wasm2kast(f)
-        with open('tmp/adder_parsed_wasm', 'w') as g:
-            g.write(json.dumps(module))
         return module
 
 def wat_file_to_module_decl(filename : str):
-    (rc, kasted, err) = pyk.kast(WASM_definition_llvm_no_coverage_dir, filename, kastArgs = ['--output', 'json'], teeOutput=True)
-    if rc != 0:
-        raise Exception("Received error while kast-ing: " + err )
-    kasted_json = json.loads(kasted)
-    module = kasted_json['term']['args'][0]
-    return module
+    with open(filename) as f:
+        pass
+    new_filename = os.path.join(tmpdir, os.path.basename(filename) + '.wasm')
+    try:
+        wat = subprocess.check_output("wat2wasm %s --output=%s" % (filename, new_filename), shell=True)
+    except subprocess.CalledProcessError as e:
+        print("Failed: %s" % e.cmd)
+        print("return code: %d" % e.returncode)
+        print("stdout:")
+        print(e.output)
+        print("stderr:")
+        print(e.stderr)
+        raise e
+    return wasm_file_to_module_decl(new_filename)
+
 
 def get_external_file_path(test_file, rel_path_to_new_file):
     test_file_path = os.path.dirname(test_file)
@@ -237,14 +212,6 @@ def get_steps_sc_call(step, filename):
     expect = mandos_to_expect(step['expect'])
     return [KApply('scCall', [tx, expect])]
 
-def get_steps_transfer(step):
-    tx = mandos_to_transfer_tx(step['tx'])
-    return [KApply('transfer', [tx])]
-
-def get_steps_validator_reward(step):
-    tx = mandos_to_validator_reward_tx(step['tx'])
-    return [KApply('validatorReward', [tx])]
-
 def get_steps_new_addresses(new_addresses):
         if new_addresses is None:
             return []
@@ -257,7 +224,6 @@ def get_steps_new_addresses(new_addresses):
         return ret
 
 def get_steps_set_state(step, filename):
-    k_steps = []
     if 'accounts' in step:
         set_accounts = [ mandos_to_set_account(address, sections) for (address, sections) in step['accounts'].items()]
         # Get paths of Wasm code, relative to the test location.
@@ -268,32 +234,21 @@ def get_steps_set_state(step, filename):
         contract_module_decls = [ [file_to_module_decl(f), register(a) ] for (a, f) in contracts_files ]
         # Flatten:
         contract_setups = [ step for pair in contract_module_decls for step in pair ]
-        k_steps = k_steps + contract_setups
+        k_steps = contract_setups
         k_steps = k_steps + set_accounts
-    if 'newAddresses' in step:
-        new_addresses = get_steps_new_addresses(step['newAddresses'])
+
+        new_addresses = get_steps_new_addresses(step['newAddresses']) if 'newAddresses' in step else []
         k_steps = k_steps + new_addresses
-    def block_infos_helper(state : str):
-        """State is either 'current' or 'previous'"""
-        label = state + 'BlockInfo'
-        block_infos = mandos_to_block_info(step[label])
-        state_block_infos = list(map(lambda x: KApply(label, [x]), block_infos))
-        return state_block_infos
-    if 'currentBlockInfo' in step:
-        curr = block_infos_helper('current')
-        k_steps = k_steps + curr
-    if 'previousBlockInfo' in step:
-        prev = block_infos_helper('previous')
-        k_steps = k_steps + prev
-    if k_steps == []:
-        raise Exception('Step not implemented: %s' % step)
+    else:
+        print('Step not implemented: %s' % step, file=sys.stderr)
+        sys.exit(1)
     return k_steps
 
 def get_steps_as_kseq(filename):
     with open(filename, 'r') as f:
         mandos_test = json.loads(f.read())
     if 'name' in mandos_test:
-        print('Reading "%s"' % mandos_test['name'])
+        print('Executing "%s"' % mandos_test['name'])
     if 'comment' in mandos_test:
         print('Comment:\n"%s"' % mandos_test['comment'])
 
@@ -310,12 +265,7 @@ def get_steps_as_kseq(filename):
             pass
         elif step['step'] == 'externalSteps':
             steps_file = get_external_file_path(filename, step['path'])
-            print('Load external: %s' % steps_file)
-            k_steps = k_steps + get_steps_as_kseq(steps_file)
-        elif step['step'] == 'transfer':
-            k_steps.append((step['step'], get_steps_transfer(step)))
-        elif step['step'] == 'validatorReward':
-            k_steps.append((step['step'], get_steps_validator_reward(step, filename)))
+            k_steps + get_steps_as_kseq(steps_file)
         else:
             raise Exception('Step %s not implemented yet' % step['step'])
     return k_steps
@@ -323,7 +273,6 @@ def get_steps_as_kseq(filename):
 def run_test_file(wasm_config, filename, test_name):
     k_steps = get_steps_as_kseq(filename)
 
-    print(args.log_level)
     if args.log_level == 'none' or args.log_level == 'per-file':
         # Flatten the list of k_steps, just run them all in one go.
         k_steps = [ ('full', [ y for (_, x) in k_steps for y in x ]) ]
@@ -332,16 +281,15 @@ def run_test_file(wasm_config, filename, test_name):
 
     for i in range(len(k_steps)):
         step_name, curr_step = k_steps[i]
-        print('Executing step %s' % step_name)
         init_subst['K_CELL'] = KSequence(curr_step)
 
         init_config = pyk.substitute(symbolic_config, init_subst)
 
         input_json = config_to_kast_term(init_config)
-        krun_args = [ '--term', '--debug']#, '--depth', '862']
+        krun_args = [ '--term', '--debug']
 
         # Run: generate a new JSON as a temporary file, then read that as the new wasm state.
-        #log_intermediate_state("%s_%d_%s.pre" % (test_name, i, step_name), init_config)
+        log_intermediate_state("%s_%d_%s.pre" % (test_name, i, step_name), init_config)
         (rc, new_wasm_config, err) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
         if rc != 0:
             print('output:\n%s' % new_wasm_config, file=sys.stderr)
@@ -378,33 +326,6 @@ def log_intermediate_state(name, config):
     with open('%s/%s.pretty.k' % (tmpdir, name), 'w') as f:
         pretty = pyk.prettyPrintKast(config, WASM_symbols_llvm_no_coverage)
         f.write(pretty)
-        print(pretty)
-
-# Run wat file with semnatics (which currently was hacked to only apply text2abstract)
-# TODO!!! The problem is that the adder test fails when using hte binary parser. Probably the binary parser does something wrong.
-# Need to figure out the difference between what the binary parser produces, and the regular parser.
-# The error seems to come from a load operation, so has something to do with memory.
-# The loaded value is way, way too large. It is then used as an address, and we get an out-of-bounds access.
-# Value for address is 2,019,307,576.
-
-
-#wasm_config = pyk.readKastTerm('src/elrond-runtime.loaded.json')
-#(symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_config)
-#init_subst['K_CELL'] = wat_file_to_module_decl('tmp/adder.wat')
-#
-#init_config = pyk.substitute(symbolic_config, init_subst)
-#input_json = config_to_kast_term(init_config)
-#krun_args = [ '--term', '--debug', '--depth', '846']
-#(rc, new_wasm_config, err) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
-#
-#(_, subst) = pyk.splitConfigFrom(wasm_config)
-#wat_kast = subst['K_CELL']
-#wasm_kast = wasm_file_to_module_decl('tmp/adder.wasm')
-#
-#with open('tmp/adder_wat.kast', 'w') as f:
-#    f.write(json.dumps(wat_kast))
-#with open('tmp/adder_wasm.kast', 'w') as f:
-#    f.write(json.dumps(wasm_kast))
 
 # Main Script
 
@@ -423,7 +344,7 @@ for test in tests:
     k_cell = cells['K_CELL']
 
     # Check that K cell is empty
-    assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items.\nSee %s" % (k_cell['arity'], tmpdir)
+    assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items" % k_cell['arity']
 
     if args.coverage:
         end_config = wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))

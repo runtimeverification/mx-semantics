@@ -352,7 +352,12 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
     rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
          <callingArguments> ARGS </callingArguments>
-         <bigIntHeap> HEAP => HEAP [BIG_IDX <- valueArg({ARGS[ARG_IDX]}:>Argument)] </bigIntHeap>
+         <bigIntHeap> HEAP => HEAP [BIG_IDX <- #signed({ARGS[ARG_IDX]}:>Argument)] </bigIntHeap>
+
+    rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
+         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
+         <callingArguments> ARGS </callingArguments>
+         <bigIntHeap> HEAP => HEAP [BIG_IDX <- #unsigned({ARGS[ARG_IDX]}:>Argument)] </bigIntHeap>
 
     rule <instrs> hostCall("env", "bigIntFinishSigned", [ i32 .ValTypes ] -> [ .ValTypes ])
                => i32.const 0
@@ -419,6 +424,15 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
     syntax Bytes ::= #setBytesRange ( Bytes , Int , Bytes ) [function]
  // ------------------------------------------------------------------
     rule #setBytesRange(BS, OFFSET, NEW) => replaceAtBytes(padRightBytes(BS, OFFSET +Int lengthBytes(NEW), 0), OFFSET, NEW)
+```
+
+```k
+    syntax Int ::= #unsigned( Argument ) [function, functional]
+                 |   #signed( Argument ) [function, functional]
+ // -----------------------------------------------------------
+    rule #unsigned(A) => valueArg(A)
+    rule #signed(A)   => valueArg(A)                             requires notBool 2 ^Int (lengthArg(A) -Int 1) <=Int valueArg(A)
+    rule #signed(A)   => valueArg(A) -Int (2 ^Int lengthArg(A)) requires         2 ^Int (lengthArg(A) -Int 1) <=Int valueArg(A)
 ```
 
 ```k

@@ -298,7 +298,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
          <locals> 0 |-> <i32> OFFSET </locals>
          <caller> CALLER </caller>
 
-    syntax Instr ::= #setMem ( bytes : Bytes, offset : Int )
+    syntax MemOp ::= #setMem ( bytes : Bytes, offset : Int )
  // --------------------------------------------------------
     rule <instrs> #setMem(BS, OFFSET) => . ... </instrs>
          <callee> CALLEE </callee>

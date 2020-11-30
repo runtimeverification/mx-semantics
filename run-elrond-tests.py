@@ -224,6 +224,7 @@ def get_steps_new_addresses(new_addresses):
         return ret
 
 def get_steps_set_state(step, filename):
+    k_steps = []
     if 'accounts' in step:
         set_accounts = [ mandos_to_set_account(address, sections) for (address, sections) in step['accounts'].items()]
         # Get paths of Wasm code, relative to the test location.
@@ -234,10 +235,10 @@ def get_steps_set_state(step, filename):
         contract_module_decls = [ [file_to_module_decl(f), register(a) ] for (a, f) in contracts_files ]
         # Flatten:
         contract_setups = [ step for pair in contract_module_decls for step in pair ]
-        k_steps = contract_setups
+        k_steps = k_steps + contract_setups
         k_steps = k_steps + set_accounts
-
-        new_addresses = get_steps_new_addresses(step['newAddresses']) if 'newAddresses' in step else []
+    if 'newAddresses' in step:
+        new_addresses = get_steps_new_addresses(step['newAddresses'])
         k_steps = k_steps + new_addresses
     else:
         print('Step not implemented: %s' % step, file=sys.stderr)
@@ -248,7 +249,7 @@ def get_steps_as_kseq(filename):
     with open(filename, 'r') as f:
         mandos_test = json.loads(f.read())
     if 'name' in mandos_test:
-        print('Executing "%s"' % mandos_test['name'])
+        print('Reading "%s"' % mandos_test['name'])
     if 'comment' in mandos_test:
         print('Comment:\n"%s"' % mandos_test['comment'])
 
@@ -265,7 +266,8 @@ def get_steps_as_kseq(filename):
             pass
         elif step['step'] == 'externalSteps':
             steps_file = get_external_file_path(filename, step['path'])
-            k_steps + get_steps_as_kseq(steps_file)
+            print('Load external: %s' % steps_file)
+            k_steps = k_steps + get_steps_as_kseq(steps_file)
         else:
             raise Exception('Step %s not implemented yet' % step['step'])
     return k_steps
@@ -281,6 +283,7 @@ def run_test_file(wasm_config, filename, test_name):
 
     for i in range(len(k_steps)):
         step_name, curr_step = k_steps[i]
+        print('Executing step %s' % step_name)
         init_subst['K_CELL'] = KSequence(curr_step)
 
         init_config = pyk.substitute(symbolic_config, init_subst)
@@ -344,7 +347,7 @@ for test in tests:
     k_cell = cells['K_CELL']
 
     # Check that K cell is empty
-    assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items" % k_cell['arity']
+    assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items.\nSee %s" % (k_cell['arity'], tmpdir)
 
     if args.coverage:
         end_config = wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))

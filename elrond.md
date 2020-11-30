@@ -166,19 +166,7 @@ Storage maps byte arrays to byte arrays.
     syntax String  ::= address2String(Address) [function]
  // -----------------------------------------------------
     rule address2String(.Address) => ".Address"
-    rule address2String(WS:WasmStringToken) => #parseWasmString(WS)
-
-    syntax Code ::= ".Code" | WasmString | Int
- // ------------------------------------------
-```
-
-
-```k
-    syntax Address ::= ".Address" | WasmString
-    syntax String  ::= address2String(Address) [function]
- // -----------------------------------------------------
-    rule address2String(.Address) => ".Address"
-    rule address2String(WS:WasmStringToken) => #parseWasmString(WS)
+    rule address2String(WS:WasmStringToken) => substrString(#parseWasmString(WS), 2, lengthString(#parseWasmString(WS)))
 
     syntax Code ::= ".Code" | WasmString | Int
  // ------------------------------------------

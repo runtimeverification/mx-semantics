@@ -709,10 +709,6 @@ Only take the next step once both the Elrond node and Wasm are done executing.
                        | blockRound(Int)     [klabel(blockRound), symbol]
                        | blockEpoch(Int)     [klabel(blockEpoch), symbol]
  // ---------------------------------------------------------------------
-    rule <k> currentBlockInfo(blockTimestamp(I)) => . ... </k>
-    rule <k> currentBlockInfo(blockNonce    (I)) => . ... </k>
-    rule <k> currentBlockInfo(blockRound    (I)) => . ... </k>
-    rule <k> currentBlockInfo(blockEpoch    (I)) => . ... </k>
 ```
 
 ### Contract Interactions

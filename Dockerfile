@@ -1,13 +1,14 @@
 ARG K_COMMIT
 FROM runtimeverificationinc/kframework-k:ubuntu-bionic-${K_COMMIT}
 
-RUN    apt-get update         \
-    && apt-get upgrade --yes  \
-    && apt-get install --yes  \
-                       cmake  \
-                       curl   \
-                       pandoc \
-                       python3
+RUN    apt-get update              \
+    && apt-get upgrade --yes       \
+    && apt-get install --yes       \
+                       cmake       \
+                       curl        \
+                       pandoc      \
+                       python3     \
+                       python3-pip
 
 ARG USER_ID=1000
 ARG GROUP_ID=1000
@@ -18,6 +19,10 @@ WORKDIR /home/user
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly --target wasm32-unknown-unknown
 ENV PATH=/home/user/.cargo/bin:$PATH
+
+RUN pip3 install         \
+                 cytoolz \
+                 numpy
 
 RUN    git clone 'https://github.com/WebAssembly/wabt' --branch 1.0.13 --recurse-submodules wabt \
     && cd wabt                                                                                   \

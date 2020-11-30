@@ -10,8 +10,9 @@
 BUILD_DIR := .build
 DEPS_DIR  := deps
 DEFN_DIR  := $(BUILD_DIR)/defn
-KWASM_SUBMODULE := $(DEPS_DIR)/wasm-semantics
-K_SUBMODULE     := $(KWASM_SUBMODULE)/deps/k
+KWASM_SUBMODULE     := $(DEPS_DIR)/wasm-semantics
+K_SUBMODULE         := $(KWASM_SUBMODULE)/deps/k
+KWASM_BINARY_PARSER := $(KWASM_SUBMODULE)/binary-parser
 
 ELROND_WASM_SUBMODULE  := $(DEPS_DIR)/elrond-wasm-rs
 ELROND_ADDER_SUBMODULE := $(ELROND_WASM_SUBMODULE)/examples/adder
@@ -25,7 +26,7 @@ K_BIN := $(K_RELEASE)/bin
 K_LIB := $(K_RELEASE)/lib/kframework
 export K_RELEASE
 
-PYTHONPATH := $(K_LIB)
+PYTHONPATH := $(K_LIB):$(KWASM_BINARY_PARSER):$(PYTHONPATH)
 export PYTHONPATH
 
 KWASM_DIR  := .

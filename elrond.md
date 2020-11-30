@@ -280,12 +280,27 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
          <callingArguments> ARGS </callingArguments>
       requires IDX <Int size(ARGS)
 
-    rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthArg({ARGS[IDX]}:>Argument) ... </instrs>
+    rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #setMem(Int2Bytes(lengthArg({ARGS[IDX]}:>Argument), valueArg({ARGS[IDX]}:>Argument), BE), OFFSET)
+               ~> i32.const lengthArg({ARGS[IDX]}:>Argument)
+                  ...
+         </instrs>
          <locals>
            0 |-> <i32> IDX
            1 |-> <i32> OFFSET
          </locals>
          <callingArguments> ARGS </callingArguments>
+
+    rule <instrs> hostCall("env", "getCaller", [ i32 .ValTypes ] -> [ .ValTypes ])
+               => #setMem(String2Bytes(address2String(CALLER)), OFFSET)
+                  ...
+         </instrs>
+         <locals> 0 |-> <i32> OFFSET </locals>
+         <caller> CALLER </caller>
+
+    syntax Instr ::= #setMem ( bytes : Bytes, offset : Int )
+ // --------------------------------------------------------
+    rule <instrs> #setMem(BS, OFFSET) => . ... </instrs>
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
@@ -300,11 +315,10 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
          <memInst>
            <mAddr> MEMADDR </mAddr>
            <msize> SIZE </msize>
-           <mdata> DATA => #setBytesRange(DATA, OFFSET, Int2Bytes(lengthArg({ARGS[IDX]}:>Argument), valueArg({ARGS[IDX]}:>Argument), BE)) </mdata>
+           <mdata> DATA => #setBytesRange(DATA, OFFSET, BS) </mdata>
            ...
          </memInst>
-      requires (OFFSET +Int lengthArg({ARGS[IDX]}:>Argument)) <=Int (SIZE *Int #pageSize())
-          andBool IDX <Int size(ARGS)
+      requires OFFSET +Int lengthBytes(BS) <=Int (SIZE *Int #pageSize())
 ```
 
 #### BigInt Heap

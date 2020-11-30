@@ -619,6 +619,8 @@ module MANDOS
       </mandos>
 ```
 
+### Wasm and Elrond Interaction
+
 Only take the next step once both the Elrond node and Wasm are done executing.
 
 ```k
@@ -651,7 +653,11 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> register NAME => . ... </k>
          <moduleRegistry> REG => REG [NAME <- IDX -Int 1] </moduleRegistry>
          <nextModuleIdx> IDX </nextModuleIdx>
+```
 
+### State Setup
+
+```k
     syntax Step ::= setAccount(Address, Int, Int, WasmString, Map) [klabel(setAccount), symbol]
  // -----------------------------------------------------------------------------------
     rule <k> setAccount(ADDRESS, NONCE, BALANCE, CODE, STORAGE) => . ... </k>

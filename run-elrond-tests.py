@@ -15,9 +15,6 @@ from pyk.kast import KSequence, KConstant, KApply, KToken
 POSITIVE_COVERAGE_CELL = "COVEREDFUNCS_CELL"
 NEGATIVE_COVERAGE_CELL = "NOTCOVEREDFUNCS_CELL"
 
-tmpdir = tempfile.mkdtemp(prefix="mandos_")
-print("Intermediate test outputs stored in:\n%s" % tmpdir)
-
 #### SHOULD BE UPSTREAMED ####
 
 def KString(value):
@@ -332,15 +329,17 @@ def log_intermediate_state(name, config):
 
 # Main Script
 
-wasm_config = pyk.readKastTerm('src/elrond-runtime.loaded.json')
-cells = pyk.splitConfigFrom(wasm_config)[1]
-assert cells['K_CELL']['arity'] == 0
-
-initial_name = "0000_initial_config"
-with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
-    f.write(json.dumps(config_to_kast_term(wasm_config)))
-
 for test in tests:
+    tmpdir = tempfile.mkdtemp(prefix="mandos_")
+    print("Intermediate test outputs stored in:\n%s" % tmpdir)
+    wasm_config = pyk.readKastTerm('src/elrond-runtime.loaded.json')
+    cells = pyk.splitConfigFrom(wasm_config)[1]
+    assert cells['K_CELL']['arity'] == 0
+
+    initial_name = "0000_initial_config"
+    with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
+        f.write(json.dumps(config_to_kast_term(wasm_config)))
+
     test_name = os.path.basename(test)
     wasm_config = run_test_file(wasm_config, test, test_name)
     cells = pyk.splitConfigFrom(wasm_config)[1]

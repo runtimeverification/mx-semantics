@@ -103,28 +103,46 @@ def mandos_to_set_account(address, sections):
     return set_account_step
 
 def mandos_argument_to_bytes(argument : str):
+    if '|' in argument:
+        splits = argument.split('|')
+        bs = bytes()
+        for s in splits:
+            bs += mandos_argument_to_bytes(s)
+        return bs
+    if argument[0] == 'u':
+        [numbitsstr, intstr] = argument[1:].split(':')
+        num_bits = int(numbitsstr)
+        as_int = int(intstr.replace(',', ''))
+        return int.to_bytes(as_int, num_bits // 8, 'big')
     if argument == "":
-        return KApply('tupleArg', [KInt(0), KInt(0)])
+        return bytes()
     try:
         as_int = int(argument.replace(',', ''))
         num_bytes = 1 + (as_int.bit_length() // 8)
-        return KApply('tupleArg', [KInt(as_int), KInt(num_bytes)])
+        return int.to_bytes(as_int, num_bytes, 'big')
     except ValueError:
         pass
     if argument[0:2] == '0x':
-        as_int = int(argument, 16)
         byte_array = bytes.fromhex(argument[2:])
-        num_bytes = len(byte_array)
-        return KApply('tupleArg', [KInt(as_int), KInt(num_bytes)])
+        return byte_array
     if argument[0:2] == "''" or argument[0:2] == '``':
         byte_array = bytes(argument[2:], 'ascii')
-        as_int = int.from_bytes(byte_array, 'big')
-        num_bytes = len(byte_array)
-        return KApply('tupleArg', [KInt(as_int), KInt(num_bytes)])
+        return byte_array
+    if argument[0:4] == "str:":
+        return mandos_argument_to_bytes('``' + argument[4:])
+    if argument[0:8] == 'address:':
+        byte_array = bytes(argument, 'ascii')
+        pad = 20 - len(byte_array)
+        return byte_array + bytes(pad)
+
     raise ValueError("Argument type not yet supported: %s" % argument)
 
+def mandos_argument_to_kargs(argument : str):
+    bs = mandos_argument_to_bytes(argument)
+    return KApply('tupleArg', [KInt(int.from_bytes(bs, 'big')), KInt(len(bs))])
+
 def mandos_arguments_to_arguments(arguments):
-    tokenized = list(map(lambda x: mandos_argument_to_bytes(x), arguments))
+    tokenized = list(map(lambda x: mandos_argument_to_kargs(x), arguments))
     return KList(tokenized)
 
 def mandos_to_deploy_tx(tx, filename):

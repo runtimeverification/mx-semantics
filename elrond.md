@@ -168,8 +168,9 @@ Storage maps byte arrays to byte arrays.
     rule address2String(.Address) => ".Address"
     rule address2String(WS:WasmStringToken) => substrString(#parseWasmString(WS), 2, lengthString(#parseWasmString(WS)))
 
-    syntax Code ::= ".Code" | WasmString | Int
- // ------------------------------------------
+    syntax Code ::= ".Code" [klabel(.Code), symbol]
+                  | WasmString | Int
+ // --------------------------------
 ```
 
 The value is an unsigned integer representation of the bytes.
@@ -696,8 +697,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### State Setup
 
 ```k
-    syntax Step ::= setAccount(Address, Int, Int, WasmString, Map) [klabel(setAccount), symbol]
- // -----------------------------------------------------------------------------------
+    syntax Step ::= setAccount(Address, Int, Int, Code, Map) [klabel(setAccount), symbol]
+ // -------------------------------------------------------------------------------------
     rule <k> setAccount(ADDRESS, NONCE, BALANCE, CODE, STORAGE) => . ... </k>
          <accounts>
            ( .Bag

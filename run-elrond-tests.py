@@ -91,7 +91,10 @@ def mandos_to_set_account(address, sections):
     address_value = KWasmString(address)
     nonce_value   = mandos_int_to_int(sections['nonce'])
     balance_value = mandos_int_to_int(sections['balance'])
-    code_value    = KWasmString(sections['code'])
+    if 'code' in sections:
+        code_value = KWasmString(sections['code'])
+    else:
+        code_value = KApply(".Code", [])
 
     storage_pairs = [ (KString(k), KString(v)) for (k, v) in sections['storage'].items() ]
     storage_value = KMap(storage_pairs)
@@ -281,7 +284,7 @@ def get_steps_set_state(step, filename):
         set_accounts = [ mandos_to_set_account(address, sections) for (address, sections) in step['accounts'].items()]
         # Get paths of Wasm code, relative to the test location.
         # TODO: Read the files, convert to text, parse, declare them and register them (with address as key)
-        contracts_files = [ (addr, get_contract_code(sects['code'], filename)) for (addr, sects) in step['accounts'].items() ]
+        contracts_files = [ (addr, get_contract_code(sects['code'], filename)) for (addr, sects) in step['accounts'].items() if 'code' in sects ]
         contracts_files = [ (addr, code) for (addr, code) in contracts_files if code is not None ]
         # First declare module, then register it
         contract_module_decls = [ [file_to_module_decl(f), register(a) ] for (a, f) in contracts_files ]

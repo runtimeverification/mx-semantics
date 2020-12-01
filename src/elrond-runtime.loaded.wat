@@ -102,6 +102,9 @@
     <bigIntHeap>
       .Map
     </bigIntHeap>
+    <bytesStack>
+      .BytesStack
+    </bytesStack>
     <logging>
       ""
     </logging>

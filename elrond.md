@@ -204,8 +204,22 @@ module ELROND
         <wasmCoverage/>
         <node/>
         <bigIntHeap> .Map </bigIntHeap>
+        <bytesStack> .BytesStack </bytesStack>
         <logging> "" </logging>
       </elrond>
+```
+
+```k
+    syntax BytesStack ::= List{Bytes, ":"}
+ // --------------------------------------
+
+    syntax BytesOp ::= #pushBytes ( Bytes )
+                     | "#dropBytes"
+ // ---------------------------------------
+    rule <instrs> #pushBytes(BS) => . ... </instrs>
+         <bytesStack> STACK => BS : STACK </bytesStack>
+    rule <instrs> #dropBytes => . ... </instrs>
+         <bytesStack> _ : STACK => STACK </bytesStack>
 ```
 
 ### Synchronization
@@ -299,6 +313,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
          <caller> CALLER </caller>
 
     syntax MemOp ::= #setMem ( bytes : Bytes, offset : Int )
+                   | #getMem ( offset : Int , lenght : Int )
  // --------------------------------------------------------
     rule <instrs> #setMem(BS, OFFSET) => . ... </instrs>
          <callee> CALLEE </callee>
@@ -319,6 +334,27 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
            ...
          </memInst>
       requires OFFSET +Int lengthBytes(BS) <=Int (SIZE *Int #pageSize())
+
+    rule <instrs> #getMem(OFFSET, LENGTH) => . ... </instrs>
+         <bytesStack> STACK => #getBytesRange(DATA, OFFSET, LENGTH) : STACK </bytesStack>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <code> MODIDX:Int </code>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA </mdata>
+           ...
+         </memInst>
+      requires OFFSET +Int LENGTH <=Int (SIZE *Int #pageSize())
 ```
 
 #### BigInt Heap
@@ -452,60 +488,23 @@ Storing a value returns a status code indicating if and how the storage was modi
 TODO: Implement [reserved keys and read-only runtimes](https://github.com/ElrondNetwork/arwen-wasm-vm/blob/d6ea0489081f81fefba002609c34ece1365373dd/arwen/contexts/storage.go#L111).
 
 ```k
-    rule <instrs> hostCall("env", "storageLoadLength", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) => i32.const lengthBytes({STORAGE[#getBytesRange(DATA, KEYOFFSET, KEYLENGTH)]}:>Bytes) ... </instrs>
+    rule <instrs> hostCall("env", "storageLoadLength", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) => #getMem(KEYOFFSET, KEYLENGTH) ~> #storageLoad ~> #dropBytes ... </instrs>
          <locals>
            0 |-> <i32> KEYOFFSET
            1 |-> <i32> KEYLENGTH
          </locals>
-         <callee> CALLEE </callee>
-         <account>
-           <address> CALLEE </address>
-           <storage> STORAGE </storage>
-           <code> MODIDX </code>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
-           ...
-         </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <msize> SIZE </msize>
-           <mdata> DATA </mdata>
-           ...
-         </memInst>
-      requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
 
-    rule <instrs> hostCall("env", "storageLoad", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) => i32.const lengthBytes({STORAGE[#getBytesRange(DATA, KEYOFFSET, KEYLENGTH)]}:>Bytes) ... </instrs>
+    rule <instrs> hostCall("env", "storageLoad", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) => #getMem(KEYOFFSET, KEYLENGTH) ~> #storageLoad ~> #bytesToSetMem(VALOFFSET) ... </instrs>
          <locals>
            0 |-> <i32> KEYOFFSET
            1 |-> <i32> KEYLENGTH
            2 |-> <i32> VALOFFSET
          </locals>
-         <callee> CALLEE </callee>
-         <account>
-           <address> CALLEE </address>
-           <storage> STORAGE </storage>
-           <code> MODIDX </code>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
-           ...
-         </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <msize> SIZE </msize>
-           <mdata> DATA => #setBytesRange(DATA, VALOFFSET, {STORAGE[#getBytesRange(DATA, KEYOFFSET, KEYLENGTH)]}:>Bytes) </mdata>
-           ...
-         </memInst>
-      requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
-       andBool (VALOFFSET +Int lengthBytes({STORAGE[#getBytesRange(DATA, KEYOFFSET, KEYLENGTH)]}:>Bytes)) <=Int (SIZE *Int #pageSize())
 
     rule <instrs> hostCall("env", "storageStore", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
-               => #storageStore(#getBytesRange(DATA, KEYOFFSET, KEYLENGTH), #getBytesRange(DATA, VALOFFSET, VALLENGTH))
+               => #getMem(KEYOFFSET, KEYLENGTH)
+               ~> #getMem(VALOFFSET, VALLENGTH)
+               ~> #storageStore
                   ...
          </instrs>
          <locals>
@@ -514,27 +513,11 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            2 |-> <i32> VALOFFSET
            3 |-> <i32> VALLENGTH
          </locals>
-         <account>
-           <address> CALLEE </address>
-           <code> MODIDX </code>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
-           ...
-         </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <msize> SIZE </msize>
-           <mdata> DATA </mdata>
-           ...
-         </memInst>
-      requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
-       andBool (VALOFFSET +Int VALLENGTH) <=Int (SIZE *Int #pageSize())
 
     rule <instrs> hostCall("env", "int64storageStore", [ i32 i32 i64 .ValTypes ] -> [ i32 .ValTypes ] )
-               => #storageStore(#getBytesRange(DATA, KEYOFFSET, KEYLENGTH), Int2Bytes(8, VALUE, BE))
+               => #getMem(KEYOFFSET, KEYLENGTH)
+               ~> #pushBytes(Int2Bytes(8, VALUE, BE))
+               ~> #storageStore
                   ...
          </instrs>
          <locals>
@@ -542,27 +525,13 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            1 |-> <i32> KEYLENGTH
            2 |-> <i64> VALUE
          </locals>
-         <account>
-           <address> CALLEE </address>
-           <code> MODIDX </code>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
-           ...
-         </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <msize> SIZE </msize>
-           <mdata> DATA </mdata>
-           ...
-         </memInst>
-      requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
 
-    syntax StorageOp ::= #storageStore( key : Bytes, value : Bytes )
- // ----------------------------------------------------------------
-    rule <instrs> #storageStore(KEY, VALUE) => i32.const #storageStatus(STORAGE, KEY, VALUE) ... </instrs>
+    syntax StorageOp ::= "#storageStore"
+                       | "#storageLoad"
+                       | #bytesToSetMem (offset : Int)
+ // --------------------------------------------------
+    rule <instrs> #storageStore => i32.const #storageStatus(STORAGE, KEY, VALUE) ... </instrs>
+         <bytesStack> VALUE : KEY : STACK => STACK </bytesStack>
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
@@ -570,6 +539,19 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <code> MODIDX </code>
            ...
          </account>
+
+    rule <instrs> #storageLoad => i32.const lengthBytes({STORAGE[KEY]}:>Bytes) ~> ... </instrs>
+         <bytesStack> KEY : STACK => {STORAGE[KEY]}:>Bytes : STACK </bytesStack>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <storage> STORAGE </storage>
+           <code> MODIDX </code>
+           ...
+         </account>
+
+    rule <instrs> #bytesToSetMem(OFFSET) => #setMem(BS, OFFSET) ... </instrs>
+         <bytesStack> BS : STACK => STACK </bytesStack>
 
     syntax Map ::= #updateStorage ( Map , key : Bytes , val : Bytes ) [function, functional]
  // ----------------------------------------------------------------------------------------

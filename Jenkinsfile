@@ -21,8 +21,9 @@ pipeline {
       options { timeout(time: 5, unit: 'MINUTES') }
       parallel {
         stage('Unit Test')           { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-simple -j4' } }
-        stage('Mandos Unit Test')    { steps { sh 'make TEST_CONCRETE_BACKEND=llvm elrond-test -j4' } }
-        stage('Adder Contract Test') { steps { sh 'make TEST_CONCRETE_BACKEND=llvm elrond-adder-test -j4' } }
+        stage('Mandos Unit Test')    { steps { sh 'make TEST_CONCRETE_BACKEND=llvm mandos-test -j4' } }
+        stage('Adder Contract Test') { steps { sh 'make TEST_CONCRETE_BACKEND=llvm elrond-adder-test' } }
+        stage('Adder Contract Test') { steps { sh 'make TEST_CONCRETE_BACKEND=llvm elrond-lottery-test' } }
       }
     }
   }

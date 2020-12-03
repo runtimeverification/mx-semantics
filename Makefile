@@ -128,20 +128,20 @@ $(ELROND_RUNTIME_JSON):
 # Elrond Tests
 # ------------
 
-TEST_ELROND := python3 run-elrond-tests.py
+TEST_MANDOS := python3 run-elrond-tests.py
 
-ELROND_TESTS_DIR := tests/mandos
-elrond_tests=$(sort $(wildcard $(ELROND_TESTS_DIR)/*.scen.json))
-elrond-test: $(llvm_kompiled)
-	$(TEST_ELROND) $(elrond_tests)
+MANDOS_TESTS_DIR := tests/mandos
+mandos_tests=$(sort $(wildcard $(MANDOS_TESTS_DIR)/*.scen.json))
+mandos-test: $(llvm_kompiled)
+	$(TEST_MANDOS) $(mandos_tests)
 
 ELROND_ADDER_SUBMODULE := $(ELROND_CONTRACT_EXAMPLES)/adder
 ELROND_ADDER_TESTS_DIR=$(ELROND_ADDER_SUBMODULE)/mandos
 elrond_adder_tests=$(ELROND_ADDER_TESTS_DIR)/adder.scen.json
 elrond-adder-test:
-	$(TEST_ELROND) $(elrond_adder_tests) --coverage
+	$(TEST_MANDOS) $(elrond_adder_tests) --coverage
 
 ELROND_LOTTERY_SUBMODULE=$(ELROND_CONTRACT_EXAMPLES)/lottery-egld
 elrond_lottery_tests=$(shell find $(ELROND_LOTTERY_SUBMODULE) -name "*.scen.json")
 elrond-lottery-test:
-	$(TEST_ELROND) $(elrond_lottery_tests) --coverage
+	$(TEST_MANDOS) $(elrond_lottery_tests) --coverage

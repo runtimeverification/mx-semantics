@@ -2,7 +2,7 @@
 .PHONY: all clean deps wasm-deps                                           \
         build build-llvm build-haskell                                     \
         elrond-contracts elrond-test elrond-loaded                         \
-        elrond-contract-tests elrond-adder-test elrond-delegation-test     \
+        elrond-contract-tests elrond-adder-test elrond-lottery-test        \
         test
 
 # Settings
@@ -17,9 +17,6 @@ KWASM_BINARY_PARSER := $(KWASM_SUBMODULE)/binary-parser
 
 ELROND_WASM_SUBMODULE  := $(DEPS_DIR)/elrond-wasm-rs
 ELROND_CONTRACT_EXAMPLES := $(ELROND_WASM_SUBMODULE)/contracts/examples
-ELROND_ADDER_SUBMODULE := $(ELROND_CONTRACT_EXAMPLES)/adder
-
-ELROND_DELEGATION_SUBMODULE := $(DEPS_DIR)/sc-delegation-rs
 
 ifneq (,$(wildcard $(K_SUBMODULE)/k-distribution/target/release/k/bin/*))
     K_RELEASE ?= $(abspath $(K_SUBMODULE)/k-distribution/target/release/k)
@@ -55,7 +52,6 @@ wasm-deps:
 
 elrond-contracts:
 	cd $(ELROND_WASM_SUBMODULE) && env RUSTFLAGS="" ./build-wasm.sh
-	ls $(ELROND_ADDER_SUBMODULE)/output/adder.wasm
 
 # Building Definition
 # -------------------
@@ -88,7 +84,7 @@ $(KWASM_SUBMODULE)/$(MAIN_DEFN_FILE).md: $(MAIN_DEFN_FILE).md
 
 KRUN_OPTS :=
 
-elrond-contract-tests: elrond-adder-test elrond-delegation-test
+elrond-contract-tests: elrond-adder-test elrond-lottery-test
 
 test: test-simple elrond-test elrond-contract-tests
 
@@ -139,6 +135,7 @@ elrond_tests=$(sort $(wildcard $(ELROND_TESTS_DIR)/*.scen.json))
 elrond-test: $(llvm_kompiled)
 	$(TEST_ELROND) $(elrond_tests)
 
+ELROND_ADDER_SUBMODULE := $(ELROND_CONTRACT_EXAMPLES)/adder
 ELROND_ADDER_TESTS_DIR=$(ELROND_ADDER_SUBMODULE)/mandos
 elrond_adder_tests=$(ELROND_ADDER_TESTS_DIR)/adder.scen.json
 elrond-adder-test:
@@ -148,7 +145,3 @@ ELROND_LOTTERY_SUBMODULE=$(ELROND_CONTRACT_EXAMPLES)/lottery-egld
 elrond_lottery_tests=$(shell find $(ELROND_LOTTERY_SUBMODULE) -name "*.scen.json")
 elrond-lottery-test:
 	$(TEST_ELROND) $(elrond_lottery_tests) --coverage
-
-elrond_delegation_tests=$(shell find $(ELROND_DELEGATION_SUBMODULE) -name "*.scen.json")
-elrond-delegation-test:
-	$(TEST_ELROND) $(elrond_delegation_tests) --coverage --log-level per-step

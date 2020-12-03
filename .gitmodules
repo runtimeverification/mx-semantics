@@ -6,7 +6,3 @@
 	path = deps/elrond-wasm-rs
 	url = https://github.com/ElrondNetwork/elrond-wasm-rs
 	ignore = untracked
-[submodule "deps/sc-delegation-rs"]
-	path = deps/sc-delegation-rs
-	url = https://github.com/ElrondNetwork/sc-delegation-rs
-	ignore = untracked

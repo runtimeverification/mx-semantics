@@ -8,7 +8,8 @@ RUN    apt-get update              \
                        curl        \
                        pandoc      \
                        python3     \
-                       python3-pip
+                       python3-pip \
+                       wget
 
 ARG USER_ID=1000
 ARG GROUP_ID=1000

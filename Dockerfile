@@ -21,7 +21,7 @@ WORKDIR /home/user
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly --target wasm32-unknown-unknown
 ENV PATH=/home/user/.cargo/bin:$PATH
 
-RUN pip3 install --user     \
+RUN pip3 install            \
                  cytoolz    \
                  numpy      \
                  virtualenv

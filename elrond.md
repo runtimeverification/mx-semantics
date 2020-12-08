@@ -800,6 +800,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <account>
            <address> TO </address>
             <storage> STOR => STOR[String2Bytes("ELRONDrewards") <- #incBytes({STOR[String2Bytes("ELRONDrewards")]}:>Bytes, VAL)] </storage>
+            <balance> TO_BAL => TO_BAL +Int VAL </balance>
             ...
          </account>
 

@@ -541,7 +541,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            ...
          </account>
 
-    rule <instrs> #storageLoad => i32.const lengthBytes({STORAGE[KEY]}:>Bytes) ~> ... </instrs>
+    rule <instrs> #storageLoad => i32.const lengthBytes({STORAGE[KEY]}:>Bytes) ... </instrs>
          <bytesStack> KEY : STACK => {STORAGE[KEY]}:>Bytes : STACK </bytesStack>
          <callee> CALLEE </callee>
          <account>

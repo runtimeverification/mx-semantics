@@ -1,7 +1,7 @@
 
 .PHONY: all clean deps wasm-deps                                           \
         build build-llvm build-haskell                                     \
-        elrond-contracts elrond-test elrond-loaded                         \
+        elrond-contracts mandos-test elrond-loaded                         \
         elrond-contract-tests elrond-adder-test elrond-lottery-test        \
         test
 
@@ -86,7 +86,7 @@ KRUN_OPTS :=
 
 elrond-contract-tests: elrond-adder-test elrond-lottery-test
 
-test: test-simple elrond-test elrond-contract-tests
+test: test-simple mandos-test elrond-contract-tests
 
 # Unit Tests
 # ----------

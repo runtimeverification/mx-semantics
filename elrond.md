@@ -470,8 +470,8 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
                  |   #signed( Argument ) [function, functional]
  // -----------------------------------------------------------
     rule #unsigned(A) => valueArg(A)
-    rule #signed(A)   => valueArg(A)                             requires notBool 2 ^Int (lengthArg(A) -Int 1) <=Int valueArg(A)
-    rule #signed(A)   => valueArg(A) -Int (2 ^Int lengthArg(A)) requires         2 ^Int (lengthArg(A) -Int 1) <=Int valueArg(A)
+    rule #signed(A)   => valueArg(A)                                     requires notBool 2 ^Int (8 *Int lengthArg(A) -Int 1) <=Int valueArg(A)
+    rule #signed(A)   => valueArg(A) -Int (2 ^Int (lengthArg(A) *Int 8)) requires         2 ^Int (8 *Int lengthArg(A) -Int 1) <=Int valueArg(A)
 ```
 
 ```k

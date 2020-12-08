@@ -9,6 +9,7 @@ RUN    apt-get update              \
                        pandoc      \
                        python3     \
                        python3-pip \
+                       sudo        \
                        wget
 
 ARG USER_ID=1000

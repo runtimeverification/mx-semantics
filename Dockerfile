@@ -32,3 +32,6 @@ RUN    git clone 'https://github.com/WebAssembly/wabt' --branch 1.0.13 --recurse
     && cmake --build .
 
 ENV PATH=/home/user/wabt/build:$PATH
+
+RUN wget -O erdpy-up.py https://raw.githubusercontent.com/ElrondNetwork/elrond-sdk/master/erdpy-up.py
+RUN python3 erdpy-up.py

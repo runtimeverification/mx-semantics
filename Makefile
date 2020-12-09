@@ -15,7 +15,7 @@ K_SUBMODULE         := $(KWASM_SUBMODULE)/deps/k
 KWASM_BINARY_PARSER := $(KWASM_SUBMODULE)/binary-parser
 
 ELROND_WASM_SUBMODULE  := $(DEPS_DIR)/elrond-wasm-rs
-ELROND_ADDER_SUBMODULE := $(ELROND_WASM_SUBMODULE)/examples/adder
+ELROND_CONTRACT_EXAMPLES := $(ELROND_WASM_SUBMODULE)/contracts/examples
 
 ifneq (,$(wildcard $(K_SUBMODULE)/k-distribution/target/release/k/bin/*))
     K_RELEASE ?= $(abspath $(K_SUBMODULE)/k-distribution/target/release/k)
@@ -133,6 +133,7 @@ elrond_tests=$(sort $(wildcard $(ELROND_TESTS_DIR)/*.scen.json))
 elrond-test: $(llvm_kompiled)
 	$(TEST_ELROND) $(elrond_tests)
 
+ELROND_ADDER_SUBMODULE := $(ELROND_CONTRACT_EXAMPLES)/adder
 ELROND_ADDER_TESTS_DIR=$(ELROND_ADDER_SUBMODULE)/mandos
 elrond_adder_tests=$(ELROND_ADDER_TESTS_DIR)/adder.scen.json
 elrond-adder-test:

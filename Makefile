@@ -143,5 +143,11 @@ elrond-adder-test:
 
 ELROND_LOTTERY_SUBMODULE=$(ELROND_CONTRACT_EXAMPLES)/lottery-egld
 elrond_lottery_tests=$(shell find $(ELROND_LOTTERY_SUBMODULE) -name "*.scen.json")
-elrond-lottery-test:
+
+# Fix: the tests use an outdated name for the Wasm file.
+$(ELROND_LOTTERY_SUBMODULE)/output/lottery.wasm: $(ELROND_LOTTERY_SUBMODULE)/output/lottery-egld.wasm
+	cp $< $@
+
+
+elrond-lottery-test: $(ELROND_LOTTERY_SUBMODULE)/output/lottery.wasm
 	$(TEST_MANDOS) $(elrond_lottery_tests) --coverage

@@ -8,9 +8,7 @@ RUN    apt-get update              \
                        curl        \
                        pandoc      \
                        python3     \
-                       python3-pip \
-                       sudo        \
-                       wget
+                       python3-pip
 
 ARG USER_ID=1000
 ARG GROUP_ID=1000
@@ -22,10 +20,10 @@ WORKDIR /home/user
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly --target wasm32-unknown-unknown
 ENV PATH=/home/user/.cargo/bin:$PATH
 
-RUN pip3 install            \
+RUN pip3 install --user --upgrade \
                  cytoolz    \
-                 numpy      \
-                 virtualenv
+                 erdpy      \
+                 numpy
 
 RUN    git clone 'https://github.com/WebAssembly/wabt' --branch 1.0.13 --recurse-submodules wabt \
     && cd wabt                                                                                   \
@@ -34,7 +32,4 @@ RUN    git clone 'https://github.com/WebAssembly/wabt' --branch 1.0.13 --recurse
     && cmake ..                                                                                  \
     && cmake --build .
 
-ENV PATH=/home/user/wabt/build:$PATH
-
-RUN wget -O erdpy-up.py https://raw.githubusercontent.com/ElrondNetwork/elrond-sdk/master/erdpy-up.py
-RUN python3 erdpy-up.py
+ENV PATH=/home/user/wabt/build:/home/user/.local/bin:$PATH

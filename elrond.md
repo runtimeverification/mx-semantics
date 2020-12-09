@@ -515,18 +515,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            3 |-> <i32> VALLENGTH
          </locals>
 
-    rule <instrs> hostCall("env", "int64storageStore", [ i32 i32 i64 .ValTypes ] -> [ i32 .ValTypes ] )
-               => #getMem(KEYOFFSET, KEYLENGTH)
-               ~> #pushBytes(Int2Bytes(8, VALUE, BE))
-               ~> #storageStore
-                  ...
-         </instrs>
-         <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLENGTH
-           2 |-> <i64> VALUE
-         </locals>
-
     syntax StorageOp ::= "#storageStore"
                        | "#storageLoad"
                        | #bytesToSetMem (offset : Int)

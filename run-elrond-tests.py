@@ -91,7 +91,10 @@ def mandos_to_set_account(address, sections):
     address_value = KWasmString(address)
     nonce_value   = mandos_int_to_int(sections['nonce'])
     balance_value = mandos_int_to_int(sections['balance'])
-    code_value    = KWasmString(sections['code'])
+    if 'code' in sections:
+        code_value = KWasmString(sections['code'])
+    else:
+        code_value = KApply(".Code", [])
 
     storage_pairs = [ (KString(k), KString(v)) for (k, v) in sections['storage'].items() ]
     storage_value = KMap(storage_pairs)
@@ -100,24 +103,46 @@ def mandos_to_set_account(address, sections):
     return set_account_step
 
 def mandos_argument_to_bytes(argument : str):
+    if '|' in argument:
+        splits = argument.split('|')
+        bs = bytes()
+        for s in splits:
+            bs += mandos_argument_to_bytes(s)
+        return bs
+    if argument[0] == 'u':
+        [numbitsstr, intstr] = argument[1:].split(':')
+        num_bits = int(numbitsstr)
+        as_int = int(intstr.replace(',', ''))
+        return int.to_bytes(as_int, num_bits // 8, 'big')
     if argument == "":
-        return KApply('tupleArg', [KInt(0), KInt(0)])
+        return bytes()
     try:
-        as_int = int(argument)
+        as_int = int(argument.replace(',', ''))
         num_bytes = 1 + (as_int.bit_length() // 8)
-        return KApply('tupleArg', [KInt(as_int), KInt(num_bytes)])
+        return int.to_bytes(as_int, num_bytes, 'big')
     except ValueError:
         pass
     if argument[0:2] == '0x':
-        as_int = int(argument, 16)
         byte_array = bytes.fromhex(argument[2:])
-        num_bytes = len(byte_array)
-        return KApply('tupleArg', [KInt(as_int), KInt(num_bytes)])
+        return byte_array
+    if argument[0:2] == "''" or argument[0:2] == '``':
+        byte_array = bytes(argument[2:], 'ascii')
+        return byte_array
+    if argument[0:4] == "str:":
+        return mandos_argument_to_bytes('``' + argument[4:])
+    if argument[0:8] == 'address:':
+        byte_array = bytes(argument, 'ascii')
+        pad = 20 - len(byte_array)
+        return byte_array + bytes(pad)
 
     raise ValueError("Argument type not yet supported: %s" % argument)
 
+def mandos_argument_to_kargs(argument : str):
+    bs = mandos_argument_to_bytes(argument)
+    return KApply('tupleArg', [KInt(int.from_bytes(bs, 'big')), KInt(len(bs))])
+
 def mandos_arguments_to_arguments(arguments):
-    tokenized = list(map(lambda x: mandos_argument_to_bytes(x), arguments))
+    tokenized = list(map(lambda x: mandos_argument_to_kargs(x), arguments))
     return KList(tokenized)
 
 def mandos_to_deploy_tx(tx, filename):
@@ -145,9 +170,36 @@ def mandos_to_call_tx(tx, filename):
     callTx = KApply('callTx', [sender, to, value, function, arguments, gasLimit, gasPrice])
     return callTx
 
+def mandos_to_transfer_tx(tx):
+    sender = KWasmString(tx['from'])
+    to = KWasmString(tx['to'])
+    value = mandos_int_to_int(tx['value'])
+
+    transferTx = KApply('transferTx', [sender, to, value])
+    return transferTx
+
+def mandos_to_validator_reward_tx(tx):
+    to = KWasmString(tx['to'])
+    value = mandos_int_to_int(tx['value'])
+
+    rewardTx = KApply('validatorRewardTx', [to, value])
+    return rewardTx
+
 def mandos_to_expect(expect):
     """ TODO """
     return KApply('.Expect', [])
+
+def mandos_to_block_info(block_info):
+    block_infos = []
+    if 'blockTimestamp' in block_info:
+        block_infos += [KApply('blockTimestamp', [mandos_int_to_int(block_info['blockTimestamp'])])]
+    if 'blockNonce' in block_info:
+        block_infos += [KApply('blockNonce', [mandos_int_to_int(block_info['blockNonce'])])]
+    if 'blockRound' in block_info:
+        block_infos += [KApply('blockRound', [mandos_int_to_int(block_info['blockRound'])])]
+    if 'blockEpoch' in block_info:
+        block_infos += [KApply('blockEpoch', [mandos_int_to_int(block_info['blockEpoch'])])]
+    return block_infos
 
 def register(with_name : str):
     return KApply('register', [KString(with_name)])
@@ -164,6 +216,22 @@ def wasm_file_to_module_decl(filename : str):
     with open(filename, 'rb') as f:
         module = wasm2kast.wasm2kast(f)
         return module
+
+def wat_file_to_module_decl(filename : str):
+    with open(filename) as f:
+        pass
+    new_filename = os.path.join(tmpdir, os.path.basename(filename) + '.wasm')
+    try:
+        wat = subprocess.check_output("wat2wasm %s --output=%s" % (filename, new_filename), shell=True)
+    except subprocess.CalledProcessError as e:
+        print("Failed: %s" % e.cmd)
+        print("return code: %d" % e.returncode)
+        print("stdout:")
+        print(e.output)
+        print("stderr:")
+        print(e.stderr)
+        raise e
+    return wasm_file_to_module_decl(new_filename)
 
 def wat_file_to_module_decl(filename : str):
     with open(filename) as f:
@@ -209,6 +277,14 @@ def get_steps_sc_call(step, filename):
     expect = mandos_to_expect(step['expect'])
     return [KApply('scCall', [tx, expect])]
 
+def get_steps_transfer(step):
+    tx = mandos_to_transfer_tx(step['tx'])
+    return [KApply('transfer', [tx])]
+
+def get_steps_validator_reward(step):
+    tx = mandos_to_validator_reward_tx(step['tx'])
+    return [KApply('validatorReward', [tx])]
+
 def get_steps_new_addresses(new_addresses):
         if new_addresses is None:
             return []
@@ -226,7 +302,7 @@ def get_steps_set_state(step, filename):
         set_accounts = [ mandos_to_set_account(address, sections) for (address, sections) in step['accounts'].items()]
         # Get paths of Wasm code, relative to the test location.
         # TODO: Read the files, convert to text, parse, declare them and register them (with address as key)
-        contracts_files = [ (addr, get_contract_code(sects['code'], filename)) for (addr, sects) in step['accounts'].items() ]
+        contracts_files = [ (addr, get_contract_code(sects['code'], filename)) for (addr, sects) in step['accounts'].items() if 'code' in sects ]
         contracts_files = [ (addr, code) for (addr, code) in contracts_files if code is not None ]
         # First declare module, then register it
         contract_module_decls = [ [file_to_module_decl(f), register(a) ] for (a, f) in contracts_files ]
@@ -237,9 +313,20 @@ def get_steps_set_state(step, filename):
     if 'newAddresses' in step:
         new_addresses = get_steps_new_addresses(step['newAddresses'])
         k_steps = k_steps + new_addresses
-    else:
-        print('Step not implemented: %s' % step, file=sys.stderr)
-        sys.exit(1)
+    def block_infos_helper(state : str):
+        """State is either 'current' or 'previous'"""
+        label = state + 'BlockInfo'
+        block_infos = mandos_to_block_info(step[label])
+        state_block_infos = list(map(lambda x: KApply(label, [x]), block_infos))
+        return state_block_infos
+    if 'currentBlockInfo' in step:
+        curr = block_infos_helper('current')
+        k_steps = k_steps + curr
+    if 'previousBlockInfo' in step:
+        prev = block_infos_helper('previous')
+        k_steps = k_steps + prev
+    if k_steps == []:
+        raise Exception('Step not implemented: %s' % step)
     return k_steps
 
 def get_steps_as_kseq(filename):
@@ -265,6 +352,10 @@ def get_steps_as_kseq(filename):
             steps_file = get_external_file_path(filename, step['path'])
             print('Load external: %s' % steps_file)
             k_steps = k_steps + get_steps_as_kseq(steps_file)
+        elif step['step'] == 'transfer':
+            k_steps.append((step['step'], get_steps_transfer(step)))
+        elif step['step'] == 'validatorReward':
+            k_steps.append((step['step'], get_steps_validator_reward(step, filename)))
         else:
             raise Exception('Step %s not implemented yet' % step['step'])
     return k_steps
@@ -276,9 +367,10 @@ def run_test_file(wasm_config, filename, test_name):
         # Flatten the list of k_steps, just run them all in one go.
         k_steps = [ ('full', [ y for (_, x) in k_steps for y in x ]) ]
 
-    (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_config)
-
     for i in range(len(k_steps)):
+        (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_config)
+        k_cell = init_subst['K_CELL']
+        assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items.\nSee %s" % (k_cell['arity'], tmpdir)
         step_name, curr_step = k_steps[i]
         print('Executing step %s' % step_name)
         init_subst['K_CELL'] = KSequence(curr_step)
@@ -297,8 +389,9 @@ def run_test_file(wasm_config, filename, test_name):
             raise Exception("Received error while running: " + err )
 
         log_intermediate_state("%s_%d_%s" % (test_name, i, step_name), new_wasm_config)
+        wasm_config = new_wasm_config
 
-    return new_wasm_config
+    return wasm_config
 
 # ... Setup Elrond Wasm
 
@@ -344,9 +437,6 @@ for test in tests:
     wasm_config = run_test_file(wasm_config, test, test_name)
     cells = pyk.splitConfigFrom(wasm_config)[1]
     k_cell = cells['K_CELL']
-
-    # Check that K cell is empty
-    assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items.\nSee %s" % (k_cell['arity'], tmpdir)
 
     if args.coverage:
         end_config = wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))

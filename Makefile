@@ -1,7 +1,8 @@
 
 .PHONY: all clean deps wasm-deps                                           \
         build build-llvm build-haskell                                     \
-        elrond-contracts elrond-test elrond-loaded                         \
+        elrond-contracts mandos-test elrond-loaded                         \
+        elrond-contract-tests elrond-adder-test elrond-lottery-test        \
         test
 
 # Settings
@@ -51,7 +52,6 @@ wasm-deps:
 
 elrond-contracts:
 	cd $(ELROND_WASM_SUBMODULE) && env RUSTFLAGS="" ./build-wasm.sh
-	ls $(ELROND_ADDER_SUBMODULE)/output/adder.wasm
 
 # Building Definition
 # -------------------
@@ -84,7 +84,9 @@ $(KWASM_SUBMODULE)/$(MAIN_DEFN_FILE).md: $(MAIN_DEFN_FILE).md
 
 KRUN_OPTS :=
 
-test: test-simple elrond-test elrond-adder-test
+elrond-contract-tests: elrond-adder-test elrond-lottery-test
+
+test: test-simple mandos-test elrond-contract-tests
 
 # Unit Tests
 # ----------
@@ -126,15 +128,26 @@ $(ELROND_RUNTIME_JSON):
 # Elrond Tests
 # ------------
 
-TEST_ELROND := python3 run-elrond-tests.py
+TEST_MANDOS := python3 run-elrond-tests.py
 
-ELROND_TESTS_DIR := tests/mandos
-elrond_tests=$(sort $(wildcard $(ELROND_TESTS_DIR)/*.scen.json))
-elrond-test: $(llvm_kompiled)
-	$(TEST_ELROND) $(elrond_tests)
+MANDOS_TESTS_DIR := tests/mandos
+mandos_tests=$(sort $(wildcard $(MANDOS_TESTS_DIR)/*.scen.json))
+mandos-test: $(llvm_kompiled)
+	$(TEST_MANDOS) $(mandos_tests)
 
 ELROND_ADDER_SUBMODULE := $(ELROND_CONTRACT_EXAMPLES)/adder
 ELROND_ADDER_TESTS_DIR=$(ELROND_ADDER_SUBMODULE)/mandos
 elrond_adder_tests=$(ELROND_ADDER_TESTS_DIR)/adder.scen.json
 elrond-adder-test:
-	$(TEST_ELROND) $(elrond_adder_tests) --coverage
+	$(TEST_MANDOS) $(elrond_adder_tests) --coverage
+
+ELROND_LOTTERY_SUBMODULE=$(ELROND_CONTRACT_EXAMPLES)/lottery-egld
+elrond_lottery_tests=$(shell find $(ELROND_LOTTERY_SUBMODULE) -name "*.scen.json")
+
+# Fix: the tests use an outdated name for the Wasm file.
+$(ELROND_LOTTERY_SUBMODULE)/output/lottery.wasm: $(ELROND_LOTTERY_SUBMODULE)/output/lottery-egld.wasm
+	cp $< $@
+
+
+elrond-lottery-test: $(ELROND_LOTTERY_SUBMODULE)/output/lottery.wasm
+	$(TEST_MANDOS) $(elrond_lottery_tests) --coverage

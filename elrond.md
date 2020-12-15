@@ -166,26 +166,17 @@ Storage maps byte arrays to byte arrays.
     syntax String  ::= address2String(Address) [function]
  // -----------------------------------------------------
     rule address2String(.Address) => ".Address"
-    rule address2String(WS:WasmStringToken) => #parseWasmString(WS)
+    rule address2String(WS:WasmStringToken) => substrString(#parseWasmString(WS), 2, lengthString(#parseWasmString(WS)))
 
-    syntax Code ::= ".Code" | WasmString | Int
- // ------------------------------------------
+    syntax Code ::= ".Code" [klabel(.Code), symbol]
+                  | WasmString | Int
+ // --------------------------------
+```
 
-    syntax Int ::= valueArg  ( Argument ) [function, functional]
-                 | lengthArg ( Argument ) [function, functional]
- // ------------------------------------------------------------
-    rule valueArg (arg(V, _)) => V
-    rule lengthArg(arg(_, L)) => L
+The value is an unsigned integer representation of the bytes.
+The length is the number of bytes the argument represents.
 
-    syntax Address ::= ".Address" | WasmString
-    syntax String  ::= address2String(Address) [function]
- // -----------------------------------------------------
-    rule address2String(.Address) => ".Address"
-    rule address2String(WS:WasmStringToken) => #parseWasmString(WS)
-
-    syntax Code ::= ".Code" | WasmString | Int
- // ------------------------------------------
-
+```k
     syntax Argument ::= arg(value : Int, length : Int) [klabel(tupleArg), symbol]
  // -----------------------------------------------------------------------------
 
@@ -194,7 +185,9 @@ Storage maps byte arrays to byte arrays.
  // ------------------------------------------------------------
     rule valueArg (arg(V, _)) => V
     rule lengthArg(arg(_, L)) => L
+```
 
+```k
 endmodule
 ```
 
@@ -212,8 +205,22 @@ module ELROND
         <wasmCoverage/>
         <node/>
         <bigIntHeap> .Map </bigIntHeap>
+        <bytesStack> .BytesStack </bytesStack>
         <logging> "" </logging>
       </elrond>
+```
+
+```k
+    syntax BytesStack ::= List{Bytes, ":"}
+ // --------------------------------------
+
+    syntax BytesOp ::= #pushBytes ( Bytes )
+                     | "#dropBytes"
+ // ---------------------------------------
+    rule <instrs> #pushBytes(BS) => . ... </instrs>
+         <bytesStack> STACK => BS : STACK </bytesStack>
+    rule <instrs> #dropBytes => . ... </instrs>
+         <bytesStack> _ : STACK => STACK </bytesStack>
 ```
 
 ### Synchronization
@@ -288,12 +295,28 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
          <callingArguments> ARGS </callingArguments>
       requires IDX <Int size(ARGS)
 
-    rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthArg({ARGS[IDX]}:>Argument) ... </instrs>
+    rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #setMem(Int2Bytes(lengthArg({ARGS[IDX]}:>Argument), valueArg({ARGS[IDX]}:>Argument), BE), OFFSET)
+               ~> i32.const lengthArg({ARGS[IDX]}:>Argument)
+                  ...
+         </instrs>
          <locals>
            0 |-> <i32> IDX
            1 |-> <i32> OFFSET
          </locals>
          <callingArguments> ARGS </callingArguments>
+
+    rule <instrs> hostCall("env", "getCaller", [ i32 .ValTypes ] -> [ .ValTypes ])
+               => #setMem(String2Bytes(address2String(CALLER)), OFFSET)
+                  ...
+         </instrs>
+         <locals> 0 |-> <i32> OFFSET </locals>
+         <caller> CALLER </caller>
+
+    syntax MemOp ::= #setMem ( bytes : Bytes, offset : Int )
+                   | #getMem ( offset : Int , lenght : Int )
+ // --------------------------------------------------------
+    rule <instrs> #setMem(BS, OFFSET) => . ... </instrs>
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
@@ -308,11 +331,31 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
          <memInst>
            <mAddr> MEMADDR </mAddr>
            <msize> SIZE </msize>
-           <mdata> DATA => #setBytesRange(DATA, OFFSET, Int2Bytes(lengthArg({ARGS[IDX]}:>Argument), valueArg({ARGS[IDX]}:>Argument), BE)) </mdata>
+           <mdata> DATA => #setBytesRange(DATA, OFFSET, BS) </mdata>
            ...
          </memInst>
-      requires (OFFSET +Int lengthArg({ARGS[IDX]}:>Argument)) <=Int (SIZE *Int #pageSize())
-          andBool IDX <Int size(ARGS)
+      requires OFFSET +Int lengthBytes(BS) <=Int (SIZE *Int #pageSize())
+
+    rule <instrs> #getMem(OFFSET, LENGTH) => . ... </instrs>
+         <bytesStack> STACK => #getBytesRange(DATA, OFFSET, LENGTH) : STACK </bytesStack>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <code> MODIDX:Int </code>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA </mdata>
+           ...
+         </memInst>
+      requires OFFSET +Int LENGTH <=Int (SIZE *Int #pageSize())
 ```
 
 #### BigInt Heap
@@ -348,7 +391,12 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
     rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
          <callingArguments> ARGS </callingArguments>
-         <bigIntHeap> HEAP => HEAP [BIG_IDX <- valueArg({ARGS[ARG_IDX]}:>Argument)] </bigIntHeap>
+         <bigIntHeap> HEAP => HEAP [BIG_IDX <- #signed({ARGS[ARG_IDX]}:>Argument)] </bigIntHeap>
+
+    rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
+         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
+         <callingArguments> ARGS </callingArguments>
+         <bigIntHeap> HEAP => HEAP [BIG_IDX <- #unsigned({ARGS[ARG_IDX]}:>Argument)] </bigIntHeap>
 
     rule <instrs> hostCall("env", "bigIntFinishSigned", [ i32 .ValTypes ] -> [ .ValTypes ])
                => i32.const 0
@@ -418,6 +466,15 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
 ```
 
 ```k
+    syntax Int ::= #unsigned( Argument ) [function, functional]
+                 |   #signed( Argument ) [function, functional]
+ // -----------------------------------------------------------
+    rule #unsigned(A) => valueArg(A)
+    rule #signed(A)   => valueArg(A)                                     requires notBool 2 ^Int (8 *Int lengthArg(A) -Int 1) <=Int valueArg(A)
+    rule #signed(A)   => valueArg(A) -Int (2 ^Int (lengthArg(A) *Int 8)) requires         2 ^Int (8 *Int lengthArg(A) -Int 1) <=Int valueArg(A)
+```
+
+```k
     syntax Int ::= cmpInt ( Int , Int ) [function, functional]
  // ----------------------------------------------------------
     rule cmpInt(I1, I2) => -1 requires I1  <Int I2
@@ -432,61 +489,24 @@ Storing a value returns a status code indicating if and how the storage was modi
 TODO: Implement [reserved keys and read-only runtimes](https://github.com/ElrondNetwork/arwen-wasm-vm/blob/d6ea0489081f81fefba002609c34ece1365373dd/arwen/contexts/storage.go#L111).
 
 ```k
-    rule <instrs> hostCall("env", "storageLoadLength", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) => i32.const lengthBytes({STORAGE[#getBytesRange(DATA, KEYOFFSET, KEYLENGTH)]}:>Bytes) ... </instrs>
+    rule <instrs> hostCall("env", "storageLoadLength", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) => #getMem(KEYOFFSET, KEYLENGTH) ~> #storageLoad ~> #dropBytes ... </instrs>
          <locals>
            0 |-> <i32> KEYOFFSET
            1 |-> <i32> KEYLENGTH
          </locals>
-         <callee> CALLEE </callee>
-         <account>
-           <address> CALLEE </address>
-           <storage> STORAGE </storage>
-           <code> MODIDX </code>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
-           ...
-         </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <msize> SIZE </msize>
-           <mdata> DATA </mdata>
-           ...
-         </memInst>
-      requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
 
-    rule <instrs> hostCall("env", "storageLoad", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) => i32.const lengthBytes({STORAGE[#getBytesRange(DATA, KEYOFFSET, KEYLENGTH)]}:>Bytes) ... </instrs>
+    rule <instrs> hostCall("env", "storageLoad", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) => #getMem(KEYOFFSET, KEYLENGTH) ~> #storageLoad ~> #bytesToSetMem(VALOFFSET) ... </instrs>
          <locals>
            0 |-> <i32> KEYOFFSET
            1 |-> <i32> KEYLENGTH
            2 |-> <i32> VALOFFSET
          </locals>
-         <callee> CALLEE </callee>
-         <account>
-           <address> CALLEE </address>
-           <storage> STORAGE </storage>
-           <code> MODIDX </code>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
-           ...
-         </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <msize> SIZE </msize>
-           <mdata> DATA => #setBytesRange(DATA, VALOFFSET, {STORAGE[#getBytesRange(DATA, KEYOFFSET, KEYLENGTH)]}:>Bytes) </mdata>
-           ...
-         </memInst>
-      requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
-       andBool (VALOFFSET +Int lengthBytes({STORAGE[#getBytesRange(DATA, KEYOFFSET, KEYLENGTH)]}:>Bytes)) <=Int (SIZE *Int #pageSize())
 
     rule <instrs> hostCall("env", "storageStore", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
-               => i32.const #storageStatus(STORAGE, #getBytesRange(DATA, KEYOFFSET, KEYLENGTH),  #getBytesRange(DATA, VALOFFSET, VALLENGTH))
-               ...
+               => #getMem(KEYOFFSET, KEYLENGTH)
+               ~> #getMem(VALOFFSET, VALLENGTH)
+               ~> #storageStore
+                  ...
          </instrs>
          <locals>
            0 |-> <i32> KEYOFFSET
@@ -494,26 +514,33 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            2 |-> <i32> VALOFFSET
            3 |-> <i32> VALLENGTH
          </locals>
+
+    syntax StorageOp ::= "#storageStore"
+                       | "#storageLoad"
+                       | #bytesToSetMem (offset : Int)
+ // --------------------------------------------------
+    rule <instrs> #storageStore => i32.const #storageStatus(STORAGE, KEY, VALUE) ... </instrs>
+         <bytesStack> VALUE : KEY : STACK => STACK </bytesStack>
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
-           <storage> STORAGE => #updateStorage(STORAGE, #getBytesRange(DATA, KEYOFFSET, KEYLENGTH), #getBytesRange(DATA, VALOFFSET, VALLENGTH)) </storage>
+           <storage> STORAGE => #updateStorage(STORAGE, KEY, VALUE) </storage>
            <code> MODIDX </code>
            ...
          </account>
-         <moduleInst>
-           <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
+
+    rule <instrs> #storageLoad => i32.const lengthBytes({STORAGE[KEY]}:>Bytes) ... </instrs>
+         <bytesStack> KEY : STACK => {STORAGE[KEY]}:>Bytes : STACK </bytesStack>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <storage> STORAGE </storage>
+           <code> MODIDX </code>
            ...
-         </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <msize> SIZE </msize>
-           <mdata> DATA </mdata>
-           ...
-         </memInst>
-      requires (KEYOFFSET +Int KEYLENGTH) <=Int (SIZE *Int #pageSize())
-       andBool (VALOFFSET +Int VALLENGTH) <=Int (SIZE *Int #pageSize())
+         </account>
+
+    rule <instrs> #bytesToSetMem(OFFSET) => #setMem(BS, OFFSET) ... </instrs>
+         <bytesStack> BS : STACK => STACK </bytesStack>
 
     syntax Map ::= #updateStorage ( Map , key : Bytes , val : Bytes ) [function, functional]
  // ----------------------------------------------------------------------------------------
@@ -619,6 +646,8 @@ module MANDOS
       </mandos>
 ```
 
+### Wasm and Elrond Interaction
+
 Only take the next step once both the Elrond node and Wasm are done executing.
 
 ```k
@@ -651,9 +680,13 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> register NAME => . ... </k>
          <moduleRegistry> REG => REG [NAME <- IDX -Int 1] </moduleRegistry>
          <nextModuleIdx> IDX </nextModuleIdx>
+```
 
-    syntax Step ::= setAccount(Address, Int, Int, WasmString, Map) [klabel(setAccount), symbol]
- // -----------------------------------------------------------------------------------
+### State Setup
+
+```k
+    syntax Step ::= setAccount(Address, Int, Int, Code, Map) [klabel(setAccount), symbol]
+ // -------------------------------------------------------------------------------------
     rule <k> setAccount(ADDRESS, NONCE, BALANCE, CODE, STORAGE) => . ... </k>
          <accounts>
            ( .Bag
@@ -676,6 +709,18 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     syntax AddressNonce ::= tuple( Address , Int )
  // ----------------------------------------------
 
+    syntax Step      ::=  currentBlockInfo(BlockInfo) [klabel( currentBlockInfo), symbol]
+                       | previousBlockInfo(BlockInfo) [klabel(previousBlockInfo), symbol]
+    syntax BlockInfo ::= blockTimestamp(Int) [klabel(blockTimestamp), symbol]
+                       | blockNonce(Int)     [klabel(blockNonce), symbol]
+                       | blockRound(Int)     [klabel(blockRound), symbol]
+                       | blockEpoch(Int)     [klabel(blockEpoch), symbol]
+ // ---------------------------------------------------------------------
+```
+
+### Contract Interactions
+
+```k
     syntax Step ::= scDeploy( DeployTx, Expect ) [klabel(scDeploy), symbol]
  // ----------------------------------------------------------------------
     rule <k> scDeploy( TX, EXPECT ) => TX ~> EXPECT ... </k>
@@ -701,8 +746,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // ----------------------------------------------------------------
     rule <k> scCall( TX, EXPECT ) => TX ~> EXPECT ... </k>
 
-    syntax CallTx ::= callTx(Address /*From*/, Address /*To*/, Int /*Value*/, WasmString /*Function*/, List, Int /*gasLimit*/, Int /*gasPrice*/) [klabel(callTx), symbol]
- // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    syntax CallTx ::= callTx(from : Address, to : Address, value : Int, func : WasmString, args : List, gasLimit : Int, gasPrice : Int) [klabel(callTx), symbol]
+ // ------------------------------------------------------------------------------------------------------------------------------------------------------------
     rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => callContract(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>
          <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
@@ -713,6 +758,44 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 
     syntax Step ::= checkState() [klabel(checkState), symbol]
  // ---------------------------------------------------------
+
+    syntax Step ::= transfer(TransferTx) [klabel(transfer), symbol]
+ // -----------------------------------------------------
+    rule <k> transfer(TX) => TX ... </k>
+
+    syntax TransferTx ::= transferTx(from : Address, to : Address, value : Int) [klabel(transferTx), symbol]
+ // --------------------------------------------------------------------------------------------------------
+    rule <k> transferTx(FROM, TO, VAL) => . ... </k>
+         <account>
+           <address> FROM </address>
+           <balance> FROM_BAL => FROM_BAL -Int VAL </balance>
+           ...
+         </account>
+         <account>
+           <address> TO </address>
+           <balance> TO_BAL => TO_BAL +Int VAL </balance>
+           ...
+         </account>
+      requires FROM_BAL >=Int VAL
+
+    syntax Step ::= validatorReward(ValidatorRewardTx) [klabel(validatorReward), symbol]
+ // ------------------------------------------------------------------------------------
+    rule <k> validatorReward(TX) => TX ... </k>
+
+    syntax ValidatorRewardTx ::= validatorRewardTx(to : Address, value : Int) [klabel(validatorRewardTx), symbol]
+ // ------------------------------------------------------------------------------------------------
+    rule <k> validatorRewardTx(TO, VAL) => . ... </k>
+         <account>
+           <address> TO </address>
+            <storage> STOR => STOR[String2Bytes("ELRONDrewards") <- #incBytes({STOR[String2Bytes("ELRONDrewards")]}:>Bytes, VAL)] </storage>
+            <balance> TO_BAL => TO_BAL +Int VAL </balance>
+            ...
+         </account>
+
+    syntax Bytes ::= #incBytes(val : Bytes, inc : Int) [function]
+ // -------------------------------------------------------------
+    rule #incBytes(VAL, INC) => Int2Bytes(Bytes2Int(VAL, BE, Signed) +Int INC, BE, Signed)
+
 ```
 
 ### Assertions About State

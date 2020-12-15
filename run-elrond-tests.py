@@ -10,6 +10,8 @@ import tempfile
 import os
 import wasm2kast
 
+import coverage as cov
+
 from pyk.kast import KSequence, KConstant, KApply, KToken
 
 POSITIVE_COVERAGE_CELL = "COVEREDFUNCS_CELL"
@@ -422,6 +424,9 @@ def log_intermediate_state(name, config):
 
 # Main Script
 
+per_test_covered = []
+per_test_not_covered = []
+
 for test in tests:
     tmpdir = tempfile.mkdtemp(prefix="mandos_")
     print("Intermediate test outputs stored in:\n%s" % tmpdir)
@@ -440,12 +445,18 @@ for test in tests:
 
     if args.coverage:
         end_config = wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))
-        (covered, uncovered) = get_coverage(end_config)
+        (covered, not_covered) = get_coverage(end_config)
+        per_test_covered.append(covered)
+        per_test_not_covered.append(not_covered)
         print('Covered:')
         [ print(f) for f in covered ]
         print()
         print('Not Covered:')
-        [ print(f) for f in uncovered ]
+        [ print(f) for f in not_covered ]
 
         print()
         print('See %s' % tmpdir)
+
+(covered, not_covered) = cov.summarize_coverage(per_test_covered, per_test_not_covered)
+print(covered)
+print(not_covered)

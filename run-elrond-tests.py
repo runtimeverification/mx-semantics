@@ -216,7 +216,7 @@ def file_to_module_decl(filename : str):
 def wasm_file_to_module_decl(filename : str):
     # Check that file exists.
     with open(filename, 'rb') as f:
-        module = wasm2kast.wasm2kast(f)
+        module = wasm2kast.wasm2kast(f, filename)
         return module
 
 def wat_file_to_module_decl(filename : str):

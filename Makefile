@@ -3,6 +3,7 @@
         build build-llvm build-haskell                                     \
         elrond-contracts mandos-test elrond-loaded                         \
         elrond-contract-tests elrond-adder-test elrond-lottery-test        \
+        unittest-python                                                    \
         test
 
 # Settings
@@ -151,3 +152,11 @@ $(ELROND_LOTTERY_SUBMODULE)/output/lottery.wasm: $(ELROND_LOTTERY_SUBMODULE)/out
 
 elrond-lottery-test: $(ELROND_LOTTERY_SUBMODULE)/output/lottery.wasm
 	$(TEST_MANDOS) $(elrond_lottery_tests) --coverage
+
+# Unit Tests
+# ----------
+PYTHON_UNITTEST_FILES = coverage.py
+unittest-python: $(PYTHON_UNITTEST_FILES:=.unit)
+
+%.unit: %
+	python3 $<

@@ -12,33 +12,17 @@ import wasm2kast
 
 import coverage as cov
 
-from pyk.kast import KSequence, KConstant, KApply, KToken, isKApply, isKConstant, isKToken
-from pyk.kastManip import traverseBottomUp
+from pyk.kast import KSequence, KConstant, KApply, KToken
 
-POSITIVE_COVERAGE_CELL = "COVEREDFUNCS_CELL"
-NEGATIVE_COVERAGE_CELL = "NOTCOVEREDFUNCS_CELL"
-
-#### SHOULD BE UPSTREAMED ####
 
 def KString(value):
     return KToken('"%s"' % value, 'String')
-
-def fromKString(ks):
-    assert isKToken(ks) and ks['sort'] == 'String', ks
-    s = ks['token']
-    assert s[0] == s[-1] == '"'
-    return s[1:-1]
 
 def KWasmString(value):
     return KToken('"%s"' % value, 'WasmStringToken')
 
 def KInt(value : int):
     return KToken(str(value), 'Int')
-
-def fromKInt(ki):
-    assert isKToken(ki) and ki['sort'] == 'Int', ki
-    i = ki['token']
-    return int(i)
 
 def KMap(kitem_pairs):
     """Takes a list of pairs of KItems and produces a Map with them as keys and values."""
@@ -63,16 +47,6 @@ def KList(items):
 
 def config_to_kast_term(config):
     return { 'format' : 'KAST', 'version': 1, 'term': config }
-
-def filter_term(filter_func, term):
-    res = []
-    if filter_func(term):
-        res.append(term)
-    if 'args' in term:
-        for arg in term['args']:
-            for child in filter_term(filter_func, arg):
-                res.append(child)
-    return res
 
 ###############################
 
@@ -409,24 +383,6 @@ def run_test_file(wasm_config, filename, test_name):
 
 # ... Setup Elrond Wasm
 
-# Displaying Coverage Data
-def get_coverage(term):
-    cells = pyk.splitConfigFrom(term)[1]
-    pos = cells[POSITIVE_COVERAGE_CELL]
-    neg = cells[NEGATIVE_COVERAGE_CELL]
-    filter_func = lambda term: 'label' in term and term['label'] == 'fcd'
-    pos_fcds = filter_term(filter_func, pos)
-    neg_fcds = filter_term(filter_func, neg)
-    def fcd_data(fcd):
-        mod = fcd['args'][0]['token']
-        addr = fcd['args'][1]['token']
-        oid_node = fcd['args'][2]
-        oid = oid_node['token'] if 'token' in oid_node else None
-        return (mod, addr, oid)
-    pos_ids = [ fcd_data(fcd) for fcd in pos_fcds ]
-    neg_ids = [ fcd_data(fcd) for fcd in neg_fcds ]
-    return (pos_ids, neg_ids)
-
 def log_intermediate_state(name, config):
     if args.log_level == 'none':
         return
@@ -436,43 +392,9 @@ def log_intermediate_state(name, config):
         pretty = pyk.prettyPrintKast(config, WASM_symbols_llvm_no_coverage)
         f.write(pretty)
 
-# Coverage
-
-def mod_to_idx_and_filename(mod):
-    res = {}
-
-    def callback(kast):
-        if isKApply(kast) and kast['label'] == '<modIdx>':
-            res['idx'] = fromKInt(kast['args'][0])
-        if isKApply(kast) and kast['label'] == '<moduleFileName>':
-            a = kast['args'][0]
-            if isKApply(a):
-                res['name'] = None
-            else:
-                res['name'] = fromKString(a)
-        return kast
-
-    traverseBottomUp(mod, callback)
-    return (res['idx'], res['name'])
-
-def get_module_filename_map(wasm_config):
-    mods = []
-    mod_filename_map = {}
-
-    def callback(kast):
-        if isKApply(kast) and kast['label'] == '<moduleInst>':
-            mods.append(kast)
-        return kast
-
-    traverseBottomUp(wasm_config, callback)
-    return map(mod_to_idx_and_filename, mods)
-
-
 # Main Script
 
-per_test_covered = []
-per_test_not_covered = []
-per_test_deployed_mods = []
+per_test_coverage = []
 
 for test in tests:
     tmpdir = tempfile.mkdtemp(prefix="mandos_")
@@ -488,20 +410,25 @@ for test in tests:
     test_name = os.path.basename(test)
     wasm_config = run_test_file(wasm_config, test, test_name)
 
-    mods = get_module_filename_map(wasm_config)
-    per_test_deployed_mods.append(mods)
-
     if args.coverage:
         end_config = wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))
-        (covered, not_covered) = get_coverage(end_config)
-        per_test_covered.append(covered)
-        per_test_not_covered.append(not_covered)
-        print()
-        print('See %s' % tmpdir)
+        (covered, not_covered) = cov.get_coverage(end_config)
+        mods = cov.get_module_filename_map(wasm_config)
+        coverage = { 'cov' : covered , 'not_cov': not_covered, 'idx2file' : mods }
+        per_test_coverage.append(coverage)
+
+    print()
+    print('See %s' % tmpdir)
 
 
-print(per_test_deployed_mods)
-# TODO: Map mods to the correct mods in the coverage.
-(covered, not_covered) = cov.summarize_coverage(per_test_covered, per_test_not_covered)
-print(covered)
-print(not_covered)
+(_, not_cov) = cov.summarize_coverage(per_test_coverage, unnamed='import')
+
+# TODO
+for (name, idx) in not_cov.items():
+    print(name, ': ', idx)
+    try:
+        with open(name) as f:
+            pass
+    except Exception:
+        pass
+

@@ -1,17 +1,118 @@
 import unittest
+import pyk
+
+from pyk.kast import isKApply, isKConstant, isKToken
+from pyk.kastManip import traverseBottomUp
 
 
-def summarize_coverage(covered, not_covered):
+#### SHOULD BE UPSTREAMED ####
+
+def fromKString(ks):
+    assert isKToken(ks) and ks['sort'] == 'String', ks
+    s = ks['token']
+    assert s[0] == s[-1] == '"'
+    return s[1:-1]
+
+
+def fromKInt(ki):
+    assert isKToken(ki) and ki['sort'] == 'Int', ki
+    i = ki['token']
+    return int(i)
+
+
+# Coverage
+
+POSITIVE_COVERAGE_CELL = "COVEREDFUNCS_CELL"
+NEGATIVE_COVERAGE_CELL = "NOTCOVEREDFUNCS_CELL"
+
+
+def summarize_coverage(coverage_data, unnamed=None):
     """Takes the list of covered functions over several runs, and those not
     covered for each run. Returns coverage data for the test suite: all
     functions that were covered at least once, and all that were never
-    covered."""
-    def merge(list_of_lists):
-        return [(int(mod), int(idx), id) for l in list_of_lists for (mod, idx, id) in l]
-    all_covered = set(merge(covered))
-    all_sometime_not_covered = set(merge(not_covered))
+    covered.
+    """
+    all_covered = set()
+    all_sometime_not_covered = set()
+    for test in coverage_data:
+        m2f = test['idx2file']
+        def lookup_filename(midx):
+            return m2f[midx] if m2f[midx] is not None else unnamed
+
+        covered  =    [ (lookup_filename(midx), fidx) for (midx, fidx) in test['cov']]
+        not_covered = [ (lookup_filename(midx), fidx) for (midx, fidx) in test['not_cov']]
+        all_covered = all_covered.union(set(covered))
+        all_sometime_not_covered = all_sometime_not_covered.union(set(not_covered))
+
     all_not_coverd = all_sometime_not_covered.difference(all_covered)
-    return (all_covered, all_not_coverd)
+
+    def set2dict(s):
+        res = {}
+        for (k, v) in s:
+            if k not in res:
+                res[k] = []
+            res[k].append(v)
+        for (k, v) in res.items():
+            v.sort()
+        return res
+
+    return (set2dict(all_covered), set2dict(all_not_coverd))
+
+
+def get_module_filename_map(wasm_config):
+    def mod_to_idx_and_filename(mod):
+        res = {}
+
+        def callback(kast):
+            if isKApply(kast) and kast['label'] == '<modIdx>':
+                res['idx'] = fromKInt(kast['args'][0])
+            if isKApply(kast) and kast['label'] == '<moduleFileName>':
+                a = kast['args'][0]
+                if isKApply(a):
+                    res['name'] = None
+                else:
+                    res['name'] = fromKString(a)
+            return kast
+
+        traverseBottomUp(mod, callback)
+        return (res['idx'], res['name'])
+
+    mods = []
+
+    def callback(kast):
+        if isKApply(kast) and kast['label'] == '<moduleInst>':
+            mods.append(kast)
+        return kast
+
+    traverseBottomUp(wasm_config, callback)
+    return dict(map(mod_to_idx_and_filename, mods))
+
+
+def get_coverage(term):
+    # TODO: Use traverseBottomUp.
+    def filter_term(filter_func, term):
+        res = []
+        if filter_func(term):
+            res.append(term)
+        if 'args' in term:
+            for arg in term['args']:
+                for child in filter_term(filter_func, arg):
+                    res.append(child)
+        return res
+
+    cells = pyk.splitConfigFrom(term)[1]
+    pos = cells[POSITIVE_COVERAGE_CELL]
+    neg = cells[NEGATIVE_COVERAGE_CELL]
+    filter_func = lambda term: 'label' in term and term['label'] == 'fcd'
+    pos_fcds = filter_term(filter_func, pos)
+    neg_fcds = filter_term(filter_func, neg)
+    def fcd_data(fcd):
+        mod  = int(fcd['args'][0]['token'])
+        addr = int(fcd['args'][1]['token'])
+        return (mod, addr)
+    pos_ids = [ fcd_data(fcd) for fcd in pos_fcds ]
+    neg_ids = [ fcd_data(fcd) for fcd in neg_fcds ]
+    return (pos_ids, neg_ids)
 
 
 class TestCoverage(unittest.TestCase):

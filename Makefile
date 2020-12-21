@@ -52,7 +52,7 @@ wasm-deps:
 	$(KWASM_MAKE) deps
 
 elrond-contracts:
-	cd $(ELROND_WASM_SUBMODULE) && env RUSTFLAGS="" ./build-wasm.sh
+	cd $(ELROND_WASM_SUBMODULE) && ./investigate-wasm.sh
 
 # Building Definition
 # -------------------
@@ -139,14 +139,18 @@ mandos-test: $(llvm_kompiled)
 ELROND_ADDER_SUBMODULE := $(ELROND_CONTRACT_EXAMPLES)/adder
 ELROND_ADDER_TESTS_DIR=$(ELROND_ADDER_SUBMODULE)/mandos
 elrond_adder_tests=$(ELROND_ADDER_TESTS_DIR)/adder.scen.json
-elrond-adder-test:
+
+$(ELROND_ADDER_SUBMODULE)/output/adder.wasm: $(ELROND_ADDER_SUBMODULE)/output/adder-dbg.wasm
+	cp $< $@
+
+elrond-adder-test: $(ELROND_ADDER_SUBMODULE)/output/adder.wasm
 	$(TEST_MANDOS) $(elrond_adder_tests) --coverage
 
 ELROND_LOTTERY_SUBMODULE=$(ELROND_CONTRACT_EXAMPLES)/lottery-egld
 elrond_lottery_tests=$(shell find $(ELROND_LOTTERY_SUBMODULE) -name "*.scen.json")
 
 # Fix: the tests use an outdated name for the Wasm file.
-$(ELROND_LOTTERY_SUBMODULE)/output/lottery.wasm: $(ELROND_LOTTERY_SUBMODULE)/output/lottery-egld.wasm
+$(ELROND_LOTTERY_SUBMODULE)/output/lottery.wasm: $(ELROND_LOTTERY_SUBMODULE)/output/lottery-egld-dbg.wasm
 	cp $< $@
 
 

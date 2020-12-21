@@ -145,33 +145,43 @@ def insert_coverage_on_text_module(cover, imports_mod_name=None):
 
 class TestCoverage(unittest.TestCase):
 
+    def dummy_coverage(_self, covered, not_covered):
+        coverage = { 'cov' : covered , 'not_cov': not_covered, 'idx2file' : {0: 'foo', 1: 'bar'} }
+        return [coverage]
+
     def test_cover_empty(self):
-        [c, nc] = summarize_coverage([], [])
+        cov = self.dummy_coverage([], [])
+        (c, nc) = summarize_coverage(cov)
         self.assertEqual(c, nc)
-        self.assertEqual(c, set())
+        self.assertEqual(c, {})
 
     def test_cover_all(self):
         """All functions were covered in different tests."""
         covs  = [
-            [(0, 0, ""), (0, 1, ""), (0, 2, "")],
-            [(1, 0, ""), (1, 1, ""), (1, 2, "bar")]
+            (0, 0), (0, 1), (0, 2),
+            (1, 0), (1, 1), (1, 2)
         ]
         ncovs  = covs.copy()
         ncovs.reverse()
-        [c, nc] = summarize_coverage(covs, ncovs)
-        self.assertEqual(nc, set())
+        cov = self.dummy_coverage(covs, ncovs)
+        (c, nc) = summarize_coverage(cov)
+        self.assertEqual(nc, {})
 
     def test_cover_some(self):
         covs  = [
-            [(0, 0, ""), (0, 1, ""), (0, 2, "")],
-            [(1, 0, ""), (1, 1, ""), (1, 2, "bar")]
+            (0, 0), (0, 1), (0, 2),
+            (1, 0), (1, 1), (1, 2)
         ]
         ncovs  = covs.copy()
         ncovs.reverse()
-        extra = [(0, 3, "")]
+        extra_mod_idx = 0
+        extra_fun_idx = 3
+        extra = (extra_mod_idx, extra_fun_idx)
         ncovs.append(extra)
-        [c, nc] = summarize_coverage(covs, ncovs)
-        self.assertEqual(nc, set(extra))
+        cov = self.dummy_coverage(covs, ncovs)
+        extra_mod_file = cov[0]['idx2file'][extra_mod_idx]
+        (c, nc) = summarize_coverage(cov)
+        self.assertEqual(nc[extra_mod_file], [extra_fun_idx])
 
 
 if __name__ == '__main__':

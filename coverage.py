@@ -134,7 +134,7 @@ def insert_coverage_on_text_module(cover, imports_mod_name=None):
             line_idcs = imports(lines) + funcs(lines)
             for idx in indices + imps:
                 lidx = line_idcs[idx]
-                lines[lidx] = bytes('✗', 'utf8') + lines[lidx][1:]
+                lines[lidx] = b'!' + lines[lidx][1:]
             res.append(b'\n'.join(lines))
 
         except subprocess.CalledProcessError as e:

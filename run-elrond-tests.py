@@ -424,11 +424,8 @@ for test in tests:
 (_, not_cov) = cov.summarize_coverage(per_test_coverage, unnamed='import')
 
 # TODO
-for (name, idx) in not_cov.items():
-    print(name, ': ', idx)
-    try:
-        with open(name) as f:
-            pass
-    except Exception:
-        pass
-
+print(not_cov)
+text_modules = cov.insert_coverage_on_text_module(not_cov, imports_mod_name='import')
+for module in text_modules:
+    for line in module.splitlines():
+        print(line.decode('utf8'))

@@ -1,5 +1,6 @@
 import unittest
 import pyk
+import subprocess
 
 from pyk.kast import isKApply, isKConstant, isKToken
 from pyk.kastManip import traverseBottomUp
@@ -113,6 +114,33 @@ def get_coverage(term):
     pos_ids = [ fcd_data(fcd) for fcd in pos_fcds ]
     neg_ids = [ fcd_data(fcd) for fcd in neg_fcds ]
     return (pos_ids, neg_ids)
+
+
+def insert_coverage_on_text_module(cover, imports_mod_name=None):
+    def get_line_indices(lines, start):
+        return [i for i in range(len(lines)) if lines[i].startswith(start)]
+    def imports(lines):
+        return get_line_indices(lines, b'  (import "env"')
+    def funcs(lines):
+        return get_line_indices(lines, b'  (func')
+
+    res = []
+    imps = cover[imports_mod_name] if imports_mod_name in cover else []
+    print(imps, imports_mod_name, cover)
+    for (name, indices) in cover.items():
+        try:
+            wat = subprocess.check_output("wasm2wat %s" % (name), shell=True)
+            lines = wat.splitlines()
+            line_idcs = imports(lines) + funcs(lines)
+            for idx in indices + imps:
+                lidx = line_idcs[idx]
+                lines[lidx] = bytes('✗', 'utf8') + lines[lidx][1:]
+            res.append(b'\n'.join(lines))
+
+        except subprocess.CalledProcessError as e:
+            print(e)
+            pass
+        return res
 
 
 class TestCoverage(unittest.TestCase):

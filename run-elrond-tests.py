@@ -421,7 +421,6 @@ for test in tests:
     print('See %s' % tmpdir)
 
 if args.coverage:
-
     (_, not_cov) = cov.summarize_coverage(per_test_coverage, unnamed='import')
 
     print(not_cov)

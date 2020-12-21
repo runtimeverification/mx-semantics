@@ -126,7 +126,6 @@ def insert_coverage_on_text_module(cover, imports_mod_name=None):
 
     res = []
     imps = cover[imports_mod_name] if imports_mod_name in cover else []
-    print(imps, imports_mod_name, cover)
     for (name, indices) in cover.items():
         try:
             wat = subprocess.check_output("wasm2wat %s" % (name), shell=True)

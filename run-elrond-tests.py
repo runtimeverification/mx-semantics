@@ -420,12 +420,12 @@ for test in tests:
     print()
     print('See %s' % tmpdir)
 
+if args.coverage:
 
-(_, not_cov) = cov.summarize_coverage(per_test_coverage, unnamed='import')
+    (_, not_cov) = cov.summarize_coverage(per_test_coverage, unnamed='import')
 
-# TODO
-print(not_cov)
-text_modules = cov.insert_coverage_on_text_module(not_cov, imports_mod_name='import')
-for module in text_modules:
-    for line in module.splitlines():
-        print(line.decode('utf8'))
+    print(not_cov)
+    text_modules = cov.insert_coverage_on_text_module(not_cov, imports_mod_name='import')
+    for module in text_modules:
+        for line in module.splitlines():
+            print(line.decode('utf8'))

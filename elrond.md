@@ -525,7 +525,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <account>
            <address> CALLEE </address>
            <storage> STORAGE => #updateStorage(STORAGE, KEY, VALUE) </storage>
-           <code> MODIDX </code>
            ...
          </account>
 
@@ -535,7 +534,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <account>
            <address> CALLEE </address>
            <storage> STORAGE </storage>
-           <code> MODIDX </code>
            ...
          </account>
 

@@ -10,18 +10,19 @@ import tempfile
 import os
 import wasm2kast
 
+import coverage as cov
+
 from pyk.kast import KSequence, KConstant, KApply, KToken
 
-POSITIVE_COVERAGE_CELL = "COVEREDFUNCS_CELL"
-NEGATIVE_COVERAGE_CELL = "NOTCOVEREDFUNCS_CELL"
-
-#### SHOULD BE UPSTREAMED ####
 
 def KString(value):
     return KToken('"%s"' % value, 'String')
 
 def KWasmString(value):
     return KToken('"%s"' % value, 'WasmStringToken')
+
+def KInt(value : int):
+    return KToken(str(value), 'Int')
 
 def KMap(kitem_pairs):
     """Takes a list of pairs of KItems and produces a Map with them as keys and values."""
@@ -44,21 +45,8 @@ def KList(items):
         return KApply("_List_", [head, tail])
     return KList_aux(list_items)
 
-def KInt(value : int):
-    return KToken(str(value), 'Int')
-
 def config_to_kast_term(config):
     return { 'format' : 'KAST', 'version': 1, 'term': config }
-
-def filter_term(filter_func, term):
-    res = []
-    if filter_func(term):
-        res.append(term)
-    if 'args' in term:
-        for arg in term['args']:
-            for child in filter_term(filter_func, arg):
-                res.append(child)
-    return res
 
 ###############################
 
@@ -214,7 +202,7 @@ def file_to_module_decl(filename : str):
 def wasm_file_to_module_decl(filename : str):
     # Check that file exists.
     with open(filename, 'rb') as f:
-        module = wasm2kast.wasm2kast(f)
+        module = wasm2kast.wasm2kast(f, filename)
         return module
 
 def wat_file_to_module_decl(filename : str):
@@ -379,25 +367,9 @@ def run_test_file(wasm_config, filename, test_name):
 
 # ... Setup Elrond Wasm
 
-# Displaying Coverage Data
-def get_coverage(term):
-    cells = pyk.splitConfigFrom(term)[1]
-    pos = cells[POSITIVE_COVERAGE_CELL]
-    neg = cells[NEGATIVE_COVERAGE_CELL]
-    filter_func = lambda term: 'label' in term and term['label'] == 'fcd'
-    pos_fcds = filter_term(filter_func, pos)
-    neg_fcds = filter_term(filter_func, neg)
-    def fcd_data(fcd):
-        mod = fcd['args'][0]['token']
-        addr = fcd['args'][1]['token']
-        oid_node = fcd['args'][2]
-        oid = oid_node['token'] if 'token' in oid_node else None
-        return (mod, addr, oid)
-    pos_ids = [ fcd_data(fcd) for fcd in pos_fcds ]
-    neg_ids = [ fcd_data(fcd) for fcd in neg_fcds ]
-    return (pos_ids, neg_ids)
-
 def log_intermediate_state(name, config):
+    if args.log_level == 'none':
+        return
     with open('%s/%s' % (tmpdir, name), 'w') as f:
         f.write(json.dumps(config_to_kast_term(config)))
     with open('%s/%s.pretty.k' % (tmpdir, name), 'w') as f:
@@ -405,6 +377,8 @@ def log_intermediate_state(name, config):
         f.write(pretty)
 
 # Main Script
+
+per_test_coverage = []
 
 for test in tests:
     tmpdir = tempfile.mkdtemp(prefix="mandos_")
@@ -419,17 +393,22 @@ for test in tests:
 
     test_name = os.path.basename(test)
     wasm_config = run_test_file(wasm_config, test, test_name)
-    cells = pyk.splitConfigFrom(wasm_config)[1]
-    k_cell = cells['K_CELL']
 
     if args.coverage:
         end_config = wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))
-        (covered, uncovered) = get_coverage(end_config)
-        print('Covered:')
-        [ print(f) for f in covered ]
-        print()
-        print('Not Covered:')
-        [ print(f) for f in uncovered ]
+        (covered, not_covered) = cov.get_coverage(end_config)
+        mods = cov.get_module_filename_map(wasm_config)
+        coverage = { 'cov' : covered , 'not_cov': not_covered, 'idx2file' : mods }
+        per_test_coverage.append(coverage)
 
-        print()
-        print('See %s' % tmpdir)
+    print()
+    print('See %s' % tmpdir)
+
+if args.coverage:
+    (_, not_cov) = cov.summarize_coverage(per_test_coverage, unnamed='import')
+
+    print(not_cov)
+    text_modules = cov.insert_coverage_on_text_module(not_cov, imports_mod_name='import')
+    for module in text_modules:
+        for line in module.splitlines():
+            print(line.decode('utf8'))

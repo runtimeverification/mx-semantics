@@ -733,7 +733,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <commands> . => initAccount(NEWADDR, NEXTIDX -Int 1) ~> callContract(FROM, NEWADDR, VALUE, "init", ARGS, GASLIMIT, GASPRICE) </commands>
          <account>
             <address> FROM </address>
-            <nonce> NONCE </nonce>
+            <nonce> NONCE => NONCE +Int 1 </nonce>
             ...
          </account>
          <nextModuleIdx> NEXTIDX </nextModuleIdx>
@@ -748,6 +748,11 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // ------------------------------------------------------------------------------------------------------------------------------------------------------------
     rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => callContract(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>
+         <account>
+            <address> FROM </address>
+            <nonce> NONCE => NONCE +Int 1 </nonce>
+            ...
+         </account>
          <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
 
     syntax Expect ::= ".Expect" [klabel(.Expect), symbol]

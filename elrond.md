@@ -162,6 +162,13 @@ Storage maps byte arrays to byte arrays.
                           | "Finish"
  // --------------------------------
 
+    syntax Address ::= Bytes
+		     | WasmStringToken
+    syntax Bytes ::= #address2Bytes ( Address ) [function, functional]
+ // ------------------------------------------------------------------
+    rule #address2Bytes(ADDR:WasmStringToken) => String2Bytes(#parseWasmString(ADDR))
+    rule #address2Bytes(ADDR:Bytes) => ADDR
+
     syntax Code ::= ".Code" [klabel(.Code), symbol]
                   | WasmString | Int
  // --------------------------------
@@ -677,9 +684,13 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### State Setup
 
 ```k
-    syntax Step ::= setAccount(address: Bytes, nonce: Int, balance: Int, code: Code, storage: Map) [klabel(setAccount), symbol]
- // ---------------------------------------------------------------------------------------------------------------------------
-    rule <k> setAccount(ADDRESS, NONCE, BALANCE, CODE, STORAGE) => . ... </k>
+    syntax Step ::= setAccount    ( address: Address, nonce: Int, balance: Int, code: Code, storage: Map )  [klabel(setAccount), symbol]
+                  | setAccountAux ( address: Bytes, nonce: Int, balance: Int, code: Code, storage: Map )    [klabel(setAccountAux), symbol]
+ // ---------------------------------------------------------------------------------------------------------------------------------------
+    rule <k> setAccount(ADDRESS, NONCE, BALANCE, CODE, STORAGE)
+             => setAccountAux(#address2Bytes(ADDRESS), NONCE, BALANCE, CODE, STORAGE) ... </k>
+
+    rule <k> setAccountAux(ADDRESS, NONCE, BALANCE, CODE, STORAGE) => . ... </k>
          <accounts>
            ( .Bag
           => <account>
@@ -693,15 +704,19 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            ...
          </accounts>
 
-    syntax Step ::= newAddress(Bytes, Int, Bytes) [klabel(newAddress), symbol]
- // ------------------------------------------------------------------------------
-    rule <k> newAddress(CREATOR, NONCE, NEW) => . ... </k>
+    syntax Step ::= newAddress    ( Address, Int, Address ) [klabel(newAddress), symbol]
+                  | newAddressAux ( Bytes, Int, Bytes )     [klabel(newAddressAux), symbol]
+ // ---------------------------------------------------------------------------------------
+    rule <k> newAddress(CREATOR, NONCE, NEW)
+             => newAddressAux(#address2Bytes(CREATOR), NONCE, #address2Bytes(NEW)) ... </k>
+
+    rule <k> newAddressAux(CREATOR, NONCE, NEW) => . ... </k>
          <newAddresses> NEWADDRESSES => NEWADDRESSES [tuple(CREATOR, NONCE) <- NEW] </newAddresses>
 
     syntax AddressNonce ::= tuple( Bytes , Int )
  // ----------------------------------------------
 
-    syntax Step      ::=  currentBlockInfo(BlockInfo) [klabel( currentBlockInfo), symbol]
+    syntax Step      ::= currentBlockInfo(BlockInfo)  [klabel( currentBlockInfo), symbol]
                        | previousBlockInfo(BlockInfo) [klabel(previousBlockInfo), symbol]
     syntax BlockInfo ::= blockTimestamp(Int) [klabel(blockTimestamp), symbol]
                        | blockNonce(Int)     [klabel(blockNonce), symbol]
@@ -713,13 +728,17 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### Contract Interactions
 
 ```k
-    syntax Step ::= scDeploy( DeployTx, Expect ) [klabel(scDeploy), symbol]
- // ----------------------------------------------------------------------
+    syntax Step ::= scDeploy ( DeployTx, Expect ) [klabel(scDeploy), symbol]
+ // ------------------------------------------------------------------------
     rule <k> scDeploy( TX, EXPECT ) => TX ~> EXPECT ... </k>
 
-    syntax DeployTx ::= deployTx( Bytes, Int , ModuleDecl , List , Int , Int ) [klabel(deployTx), symbol]
- // -------------------------------------------------------------------------------------------------------
-    rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) => MODULE ~> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) ... </k>
+    syntax DeployTx ::= deployTx    ( Address, Int, ModuleDecl, List, Int, Int ) [klabel(deployTx), symbol]
+                      | deployTxAux ( Bytes, Int, ModuleDecl, List, Int, Int )   [klabel(deployTxAux), symbol]
+ // ----------------------------------------------------------------------------------------------------------
+    rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE)
+	     => deployTxAux(#address2Bytes(FROM), VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) ... </k>
+
+    rule <k> deployTxAux(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) => MODULE ~> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) ... </k>
 
     syntax Deployment ::= deployLastModule( Bytes, Int, List, Int, Int )
  // ----------------------------------------------------------------------
@@ -738,9 +757,13 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // ----------------------------------------------------------------
     rule <k> scCall( TX, EXPECT ) => TX ~> EXPECT ... </k>
 
-    syntax CallTx ::= callTx(from: Bytes, to: Bytes, value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
- // -------------------------------------------------------------------------------------------------------------------------------------------------
-    rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
+    syntax CallTx ::= callTx    (from: Address, to: Address, value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
+                    | callTxAux (from: Bytes,   to: Bytes,   value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
+ // ------------------------------------------------------------------------------------------------------------------------------------------------------------
+    rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE)
+             => callTxAux(#address2Bytes(FROM), #address2Bytes(TO), VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) ... </k>
+
+    rule <k> callTxAux(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => callContract(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>
          <account>
             <address> FROM </address>
@@ -760,9 +783,12 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // -----------------------------------------------------
     rule <k> transfer(TX) => TX ... </k>
 
-    syntax TransferTx ::= transferTx(from: Bytes, to: Bytes, value: Int) [klabel(transferTx), symbol]
- // -------------------------------------------------------------------------------------------------
-    rule <k> transferTx(FROM, TO, VAL) => . ... </k>
+    syntax TransferTx ::= transferTx    ( from: Address, to: Bytes, value: Int ) [klabel(transferTx), symbol]
+                        | transferTxAux ( from: Bytes, to: Bytes, value: Int )   [klabel(transferTxAux), symbol]
+ // ------------------------------------------------------------------------------------------------------------
+    rule <k> transferTx(FROM, TO, VAL) => transferTxAux(#address2Bytes(FROM), #address2Bytes(TO), VAL) ... </k>
+
+    rule <k> transferTxAux(FROM, TO, VAL) => . ... </k>
          <account>
            <address> FROM </address>
            <balance> FROM_BAL => FROM_BAL -Int VAL </balance>
@@ -779,9 +805,12 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // ------------------------------------------------------------------------------------
     rule <k> validatorReward(TX) => TX ... </k>
 
-    syntax ValidatorRewardTx ::= validatorRewardTx(to: Bytes, value: Int) [klabel(validatorRewardTx), symbol]
- // ---------------------------------------------------------------------------------------------------------
-    rule <k> validatorRewardTx(TO, VAL) => . ... </k>
+    syntax ValidatorRewardTx ::= validatorRewardTx    ( to: Address, value: Int) [klabel(validatorRewardTx), symbol]
+                               | validatorRewardTxAux ( to: Bytes, value: Int )  [klabel(validatorRewardTxAux), symbol]
+ // -------------------------------------------------------------------------------------------------------------------
+    rule <k> validatorRewardTx(TO, VAL) => validatorRewardTxAux(#address2Bytes(TO), VAL) ... </k>
+
+    rule <k> validatorRewardTxAux(TO, VAL) => . ... </k>
          <account>
            <address> TO </address>
             <storage> STOR => STOR[String2Bytes("ELRONDrewards") <- #incBytes({STOR[String2Bytes("ELRONDrewards")]}:>Bytes, VAL)] </storage>

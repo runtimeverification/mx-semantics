@@ -29,10 +29,10 @@ module AUTO-ALLOCATE
          <nextModuleIdx> NEXT => NEXT +Int 1 </nextModuleIdx>
          <moduleInstances> ( .Bag => <moduleInst> <modIdx> NEXT </modIdx> ... </moduleInst>) ... </moduleInstances>
 
-    syntax Stmts ::=  autoAllocModules( ModuleDecl, Map ) [function]
-                   | #autoAllocModules( Defns     , Map ) [function]
- // -----------------------------------------------------
-    rule  autoAllocModules(#module(... importDefns: IS), MR) => #autoAllocModules(IS, MR)
+    syntax Stmts ::=  autoAllocModules ( ModuleDecl, Map ) [function]
+                   | #autoAllocModules ( Defns     , Map ) [function]
+ // -----------------------------------------------------------------
+    rule  autoAllocModules(#module(... importDefns:IS), MR) => #autoAllocModules(IS, MR)
 ```
 
 In helper function `#autoAllocModules`, the module registry map is passed along to check if the module being imported from is present.
@@ -101,8 +101,8 @@ module WASM-COVERAGE
           <wasm/>
       </wasmCoverage>
 
-    syntax FuncCoverageDescription ::= fcd(mod: Int, addr: Int, id: OptionalId) [klabel(fcd), symbol]
- // -------------------------------------------------------------------------------------------------
+    syntax FuncCoverageDescription ::= fcd ( mod: Int, addr: Int, id: OptionalId ) [klabel(fcd), symbol]
+ // ----------------------------------------------------------------------------------------------------
 
     rule <instrs> ( invoke I ):Instr ... </instrs>
          <coveredFuncs> COV => COV SetItem(NCOV[I]) </coveredFuncs>
@@ -130,15 +130,15 @@ module ELROND-NODE
         <commands> .K </commands>
         <callState>
           <callingArguments> .List </callingArguments>
-          <caller> .Address </caller>
-          <callee> .Address </callee>
+          <caller> .Bytes </caller>
+          <callee> .Bytes </callee>
           <callValue> 0 </callValue>
           <returnData> .Bytes </returnData>
           <returnStatus> .ReturnStatus </returnStatus>
         </callState>
         <accounts>
           <account multiplicity="*" type="Map">
-             <address> .Address </address>
+             <address> .Bytes </address>
              <nonce> 0 </nonce>
              <balance> 0 </balance>
 ```
@@ -162,12 +162,6 @@ Storage maps byte arrays to byte arrays.
                           | "Finish"
  // --------------------------------
 
-    syntax Address ::= ".Address" | WasmString
-    syntax String  ::= address2String(Address) [function]
- // -----------------------------------------------------
-    rule address2String(.Address) => ".Address"
-    rule address2String(WS:WasmStringToken) => substrString(#parseWasmString(WS), 2, lengthString(#parseWasmString(WS)))
-
     syntax Code ::= ".Code" [klabel(.Code), symbol]
                   | WasmString | Int
  // --------------------------------
@@ -177,8 +171,8 @@ The value is an unsigned integer representation of the bytes.
 The length is the number of bytes the argument represents.
 
 ```k
-    syntax Argument ::= arg(value : Int, length : Int) [klabel(tupleArg), symbol]
- // -----------------------------------------------------------------------------
+    syntax Argument ::= arg ( value: Int, length: Int ) [klabel(tupleArg), symbol]
+ // ------------------------------------------------------------------------------
 
     syntax Int ::= valueArg  ( Argument ) [function, functional]
                  | lengthArg ( Argument ) [function, functional]
@@ -307,14 +301,14 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
          <callingArguments> ARGS </callingArguments>
 
     rule <instrs> hostCall("env", "getCaller", [ i32 .ValTypes ] -> [ .ValTypes ])
-               => #setMem(String2Bytes(address2String(CALLER)), OFFSET)
+               => #setMem(CALLER, OFFSET)
                   ...
          </instrs>
          <locals> 0 |-> <i32> OFFSET </locals>
          <caller> CALLER </caller>
 
-    syntax MemOp ::= #setMem ( bytes : Bytes, offset : Int )
-                   | #getMem ( offset : Int , lenght : Int )
+    syntax MemOp ::= #setMem ( bytes: Bytes, offset: Int )
+                   | #getMem ( offset: Int , lenght: Int )
  // --------------------------------------------------------
     rule <instrs> #setMem(BS, OFFSET) => . ... </instrs>
          <callee> CALLEE </callee>
@@ -577,15 +571,15 @@ The (incorrect) default implementation of a host call is to just return zero val
 Initialize account: if the address is already present with some value, add value to it, otherwise create the account.
 
 ```k
-    syntax InitAccount ::= initAccount ( Address , Code )
- // -----------------------------------------------------
+    syntax InitAccount ::= initAccount ( Bytes , Code )
+ // ---------------------------------------------------
     rule <commands> initAccount(ADDR, CODE) => . ... </commands>
          <account>
            <address> ADDR </address>
            <code> .Code => CODE </code>
            ...
          </account>
-         <logging> S => S +String " -- initAccount existing " +String address2String(ADDR) </logging>
+         <logging> S => S +String " -- initAccount existing " +String Bytes2String(ADDR) </logging>
 
     rule <commands> initAccount(ADDR, CODE) => . ... </commands>
          <accounts>
@@ -598,11 +592,11 @@ Initialize account: if the address is already present with some value, add value
            )
            ...
          </accounts>
-         <logging> S => S +String " -- initAccount new" +String address2String(ADDR) </logging>
+         <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
 
-    syntax CallContract ::= callContract ( Address , Address , Int ,     String , List , Int , Int ) [klabel(callContractString)]
-                          | callContract ( Address , Address , Int , WasmString , List , Int , Int ) [klabel(callContractWasmString)]
- // ---------------------------------------------------------------------------------------------------------------------------------
+    syntax CallContract ::= callContract ( Bytes, Bytes, Int,     String, List, Int, Int ) [klabel(callContractString)]
+                          | callContract ( Bytes, Bytes, Int, WasmString, List, Int, Int ) [klabel(callContractWasmString)]
+ // -----------------------------------------------------------------------------------------------------------------------
     rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:String, ARGS, GASLIMIT, GASPRICE) => callContract(FROM, TO, VALUE, #unparseWasmString("\"" +String FUNCNAME +String "\""), ARGS, GASLIMIT, GASPRICE) ... </commands>
 
     rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => #wait ... </commands>
@@ -683,8 +677,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### State Setup
 
 ```k
-    syntax Step ::= setAccount(Address, Int, Int, Code, Map) [klabel(setAccount), symbol]
- // -------------------------------------------------------------------------------------
+    syntax Step ::= setAccount(address: Bytes, nonce: Int, balance: Int, code: Code, storage: Map) [klabel(setAccount), symbol]
+ // ---------------------------------------------------------------------------------------------------------------------------
     rule <k> setAccount(ADDRESS, NONCE, BALANCE, CODE, STORAGE) => . ... </k>
          <accounts>
            ( .Bag
@@ -699,12 +693,12 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            ...
          </accounts>
 
-    syntax Step ::= newAddress(Address, Int, Address) [klabel(newAddress), symbol]
+    syntax Step ::= newAddress(Bytes, Int, Bytes) [klabel(newAddress), symbol]
  // ------------------------------------------------------------------------------
     rule <k> newAddress(CREATOR, NONCE, NEW) => . ... </k>
          <newAddresses> NEWADDRESSES => NEWADDRESSES [tuple(CREATOR, NONCE) <- NEW] </newAddresses>
 
-    syntax AddressNonce ::= tuple( Address , Int )
+    syntax AddressNonce ::= tuple( Bytes , Int )
  // ----------------------------------------------
 
     syntax Step      ::=  currentBlockInfo(BlockInfo) [klabel( currentBlockInfo), symbol]
@@ -723,11 +717,11 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // ----------------------------------------------------------------------
     rule <k> scDeploy( TX, EXPECT ) => TX ~> EXPECT ... </k>
 
-    syntax DeployTx ::= deployTx( Address, Int , ModuleDecl , List , Int , Int ) [klabel(deployTx), symbol]
+    syntax DeployTx ::= deployTx( Bytes, Int , ModuleDecl , List , Int , Int ) [klabel(deployTx), symbol]
  // -------------------------------------------------------------------------------------------------------
     rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) => MODULE ~> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) ... </k>
 
-    syntax Deployment ::= deployLastModule( Address, Int, List, Int, Int )
+    syntax Deployment ::= deployLastModule( Bytes, Int, List, Int, Int )
  // ----------------------------------------------------------------------
     rule <k> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => initAccount(NEWADDR, NEXTIDX -Int 1) ~> callContract(FROM, NEWADDR, VALUE, "init", ARGS, GASLIMIT, GASPRICE) </commands>
@@ -737,15 +731,15 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             ...
          </account>
          <nextModuleIdx> NEXTIDX </nextModuleIdx>
-         <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Address ... </newAddresses>
+         <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
          <logging> S => S +String " -- deployLastModule: " +String Int2String(NEXTIDX -Int 1) </logging>
 
     syntax Step ::= scCall( CallTx, Expect ) [klabel(scCall), symbol]
  // ----------------------------------------------------------------
     rule <k> scCall( TX, EXPECT ) => TX ~> EXPECT ... </k>
 
-    syntax CallTx ::= callTx(from : Address, to : Address, value : Int, func : WasmString, args : List, gasLimit : Int, gasPrice : Int) [klabel(callTx), symbol]
- // ------------------------------------------------------------------------------------------------------------------------------------------------------------
+    syntax CallTx ::= callTx(from: Bytes, to: Bytes, value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
+ // -------------------------------------------------------------------------------------------------------------------------------------------------
     rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => callContract(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>
          <account>
@@ -766,8 +760,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // -----------------------------------------------------
     rule <k> transfer(TX) => TX ... </k>
 
-    syntax TransferTx ::= transferTx(from : Address, to : Address, value : Int) [klabel(transferTx), symbol]
- // --------------------------------------------------------------------------------------------------------
+    syntax TransferTx ::= transferTx(from: Bytes, to: Bytes, value: Int) [klabel(transferTx), symbol]
+ // -------------------------------------------------------------------------------------------------
     rule <k> transferTx(FROM, TO, VAL) => . ... </k>
          <account>
            <address> FROM </address>
@@ -785,8 +779,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // ------------------------------------------------------------------------------------
     rule <k> validatorReward(TX) => TX ... </k>
 
-    syntax ValidatorRewardTx ::= validatorRewardTx(to : Address, value : Int) [klabel(validatorRewardTx), symbol]
- // ------------------------------------------------------------------------------------------------
+    syntax ValidatorRewardTx ::= validatorRewardTx(to: Bytes, value: Int) [klabel(validatorRewardTx), symbol]
+ // ---------------------------------------------------------------------------------------------------------
     rule <k> validatorRewardTx(TO, VAL) => . ... </k>
          <account>
            <address> TO </address>

@@ -80,10 +80,10 @@
           .List
         </callingArguments>
         <caller>
-          .Address
+          b""
         </caller>
         <callee>
-          .Address
+          b""
         </callee>
         <callValue>
           0

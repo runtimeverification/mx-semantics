@@ -24,6 +24,13 @@ def KWasmString(value):
 def KInt(value : int):
     return KToken(str(value), 'Int')
 
+def KBytes(value: bytes):
+    # Change from python bytes repr to bytes repr in K.
+    byte_repr = '{}'.format(value)
+    if byte_repr.startswith("b'") and byte_repr.endswith("'") :
+        byte_repr = 'b"' + byte_repr[2:-1] + '"'
+    return KToken(byte_repr, 'Bytes')
+
 def KMap(kitem_pairs):
     """Takes a list of pairs of KItems and produces a Map with them as keys and values."""
     if len(kitem_pairs) == 0:
@@ -67,28 +74,12 @@ args = testArgs.parse_args()
 
 tests = args.files
 
-def mandos_int_to_int(mandos_int : str):
+def mandos_int_to_kint(mandos_int : str):
     if mandos_int[0:2] == '0x':
         return KInt(int(mandos_int, 16))
     unseparated_int = mandos_int.replace(',', '')
     parsed_int = int(unseparated_int)
     return KInt(parsed_int)
-
-def mandos_to_set_account(address, sections):
-    """Creates a K account cell from a Mandos account description. """
-    address_value = KWasmString(address)
-    nonce_value   = mandos_int_to_int(sections['nonce'])
-    balance_value = mandos_int_to_int(sections['balance'])
-    if 'code' in sections:
-        code_value = KWasmString(sections['code'])
-    else:
-        code_value = KApply(".Code", [])
-
-    storage_pairs = [ (KString(k), KString(v)) for (k, v) in sections['storage'].items() ]
-    storage_value = KMap(storage_pairs)
-
-    set_account_step  = KApply('setAccount', [address_value, nonce_value, balance_value, code_value, storage_value])
-    return set_account_step
 
 def mandos_argument_to_bytes(argument : str):
     if '|' in argument:
@@ -119,13 +110,16 @@ def mandos_argument_to_bytes(argument : str):
     if argument[0:4] == "str:":
         return mandos_argument_to_bytes('``' + argument[4:])
     if argument[0:8] == 'address:':
-        byte_array = bytes(argument, 'ascii')
-        pad = 20 - len(byte_array)
-        return byte_array + bytes(pad)
+        padded_addr = argument[8:].ljust(32, '_')
+        padded_addr_bytes = bytes(padded_addr[:32], 'ascii')
+        return padded_addr_bytes
 
     raise ValueError("Argument type not yet supported: %s" % argument)
 
-def mandos_argument_to_kargs(argument : str):
+def mandos_argument_to_kbytes(argument: str):
+    return KBytes(mandos_argument_to_bytes(argument))
+
+def mandos_argument_to_kargs(argument: str):
     bs = mandos_argument_to_bytes(argument)
     return KApply('tupleArg', [KInt(int.from_bytes(bs, 'big')), KInt(len(bs))])
 
@@ -133,12 +127,28 @@ def mandos_arguments_to_arguments(arguments):
     tokenized = list(map(lambda x: mandos_argument_to_kargs(x), arguments))
     return KList(tokenized)
 
+def mandos_to_set_account(address, sections):
+    """Creates a K account cell from a Mandos account description. """
+    address_value = mandos_argument_to_kbytes(address)
+    nonce_value   = mandos_int_to_kint(sections['nonce'])
+    balance_value = mandos_int_to_kint(sections['balance'])
+    if 'code' in sections:
+        code_value = KWasmString(sections['code'])
+    else:
+        code_value = KApply(".Code", [])
+
+    storage_pairs = [ (mandos_argument_to_kbytes(k), mandos_argument_to_kbytes(v)) for (k, v) in sections['storage'].items() ]
+    storage_value = KMap(storage_pairs)
+
+    set_account_step  = KApply('setAccount', [address_value, nonce_value, balance_value, code_value, storage_value])
+    return set_account_step
+
 def mandos_to_deploy_tx(tx, filename):
-    sender = KWasmString(tx['from'])
-    value = mandos_int_to_int(tx['value'])
+    sender = mandos_argument_to_kbytes(tx['from'])
+    value = mandos_int_to_kint(tx['value'])
     arguments = mandos_arguments_to_arguments(tx['arguments']) #TODO
-    gasLimit = mandos_int_to_int(tx['gasLimit'])
-    gasPrice = mandos_int_to_int(tx['gasPrice'])
+    gasLimit = mandos_int_to_kint(tx['gasLimit'])
+    gasPrice = mandos_int_to_kint(tx['gasPrice'])
 
     code = get_contract_code(tx['contractCode'], filename)
     module = file_to_module_decl(code)
@@ -147,28 +157,28 @@ def mandos_to_deploy_tx(tx, filename):
     return deployTx
 
 def mandos_to_call_tx(tx, filename):
-    sender = KWasmString(tx['from'])
-    to = KWasmString(tx['to'])
-    value = mandos_int_to_int(tx['value'])
+    sender = mandos_argument_to_kbytes(tx['from'])
+    to = mandos_argument_to_kbytes(tx['to'])
+    value = mandos_int_to_kint(tx['value'])
     function = KWasmString(tx['function'])
     arguments = mandos_arguments_to_arguments(tx['arguments']) #TODO
-    gasLimit = mandos_int_to_int(tx['gasLimit'])
-    gasPrice = mandos_int_to_int(tx['gasPrice'])
+    gasLimit = mandos_int_to_kint(tx['gasLimit'])
+    gasPrice = mandos_int_to_kint(tx['gasPrice'])
 
     callTx = KApply('callTx', [sender, to, value, function, arguments, gasLimit, gasPrice])
     return callTx
 
 def mandos_to_transfer_tx(tx):
-    sender = KWasmString(tx['from'])
-    to = KWasmString(tx['to'])
-    value = mandos_int_to_int(tx['value'])
+    sender = mandos_argument_to_kbytes(tx['from'])
+    to = mandos_argument_to_kbytes(tx['to'])
+    value = mandos_int_to_kint(tx['value'])
 
     transferTx = KApply('transferTx', [sender, to, value])
     return transferTx
 
 def mandos_to_validator_reward_tx(tx):
-    to = KWasmString(tx['to'])
-    value = mandos_int_to_int(tx['value'])
+    to = mandos_argument_to_kbytes(tx['to'])
+    value = mandos_int_to_kint(tx['value'])
 
     rewardTx = KApply('validatorRewardTx', [to, value])
     return rewardTx
@@ -180,13 +190,13 @@ def mandos_to_expect(expect):
 def mandos_to_block_info(block_info):
     block_infos = []
     if 'blockTimestamp' in block_info:
-        block_infos += [KApply('blockTimestamp', [mandos_int_to_int(block_info['blockTimestamp'])])]
+        block_infos += [KApply('blockTimestamp', [mandos_int_to_kint(block_info['blockTimestamp'])])]
     if 'blockNonce' in block_info:
-        block_infos += [KApply('blockNonce', [mandos_int_to_int(block_info['blockNonce'])])]
+        block_infos += [KApply('blockNonce', [mandos_int_to_kint(block_info['blockNonce'])])]
     if 'blockRound' in block_info:
-        block_infos += [KApply('blockRound', [mandos_int_to_int(block_info['blockRound'])])]
+        block_infos += [KApply('blockRound', [mandos_int_to_kint(block_info['blockRound'])])]
     if 'blockEpoch' in block_info:
-        block_infos += [KApply('blockEpoch', [mandos_int_to_int(block_info['blockEpoch'])])]
+        block_infos += [KApply('blockEpoch', [mandos_int_to_kint(block_info['blockEpoch'])])]
     return block_infos
 
 def register(with_name : str):
@@ -262,9 +272,9 @@ def get_steps_new_addresses(new_addresses):
             return []
         ret = []
         for new_address in new_addresses:
-            creator = KWasmString(new_address['creatorAddress'])
-            nonce   = mandos_int_to_int(new_address['creatorNonce'])
-            new     = KWasmString(new_address['newAddress'])
+            creator = mandos_argument_to_kbytes(new_address['creatorAddress'])
+            nonce   = mandos_int_to_kint(new_address['creatorNonce'])
+            new     = mandos_argument_to_kbytes(new_address['newAddress'])
             ret.append(KApply('newAddress', [creator, nonce, new]))
         return ret
 

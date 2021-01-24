@@ -137,6 +137,7 @@ module ELROND-NODE
           <returnData> .Bytes </returnData>
           <returnStatus> .ReturnStatus </returnStatus>
         </callState>
+        <activeAccounts> .Set </activeAccounts>
         <accounts>
           <account multiplicity="*" type="Map">
              <address> .Bytes </address>
@@ -653,6 +654,7 @@ module MANDOS
       <mandos>
         <k> $PGM:Steps </k>
         <newAddresses> .Map </newAddresses>
+        <checkedAccounts> .Set </checkedAccounts>
         <elrond/>
         <exit-code exit=""> 0 </exit-code>
       </mandos>
@@ -735,6 +737,70 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // ---------------------------------------------------------------------
 ```
 
+### Check State
+```k
+    syntax Step ::= checkAccountNonce    ( Address, Int ) [klabel(checkAccountNonce), symbol]
+                  | checkAccountNonceAux ( Bytes, Int )   [klabel(checkAccountNonceAux), symbol]
+ // --------------------------------------------------------------------------------------------
+    rule <k> checkAccountNonce(ADDRESS, NONCE)
+             => checkAccountNonceAux(#address2Bytes(ADDRESS), NONCE) ... </k>
+
+    rule <k> checkAccountNonceAux(ADDR, NONCE) => . ... </k>
+         <account>
+           <address> ADDR </address>
+           <nonce> NONCE </nonce>
+           ...
+         </account>
+
+    syntax Step ::= checkAccountBalance    ( Address, Int ) [klabel(checkAccountBalance), symbol]
+                  | checkAccountBalanceAux ( Bytes, Int )   [klabel(checkAccountBalanceAux), symbol]
+ // ------------------------------------------------------------------------------------------------
+    rule <k> checkAccountBalance(ADDRESS, BALANCE)
+             => checkAccountBalanceAux(#address2Bytes(ADDRESS), BALANCE) ... </k>
+
+    rule <k> checkAccountBalanceAux(ADDR, BALANCE) => . ... </k>
+         <account>
+           <address> ADDR </address>
+           <balance> BALANCE </balance>
+           ...
+         </account>
+
+    syntax Step ::= checkAccountStorage    ( Address, Map ) [klabel(checkAccountStorage), symbol]
+                  | checkAccountStorageAux ( Bytes, Map )   [klabel(checkAccountStorageAux), symbol]
+ // ------------------------------------------------------------------------------------------------
+    rule <k> checkAccountStorage(ADDRESS, STORAGE)
+             => checkAccountStorageAux(#address2Bytes(ADDRESS), STORAGE) ... </k>
+
+    rule <k> checkAccountStorageAux(ADDR, STORAGE) => . ... </k>
+         <account>
+           <address> ADDR </address>
+           <storage> ADDRSTORAGE </storage>
+           ...
+         </account>
+      requires ADDRSTORAGE ==K STORAGE
+
+    syntax Step ::= checkedAccount    ( Address ) [klabel(checkedAccount), symbol]
+                  | checkedAccountAux ( Bytes )   [klabel(checkedAccountAux), symbol]
+ // ---------------------------------------------------------------------------------
+    rule <k> checkedAccount(ADDRESS)
+             => checkedAccountAux(#address2Bytes(ADDRESS)) ... </k>
+
+    rule <k> checkedAccountAux(ADDR) => . ... </k>
+         <checkedAccounts> ... (.Set => SetItem(ADDR)) ... </checkedAccounts>
+
+    syntax Step ::= "checkNoAdditionalAccounts" [klabel(checkNoAdditionalAccounts), symbol]
+ // ---------------------------------------------------------------------------------------
+    rule <k> checkNoAdditionalAccounts => . ... </k>
+         <checkedAccounts> CHECKEDACCTS </checkedAccounts>
+         <activeAccounts> ACTIVEACCTS </activeAccounts>
+      requires CHECKEDACCTS ==K ACTIVEACCTS
+
+    syntax Step ::= "clearCheckedAccounts" [klabel(clearCheckedAccounts), symbol]
+ // -----------------------------------------------------------------------------
+    rule <k> clearCheckedAccounts => . ... </k>
+         <checkedAccounts> _ => .Set </checkedAccounts>
+```
+
 ### Contract Interactions
 
 ```k
@@ -761,6 +827,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <account>
             <address> FROM </address>
             <nonce> NONCE => NONCE +Int 1 </nonce>
+            <balance> BALANCE => BALANCE -Int GASLIMIT *Int GASPRICE </balance>
             ...
          </account>
          <nextModuleIdx> NEXTIDX </nextModuleIdx>
@@ -782,6 +849,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <account>
             <address> FROM </address>
             <nonce> NONCE => NONCE +Int 1 </nonce>
+            <balance> BALANCE => BALANCE -Int GASLIMIT *Int GASPRICE </balance>
             ...
          </account>
          <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
@@ -789,9 +857,6 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     syntax Expect ::= ".Expect" [klabel(.Expect), symbol]
  // -------------------------------------------------------
     rule <k> .Expect => . ... </k>
-
-    syntax Step ::= checkState() [klabel(checkState), symbol]
- // ---------------------------------------------------------
 
     syntax Step ::= transfer(TransferTx) [klabel(transfer), symbol]
  // -----------------------------------------------------

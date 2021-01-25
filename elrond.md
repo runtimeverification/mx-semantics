@@ -52,6 +52,7 @@ It is treated purely as a key set -- the actual stored values are not used or st
          </instrs>
          <moduleRegistry> MR </moduleRegistry>
       requires autoAllocModules(MD, MR) =/=K .Stmts
+      [priority(10)]
 
     syntax Instr ::= hostCall(String, String, FuncType)
  // ---------------------------------------------------

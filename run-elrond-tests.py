@@ -127,15 +127,16 @@ def mandos_arguments_to_arguments(arguments):
     tokenized = list(map(lambda x: mandos_argument_to_kargs(x), arguments))
     return KList(tokenized)
 
-def mandos_to_set_account(address, sections):
+def mandos_to_set_account(address, sections, filename):
     """Creates a K account cell from a Mandos account description. """
     address_value = mandos_argument_to_kbytes(address)
     nonce_value   = mandos_int_to_kint(sections['nonce'])
     balance_value = mandos_int_to_kint(sections['balance'])
+    code_value = KApply(".Code", [])
     if 'code' in sections:
-        code_value = KWasmString(sections['code'])
-    else:
-        code_value = KApply(".Code", [])
+        code_path = get_contract_code(sections['code'], filename)
+        if code_path is not None:
+            code_value = file_to_module_decl(code)
 
     storage_pairs = [ (mandos_argument_to_kbytes(k), mandos_argument_to_kbytes(v)) for (k, v) in sections['storage'].items() ]
     storage_value = KMap(storage_pairs)
@@ -281,16 +282,7 @@ def get_steps_new_addresses(new_addresses):
 def get_steps_set_state(step, filename):
     k_steps = []
     if 'accounts' in step:
-        set_accounts = [ mandos_to_set_account(address, sections) for (address, sections) in step['accounts'].items()]
-        # Get paths of Wasm code, relative to the test location.
-        # TODO: Read the files, convert to text, parse, declare them and register them (with address as key)
-        contracts_files = [ (addr, get_contract_code(sects['code'], filename)) for (addr, sects) in step['accounts'].items() if 'code' in sects ]
-        contracts_files = [ (addr, code) for (addr, code) in contracts_files if code is not None ]
-        # First declare module, then register it
-        contract_module_decls = [ [file_to_module_decl(f), register(a) ] for (a, f) in contracts_files ]
-        # Flatten:
-        contract_setups = [ step for pair in contract_module_decls for step in pair ]
-        k_steps = k_steps + contract_setups
+        set_accounts = [ mandos_to_set_account(address, sections, filename) for (address, sections) in step['accounts'].items()]
         k_steps = k_steps + set_accounts
     if 'newAddresses' in step:
         new_addresses = get_steps_new_addresses(step['newAddresses'])

@@ -144,7 +144,7 @@ def mandos_to_set_account(address, sections, filename):
     set_account_step  = KApply('setAccount', [address_value, nonce_value, balance_value, code_value, storage_value])
     return set_account_step
 
-def mandos_to_check_account(address, sections):
+def mandos_to_check_account(address, sections, filename):
     k_steps = []
     address_value = mandos_argument_to_kbytes(address)
     if ('nonce' in sections) and (sections['nonce'] != '*'):
@@ -162,8 +162,11 @@ def mandos_to_check_account(address, sections):
         storage_value = KMap(storage_pairs)
         k_steps.append(KApply('checkAccountStorage', [address_value, storage_value]))
     if ('code' in sections) and (sections['code'] != '*'):
-        #TODO
-        pass
+        code_path = get_contract_code(sections['code'], filename)
+        if code_path is None:
+            code_path = ""
+        code_path = KString(code_path)
+        k_steps.append(KApply('checkAccountCode', [address_value, code_path]))
 
     k_steps.append(KApply('checkedAccount', [address_value]))
     return k_steps
@@ -326,7 +329,7 @@ def get_steps_check_state(step, filename):
     if 'accounts' in step:
         for (address, sections) in step['accounts'].items():
             if address != '+':
-                k_steps += mandos_to_check_account(address, sections)
+                k_steps += mandos_to_check_account(address, sections, filename)
         if not '+' in step['accounts'].keys():
             k_steps.append(KApply('checkNoAdditionalAccounts', []))
         k_steps.append(KApply('clearCheckedAccounts', []))

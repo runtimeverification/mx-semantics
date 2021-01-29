@@ -585,6 +585,7 @@ The (incorrect) default implementation of a host call is to just return zero val
     syntax CreateAccount ::= createAccount ( Bytes ) [klabel(createAccount), symbol]
  // --------------------------------------------------------------------------------
     rule <commands> createAccount(ADDR) => . ... </commands>
+         <activeAccounts> ... (.Set => SetItem(ADDR)) ... </activeAccounts>
          <accounts>
            ( .Bag
           => <account>
@@ -774,10 +775,38 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkAccountStorageAux(ADDR, STORAGE) => . ... </k>
          <account>
            <address> ADDR </address>
-           <storage> ADDRSTORAGE </storage>
+           <storage> STORAGE </storage>
            ...
          </account>
-      requires ADDRSTORAGE ==K STORAGE
+
+    syntax Step ::= checkAccountCode    ( Address, String ) [klabel(checkAccountCode), symbol]
+                  | checkAccountCodeAux ( Bytes, String )   [klabel(checkAccountCodeAux), symbol]
+ // ---------------------------------------------------------------------------------------------
+    rule <k> checkAccountCode(ADDRESS, CODEPATH)
+             => checkAccountCodeAux(#address2Bytes(ADDRESS), CODEPATH) ... </k>
+
+    rule <k> checkAccountCodeAux(ADDR, "") => . ... </k>
+         <account>
+           <address> ADDR </address>
+           <codeIdx> .CodeIndex </codeIdx>
+           ...
+         </account>
+
+    rule <k> checkAccountCodeAux(ADDR, CODEPATH) => . ... </k>
+         <account>
+           <address> ADDR </address>
+           <codeIdx> CODEINDEX </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> CODEINDEX </modIdx>
+           <moduleMetadata>
+             <moduleFileName> CODEPATH </moduleFileName>
+             ...
+           </moduleMetadata>
+           ...
+         </moduleInst>
+       requires CODEPATH =/=String ""
 
     syntax Step ::= checkedAccount    ( Address ) [klabel(checkedAccount), symbol]
                   | checkedAccountAux ( Bytes )   [klabel(checkedAccountAux), symbol]
@@ -792,8 +821,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // ---------------------------------------------------------------------------------------
     rule <k> checkNoAdditionalAccounts => . ... </k>
          <checkedAccounts> CHECKEDACCTS </checkedAccounts>
-         <activeAccounts> ACTIVEACCTS </activeAccounts>
-      requires CHECKEDACCTS ==K ACTIVEACCTS
+         <activeAccounts> CHECKEDACCTS </activeAccounts>
 
     syntax Step ::= "clearCheckedAccounts" [klabel(clearCheckedAccounts), symbol]
  // -----------------------------------------------------------------------------

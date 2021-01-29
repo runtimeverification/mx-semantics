@@ -144,12 +144,11 @@ module ELROND-NODE
              <balance> 0 </balance>
 ```
 
-If the code is "", it means the account is not a contract.
-If the code is "file:<some_path>", then it is a contract, and the corresponding Wasm module is stored in the module registry, with the account's name as key.
-If the code is an index, it is the exact module index from the Wasm store which specifies the contract.
+If the codeIdx is ".CodeIndex", it means the account is not a contract.
+If the codeIdx is an integer, it is the exact module index from the Wasm store which specifies the contract.
 
 ```k
-             <code> .Code </code>
+             <codeIdx> .CodeIndex </codeIdx>
 ```
 Storage maps byte arrays to byte arrays.
 
@@ -164,15 +163,20 @@ Storage maps byte arrays to byte arrays.
  // --------------------------------
 
     syntax Address ::= Bytes
-		     | WasmStringToken
+                     | WasmStringToken
     syntax Bytes ::= #address2Bytes ( Address ) [function, functional]
  // ------------------------------------------------------------------
     rule #address2Bytes(ADDR:WasmStringToken) => String2Bytes(#parseWasmString(ADDR))
     rule #address2Bytes(ADDR:Bytes) => ADDR
 
+    syntax CodeIndex ::= ".CodeIndex" [klabel(.CodeIndex), symbol]
+                       | Int
+ // ----------------------------------------------------------
+
     syntax Code ::= ".Code" [klabel(.Code), symbol]
-                  | WasmString | Int
- // --------------------------------
+                  | ModuleDecl
+                  | Int
+ // ----------------------------------------------
 ```
 
 The value is an unsigned integer representation of the bytes.
@@ -264,7 +268,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
          <returnStatus> _ => Finish </returnStatus>
          <account>
            <address> CALLEE </address>
-           <code> MODIDX:Int </code>
+           <codeIdx> MODIDX:Int </codeIdx>
            ...
          </account>
          <moduleInst>
@@ -322,7 +326,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
-           <code> MODIDX:Int </code>
+           <codeIdx> MODIDX:Int </codeIdx>
            ...
          </account>
          <moduleInst>
@@ -343,7 +347,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
-           <code> MODIDX:Int </code>
+           <codeIdx> MODIDX:Int </codeIdx>
            ...
          </account>
          <moduleInst>
@@ -418,7 +422,7 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
-           <code> MODIDX:Int </code>
+           <codeIdx> MODIDX:Int </codeIdx>
            ...
          </account>
          <moduleInst>
@@ -441,7 +445,7 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
-           <code> MODIDX:Int </code>
+           <codeIdx> MODIDX:Int </codeIdx>
            ...
          </account>
          <moduleInst>
@@ -576,31 +580,39 @@ The (incorrect) default implementation of a host call is to just return zero val
 
 ### Managing Accounts
 
-Initialize account: if the address is already present with some value, add value to it, otherwise create the account.
-
 ```k
-    syntax InitAccount ::= initAccount ( Bytes , Code )
- // ---------------------------------------------------
-    rule <commands> initAccount(ADDR, CODE) => . ... </commands>
-         <account>
-           <address> ADDR </address>
-           <code> .Code => CODE </code>
-           ...
-         </account>
-         <logging> S => S +String " -- initAccount existing " +String Bytes2String(ADDR) </logging>
-
-    rule <commands> initAccount(ADDR, CODE) => . ... </commands>
+    syntax CreateAccount ::= createAccount ( Bytes ) [klabel(createAccount), symbol]
+ // --------------------------------------------------------------------------------
+    rule <commands> createAccount(ADDR) => . ... </commands>
          <accounts>
            ( .Bag
           => <account>
                <address> ADDR </address>
-               <code> CODE </code>
                ...
              </account>
            )
            ...
          </accounts>
          <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
+
+    syntax ElrondCommand ::= setAccountFields    ( Bytes, Int, Int, CodeIndex, Map )
+                           | setAccountCodeIndex ( Bytes, CodeIndex )
+ // --------------------------------------------------------------------------------
+    rule <commands> setAccountFields(ADDR, NONCE, BALANCE, CODEIDX, STORAGE) => . ... </commands>
+         <account>
+           <address> ADDR </address>
+           <nonce> _ => NONCE </nonce>
+           <balance> _ => BALANCE </balance>
+           <codeIdx> _ => CODEIDX </codeIdx>
+           <storage> _ => STORAGE </storage>
+         </account>
+
+     rule <commands> setAccountCodeIndex(ADDR, CODEIDX) => . ... </commands>
+          <account>
+            <address> ADDR </address>
+            <codeIdx> _ => CODEIDX </codeIdx>
+            ...
+          </account>
 
     syntax CallContract ::= callContract ( Bytes, Bytes, Int,     String, List, Int, Int ) [klabel(callContractString)]
                           | callContract ( Bytes, Bytes, Int, WasmString, List, Int, Int ) [klabel(callContractWasmString)]
@@ -615,7 +627,7 @@ Initialize account: if the address is already present with some value, add value
          <bigIntHeap> _ => .Map </bigIntHeap>
          <account>
            <address> TO </address>
-           <code> CODE:Int </code>
+           <codeIdx> CODE:Int </codeIdx>
            ...
          </account>
          <moduleInst>
@@ -687,29 +699,26 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ```k
     syntax Step ::= setAccount    ( address: Address, nonce: Int, balance: Int, code: Code, storage: Map )  [klabel(setAccount), symbol]
                   | setAccountAux ( address: Bytes, nonce: Int, balance: Int, code: Code, storage: Map )    [klabel(setAccountAux), symbol]
- // ---------------------------------------------------------------------------------------------------------------------------------------
+                  | createAndSetAccount ( Bytes, Int, Int, CodeIndex, Map)                                  [klabel(createAndSetAccount), symbol]
+ // ---------------------------------------------------------------------------------------------------------------------------------------------
     rule <k> setAccount(ADDRESS, NONCE, BALANCE, CODE, STORAGE)
-             => setAccountAux(#address2Bytes(ADDRESS), NONCE, BALANCE, CODE, STORAGE) ... </k>
+          => setAccountAux(#address2Bytes(ADDRESS), NONCE, BALANCE, CODE, STORAGE) ... </k>
 
-    rule <k> setAccountAux(ADDRESS, NONCE, BALANCE, CODE, STORAGE) => . ... </k>
-         <accounts>
-           ( .Bag
-          => <account>
-               <address> ADDRESS </address>
-               <nonce> NONCE </nonce>
-               <balance> BALANCE </balance>
-               <code> CODE </code>
-               <storage> STORAGE </storage>
-             </account>
-           )
-           ...
-         </accounts>
+    rule <k> setAccountAux(ADDRESS, NONCE, BALANCE, .Code, STORAGE)
+          => createAndSetAccount(ADDRESS, NONCE, BALANCE, .CodeIndex, STORAGE) ... </k>
+
+    rule <k> setAccountAux(ADDRESS, NONCE, BALANCE, MODULE:ModuleDecl, STORAGE)
+          => MODULE ~> createAndSetAccount(ADDRESS, NONCE, BALANCE, NEXTIDX, STORAGE) ... </k>
+         <nextModuleIdx> NEXTIDX </nextModuleIdx>
+
+    rule <k> createAndSetAccount(ADDRESS, NONCE, BALANCE, CODEIDX, STORAGE) => #wait ... </k>
+         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, CODEIDX, STORAGE) </commands>
 
     syntax Step ::= newAddress    ( Address, Int, Address ) [klabel(newAddress), symbol]
                   | newAddressAux ( Bytes, Int, Bytes )     [klabel(newAddressAux), symbol]
  // ---------------------------------------------------------------------------------------
     rule <k> newAddress(CREATOR, NONCE, NEW)
-             => newAddressAux(#address2Bytes(CREATOR), NONCE, #address2Bytes(NEW)) ... </k>
+          => newAddressAux(#address2Bytes(CREATOR), NONCE, #address2Bytes(NEW)) ... </k>
 
     rule <k> newAddressAux(CREATOR, NONCE, NEW) => . ... </k>
          <newAddresses> NEWADDRESSES => NEWADDRESSES [tuple(CREATOR, NONCE) <- NEW] </newAddresses>
@@ -737,14 +746,18 @@ Only take the next step once both the Elrond node and Wasm are done executing.
                       | deployTxAux ( Bytes, Int, ModuleDecl, List, Int, Int )   [klabel(deployTxAux), symbol]
  // ----------------------------------------------------------------------------------------------------------
     rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE)
-	     => deployTxAux(#address2Bytes(FROM), VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) ... </k>
+          => deployTxAux(#address2Bytes(FROM), VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) ... </k>
 
-    rule <k> deployTxAux(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) => MODULE ~> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) ... </k>
+    rule <k> deployTxAux(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE)
+          => MODULE ~> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) ... </k>
 
     syntax Deployment ::= deployLastModule( Bytes, Int, List, Int, Int )
  // ----------------------------------------------------------------------
     rule <k> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
-         <commands> . => initAccount(NEWADDR, NEXTIDX -Int 1) ~> callContract(FROM, NEWADDR, VALUE, "init", ARGS, GASLIMIT, GASPRICE) </commands>
+         <commands> . => createAccount(NEWADDR)
+                 ~> setAccountCodeIndex(NEWADDR, NEXTIDX -Int 1)
+                 ~> callContract(FROM, NEWADDR, VALUE, "init", ARGS, GASLIMIT, GASPRICE)
+         </commands>
          <account>
             <address> FROM </address>
             <nonce> NONCE => NONCE +Int 1 </nonce>
@@ -762,7 +775,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
                     | callTxAux (from: Bytes,   to: Bytes,   value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
  // ------------------------------------------------------------------------------------------------------------------------------------------------------------
     rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE)
-             => callTxAux(#address2Bytes(FROM), #address2Bytes(TO), VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) ... </k>
+          => callTxAux(#address2Bytes(FROM), #address2Bytes(TO), VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) ... </k>
 
     rule <k> callTxAux(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => callContract(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>

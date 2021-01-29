@@ -1,6 +1,6 @@
 setExitCode 1
 
-setAccount("testDeployer", 0, 0, "", .Map)
+setAccount("testDeployer", 0, 0, .Code, .Map)
 newAddress("testDeployer", 0, "testContract")
 
 scDeploy(
@@ -17,7 +17,7 @@ scDeploy(
     , .Expect
 )
 
-setAccount("testCaller", 0, 0, "", .Map)
+setAccount("testCaller", 0, 0, .Code, .Map)
 scCall(
   callTx(
       "testCaller"

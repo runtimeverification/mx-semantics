@@ -144,6 +144,33 @@ def mandos_to_set_account(address, sections, filename):
     set_account_step  = KApply('setAccount', [address_value, nonce_value, balance_value, code_value, storage_value])
     return set_account_step
 
+def mandos_to_check_account(address, sections, filename):
+    k_steps = []
+    address_value = mandos_argument_to_kbytes(address)
+    if ('nonce' in sections) and (sections['nonce'] != '*'):
+        nonce_value = mandos_int_to_kint(sections['nonce'])
+        k_steps.append(KApply('checkAccountNonce', [address_value, nonce_value]))
+    if ('balance' in sections) and (sections['balance'] != '*'):
+        balance_value = mandos_int_to_kint(sections['balance'])
+        k_steps.append(KApply('checkAccountBalance', [address_value, balance_value]))
+    if ('storage' in sections) and (sections['storage'] != '*'):
+        storage_pairs = []
+        for (k, v) in sections['storage'].items():
+            k_bytes = mandos_argument_to_kbytes(k)
+            v_bytes = mandos_argument_to_kbytes(v)
+            storage_pairs.append((k_bytes, v_bytes))
+        storage_value = KMap(storage_pairs)
+        k_steps.append(KApply('checkAccountStorage', [address_value, storage_value]))
+    if ('code' in sections) and (sections['code'] != '*'):
+        code_path = get_contract_code(sections['code'], filename)
+        if code_path is None:
+            code_path = ""
+        code_path = KString(code_path)
+        k_steps.append(KApply('checkAccountCode', [address_value, code_path]))
+
+    k_steps.append(KApply('checkedAccount', [address_value]))
+    return k_steps
+
 def mandos_to_deploy_tx(tx, filename):
     sender = mandos_argument_to_kbytes(tx['from'])
     value = mandos_int_to_kint(tx['value'])
@@ -232,7 +259,6 @@ def wat_file_to_module_decl(filename : str):
         raise e
     return wasm_file_to_module_decl(new_filename)
 
-
 def get_external_file_path(test_file, rel_path_to_new_file):
     test_file_path = os.path.dirname(test_file)
     ext_file = os.path.normpath(os.path.join(test_file_path, rel_path_to_new_file))
@@ -244,11 +270,6 @@ def get_contract_code(code, filename):
     if code == '':
         return None
     raise Exception('Currently only support getting code from file, or empty code.')
-
-def get_steps_sc_call(step, filename):
-    tx = mandos_to_deploy_tx(step['tx'])
-    expect = mandos_to_expect(step['expect'])
-    return [KApply('scCall', [tx, expect])]
 
 def get_steps_sc_deploy(step, filename):
     tx = mandos_to_deploy_tx(step['tx'], filename)
@@ -269,15 +290,15 @@ def get_steps_validator_reward(step):
     return [KApply('validatorReward', [tx])]
 
 def get_steps_new_addresses(new_addresses):
-        if new_addresses is None:
-            return []
-        ret = []
-        for new_address in new_addresses:
-            creator = mandos_argument_to_kbytes(new_address['creatorAddress'])
-            nonce   = mandos_int_to_kint(new_address['creatorNonce'])
-            new     = mandos_argument_to_kbytes(new_address['newAddress'])
-            ret.append(KApply('newAddress', [creator, nonce, new]))
-        return ret
+    if new_addresses is None:
+        return []
+    ret = []
+    for new_address in new_addresses:
+        creator = mandos_argument_to_kbytes(new_address['creatorAddress'])
+        nonce   = mandos_int_to_kint(new_address['creatorNonce'])
+        new     = mandos_argument_to_kbytes(new_address['newAddress'])
+        ret.append(KApply('newAddress', [creator, nonce, new]))
+    return ret
 
 def get_steps_set_state(step, filename):
     k_steps = []
@@ -303,6 +324,17 @@ def get_steps_set_state(step, filename):
         raise Exception('Step not implemented: %s' % step)
     return k_steps
 
+def get_steps_check_state(step, filename):
+    k_steps = []
+    if 'accounts' in step:
+        for (address, sections) in step['accounts'].items():
+            if address != '+':
+                k_steps += mandos_to_check_account(address, sections, filename)
+        if not '+' in step['accounts'].keys():
+            k_steps.append(KApply('checkNoAdditionalAccounts', []))
+        k_steps.append(KApply('clearCheckedAccounts', []))
+    return k_steps
+
 def get_steps_as_kseq(filename):
     with open(filename, 'r') as f:
         mandos_test = json.loads(f.read())
@@ -320,8 +352,7 @@ def get_steps_as_kseq(filename):
         elif step['step'] == 'scCall':
             k_steps.append((step['step'], get_steps_sc_call(step, filename)))
         elif step['step'] == 'checkState':
-            # TODO Skipping for now, not important for coverage.
-            pass
+            k_steps.append((step['step'], get_steps_check_state(step, filename)))
         elif step['step'] == 'externalSteps':
             steps_file = get_external_file_path(filename, step['path'])
             print('Load external: %s' % steps_file)

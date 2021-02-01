@@ -26,6 +26,7 @@ else
 endif
 K_BIN := $(K_RELEASE)/bin
 K_LIB := $(K_RELEASE)/lib/kframework
+export K_OPTS ?= -Xmx16G -Xss512m
 export K_RELEASE
 
 PYTHONPATH := $(K_LIB):$(KWASM_BINARY_PARSER):$(PYTHONPATH)
@@ -33,7 +34,6 @@ export PYTHONPATH
 
 KWASM_DIR  := .
 KWASM_MAKE := make --directory $(KWASM_SUBMODULE) BUILD_DIR=../../$(BUILD_DIR) RELEASE=$(RELEASE)
-export K_OPTS ?= -Xmx16G -Xss512m
 export KWASM_DIR
 
 all: build

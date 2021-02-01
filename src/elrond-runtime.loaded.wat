@@ -5,6 +5,9 @@
   <newAddresses>
     .Map
   </newAddresses>
+  <checkedAccounts>
+    .Set
+  </checkedAccounts>
   <elrond>
     <wasmCoverage>
       <coveredFuncs>
@@ -95,6 +98,9 @@
           .ReturnStatus
         </returnStatus>
       </callState>
+      <activeAccounts>
+        .Set
+      </activeAccounts>
       <accounts>
         .AccountCellMap
       </accounts>

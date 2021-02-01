@@ -21,7 +21,7 @@ def KString(value):
 def KWasmString(value):
     return KToken('"%s"' % value, 'WasmStringToken')
 
-def KInt(value : int):
+def KInt(value: int):
     return KToken(str(value), 'Int')
 
 def KBytes(value: bytes):
@@ -66,22 +66,14 @@ WASM_symbols_llvm_no_coverage = pyk.buildSymbolTable(WASM_definition_llvm_no_cov
 sys.setrecursionlimit(1500000000)
 resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
-testArgs = argparse.ArgumentParser(description='')
-testArgs.add_argument('files', metavar='N', type=str, nargs='+', help='')
-testArgs.add_argument('--coverage', action='store_true', help='Display test coverage data.')
-testArgs.add_argument('--log-level', choices=['none', 'per-file', 'per-step'], default='per-file')
-args = testArgs.parse_args()
-
-tests = args.files
-
-def mandos_int_to_kint(mandos_int : str):
+def mandos_int_to_kint(mandos_int: str):
     if mandos_int[0:2] == '0x':
         return KInt(int(mandos_int, 16))
     unseparated_int = mandos_int.replace(',', '')
     parsed_int = int(unseparated_int)
     return KInt(parsed_int)
 
-def mandos_argument_to_bytes(argument : str):
+def mandos_argument_to_bytes(argument: str):
     if '|' in argument:
         splits = argument.split('|')
         bs = bytes()
@@ -127,7 +119,7 @@ def mandos_arguments_to_arguments(arguments):
     tokenized = list(map(lambda x: mandos_argument_to_kargs(x), arguments))
     return KList(tokenized)
 
-def mandos_to_set_account(address, sections, filename):
+def mandos_to_set_account(address, sections, filename, output_dir):
     """Creates a K account cell from a Mandos account description. """
     address_value = mandos_argument_to_kbytes(address)
     nonce_value   = mandos_int_to_kint(sections['nonce'])
@@ -136,7 +128,7 @@ def mandos_to_set_account(address, sections, filename):
     if 'code' in sections:
         code_path = get_contract_code(sections['code'], filename)
         if code_path is not None:
-            code_value = file_to_module_decl(code)
+            code_value = file_to_module_decl(code, output_dir)
 
     storage_pairs = [ (mandos_argument_to_kbytes(k), mandos_argument_to_kbytes(v)) for (k, v) in sections['storage'].items() ]
     storage_value = KMap(storage_pairs)
@@ -171,7 +163,7 @@ def mandos_to_check_account(address, sections, filename):
     k_steps.append(KApply('checkedAccount', [address_value]))
     return k_steps
 
-def mandos_to_deploy_tx(tx, filename):
+def mandos_to_deploy_tx(tx, filename, output_dir):
     sender = mandos_argument_to_kbytes(tx['from'])
     value = mandos_int_to_kint(tx['value'])
     arguments = mandos_arguments_to_arguments(tx['arguments']) #TODO
@@ -179,7 +171,7 @@ def mandos_to_deploy_tx(tx, filename):
     gasPrice = mandos_int_to_kint(tx['gasPrice'])
 
     code = get_contract_code(tx['contractCode'], filename)
-    module = file_to_module_decl(code)
+    module = file_to_module_decl(code, output_dir)
 
     deployTx = KApply('deployTx', [sender, value, module, arguments, gasLimit, gasPrice])
     return deployTx
@@ -227,28 +219,29 @@ def mandos_to_block_info(block_info):
         block_infos += [KApply('blockEpoch', [mandos_int_to_kint(block_info['blockEpoch'])])]
     return block_infos
 
-def register(with_name : str):
+def register(with_name: str):
     return KApply('register', [KString(with_name)])
 
-def file_to_module_decl(filename : str):
+def file_to_module_decl(filename: str, output_dir):
     if filename[-5:] == '.wasm':
         return wasm_file_to_module_decl(filename)
     if filename[-5:] == '.wast' or filename[-4:] == '.wat':
-        return wat_file_to_module_decl(filename)
+        return wat_file_to_module_decl(filename, output_dir)
     raise ValueError('Filetype not yet supported: %s' % filename)
 
-def wasm_file_to_module_decl(filename : str):
+def wasm_file_to_module_decl(filename: str):
     # Check that file exists.
     with open(filename, 'rb') as f:
         module = wasm2kast.wasm2kast(f, filename)
         return module
 
-def wat_file_to_module_decl(filename : str):
-    with open(filename) as f:
-        pass
-    new_filename = os.path.join(tmpdir, os.path.basename(filename) + '.wasm')
+def wat_file_to_module_decl(filename: str, output_dir):
+    if not os.path.exists(filename):
+        raise Exception("file %s does not exist" % filename)
+        
+    new_wasm_filename = os.path.join(output_dir, os.path.basename(filename) + '.wasm')
     try:
-        wat = subprocess.check_output("wat2wasm %s --output=%s" % (filename, new_filename), shell=True)
+        wat = subprocess.check_output("wat2wasm %s --output=%s" % (filename, new_wasm_filename), shell=True)
     except subprocess.CalledProcessError as e:
         print("Failed: %s" % e.cmd)
         print("return code: %d" % e.returncode)
@@ -257,7 +250,7 @@ def wat_file_to_module_decl(filename : str):
         print("stderr:")
         print(e.stderr)
         raise e
-    return wasm_file_to_module_decl(new_filename)
+    return wasm_file_to_module_decl(new_wasm_filename)
 
 def get_external_file_path(test_file, rel_path_to_new_file):
     test_file_path = os.path.dirname(test_file)
@@ -271,8 +264,8 @@ def get_contract_code(code, filename):
         return None
     raise Exception('Currently only support getting code from file, or empty code.')
 
-def get_steps_sc_deploy(step, filename):
-    tx = mandos_to_deploy_tx(step['tx'], filename)
+def get_steps_sc_deploy(step, filename, output_dir):
+    tx = mandos_to_deploy_tx(step['tx'], filename, output_dir)
     expect = mandos_to_expect(step['expect'])
     return [KApply('scDeploy', [tx, expect])]
 
@@ -300,10 +293,10 @@ def get_steps_new_addresses(new_addresses):
         ret.append(KApply('newAddress', [creator, nonce, new]))
     return ret
 
-def get_steps_set_state(step, filename):
+def get_steps_set_state(step, filename, output_dir):
     k_steps = []
     if 'accounts' in step:
-        set_accounts = [ mandos_to_set_account(address, sections, filename) for (address, sections) in step['accounts'].items()]
+        set_accounts = [ mandos_to_set_account(address, sections, filename, output_dir) for (address, sections) in step['accounts'].items() ]
         k_steps = k_steps + set_accounts
     if 'newAddresses' in step:
         new_addresses = get_steps_new_addresses(step['newAddresses'])
@@ -335,7 +328,7 @@ def get_steps_check_state(step, filename):
         k_steps.append(KApply('clearCheckedAccounts', []))
     return k_steps
 
-def get_steps_as_kseq(filename):
+def get_steps_as_kseq(filename, output_dir):
     with open(filename, 'r') as f:
         mandos_test = json.loads(f.read())
     if 'name' in mandos_test:
@@ -346,9 +339,9 @@ def get_steps_as_kseq(filename):
     k_steps = []
     for step in mandos_test['steps']:
         if step['step'] == 'setState':
-            k_steps.append((step['step'], get_steps_set_state(step, filename)))
+            k_steps.append((step['step'], get_steps_set_state(step, filename, output_dir)))
         elif step['step'] == 'scDeploy':
-            k_steps.append((step['step'], get_steps_sc_deploy(step, filename)))
+            k_steps.append((step['step'], get_steps_sc_deploy(step, filename, output_dir)))
         elif step['step'] == 'scCall':
             k_steps.append((step['step'], get_steps_sc_call(step, filename)))
         elif step['step'] == 'checkState':
@@ -356,7 +349,7 @@ def get_steps_as_kseq(filename):
         elif step['step'] == 'externalSteps':
             steps_file = get_external_file_path(filename, step['path'])
             print('Load external: %s' % steps_file)
-            k_steps = k_steps + get_steps_as_kseq(steps_file)
+            k_steps = k_steps + get_steps_as_kseq(steps_file, output_dir)
         elif step['step'] == 'transfer':
             k_steps.append((step['step'], get_steps_transfer(step)))
         elif step['step'] == 'validatorReward':
@@ -365,17 +358,18 @@ def get_steps_as_kseq(filename):
             raise Exception('Step %s not implemented yet' % step['step'])
     return k_steps
 
-def run_test_file(wasm_config, filename, test_name):
-    k_steps = get_steps_as_kseq(filename)
+def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
+    test_name = os.path.basename(test_file_path)
+    k_steps = get_steps_as_kseq(test_file_path, output_dir)
+    final_config = None
 
-    if args.log_level == 'none' or args.log_level == 'per-file':
+    if cmd_args.log_level == 'none' or cmd_args.log_level == 'per-file':
         # Flatten the list of k_steps, just run them all in one go.
         k_steps = [ ('full', [ y for (_, x) in k_steps for y in x ]) ]
 
+    (symbolic_config, init_subst) = pyk.splitConfigFrom(template_wasm_config)
+
     for i in range(len(k_steps)):
-        (symbolic_config, init_subst) = pyk.splitConfigFrom(wasm_config)
-        k_cell = init_subst['K_CELL']
-        assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items.\nSee %s" % (k_cell['arity'], tmpdir)
         step_name, curr_step = k_steps[i]
         print('Executing step %s' % step_name)
         init_subst['K_CELL'] = KSequence(curr_step)
@@ -386,62 +380,81 @@ def run_test_file(wasm_config, filename, test_name):
         krun_args = [ '--term', '--debug']
 
         # Run: generate a new JSON as a temporary file, then read that as the new wasm state.
-        log_intermediate_state("%s_%d_%s.pre" % (test_name, i, step_name), init_config)
+        if cmd_args.log_level != 'none':
+            log_intermediate_state("%s_%d_%s.pre" % (test_name, i, step_name), init_config, output_dir)
         (rc, new_wasm_config, err) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
         if rc != 0:
             print('output:\n%s' % new_wasm_config, file=sys.stderr)
             print(pyk.prettyPrintKast(new_wasm_config, WASM_symbols_llvm_no_coverage))
             raise Exception("Received error while running: " + err )
 
-        log_intermediate_state("%s_%d_%s" % (test_name, i, step_name), new_wasm_config)
-        wasm_config = new_wasm_config
+        final_config = new_wasm_config
 
-    return wasm_config
+        if cmd_args.log_level != 'none':
+            log_intermediate_state("%s_%d_%s" % (test_name, i, step_name), new_wasm_config, output_dir)
+
+        # Check if the k cell is empty
+        (symbolic_config, init_subst) = pyk.splitConfigFrom(new_wasm_config)
+        k_cell = init_subst['K_CELL']
+        assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items.\nSee %s" % (k_cell['arity'], output_dir)
+
+    return final_config
 
 # ... Setup Elrond Wasm
 
-def log_intermediate_state(name, config):
-    if args.log_level == 'none':
-        return
-    with open('%s/%s' % (tmpdir, name), 'w') as f:
+def log_intermediate_state(name, config, output_dir):
+    with open('%s/%s' % (output_dir, name), 'w') as f:
         f.write(json.dumps(config_to_kast_term(config)))
-    with open('%s/%s.pretty.k' % (tmpdir, name), 'w') as f:
+    with open('%s/%s.pretty.k' % (output_dir, name), 'w') as f:
         pretty = pyk.prettyPrintKast(config, WASM_symbols_llvm_no_coverage)
         f.write(pretty)
 
 # Main Script
 
-per_test_coverage = []
+def run_tests():
+    testArgs = argparse.ArgumentParser(description='')
+    testArgs.add_argument('files', metavar='N', type=str, nargs='+', help='')
+    testArgs.add_argument('--coverage', action='store_true', help='Display test coverage data.')
+    testArgs.add_argument('--log-level', choices=['none', 'per-file', 'per-step'], default='per-file')
+    args = testArgs.parse_args()
+    tests = args.files
 
-for test in tests:
-    tmpdir = tempfile.mkdtemp(prefix="mandos_")
-    print("Intermediate test outputs stored in:\n%s" % tmpdir)
-    wasm_config = pyk.readKastTerm('src/elrond-runtime.loaded.json')
-    cells = pyk.splitConfigFrom(wasm_config)[1]
+    per_test_coverage = []
+
+    template_wasm_config = pyk.readKastTerm('src/elrond-runtime.loaded.json')
+    cells = pyk.splitConfigFrom(template_wasm_config)[1]
     assert cells['K_CELL']['arity'] == 0
 
-    initial_name = "0000_initial_config"
-    with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
-        f.write(json.dumps(config_to_kast_term(wasm_config)))
+    for test in tests:
+        print("Running test %s" % test)
+        tmpdir = tempfile.mkdtemp(prefix="mandos_")
+        print("Intermediate test outputs stored in:\n%s" % tmpdir)
 
-    test_name = os.path.basename(test)
-    wasm_config = run_test_file(wasm_config, test, test_name)
+        initial_name = "0000_initial_config"
+        with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
+            f.write(json.dumps(config_to_kast_term(template_wasm_config)))
+
+        result_wasm_config = run_test_file(template_wasm_config, test, tmpdir, args)
+
+        if args.coverage:
+            end_config = result_wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))
+            (covered, not_covered) = cov.get_coverage(end_config)
+            mods = cov.get_module_filename_map(result_wasm_config)
+            coverage = { 'cov' : covered , 'not_cov': not_covered, 'idx2file' : mods }
+            per_test_coverage.append(coverage)
+
+        print('See %s' % tmpdir)
+        print()
 
     if args.coverage:
-        end_config = wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))
-        (covered, not_covered) = cov.get_coverage(end_config)
-        mods = cov.get_module_filename_map(wasm_config)
-        coverage = { 'cov' : covered , 'not_cov': not_covered, 'idx2file' : mods }
-        per_test_coverage.append(coverage)
+        (_, not_cov) = cov.summarize_coverage(per_test_coverage, unnamed='import')
 
-    print()
-    print('See %s' % tmpdir)
+        print(not_cov)
+        text_modules = cov.insert_coverage_on_text_module(not_cov, imports_mod_name='import')
+        for module in text_modules:
+            for line in module.splitlines():
+                print(line.decode('utf8'))
 
-if args.coverage:
-    (_, not_cov) = cov.summarize_coverage(per_test_coverage, unnamed='import')
 
-    print(not_cov)
-    text_modules = cov.insert_coverage_on_text_module(not_cov, imports_mod_name='import')
-    for module in text_modules:
-        for line in module.splitlines():
-            print(line.decode('utf8'))
+if __name__ == "__main__":
+    run_tests()

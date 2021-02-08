@@ -487,7 +487,8 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
 
     syntax Bytes ::= #getBytesRange ( Bytes , Int , Int ) [function]
  // ----------------------------------------------------------------
-    rule #getBytesRange(BS, OFFSET, LENGTH) => substrBytes(BS, OFFSET, OFFSET +Int LENGTH)
+    rule #getBytesRange(BS, OFFSET, LENGTH) => substrBytes(padRightBytes(BS, OFFSET +Int LENGTH, 0), OFFSET, OFFSET +Int LENGTH)
+      requires OFFSET >=Int 0 andBool LENGTH >=Int 0 andBool OFFSET <Int lengthBytes(BS)
 
     syntax Bytes ::= #setBytesRange ( Bytes , Int , Bytes ) [function]
  // ------------------------------------------------------------------
@@ -565,6 +566,17 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <storage> STORAGE </storage>
            ...
          </account>
+      requires KEY in_keys(STORAGE)
+
+    rule <instrs> #storageLoad => i32.const 0 ... </instrs>
+         <bytesStack> KEY : STACK => .Bytes : STACK </bytesStack>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <storage> STORAGE </storage>
+           ...
+         </account>
+      requires notBool KEY in_keys(STORAGE)
 
     rule <instrs> #bytesToSetMem(OFFSET) => #setMem(BS, OFFSET) ... </instrs>
          <bytesStack> BS : STACK => STACK </bytesStack>

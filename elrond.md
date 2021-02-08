@@ -157,6 +157,18 @@ Storage maps byte arrays to byte arrays.
              <storage> .Map </storage>
            </account>
          </accounts>
+         <previousBlockInfo>
+           <prevBlockTimestamp> 0 </prevBlockTimestamp>
+           <prevBlockNonce>     0 </prevBlockNonce>
+           <prevBlockRound>     0 </prevBlockRound>
+           <prevBlockEpoch>     0 </prevBlockEpoch>
+         </previousBlockInfo>
+         <currentBlockInfo>
+           <curBlockTimestamp> 0 </curBlockTimestamp>
+           <curBlockNonce>     0 </curBlockNonce>
+           <curBlockRound>     0 </curBlockRound>
+           <curBlockEpoch>     0 </curBlockEpoch>
+         </currentBlockInfo>
        </node>
 
     syntax ReturnStatus ::= ".ReturnStatus"
@@ -580,6 +592,13 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule #StorageDeleted   () => 3
 ```
 
+#### Block Information
+
+```k
+    rule <instrs> hostCall("env", "getBlockTimestamp", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const TIMESTAMP ... </instrs>
+         <curBlockTimestamp> TIMESTAMP </curBlockTimestamp>
+```
+
 #### Other Host Calls
 
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.
@@ -739,13 +758,36 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     syntax AddressNonce ::= tuple( Bytes , Int )
  // ----------------------------------------------
 
-    syntax Step      ::= currentBlockInfo(BlockInfo)  [klabel( currentBlockInfo), symbol]
-                       | previousBlockInfo(BlockInfo) [klabel(previousBlockInfo), symbol]
-    syntax BlockInfo ::= blockTimestamp(Int) [klabel(blockTimestamp), symbol]
-                       | blockNonce(Int)     [klabel(blockNonce), symbol]
-                       | blockRound(Int)     [klabel(blockRound), symbol]
-                       | blockEpoch(Int)     [klabel(blockEpoch), symbol]
- // ---------------------------------------------------------------------
+    syntax Step      ::= setCurBlockInfo  ( BlockInfo ) [klabel(setCurBlockInfo), symbol]
+                       | setPrevBlockInfo ( BlockInfo ) [klabel(setPrevBlockInfo), symbol]
+    syntax BlockInfo ::= blockTimestamp ( Int ) [klabel(blockTimestamp), symbol]
+                       | blockNonce     ( Int ) [klabel(blockNonce), symbol]
+                       | blockRound     ( Int ) [klabel(blockRound), symbol]
+                       | blockEpoch     ( Int ) [klabel(blockEpoch), symbol]
+ // ------------------------------------------------------------------------
+    rule <k> setCurBlockInfo(blockTimestamp(TIMESTAMP)) => . ... </k>
+         <curBlockTimestamp> _ => TIMESTAMP </curBlockTimestamp>
+
+    rule <k> setCurBlockInfo(blockNonce(NONCE)) => . ... </k>
+         <curBlockNonce> _ => NONCE </curBlockNonce>
+
+    rule <k> setCurBlockInfo(blockRound(ROUND)) => . ... </k>
+         <curBlockRound> _ => ROUND </curBlockRound>
+
+    rule <k> setCurBlockInfo(blockEpoch(EPOCH)) => . ... </k>
+         <curBlockEpoch> _ => EPOCH </curBlockEpoch>
+
+    rule <k> setPrevBlockInfo(blockTimestamp(TIMESTAMP)) => . ... </k>
+         <prevBlockTimestamp> _ => TIMESTAMP </prevBlockTimestamp>
+
+    rule <k> setPrevBlockInfo(blockNonce(NONCE)) => . ... </k>
+         <prevBlockNonce> _ => NONCE </prevBlockNonce>
+
+    rule <k> setPrevBlockInfo(blockRound(ROUND)) => . ... </k>
+         <prevBlockRound> _ => ROUND </prevBlockRound>
+
+    rule <k> setPrevBlockInfo(blockEpoch(EPOCH)) => . ... </k>
+         <prevBlockEpoch> _ => EPOCH </prevBlockEpoch>
 ```
 
 ### Check State

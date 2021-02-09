@@ -134,8 +134,9 @@ module ELROND-NODE
           <caller> .Bytes </caller>
           <callee> .Bytes </callee>
           <callValue> 0 </callValue>
-          <returnData> .Bytes </returnData>
-          <returnStatus> .ReturnStatus </returnStatus>
+          <message> .Bytes </message>
+          <returnCode> .ReturnCode </returnCode>
+          <interimStates> .List </interimStates>
         </callState>
         <activeAccounts> .Set </activeAccounts>
         <accounts>
@@ -171,9 +172,13 @@ Storage maps byte arrays to byte arrays.
          </currentBlockInfo>
        </node>
 
-    syntax ReturnStatus ::= ".ReturnStatus"
-                          | "Finish"
- // --------------------------------
+    syntax ReturnCode ::= ".ReturnCode"
+                        | "OK"
+                        | ExceptionCode
+
+    syntax ExceptionCode ::= "OutOfFunds"
+                           | "UserError"
+ // ------------------------------------
 
     syntax Address ::= Bytes
                      | WasmStringToken
@@ -188,7 +193,6 @@ Storage maps byte arrays to byte arrays.
 
     syntax Code ::= ".Code" [klabel(.Code), symbol]
                   | ModuleDecl
-                  | Int
  // ----------------------------------------------
 ```
 
@@ -238,47 +242,52 @@ module ELROND
  // ---------------------------------------
     rule <instrs> #pushBytes(BS) => . ... </instrs>
          <bytesStack> STACK => BS : STACK </bytesStack>
+
     rule <instrs> #dropBytes => . ... </instrs>
          <bytesStack> _ : STACK => STACK </bytesStack>
 ```
 
-### Synchronization
+### Sync With WASM VM
 
-In theory, the node and the Wasm engine can run in parallel.
-For simplicity of debugging and profiling, we want to keep the semantics deterministic.
-When control gets passed to the Wasm engine by putting commands on the `instrs` cell, the node will `#wait` until the Wasm engine is done executing.
+`#endWASM` waits for the WASM VM to finish the execution and check the return code.
 
 ```k
-    syntax Wait ::= "#wait"
- // ----------------------
-    rule <commands> #wait => . ... </commands>
+    syntax InternalCmd ::= "#endWASM"
+ // ---------------------------------
+    rule <commands> #endWASM => .K ... </commands>
+         <returnCode> .ReturnCode => OK </returnCode>
+         <instrs> . </instrs>
+
+    rule <commands> #endWASM => #exception ... </commands>
+         <returnCode> _:ExceptionCode </returnCode>
          <instrs> . </instrs>
 ```
 
-Parallelized semantics can be achieved by instead using the following rule:
+### Elrond Exception Command
 
-```
-    syntax Wait ::= "#wait"
- // --------------------
-    rule <commands> #wait => . ... </commands>
+`#exception` drops the rest of the computation in the `commands` cell and reverts the state.
+
+```k
+    syntax InternalCmd ::= "#exception"
+ // -----------------------------------
+    rule <commands> (#exception ~> _) => popWorldState </commands> [priority(60)]
 ```
 
 ### Host Calls
 
 Here, host calls are implemented, by defining the semantics when `hostCall(MODULE_NAME, EXPORT_NAME, TYPE)` is left on top of the `instrs` cell.
 
-#### Completing the Call
+#### Host Call : finish
 
 ```k
     rule <instrs> hostCall("env", "finish", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) => local.get 0 ~> local.get 1 ~> #finish ... </instrs>
 
-    syntax EndCall ::= "#finish"
- // ----------------------------
-    rule <instrs> #finish => #done ... </instrs>
+    syntax InternalInstr ::= "#finish"
+ // ----------------------------------
+    rule <instrs> #finish => .K ... </instrs>
          <valstack> <i32> LENGTH : <i32> OFFSET : VS => VS </valstack>
          <callee> CALLEE </callee>
-         <returnData> _ => #getBytesRange(DATA, OFFSET, LENGTH) </returnData>
-         <returnStatus> _ => Finish </returnStatus>
+         <message> _ => #getBytesRange(DATA, OFFSET, LENGTH) </message>
          <account>
            <address> CALLEE </address>
            <codeIdx> MODIDX:Int </codeIdx>
@@ -296,11 +305,6 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
            ...
          </memInst>
       requires (OFFSET +Int LENGTH) <=Int (SIZE *Int #pageSize())
-
-
-    syntax Done ::= "#done"
- // -----------------------
-    rule <instrs> #done ~> _REST => . </instrs>
 ```
 
 #### Call State
@@ -623,8 +627,8 @@ The (incorrect) default implementation of a host call is to just return zero val
 ### Managing Accounts
 
 ```k
-    syntax CreateAccount ::= createAccount ( Bytes ) [klabel(createAccount), symbol]
- // --------------------------------------------------------------------------------
+    syntax InternalCmd ::= createAccount ( Bytes ) [klabel(createAccount), symbol]
+ // ------------------------------------------------------------------------------
     rule <commands> createAccount(ADDR) => . ... </commands>
          <activeAccounts> ... (.Set => SetItem(ADDR)) ... </activeAccounts>
          <accounts>
@@ -637,10 +641,11 @@ The (incorrect) default implementation of a host call is to just return zero val
            ...
          </accounts>
          <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
+      [priority(60)]
 
-    syntax ElrondCommand ::= setAccountFields    ( Bytes, Int, Int, CodeIndex, Map )
-                           | setAccountCodeIndex ( Bytes, CodeIndex )
- // --------------------------------------------------------------------------------
+    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, CodeIndex, Map )
+                         | setAccountCodeIndex ( Bytes, CodeIndex )
+ // ---------------------------------------------------------------
     rule <commands> setAccountFields(ADDR, NONCE, BALANCE, CODEIDX, STORAGE) => . ... </commands>
          <account>
            <address> ADDR </address>
@@ -649,24 +654,95 @@ The (incorrect) default implementation of a host call is to just return zero val
            <codeIdx> _ => CODEIDX </codeIdx>
            <storage> _ => STORAGE </storage>
          </account>
+      [priority(60)]
 
-     rule <commands> setAccountCodeIndex(ADDR, CODEIDX) => . ... </commands>
-          <account>
-            <address> ADDR </address>
-            <codeIdx> _ => CODEIDX </codeIdx>
-            ...
-          </account>
+    rule <commands> setAccountCodeIndex(ADDR, CODEIDX) => . ... </commands>
+         <account>
+           <address> ADDR </address>
+           <codeIdx> _ => CODEIDX </codeIdx>
+           ...
+         </account>
+      [priority(60)]
+```
 
-    syntax CallContract ::= callContract ( Bytes, Bytes, Int,     String, List, Int, Int ) [klabel(callContractString)]
-                          | callContract ( Bytes, Bytes, Int, WasmString, List, Int, Int ) [klabel(callContractWasmString)]
- // -----------------------------------------------------------------------------------------------------------------------
-    rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:String, ARGS, GASLIMIT, GASPRICE) => callContract(FROM, TO, VALUE, #unparseWasmString("\"" +String FUNCNAME +String "\""), ARGS, GASLIMIT, GASPRICE) ... </commands>
+### Calling Contracts
 
-    rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => #wait ... </commands>
+```k
+    syntax Accounts ::= "{" AccountsCellFragment "|" Set "}"
+
+    syntax InternalCmd ::= "pushWorldState"
+ // ---------------------------------------
+    rule <commands> pushWorldState => .K ... </commands>
+         <interimStates> (.List => ListItem({ ACCTDATA | ACCTS })) ... </interimStates>
+         <activeAccounts> ACCTS    </activeAccounts>
+         <accounts>       ACCTDATA </accounts>
+      [priority(60)]
+
+    syntax InternalCmd ::= "popWorldState"
+ // --------------------------------------
+    rule <commands> popWorldState => .K ... </commands>
+         <interimStates> (ListItem({ ACCTDATA | ACCTS }) => .List) ... </interimStates>
+         <activeAccounts> _ => ACCTS    </activeAccounts>
+         <accounts>       _ => ACCTDATA </accounts>
+      [priority(60)]
+
+    syntax InternalCmd ::= "dropWorldState"
+ // ---------------------------------------
+    rule <commands> dropWorldState => .K ... </commands>
+         <interimStates> (ListItem(_) => .List) ... </interimStates>
+      [priority(60)]
+
+    syntax InternalCmd ::= transferFunds ( Bytes, Bytes, Int )
+ // ------------------------------------------------------------
+    rule <commands> transferFunds(ACCT, ACCT, VALUE) => . ... </commands>
+         <account>
+           <address> ACCT </address>
+           <balance> ORIGFROM </balance>
+           ...
+         </account>
+      requires VALUE <=Int ORIGFROM
+      [priority(60)]
+
+    rule <commands> transferFunds(ACCTFROM, ACCTTO, VALUE) => . ... </commands>
+         <account>
+           <address> ACCTFROM </address>
+           <balance> ORIGFROM => ORIGFROM -Int VALUE </balance>
+           ...
+         </account>
+         <account>
+           <address> ACCTTO </address>
+           <balance> ORIGTO => ORIGTO +Int VALUE </balance>
+           ...
+         </account>
+      requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
+      [priority(60)]
+
+    syntax InternalCmd ::= callContract ( Bytes, Bytes, Int,     String, List, Int, Int ) [klabel(callContractString)]
+                         | callContract ( Bytes, Bytes, Int, WasmString, List, Int, Int ) [klabel(callContractWasmString)]
+                         | mkCall       ( Bytes, Bytes, Int, WasmString, List, Int, Int )
+ // ----------------------------------------------------------------------------------------------------------------------
+    rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:String, ARGS, GASLIMIT, GASPRICE)
+                 => callContract(FROM, TO, VALUE, #unparseWasmString("\"" +String FUNCNAME +String "\""), ARGS, GASLIMIT, GASPRICE)
+                    ...
+         </commands>
+      [priority(60)]
+
+    rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, GASLIMIT, GASPRICE)
+                 => pushWorldState
+                 ~> transferFunds(FROM, TO, VALUE)
+                 ~> mkCall(FROM, TO, VALUE, FUNCNAME, ARGS, GASLIMIT, GASPRICE)
+                 ~> #endWASM                
+                    ...
+         </commands>
+      [priority(60)]
+
+    rule <commands> mkCall(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => .K ... </commands>
          <callingArguments> _ => ARGS </callingArguments>
          <caller> _ => FROM </caller>
          <callee> _ => TO   </callee>
          <callValue> _ => VALUE </callValue>
+         <message> _ => .Bytes </message>
+         <returnCode> _ => .ReturnCode </returnCode>
          <bigIntHeap> _ => .Map </bigIntHeap>
          <account>
            <address> TO </address>
@@ -681,6 +757,7 @@ The (incorrect) default implementation of a host call is to just return zero val
          </moduleInst>
          <instrs> . => ( invoke FUNCADDR ) </instrs>
          <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
+      [priority(60)]
 
 endmodule
 ```
@@ -707,14 +784,16 @@ module MANDOS
 Only take the next step once both the Elrond node and Wasm are done executing.
 
 ```k
+    syntax Step ::= "#wait"
+ // -----------------------
     rule <k> #wait => . ... </k>
          <commands> . </commands>
          <instrs> . </instrs>
 
     syntax Steps ::= List{Step, ""} [klabel(mandosSteps), symbol]
  // -------------------------------------------------------------
-    rule <k> .Steps => . </k>
-    rule <k> S:Step SS:Steps => S ~> SS ... </k>
+    rule <k> .Steps => . </k> [priority(60)]
+    rule <k> S:Step SS:Steps => S ~> SS ... </k> [priority(60)]
 
     syntax Step ::= "setExitCode" Int
  // ---------------------------------
@@ -722,13 +801,14 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <commands> . </commands>
          <instrs> . </instrs>
          <exit-code> _ => I </exit-code>
+      [priority(60)]
 
     syntax Step ::= ModuleDecl
  // --------------------------
     rule <k> (module _:OptionalId _:Defns):ModuleDecl #as M => #wait ... </k>
-          <instrs> . => sequenceStmts(text2abstract(M .Stmts)) </instrs>
+         <instrs> . => sequenceStmts(text2abstract(M .Stmts)) </instrs>
     rule <k> M:ModuleDecl => #wait ... </k>
-          <instrs> . => M </instrs>
+         <instrs> . => M </instrs>
       [owise]
 
     syntax Step ::= "register" String [klabel(register), symbol]
@@ -736,6 +816,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> register NAME => . ... </k>
          <moduleRegistry> REG => REG [NAME <- IDX -Int 1] </moduleRegistry>
          <nextModuleIdx> IDX </nextModuleIdx>
+      [priority(60)]
 ```
 
 ### State Setup
@@ -747,25 +828,31 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // ---------------------------------------------------------------------------------------------------------------------------------------------
     rule <k> setAccount(ADDRESS, NONCE, BALANCE, CODE, STORAGE)
           => setAccountAux(#address2Bytes(ADDRESS), NONCE, BALANCE, CODE, STORAGE) ... </k>
+      [priority(60)]
 
     rule <k> setAccountAux(ADDRESS, NONCE, BALANCE, .Code, STORAGE)
           => createAndSetAccount(ADDRESS, NONCE, BALANCE, .CodeIndex, STORAGE) ... </k>
+      [priority(60)]
 
     rule <k> setAccountAux(ADDRESS, NONCE, BALANCE, MODULE:ModuleDecl, STORAGE)
           => MODULE ~> createAndSetAccount(ADDRESS, NONCE, BALANCE, NEXTIDX, STORAGE) ... </k>
          <nextModuleIdx> NEXTIDX </nextModuleIdx>
+      [priority(60)]
 
     rule <k> createAndSetAccount(ADDRESS, NONCE, BALANCE, CODEIDX, STORAGE) => #wait ... </k>
          <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, CODEIDX, STORAGE) </commands>
+      [priority(60)]
 
     syntax Step ::= newAddress    ( Address, Int, Address ) [klabel(newAddress), symbol]
                   | newAddressAux ( Bytes, Int, Bytes )     [klabel(newAddressAux), symbol]
  // ---------------------------------------------------------------------------------------
     rule <k> newAddress(CREATOR, NONCE, NEW)
           => newAddressAux(#address2Bytes(CREATOR), NONCE, #address2Bytes(NEW)) ... </k>
+      [priority(60)]
 
     rule <k> newAddressAux(CREATOR, NONCE, NEW) => . ... </k>
          <newAddresses> NEWADDRESSES => NEWADDRESSES [tuple(CREATOR, NONCE) <- NEW] </newAddresses>
+      [priority(60)]
 
     syntax AddressNonce ::= tuple( Bytes , Int )
  // ----------------------------------------------
@@ -779,27 +866,35 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // ------------------------------------------------------------------------
     rule <k> setCurBlockInfo(blockTimestamp(TIMESTAMP)) => . ... </k>
          <curBlockTimestamp> _ => TIMESTAMP </curBlockTimestamp>
+      [priority(60)]
 
     rule <k> setCurBlockInfo(blockNonce(NONCE)) => . ... </k>
          <curBlockNonce> _ => NONCE </curBlockNonce>
+      [priority(60)]
 
     rule <k> setCurBlockInfo(blockRound(ROUND)) => . ... </k>
          <curBlockRound> _ => ROUND </curBlockRound>
+      [priority(60)]
 
     rule <k> setCurBlockInfo(blockEpoch(EPOCH)) => . ... </k>
          <curBlockEpoch> _ => EPOCH </curBlockEpoch>
+      [priority(60)]
 
     rule <k> setPrevBlockInfo(blockTimestamp(TIMESTAMP)) => . ... </k>
          <prevBlockTimestamp> _ => TIMESTAMP </prevBlockTimestamp>
+      [priority(60)]
 
     rule <k> setPrevBlockInfo(blockNonce(NONCE)) => . ... </k>
          <prevBlockNonce> _ => NONCE </prevBlockNonce>
+      [priority(60)]
 
     rule <k> setPrevBlockInfo(blockRound(ROUND)) => . ... </k>
          <prevBlockRound> _ => ROUND </prevBlockRound>
+      [priority(60)]
 
     rule <k> setPrevBlockInfo(blockEpoch(EPOCH)) => . ... </k>
          <prevBlockEpoch> _ => EPOCH </prevBlockEpoch>
+      [priority(60)]
 ```
 
 ### Check State
@@ -809,6 +904,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // --------------------------------------------------------------------------------------------
     rule <k> checkAccountNonce(ADDRESS, NONCE)
              => checkAccountNonceAux(#address2Bytes(ADDRESS), NONCE) ... </k>
+      [priority(60)]
 
     rule <k> checkAccountNonceAux(ADDR, NONCE) => . ... </k>
          <account>
@@ -816,12 +912,14 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            <nonce> NONCE </nonce>
            ...
          </account>
+      [priority(60)]
 
     syntax Step ::= checkAccountBalance    ( Address, Int ) [klabel(checkAccountBalance), symbol]
                   | checkAccountBalanceAux ( Bytes, Int )   [klabel(checkAccountBalanceAux), symbol]
  // ------------------------------------------------------------------------------------------------
     rule <k> checkAccountBalance(ADDRESS, BALANCE)
              => checkAccountBalanceAux(#address2Bytes(ADDRESS), BALANCE) ... </k>
+      [priority(60)]
 
     rule <k> checkAccountBalanceAux(ADDR, BALANCE) => . ... </k>
          <account>
@@ -829,12 +927,14 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            <balance> BALANCE </balance>
            ...
          </account>
+      [priority(60)]
 
     syntax Step ::= checkAccountStorage    ( Address, Map ) [klabel(checkAccountStorage), symbol]
                   | checkAccountStorageAux ( Bytes, Map )   [klabel(checkAccountStorageAux), symbol]
  // ------------------------------------------------------------------------------------------------
     rule <k> checkAccountStorage(ADDRESS, STORAGE)
              => checkAccountStorageAux(#address2Bytes(ADDRESS), STORAGE) ... </k>
+      [priority(60)]
 
     rule <k> checkAccountStorageAux(ADDR, STORAGE) => . ... </k>
          <account>
@@ -842,12 +942,14 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            <storage> STORAGE </storage>
            ...
          </account>
+      [priority(60)]
 
     syntax Step ::= checkAccountCode    ( Address, String ) [klabel(checkAccountCode), symbol]
                   | checkAccountCodeAux ( Bytes, String )   [klabel(checkAccountCodeAux), symbol]
  // ---------------------------------------------------------------------------------------------
     rule <k> checkAccountCode(ADDRESS, CODEPATH)
              => checkAccountCodeAux(#address2Bytes(ADDRESS), CODEPATH) ... </k>
+      [priority(60)]
 
     rule <k> checkAccountCodeAux(ADDR, "") => . ... </k>
          <account>
@@ -855,6 +957,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            <codeIdx> .CodeIndex </codeIdx>
            ...
          </account>
+      [priority(60)]
 
     rule <k> checkAccountCodeAux(ADDR, CODEPATH) => . ... </k>
          <account>
@@ -870,27 +973,32 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            </moduleMetadata>
            ...
          </moduleInst>
-       requires CODEPATH =/=String ""
+      requires CODEPATH =/=String ""
+      [priority(60)]
 
     syntax Step ::= checkedAccount    ( Address ) [klabel(checkedAccount), symbol]
                   | checkedAccountAux ( Bytes )   [klabel(checkedAccountAux), symbol]
  // ---------------------------------------------------------------------------------
     rule <k> checkedAccount(ADDRESS)
              => checkedAccountAux(#address2Bytes(ADDRESS)) ... </k>
+      [priority(60)]
 
     rule <k> checkedAccountAux(ADDR) => . ... </k>
          <checkedAccounts> ... (.Set => SetItem(ADDR)) ... </checkedAccounts>
+      [priority(60)]
 
     syntax Step ::= "checkNoAdditionalAccounts" [klabel(checkNoAdditionalAccounts), symbol]
  // ---------------------------------------------------------------------------------------
     rule <k> checkNoAdditionalAccounts => . ... </k>
          <checkedAccounts> CHECKEDACCTS </checkedAccounts>
          <activeAccounts> CHECKEDACCTS </activeAccounts>
+      [priority(60)]
 
     syntax Step ::= "clearCheckedAccounts" [klabel(clearCheckedAccounts), symbol]
  // -----------------------------------------------------------------------------
     rule <k> clearCheckedAccounts => . ... </k>
          <checkedAccounts> _ => .Set </checkedAccounts>
+      [priority(60)]
 ```
 
 ### Contract Interactions
@@ -898,16 +1006,18 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ```k
     syntax Step ::= scDeploy ( DeployTx, Expect ) [klabel(scDeploy), symbol]
  // ------------------------------------------------------------------------
-    rule <k> scDeploy( TX, EXPECT ) => TX ~> EXPECT ... </k>
+    rule <k> scDeploy( TX, EXPECT ) => TX ~> EXPECT ... </k> [priority(60)]
 
     syntax DeployTx ::= deployTx    ( Address, Int, ModuleDecl, List, Int, Int ) [klabel(deployTx), symbol]
                       | deployTxAux ( Bytes, Int, ModuleDecl, List, Int, Int )   [klabel(deployTxAux), symbol]
  // ----------------------------------------------------------------------------------------------------------
     rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE)
           => deployTxAux(#address2Bytes(FROM), VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) ... </k>
+      [priority(60)]
 
     rule <k> deployTxAux(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE)
           => MODULE ~> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) ... </k>
+      [priority(60)]
 
     syntax Deployment ::= deployLastModule( Bytes, Int, List, Int, Int )
  // ----------------------------------------------------------------------
@@ -925,16 +1035,18 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <nextModuleIdx> NEXTIDX </nextModuleIdx>
          <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
          <logging> S => S +String " -- deployLastModule: " +String Int2String(NEXTIDX -Int 1) </logging>
+      [priority(60)]
 
     syntax Step ::= scCall( CallTx, Expect ) [klabel(scCall), symbol]
  // ----------------------------------------------------------------
-    rule <k> scCall( TX, EXPECT ) => TX ~> EXPECT ... </k>
+    rule <k> scCall( TX, EXPECT ) => TX ~> EXPECT ... </k> [priority(60)]
 
     syntax CallTx ::= callTx    (from: Address, to: Address, value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
                     | callTxAux (from: Bytes,   to: Bytes,   value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
  // ------------------------------------------------------------------------------------------------------------------------------------------------------------
     rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE)
           => callTxAux(#address2Bytes(FROM), #address2Bytes(TO), VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) ... </k>
+      [priority(60)]
 
     rule <k> callTxAux(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => callContract(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>
@@ -945,41 +1057,33 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             ...
          </account>
          <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
+      [priority(60)]
 
     syntax Expect ::= ".Expect" [klabel(.Expect), symbol]
  // -------------------------------------------------------
-    rule <k> .Expect => . ... </k>
+    rule <k> .Expect => . ... </k> [priority(60)]
 
     syntax Step ::= transfer(TransferTx) [klabel(transfer), symbol]
  // -----------------------------------------------------
-    rule <k> transfer(TX) => TX ... </k>
+    rule <k> transfer(TX) => TX ... </k> [priority(60)]
 
     syntax TransferTx ::= transferTx    ( from: Address, to: Bytes, value: Int ) [klabel(transferTx), symbol]
                         | transferTxAux ( from: Bytes, to: Bytes, value: Int )   [klabel(transferTxAux), symbol]
  // ------------------------------------------------------------------------------------------------------------
-    rule <k> transferTx(FROM, TO, VAL) => transferTxAux(#address2Bytes(FROM), #address2Bytes(TO), VAL) ... </k>
+    rule <k> transferTx(FROM, TO, VAL) => transferTxAux(#address2Bytes(FROM), #address2Bytes(TO), VAL) ... </k> [priority(60)]
 
-    rule <k> transferTxAux(FROM, TO, VAL) => . ... </k>
-         <account>
-           <address> FROM </address>
-           <balance> FROM_BAL => FROM_BAL -Int VAL </balance>
-           ...
-         </account>
-         <account>
-           <address> TO </address>
-           <balance> TO_BAL => TO_BAL +Int VAL </balance>
-           ...
-         </account>
-      requires FROM_BAL >=Int VAL
+    rule <k> transferTxAux(FROM, TO, VAL) => #wait ... </k>
+         <commands> . => transferFunds(FROM, TO, VAL) </commands>
+      [priority(60)]
 
     syntax Step ::= validatorReward(ValidatorRewardTx) [klabel(validatorReward), symbol]
  // ------------------------------------------------------------------------------------
-    rule <k> validatorReward(TX) => TX ... </k>
+    rule <k> validatorReward(TX) => TX ... </k> [priority(60)]
 
     syntax ValidatorRewardTx ::= validatorRewardTx    ( to: Address, value: Int) [klabel(validatorRewardTx), symbol]
                                | validatorRewardTxAux ( to: Bytes, value: Int )  [klabel(validatorRewardTxAux), symbol]
  // -------------------------------------------------------------------------------------------------------------------
-    rule <k> validatorRewardTx(TO, VAL) => validatorRewardTxAux(#address2Bytes(TO), VAL) ... </k>
+    rule <k> validatorRewardTx(TO, VAL) => validatorRewardTxAux(#address2Bytes(TO), VAL) ... </k> [priority(60)]
 
     rule <k> validatorRewardTxAux(TO, VAL) => . ... </k>
          <account>
@@ -988,6 +1092,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             <balance> TO_BAL => TO_BAL +Int VAL </balance>
             ...
          </account>
+      [priority(60)]
 
     syntax Bytes ::= #incBytes(val : Bytes, inc : Int) [function]
  // -------------------------------------------------------------
@@ -999,13 +1104,12 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 
 ```k
     syntax Step ::= Assertion
-```
 
-```k
-    syntax Assertion ::= #assertReturnData(Bytes)
+    syntax Assertion ::= #assertMessage ( Bytes )
  // ---------------------------------------------
-    rule <k> #assertReturnData(BS) => . ... </k>
-         <returnData> BS </returnData>
+    rule <k> #assertMessage(BS) => . ... </k>
+         <message> BS </message>
+      [priority(60)]
 ```
 
 ```k

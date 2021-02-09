@@ -238,6 +238,6 @@ scDeploy(
     , .Expect
 )
 
-#assertReturnData(Int2Bytes(777, BE, Signed))
+#assertMessage(Int2Bytes(777, BE, Signed))
 
 setExitCode 0

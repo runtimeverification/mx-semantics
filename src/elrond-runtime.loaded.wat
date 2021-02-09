@@ -104,6 +104,34 @@
       <accounts>
         .AccountCellMap
       </accounts>
+      <previousBlockInfo>
+        <prevBlockTimestamp>
+          0
+        </prevBlockTimestamp>
+        <prevBlockNonce>
+          0
+        </prevBlockNonce>
+        <prevBlockRound>
+          0
+        </prevBlockRound>
+        <prevBlockEpoch>
+          0
+        </prevBlockEpoch>
+      </previousBlockInfo>
+      <currentBlockInfo>
+        <curBlockTimestamp>
+          0
+        </curBlockTimestamp>
+        <curBlockNonce>
+          0
+        </curBlockNonce>
+        <curBlockRound>
+          0
+        </curBlockRound>
+        <curBlockEpoch>
+          0
+        </curBlockEpoch>
+      </currentBlockInfo>
     </node>
     <bigIntHeap>
       .Map

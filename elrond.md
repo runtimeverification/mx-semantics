@@ -159,16 +159,18 @@ Storage maps byte arrays to byte arrays.
            </account>
          </accounts>
          <previousBlockInfo>
-           <prevBlockTimestamp> 0 </prevBlockTimestamp>
-           <prevBlockNonce>     0 </prevBlockNonce>
-           <prevBlockRound>     0 </prevBlockRound>
-           <prevBlockEpoch>     0 </prevBlockEpoch>
+           <prevBlockTimestamp>  0 </prevBlockTimestamp>
+           <prevBlockNonce>      0 </prevBlockNonce>
+           <prevBlockRound>      0 </prevBlockRound>
+           <prevBlockEpoch>      0 </prevBlockEpoch>
+           <prevBlockRandomSeed> padRightBytes(.Bytes, 48, 0) </prevBlockRandomSeed>
          </previousBlockInfo>
          <currentBlockInfo>
-           <curBlockTimestamp> 0 </curBlockTimestamp>
-           <curBlockNonce>     0 </curBlockNonce>
-           <curBlockRound>     0 </curBlockRound>
-           <curBlockEpoch>     0 </curBlockEpoch>
+           <curBlockTimestamp>  0 </curBlockTimestamp>
+           <curBlockNonce>      0 </curBlockNonce>
+           <curBlockRound>      0 </curBlockRound>
+           <curBlockEpoch>      0 </curBlockEpoch>
+           <curBlockRandomSeed> padRightBytes(.Bytes, 48, 0) </curBlockRandomSeed>
          </currentBlockInfo>
        </node>
 
@@ -280,14 +282,14 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
 #### Host Call : finish
 
 ```k
-    rule <instrs> hostCall("env", "finish", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) => local.get 0 ~> local.get 1 ~> #finish ... </instrs>
+    rule <instrs> hostCall("env", "finish", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) => #local.get(0) ~> #local.get(1) ~> #finish ... </instrs>
 
     syntax InternalInstr ::= "#finish"
  // ----------------------------------
     rule <instrs> #finish => .K ... </instrs>
          <valstack> <i32> LENGTH : <i32> OFFSET : VS => VS </valstack>
          <callee> CALLEE </callee>
-         <message> _ => #getBytesRange(DATA, OFFSET, LENGTH) </message>
+         <message> MSG => MSG +Bytes #getBytesRange(DATA, OFFSET, LENGTH) </message>
          <account>
            <address> CALLEE </address>
            <codeIdx> MODIDX:Int </codeIdx>
@@ -613,6 +615,14 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ```k
     rule <instrs> hostCall("env", "getBlockTimestamp", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const TIMESTAMP ... </instrs>
          <curBlockTimestamp> TIMESTAMP </curBlockTimestamp>
+
+    rule <instrs> hostCall("env", "getBlockRandomSeed", [ i32 .ValTypes ] -> [ .ValTypes ])
+               => #setMem(SEED, OFFSET)
+                  ...
+         </instrs>
+         <locals> 0 |-> <i32> OFFSET </locals>
+         <curBlockRandomSeed> SEED </curBlockRandomSeed>
+
 ```
 
 #### Other Host Calls
@@ -622,6 +632,82 @@ The (incorrect) default implementation of a host call is to just return zero val
 ```k
     rule <instrs> hostCall("env", "asyncCall", [ DOM ] -> [ CODOM ]) => . ... </instrs>
          <valstack> VS => #zero(CODOM) ++ #drop(lengthValTypes(DOM), VS) </valstack>
+
+    rule <instrs> hostCall("env", "signalError", [ i32 i32 .ValTypes ] -> [ .ValTypes ] )
+               => #local.get(0) ~> #local.get(1) ~> #signalError ...
+         </instrs>
+
+    syntax InternalInstr ::= "#signalError"
+ // ----------------------------------
+    rule <instrs> (#signalError ~> _) => .K </instrs>
+         <valstack> <i32> LENGTH : <i32> OFFSET : VS => VS </valstack>
+         <callee> CALLEE </callee>
+         <returnCode> _ => UserError </returnCode>
+         <message> MSG => MSG +Bytes #getBytesRange(DATA, OFFSET, LENGTH) </message>
+         <account>
+           <address> CALLEE </address>
+           <codeIdx> MODIDX:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA </mdata>
+           ...
+         </memInst>
+      requires (OFFSET +Int LENGTH) <=Int (SIZE *Int #pageSize())
+
+    rule <instrs> hostCall("env", "transferValue", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #local.get(0) ~> #local.get(1) ~> #local.get(2) ~> #local.get(3)
+               ~> #transferValue
+                  ...
+         </instrs>
+
+    syntax InternalInstr ::= "#transferValue"
+                           | #transferValueAux ( Bytes, Bytes, Int )
+ // ----------------------------------------------------------------
+    rule <instrs> #transferValue
+               => #transferValueAux(CALLEE, #getBytesRange(DATA, DESTOFFSET, 32), Bytes2Int(#getBytesRange(DATA, VALUEOFFSET, 32), BE, Unsigned))
+                  ...
+         </instrs>
+         <callee> CALLEE </callee>
+         <valstack> <i32> _ : <i32> _ : <i32> VALUEOFFSET : <i32> DESTOFFSET : VS => VS </valstack>
+         <account>
+           <address> CALLEE </address>
+           <codeIdx> MODIDX:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA </mdata>
+           ...
+         </memInst>
+      requires (VALUEOFFSET +Int 32) <=Int (SIZE *Int #pageSize())
+       andBool (DESTOFFSET +Int 32) <=Int (SIZE *Int #pageSize())
+
+    rule <instrs> #transferValueAux(ACCTFROM, ACCTTO, VALUE) => i32.const 0 ... </instrs>
+         <account>
+           <address> ACCTFROM </address>
+           <balance> ORIGFROM => ORIGFROM -Int VALUE </balance>
+           ...
+         </account>
+         <account>
+           <address> ACCTTO </address>
+           <balance> ORIGTO => ORIGTO +Int VALUE </balance>
+           ...
+         </account>
+      requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
 ```
 
 ### Managing Accounts
@@ -859,11 +945,12 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 
     syntax Step      ::= setCurBlockInfo  ( BlockInfo ) [klabel(setCurBlockInfo), symbol]
                        | setPrevBlockInfo ( BlockInfo ) [klabel(setPrevBlockInfo), symbol]
-    syntax BlockInfo ::= blockTimestamp ( Int ) [klabel(blockTimestamp), symbol]
-                       | blockNonce     ( Int ) [klabel(blockNonce), symbol]
-                       | blockRound     ( Int ) [klabel(blockRound), symbol]
-                       | blockEpoch     ( Int ) [klabel(blockEpoch), symbol]
- // ------------------------------------------------------------------------
+    syntax BlockInfo ::= blockTimestamp  ( Int )   [klabel(blockTimestamp), symbol]
+                       | blockNonce      ( Int )   [klabel(blockNonce), symbol]
+                       | blockRound      ( Int )   [klabel(blockRound), symbol]
+                       | blockEpoch      ( Int )   [klabel(blockEpoch), symbol]
+                       | blockRandomSeed ( Bytes ) [klabel(blockRandomSeed), symbol]
+ // --------------------------------------------------------------------------------
     rule <k> setCurBlockInfo(blockTimestamp(TIMESTAMP)) => . ... </k>
          <curBlockTimestamp> _ => TIMESTAMP </curBlockTimestamp>
       [priority(60)]
@@ -880,6 +967,10 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <curBlockEpoch> _ => EPOCH </curBlockEpoch>
       [priority(60)]
 
+    rule <k> setCurBlockInfo(blockRandomSeed(SEED)) => . ... </k>
+         <curBlockRandomSeed> _ => SEED </curBlockRandomSeed>
+      [priority(60)]
+
     rule <k> setPrevBlockInfo(blockTimestamp(TIMESTAMP)) => . ... </k>
          <prevBlockTimestamp> _ => TIMESTAMP </prevBlockTimestamp>
       [priority(60)]
@@ -894,6 +985,10 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 
     rule <k> setPrevBlockInfo(blockEpoch(EPOCH)) => . ... </k>
          <prevBlockEpoch> _ => EPOCH </prevBlockEpoch>
+      [priority(60)]
+
+    rule <k> setPrevBlockInfo(blockRandomSeed(SEED)) => . ... </k>
+         <prevBlockRandomSeed> _ => SEED </prevBlockRandomSeed>
       [priority(60)]
 ```
 

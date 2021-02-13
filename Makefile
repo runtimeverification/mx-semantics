@@ -57,7 +57,7 @@ elrond-contracts:
 # Building Definition
 # -------------------
 
-KOMPILE_OPTS       := --emit-json --heuristic 'oqbaL'
+KOMPILE_OPTS       := --emit-json
 
 MAIN_MODULE        := MANDOS
 MAIN_SYNTAX_MODULE := MANDOS-SYNTAX

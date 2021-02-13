@@ -128,7 +128,7 @@ def mandos_to_set_account(address, sections, filename, output_dir):
     if 'code' in sections:
         code_path = get_contract_code(sections['code'], filename)
         if code_path is not None:
-            code_value = file_to_module_decl(code, output_dir)
+            code_value = file_to_module_decl(code_path, output_dir)
 
     storage_pairs = [ (mandos_argument_to_kbytes(k), mandos_argument_to_kbytes(v)) for (k, v) in sections['storage'].items() ]
     storage_value = KMap(storage_pairs)

@@ -91,12 +91,15 @@
         <callValue>
           0
         </callValue>
-        <returnData>
+        <message>
           b""
-        </returnData>
-        <returnStatus>
-          .ReturnStatus
-        </returnStatus>
+        </message>
+        <returnCode>
+          .ReturnCode
+        </returnCode>
+        <interimStates>
+          .List
+        </interimStates>
       </callState>
       <activeAccounts>
         .Set
@@ -117,6 +120,9 @@
         <prevBlockEpoch>
           0
         </prevBlockEpoch>
+        <prevBlockRandomSeed>
+          b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        </prevBlockRandomSeed>
       </previousBlockInfo>
       <currentBlockInfo>
         <curBlockTimestamp>
@@ -131,6 +137,9 @@
         <curBlockEpoch>
           0
         </curBlockEpoch>
+        <curBlockRandomSeed>
+          b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        </curBlockRandomSeed>
       </currentBlockInfo>
     </node>
     <bigIntHeap>

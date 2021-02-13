@@ -399,7 +399,29 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
          <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int +Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
 
-    rule <instrs> hostCall("env", "bigIntCmp", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const cmpInt({HEAP[IDX1]}:>Int, {HEAP[IDX2]}:>Int) ... </instrs>
+    rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int -Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
+
+    rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int *Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
+
+    rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int /Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
+
+    rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => i32.const #bigIntSign({HEAP[IDX]}:>Int)
+                  ...
+         </instrs>
+         <locals> 0 |-> <i32> IDX </locals>
+         <bigIntHeap> HEAP </bigIntHeap>
+
+    rule <instrs> hostCall("env", "bigIntCmp", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => i32.const #cmpInt({HEAP[IDX1]}:>Int, {HEAP[IDX2]}:>Int)
+                  ...
+         </instrs>
          <locals> 0 |-> <i32> IDX1  1 |-> <i32> IDX2 </locals>
          <bigIntHeap> HEAP </bigIntHeap>
 
@@ -493,8 +515,13 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
 
     syntax Bytes ::= #getBytesRange ( Bytes , Int , Int ) [function]
  // ----------------------------------------------------------------
+    rule #getBytesRange(_,  OFFSET, LENGTH) => .Bytes
+      requires notBool (LENGTH >=Int 0 andBool OFFSET >=Int 0)
+
     rule #getBytesRange(BS, OFFSET, LENGTH) => substrBytes(padRightBytes(BS, OFFSET +Int LENGTH, 0), OFFSET, OFFSET +Int LENGTH)
       requires OFFSET >=Int 0 andBool LENGTH >=Int 0 andBool OFFSET <Int lengthBytes(BS)
+
+    rule #getBytesRange(_, _, LENGTH) => padRightBytes(.Bytes, LENGTH, 0) [owise]
 
     syntax Bytes ::= #setBytesRange ( Bytes , Int , Bytes ) [function]
  // ------------------------------------------------------------------
@@ -511,11 +538,18 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
 ```
 
 ```k
-    syntax Int ::= cmpInt ( Int , Int ) [function, functional]
- // ----------------------------------------------------------
-    rule cmpInt(I1, I2) => -1 requires I1  <Int I2
-    rule cmpInt(I1, I2) =>  1 requires I1  >Int I2
-    rule cmpInt(I1, I2) =>  0 requires I1 ==Int I2
+    syntax Int ::= #cmpInt ( Int , Int ) [function, functional]
+ // -----------------------------------------------------------
+    rule #cmpInt(I1, I2) => -1 requires I1  <Int I2
+    rule #cmpInt(I1, I2) =>  1 requires I1  >Int I2
+    rule #cmpInt(I1, I2) =>  0 requires I1 ==Int I2
+
+
+    syntax Int ::= #bigIntSign ( Int ) [function, functional]
+ // ---------------------------------------------------------
+    rule #bigIntSign(0) => 0
+    rule #bigIntSign(I) => 1  requires I >Int 0
+    rule #bigIntSign(I) => -1 requires I <Int 0
 ```
 
 #### Storage

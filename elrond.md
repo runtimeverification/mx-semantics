@@ -270,7 +270,8 @@ module ELROND
 ```k
     syntax InternalCmd ::= "#exception"
  // -----------------------------------
-    rule <commands> (#exception ~> _) => popWorldState </commands> [priority(60)]
+    rule <commands> (#exception ~> _) => popWorldState </commands>
+         <instrs> _ => .K </instrs>
 ```
 
 ### Host Calls
@@ -702,6 +703,7 @@ The (incorrect) default implementation of a host call is to just return zero val
 
     syntax InternalInstr ::= "#transferValue"
                            | #transferValueAux ( Bytes, Bytes, Int )
+                           | "#waitForTransfer"
  // ----------------------------------------------------------------
     rule <instrs> #transferValue
                => #transferValueAux(CALLEE, #getBytesRange(DATA, DESTOFFSET, 32), Bytes2Int(#getBytesRange(DATA, VALUEOFFSET, 32), BE, Unsigned))
@@ -728,18 +730,8 @@ The (incorrect) default implementation of a host call is to just return zero val
       requires (VALUEOFFSET +Int 32) <=Int (SIZE *Int #pageSize())
        andBool (DESTOFFSET +Int 32) <=Int (SIZE *Int #pageSize())
 
-    rule <instrs> #transferValueAux(ACCTFROM, ACCTTO, VALUE) => i32.const 0 ... </instrs>
-         <account>
-           <address> ACCTFROM </address>
-           <balance> ORIGFROM => ORIGFROM -Int VALUE </balance>
-           ...
-         </account>
-         <account>
-           <address> ACCTTO </address>
-           <balance> ORIGTO => ORIGTO +Int VALUE </balance>
-           ...
-         </account>
-      requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
+    rule <commands> (.K => transferFunds(ACCTFROM, ACCTTO, VALUE)) ... </commands>
+         <instrs> #transferValueAux(ACCTFROM, ACCTTO, VALUE) => #waitForTransfer ~> i32.const 0 ... </instrs>
 ```
 
 ### Managing Accounts
@@ -811,8 +803,9 @@ The (incorrect) default implementation of a host call is to just return zero val
       [priority(60)]
 
     syntax InternalCmd ::= transferFunds ( Bytes, Bytes, Int )
+                         | "#transferSuccess"
  // ----------------------------------------------------------
-    rule <commands> transferFunds(ACCT, ACCT, VALUE) => . ... </commands>
+    rule <commands> transferFunds(ACCT, ACCT, VALUE) => #transferSuccess ... </commands>
          <account>
            <address> ACCT </address>
            <balance> ORIGFROM </balance>
@@ -821,7 +814,7 @@ The (incorrect) default implementation of a host call is to just return zero val
       requires VALUE <=Int ORIGFROM
       [priority(60)]
 
-    rule <commands> transferFunds(ACCTFROM, ACCTTO, VALUE) => . ... </commands>
+    rule <commands> transferFunds(ACCTFROM, ACCTTO, VALUE) => #transferSuccess ... </commands>
          <account>
            <address> ACCTFROM </address>
            <balance> ORIGFROM => ORIGFROM -Int VALUE </balance>
@@ -834,6 +827,12 @@ The (incorrect) default implementation of a host call is to just return zero val
          </account>
       requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
       [priority(60)]
+
+    rule <commands> #transferSuccess => .K ... </commands>
+         <instrs> . </instrs>
+
+    rule <commands> #transferSuccess => .K ... </commands>
+         <instrs> #waitForTransfer => .K ... </instrs>
 
     syntax InternalCmd ::= callContract ( Bytes, Bytes, Int,     String, List, Int, Int ) [klabel(callContractString)]
                          | callContract ( Bytes, Bytes, Int, WasmString, List, Int, Int ) [klabel(callContractWasmString)]

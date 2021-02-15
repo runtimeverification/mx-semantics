@@ -1,5 +1,4 @@
 ```k
-require "test.md"
 require "wasm-text.md"
 
 module MANDOS-SYNTAX
@@ -177,7 +176,6 @@ Storage maps byte arrays to byte arrays.
     syntax ReturnCode ::= ".ReturnCode"
                         | "OK"
                         | ExceptionCode
-
     syntax ExceptionCode ::= "OutOfFunds"
                            | "UserError"
  // ------------------------------------
@@ -256,7 +254,7 @@ module ELROND
 ```k
     syntax InternalCmd ::= "#endWASM"
  // ---------------------------------
-    rule <commands> #endWASM => .K ... </commands>
+    rule <commands> #endWASM => dropWorldState ... </commands>
          <returnCode> .ReturnCode => OK </returnCode>
          <instrs> . </instrs>
 
@@ -340,7 +338,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
 
     syntax MemOp ::= #setMem ( bytes: Bytes, offset: Int )
                    | #getMem ( offset: Int , lenght: Int )
- // --------------------------------------------------------
+ // ------------------------------------------------------
     rule <instrs> #setMem(BS, OFFSET) => . ... </instrs>
          <callee> CALLEE </callee>
          <account>
@@ -547,7 +545,7 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
 
     syntax Int ::= #bigIntSign ( Int ) [function, functional]
  // ---------------------------------------------------------
-    rule #bigIntSign(0) => 0
+    rule #bigIntSign(I) => 0  requires I ==Int 0
     rule #bigIntSign(I) => 1  requires I >Int 0
     rule #bigIntSign(I) => -1 requires I <Int 0
 ```
@@ -672,7 +670,7 @@ The (incorrect) default implementation of a host call is to just return zero val
          </instrs>
 
     syntax InternalInstr ::= "#signalError"
- // ----------------------------------
+ // ---------------------------------------
     rule <instrs> (#signalError ~> _) => .K </instrs>
          <valstack> <i32> LENGTH : <i32> OFFSET : VS => VS </valstack>
          <callee> CALLEE </callee>
@@ -813,7 +811,7 @@ The (incorrect) default implementation of a host call is to just return zero val
       [priority(60)]
 
     syntax InternalCmd ::= transferFunds ( Bytes, Bytes, Int )
- // ------------------------------------------------------------
+ // ----------------------------------------------------------
     rule <commands> transferFunds(ACCT, ACCT, VALUE) => . ... </commands>
          <account>
            <address> ACCT </address>
@@ -887,7 +885,6 @@ endmodule
 ```k
 module MANDOS
     imports ELROND
-    imports WASM-AUXIL
 
     configuration
       <mandos>

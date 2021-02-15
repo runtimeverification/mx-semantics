@@ -1,6 +1,6 @@
 setExitCode 1
 
-setAccount("testDeployer", 0, 0, .Code, .Map)
+setAccount("testDeployer", 0, 2 ^Int 256, .Code, .Map)
 newAddress("testDeployer", 0, "testContract")
 
 scDeploy(
@@ -239,5 +239,7 @@ scDeploy(
 )
 
 #assertMessage(Int2Bytes(777, BE, Signed))
+
+checkAccountBalance("testDeployer", 0)
 
 setExitCode 0

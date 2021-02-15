@@ -91,6 +91,9 @@
         <callValue>
           0
         </callValue>
+        <out>
+          .List
+        </out>
         <message>
           b""
         </message>

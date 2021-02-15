@@ -238,7 +238,7 @@ scDeploy(
     , .Expect
 )
 
-#assertMessage(Int2Bytes(777, BE, Signed))
+assertOut(Int2Bytes(777, BE, Signed))
 
 checkAccountBalance("testDeployer", 0)
 

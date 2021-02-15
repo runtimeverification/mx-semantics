@@ -133,6 +133,7 @@ module ELROND-NODE
           <caller> .Bytes </caller>
           <callee> .Bytes </callee>
           <callValue> 0 </callValue>
+          <out> .List </out>
           <message> .Bytes </message>
           <returnCode> .ReturnCode </returnCode>
           <interimStates> .List </interimStates>
@@ -288,7 +289,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
     rule <instrs> #finish => .K ... </instrs>
          <valstack> <i32> LENGTH : <i32> OFFSET : VS => VS </valstack>
          <callee> CALLEE </callee>
-         <message> MSG => MSG +Bytes #getBytesRange(DATA, OFFSET, LENGTH) </message>
+         <out> ... (.List => ListItem(#getBytesRange(DATA, OFFSET, LENGTH))) </out>
          <account>
            <address> CALLEE </address>
            <codeIdx> MODIDX:Int </codeIdx>
@@ -858,6 +859,7 @@ The (incorrect) default implementation of a host call is to just return zero val
          <caller> _ => FROM </caller>
          <callee> _ => TO   </callee>
          <callValue> _ => VALUE </callValue>
+         <out> _ => .List </out>
          <message> _ => .Bytes </message>
          <returnCode> _ => .ReturnCode </returnCode>
          <bigIntHeap> _ => .Map </bigIntHeap>
@@ -1229,10 +1231,21 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 
 ```k
     syntax Step ::= Assertion
+ // --------------------------
 
-    syntax Assertion ::= #assertMessage ( Bytes )
- // ---------------------------------------------
-    rule <k> #assertMessage(BS) => . ... </k>
+    syntax Assertion ::= assertOut    ( BytesStack ) [klabel(assertOut), symbol]
+                       | assertOutAux ( BytesStack, List)
+ // -----------------------------------------------------
+    rule <k> assertOut(BS) => assertOutAux(BS, OUT) ... </k>
+         <out> OUT </out>
+
+    rule <k> assertOutAux(BS : RESTB, ListItem(BS) RESTL) => assertOutAux(RESTB, RESTL) ... </k>
+
+    rule <k> assertOutAux(.BytesStack, .List) => . ... </k>
+
+    syntax Assertion ::= assertMessage ( Bytes ) [klabel(assertMessage), symbol]
+ // ----------------------------------------------------------------------------
+    rule <k> assertMessage(BS) => . ... </k>
          <message> BS </message>
       [priority(60)]
 ```

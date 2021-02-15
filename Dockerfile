@@ -20,6 +20,7 @@ WORKDIR /home/user
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly --target wasm32-unknown-unknown
 ENV PATH=/home/user/.cargo/bin:$PATH
 
+RUN python3 -m pip install --upgrade pip
 RUN pip3 install --user --upgrade \
                  cytoolz    \
                  erdpy      \

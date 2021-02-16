@@ -272,7 +272,7 @@ module ELROND
     syntax InternalCmd ::= "#exception"
  // -----------------------------------
     rule <commands> (#exception ~> _) => popWorldState </commands>
-         <instrs> _ => .K </instrs>
+         <instrs> _ => . </instrs>
 ```
 
 ### Host Calls
@@ -286,7 +286,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
 
     syntax InternalInstr ::= "#finish"
  // ----------------------------------
-    rule <instrs> #finish => .K ... </instrs>
+    rule <instrs> #finish => . ... </instrs>
          <valstack> <i32> LENGTH : <i32> OFFSET : VS => VS </valstack>
          <callee> CALLEE </callee>
          <out> ... (.List => ListItem(#getBytesRange(DATA, OFFSET, LENGTH))) </out>
@@ -544,7 +544,6 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
     rule #cmpInt(I1, I2) =>  1 requires I1  >Int I2
     rule #cmpInt(I1, I2) =>  0 requires I1 ==Int I2
 
-
     syntax Int ::= #bigIntSign ( Int ) [function, functional]
  // ---------------------------------------------------------
     rule #bigIntSign(I) => 0  requires I ==Int 0
@@ -656,7 +655,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </instrs>
          <locals> 0 |-> <i32> OFFSET </locals>
          <curBlockRandomSeed> SEED </curBlockRandomSeed>
-
 ```
 
 #### Other Host Calls
@@ -673,7 +671,7 @@ The (incorrect) default implementation of a host call is to just return zero val
 
     syntax InternalInstr ::= "#signalError"
  // ---------------------------------------
-    rule <instrs> (#signalError ~> _) => .K </instrs>
+    rule <instrs> (#signalError ~> _) => . </instrs>
          <valstack> <i32> LENGTH : <i32> OFFSET : VS => VS </valstack>
          <callee> CALLEE </callee>
          <returnCode> _ => UserError </returnCode>
@@ -705,7 +703,7 @@ The (incorrect) default implementation of a host call is to just return zero val
     syntax InternalInstr ::= "#transferValue"
                            | #transferValueAux ( Bytes, Bytes, Int )
                            | "#waitForTransfer"
- // ----------------------------------------------------------------
+ // -------------------------------------------
     rule <instrs> #transferValue
                => #transferValueAux(CALLEE, #getBytesRange(DATA, DESTOFFSET, 32), Bytes2Int(#getBytesRange(DATA, VALUEOFFSET, 32), BE, Unsigned))
                   ...
@@ -731,7 +729,7 @@ The (incorrect) default implementation of a host call is to just return zero val
       requires (VALUEOFFSET +Int 32) <=Int (SIZE *Int #pageSize())
        andBool (DESTOFFSET +Int 32) <=Int (SIZE *Int #pageSize())
 
-    rule <commands> (.K => transferFunds(ACCTFROM, ACCTTO, VALUE)) ... </commands>
+    rule <commands> (. => transferFunds(ACCTFROM, ACCTTO, VALUE)) ... </commands>
          <instrs> #transferValueAux(ACCTFROM, ACCTTO, VALUE) => #waitForTransfer ~> i32.const 0 ... </instrs>
 ```
 
@@ -783,7 +781,7 @@ The (incorrect) default implementation of a host call is to just return zero val
 
     syntax InternalCmd ::= "pushWorldState"
  // ---------------------------------------
-    rule <commands> pushWorldState => .K ... </commands>
+    rule <commands> pushWorldState => . ... </commands>
          <interimStates> (.List => ListItem({ ACCTDATA | ACCTS })) ... </interimStates>
          <activeAccounts> ACCTS    </activeAccounts>
          <accounts>       ACCTDATA </accounts>
@@ -791,7 +789,7 @@ The (incorrect) default implementation of a host call is to just return zero val
 
     syntax InternalCmd ::= "popWorldState"
  // --------------------------------------
-    rule <commands> popWorldState => .K ... </commands>
+    rule <commands> popWorldState => . ... </commands>
          <interimStates> (ListItem({ ACCTDATA | ACCTS }) => .List) ... </interimStates>
          <activeAccounts> _ => ACCTS    </activeAccounts>
          <accounts>       _ => ACCTDATA </accounts>
@@ -799,13 +797,13 @@ The (incorrect) default implementation of a host call is to just return zero val
 
     syntax InternalCmd ::= "dropWorldState"
  // ---------------------------------------
-    rule <commands> dropWorldState => .K ... </commands>
+    rule <commands> dropWorldState => . ... </commands>
          <interimStates> (ListItem(_) => .List) ... </interimStates>
       [priority(60)]
 
     syntax InternalCmd ::= transferFunds ( Bytes, Bytes, Int )
                          | "#transferSuccess"
- // ----------------------------------------------------------
+ // -----------------------------------------
     rule <commands> transferFunds(ACCT, ACCT, VALUE) => #transferSuccess ... </commands>
          <account>
            <address> ACCT </address>
@@ -829,16 +827,16 @@ The (incorrect) default implementation of a host call is to just return zero val
       requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
       [priority(60)]
 
-    rule <commands> #transferSuccess => .K ... </commands>
+    rule <commands> #transferSuccess => . ... </commands>
          <instrs> . </instrs>
 
-    rule <commands> #transferSuccess => .K ... </commands>
-         <instrs> #waitForTransfer => .K ... </instrs>
+    rule <commands> #transferSuccess => . ... </commands>
+         <instrs> #waitForTransfer => . ... </instrs>
 
     syntax InternalCmd ::= callContract ( Bytes, Bytes, Int,     String, List, Int, Int ) [klabel(callContractString)]
                          | callContract ( Bytes, Bytes, Int, WasmString, List, Int, Int ) [klabel(callContractWasmString)]
                          | mkCall       ( Bytes, Bytes, Int, WasmString, List, Int, Int )
- // ----------------------------------------------------------------------------------------------------------------------
+ // -------------------------------------------------------------------------------------
     rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:String, ARGS, GASLIMIT, GASPRICE)
                  => callContract(FROM, TO, VALUE, #unparseWasmString("\"" +String FUNCNAME +String "\""), ARGS, GASLIMIT, GASPRICE)
                     ...
@@ -854,7 +852,7 @@ The (incorrect) default implementation of a host call is to just return zero val
          </commands>
       [priority(60)]
 
-    rule <commands> mkCall(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => .K ... </commands>
+    rule <commands> mkCall(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
          <callingArguments> _ => ARGS </callingArguments>
          <caller> _ => FROM </caller>
          <callee> _ => TO   </callee>

@@ -91,12 +91,18 @@
         <callValue>
           0
         </callValue>
-        <returnData>
+        <out>
+          .List
+        </out>
+        <message>
           b""
-        </returnData>
-        <returnStatus>
-          .ReturnStatus
-        </returnStatus>
+        </message>
+        <returnCode>
+          .ReturnCode
+        </returnCode>
+        <interimStates>
+          .List
+        </interimStates>
       </callState>
       <activeAccounts>
         .Set
@@ -104,6 +110,40 @@
       <accounts>
         .AccountCellMap
       </accounts>
+      <previousBlockInfo>
+        <prevBlockTimestamp>
+          0
+        </prevBlockTimestamp>
+        <prevBlockNonce>
+          0
+        </prevBlockNonce>
+        <prevBlockRound>
+          0
+        </prevBlockRound>
+        <prevBlockEpoch>
+          0
+        </prevBlockEpoch>
+        <prevBlockRandomSeed>
+          b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        </prevBlockRandomSeed>
+      </previousBlockInfo>
+      <currentBlockInfo>
+        <curBlockTimestamp>
+          0
+        </curBlockTimestamp>
+        <curBlockNonce>
+          0
+        </curBlockNonce>
+        <curBlockRound>
+          0
+        </curBlockRound>
+        <curBlockEpoch>
+          0
+        </curBlockEpoch>
+        <curBlockRandomSeed>
+          b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        </curBlockRandomSeed>
+      </currentBlockInfo>
     </node>
     <bigIntHeap>
       .Map

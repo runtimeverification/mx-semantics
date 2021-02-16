@@ -128,7 +128,7 @@ def mandos_to_set_account(address, sections, filename, output_dir):
     if 'code' in sections:
         code_path = get_contract_code(sections['code'], filename)
         if code_path is not None:
-            code_value = file_to_module_decl(code, output_dir)
+            code_value = file_to_module_decl(code_path, output_dir)
 
     storage_pairs = [ (mandos_argument_to_kbytes(k), mandos_argument_to_kbytes(v)) for (k, v) in sections['storage'].items() ]
     storage_value = KMap(storage_pairs)
@@ -301,18 +301,14 @@ def get_steps_set_state(step, filename, output_dir):
     if 'newAddresses' in step:
         new_addresses = get_steps_new_addresses(step['newAddresses'])
         k_steps = k_steps + new_addresses
-    def block_infos_helper(state : str):
-        """State is either 'current' or 'previous'"""
-        label = state + 'BlockInfo'
-        block_infos = mandos_to_block_info(step[label])
-        state_block_infos = list(map(lambda x: KApply(label, [x]), block_infos))
-        return state_block_infos
     if 'currentBlockInfo' in step:
-        curr = block_infos_helper('current')
-        k_steps = k_steps + curr
+        block_infos = mandos_to_block_info(step['currentBlockInfo'])
+        set_current_blockInfos = list(map(lambda x: KApply('setCurBlockInfo', [x]), block_infos))
+        k_steps = k_steps + set_current_blockInfos
     if 'previousBlockInfo' in step:
-        prev = block_infos_helper('previous')
-        k_steps = k_steps + prev
+        block_infos = mandos_to_block_info(step['previousBlockInfo'])
+        set_previous_blockInfos = list(map(lambda x: KApply('setPrevBlockInfo', [x]), block_infos))
+        k_steps = k_steps + set_previous_blockInfos
     if k_steps == []:
         raise Exception('Step not implemented: %s' % step)
     return k_steps

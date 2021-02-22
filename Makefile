@@ -61,23 +61,29 @@ KOMPILE_OPTS       := --emit-json
 
 MAIN_MODULE        := MANDOS
 MAIN_SYNTAX_MODULE := MANDOS-SYNTAX
-MAIN_DEFN_FILE     := elrond
+MAIN_DEFN_FILE     := mandos
+
+EXTRA_FILE_NAMES      := elrond        \
+                         mandos        \
+                         wasm-coverage
+EXTRA_FILES           := $(patsubst %,%.md,$(EXTRA_FILE_NAMES))
+EXTRA_FILES_KWASM_DIR := $(patsubst %,$(KWASM_SUBMODULE)/%.md,$(EXTRA_FILE_NAMES))
 
 build: build-llvm
 
 # Semantics Build
 # ---------------
 
-build-llvm: $(KWASM_SUBMODULE)/$(MAIN_DEFN_FILE).md
+build-llvm: $(EXTRA_FILES_KWASM_DIR)
 	$(KWASM_MAKE) build-llvm                             \
 	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)            \
 	    llvm_main_module=$(MAIN_MODULE)                  \
 	    llvm_syntax_module=$(MAIN_SYNTAX_MODULE)         \
 	    llvm_main_file=$(MAIN_DEFN_FILE)                 \
-	    EXTRA_SOURCE_FILES=$(MAIN_DEFN_FILE).md          \
+	    EXTRA_SOURCE_FILES="$(EXTRA_FILES)"              \
 	    KOMPILE_OPTS="$(KOMPILE_OPTS)"
 
-$(KWASM_SUBMODULE)/$(MAIN_DEFN_FILE).md: $(MAIN_DEFN_FILE).md
+$(KWASM_SUBMODULE)/%.md: %.md
 	cp $< $@
 
 # Testing

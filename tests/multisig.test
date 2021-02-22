@@ -1,0 +1,3 @@
+deps/elrond-wasm-rs/contracts/examples/multisig/mandos/changeBoard.scen.json
+deps/elrond-wasm-rs/contracts/examples/multisig/mandos/changeQuorum.scen.json
+deps/elrond-wasm-rs/contracts/examples/multisig/mandos/changeQuorum_tooBig.scen.json

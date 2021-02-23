@@ -136,6 +136,8 @@ mandos_tests=$(sort $(wildcard $(MANDOS_TESTS_DIR)/*.scen.json))
 mandos-test: $(llvm_kompiled)
 	$(TEST_MANDOS) $(mandos_tests)
 
+## Adder Test
+
 ELROND_ADDER_SUBMODULE := $(ELROND_CONTRACT_EXAMPLES)/adder
 ELROND_ADDER_TESTS_DIR=$(ELROND_ADDER_SUBMODULE)/mandos
 elrond_adder_tests=$(ELROND_ADDER_TESTS_DIR)/adder.scen.json
@@ -146,6 +148,8 @@ $(ELROND_ADDER_SUBMODULE)/output/adder.wasm: $(ELROND_ADDER_SUBMODULE)/output/ad
 elrond-adder-test: $(ELROND_ADDER_SUBMODULE)/output/adder.wasm
 	$(TEST_MANDOS) $(elrond_adder_tests) --coverage
 
+## Lottery Test
+
 ELROND_LOTTERY_SUBMODULE=$(ELROND_CONTRACT_EXAMPLES)/lottery-egld
 elrond_lottery_tests=$(shell find $(ELROND_LOTTERY_SUBMODULE) -name "*.scen.json")
 
@@ -153,9 +157,19 @@ elrond_lottery_tests=$(shell find $(ELROND_LOTTERY_SUBMODULE) -name "*.scen.json
 $(ELROND_LOTTERY_SUBMODULE)/output/lottery.wasm: $(ELROND_LOTTERY_SUBMODULE)/output/lottery-egld-dbg.wasm
 	cp $< $@
 
-
 elrond-lottery-test: $(ELROND_LOTTERY_SUBMODULE)/output/lottery.wasm
 	$(TEST_MANDOS) $(elrond_lottery_tests) --coverage
+
+## Multisg Test
+
+ELROND_MULTISIG_SUBMODULE=$(ELROND_CONTRACT_EXAMPLES)/multisig
+elrond_multisig_tests=$(shell cat tests/multisig.test)
+
+$(ELROND_MULTISIG_SUBMODULE)/output/multisig.wasm: $(ELROND_MULTISIG_SUBMODULE)/output/multisig-dbg.wasm
+	cp $< $@
+
+elrond-multisig-test:$(ELROND_MULTISIG_SUBMODULE)/output/multisig.wasm
+	$(TEST_MANDOS) $(elrond_multisig_tests) --coverage
 
 # Unit Tests
 # ----------

@@ -6,7 +6,7 @@ require "wasm-text.md"
 require "wasm-coverage.md"
 ```
 
-Erlond Node
+Elrond Node
 -----------
 ```k
 module ELROND-NODE
@@ -113,7 +113,7 @@ Currently, only function imports are supported.
 Calling an imported host function will result in `hostCall(MODULE_NAME, FUNCTION_NAME, FUNCTION_TYPE)` being left on the `instrs` cell.
 
 ```k
-module AUTO-ALLOCATE
+module WASM-AUTO-ALLOCATE
     imports WASM-TEXT
 
     syntax Stmt ::= "newEmptyModule" WasmString
@@ -183,14 +183,14 @@ It is treated purely as a key set -- the actual stored values are not used or st
 endmodule
 ```
 
-Combine Elrond Node With WASM
+Combine Elrond Node With Wasm
 -----------------------------
 
 ```k
 module ELROND
     imports WASM-TEXT
     imports WASM-COVERAGE
-    imports AUTO-ALLOCATE
+    imports WASM-AUTO-ALLOCATE
     imports ELROND-NODE
 
     configuration
@@ -221,18 +221,18 @@ module ELROND
          <bytesStack> _ : STACK => STACK </bytesStack>
 ```
 
-### Node And WASM VM Synchronization
+### Node And Wasm VM Synchronization
 
-- `#endWASM` waits for the WASM VM to finish the execution and check the return code.
+- `#endWasm` waits for the Wasm VM to finish the execution and check the return code.
 
 ```k
-    syntax InternalCmd ::= "#endWASM"
+    syntax InternalCmd ::= "#endWasm"
  // ---------------------------------
-    rule <commands> #endWASM => dropWorldState ... </commands>
+    rule <commands> #endWasm => dropWorldState ... </commands>
          <returnCode> .ReturnCode => OK </returnCode>
          <instrs> . </instrs>
 
-    rule <commands> #endWASM => #exception ... </commands>
+    rule <commands> #endWasm => #exception ... </commands>
          <returnCode> _:ExceptionCode </returnCode>
          <instrs> . </instrs>
 ```
@@ -819,7 +819,7 @@ The (incorrect) default implementation of a host call is to just return zero val
                  => pushWorldState
                  ~> transferFunds(FROM, TO, VALUE)
                  ~> mkCall(FROM, TO, VALUE, FUNCNAME, ARGS, GASLIMIT, GASPRICE)
-                 ~> #endWASM
+                 ~> #endWasm
                     ...
          </commands>
       [priority(60)]

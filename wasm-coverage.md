@@ -1,4 +1,4 @@
-WASM Code Coverage
+Wasm Code Coverage
 ==================
 
 ```k

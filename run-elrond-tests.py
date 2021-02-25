@@ -57,7 +57,7 @@ def config_to_kast_term(config):
 
 ###############################
 
-WASM_definition_main_file = 'elrond'
+WASM_definition_main_file = 'mandos'
 WASM_definition_llvm_no_coverage_dir = '.build/defn/llvm'
 WASM_definition_llvm_no_coverage_kompiled_dir = WASM_definition_llvm_no_coverage_dir + '/' + WASM_definition_main_file + '-kompiled'
 WASM_definition_llvm_no_coverage = pyk.readKastTerm(WASM_definition_llvm_no_coverage_kompiled_dir + '/compiled.json')

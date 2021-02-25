@@ -1,125 +1,13 @@
+Elrond Semantics
+================
+
 ```k
 require "wasm-text.md"
-
-module MANDOS-SYNTAX
-    imports MANDOS
-    imports WASM-TEXT-SYNTAX
-endmodule
+require "wasm-coverage.md"
 ```
 
-## Auto Allocate Host Modules
-
-When `AUTO-ALLOCATE` is imported, an new module will be automatically created and registered whenever necessary to resolve an import.
-This makes it possible to implement host modules easily in K.
-Accessing the import will result in an instruction being left on the `instrs` cell that can't be resolved in the regular Wasm semantics.
-Instead, the embedder can add rules for handling the host import.
-
-Currently, only function imports are supported.
-Calling an imported host function will result in `hostCall(MODULE_NAME, FUNCTION_NAME, FUNCTION_TYPE)` being left on the `instrs` cell.
-
-```k
-module AUTO-ALLOCATE
-    imports WASM-TEXT
-
-    syntax Stmt ::= "newEmptyModule" WasmString
- // -------------------------------------------
-    rule <instrs> newEmptyModule MODNAME => . ... </instrs>
-         <moduleRegistry> MR => MR [ MODNAME <- NEXT ] </moduleRegistry>
-         <nextModuleIdx> NEXT => NEXT +Int 1 </nextModuleIdx>
-         <moduleInstances> ( .Bag => <moduleInst> <modIdx> NEXT </modIdx> ... </moduleInst>) ... </moduleInstances>
-
-    syntax Stmts ::=  autoAllocModules ( ModuleDecl, Map ) [function]
-                   | #autoAllocModules ( Defns     , Map ) [function]
- // -----------------------------------------------------------------
-    rule  autoAllocModules(#module(... importDefns:IS), MR) => #autoAllocModules(IS, MR)
-```
-
-In helper function `#autoAllocModules`, the module registry map is passed along to check if the module being imported from is present.
-It is treated purely as a key set -- the actual stored values are not used or stored anywhere.
-
-```k
-    rule #autoAllocModules(.Defns, _) => .Stmts
-    rule #autoAllocModules((#import(MOD, _, _) DS) => DS, MR) requires MOD in_keys(MR)
-    rule #autoAllocModules((#import(MOD, _, _) DS), MR)
-      => newEmptyModule MOD #autoAllocModules(DS, MR [MOD <- -1])
-      requires notBool MOD in_keys(MR)
-
-    rule <instrs> MD:ModuleDecl
-               => sequenceStmts(autoAllocModules(MD, MR))
-               ~> MD
-              ...
-         </instrs>
-         <moduleRegistry> MR </moduleRegistry>
-      requires autoAllocModules(MD, MR) =/=K .Stmts
-      [priority(10)]
-
-    syntax Instr ::= hostCall(String, String, FuncType)
- // ---------------------------------------------------
-    rule <instrs> (. => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(wasmString2StringStripped(MOD), wasmString2StringStripped(NAME), TYPE) .Instrs, #meta(... id: String2Identifier("$auto-alloc:" +String #parseWasmString(MOD) +String ":" +String #parseWasmString(NAME) ), localIds: .Map )))
-               ~> #import(MOD, NAME, #funcDesc(... type: TIDX))
-              ...
-         </instrs>
-         <curModIdx> CUR </curModIdx>
-         <moduleInst>
-           <modIdx> CUR </modIdx>
-           <types> ... TIDX |-> TYPE ... </types>
-           ...
-        </moduleInst>
-        <nextFuncAddr> NEXTADDR => NEXTADDR +Int 1 </nextFuncAddr>
-        <moduleRegistry> ... MOD |-> HOSTMOD ... </moduleRegistry>
-        <moduleInst>
-          <modIdx> HOSTMOD </modIdx>
-          <exports> EXPORTS => EXPORTS [NAME <- NEXTFUNC ] </exports>
-          <funcAddrs> FS => FS [NEXTFUNC <- NEXTADDR] </funcAddrs>
-          <nextFuncIdx> NEXTFUNC => NEXTFUNC +Int 1 </nextFuncIdx>
-          <nextTypeIdx> NEXTTYPE => NEXTTYPE +Int 1 </nextTypeIdx>
-          <types> TYPES => TYPES [ NEXTTYPE <- TYPE ] </types>
-          ...
-        </moduleInst>
-      requires notBool NAME in_keys(EXPORTS)
-
-    syntax String ::= wasmString2StringStripped ( WasmString ) [function]
-                    | #stripQuotes ( String ) [function]
- // ----------------------------------------------------
-    rule wasmString2StringStripped(WS) => #stripQuotes(#parseWasmString(WS))
-
-    rule #stripQuotes(S) => replaceAll(S, "\"", "")
-
-endmodule
-```
-
-## Coverage
-
-```k
-module WASM-COVERAGE
-    imports WASM
-
-    configuration
-      <wasmCoverage>
-          <coveredFuncs> .Set </coveredFuncs>
-          <notCoveredFuncs> .Map </notCoveredFuncs>
-          <wasm/>
-      </wasmCoverage>
-
-    syntax FuncCoverageDescription ::= fcd ( mod: Int, addr: Int, id: OptionalId ) [klabel(fcd), symbol]
- // ----------------------------------------------------------------------------------------------------
-
-    rule <instrs> ( invoke I ):Instr ... </instrs>
-         <coveredFuncs> COV => COV SetItem(NCOV[I]) </coveredFuncs>
-         <notCoveredFuncs> NCOV => NCOV [I <- undef] </notCoveredFuncs>
-      requires I in_keys(NCOV)
-      [priority(10)]
-
-    rule <instrs> allocfunc(MOD, ADDR, _, _, _, #meta(... id: OID)) ... </instrs>
-         <notCoveredFuncs> NCOV => NCOV [ ADDR <- fcd(MOD, ADDR, OID)] </notCoveredFuncs>
-      requires notBool ADDR in_keys(NCOV)
-      [priority(10)]
-
-endmodule
-```
-
-## Elrond Node
-
+Elrond Node
+-----------
 ```k
 module ELROND-NODE
     imports DOMAINS
@@ -209,19 +97,100 @@ The length is the number of bytes the argument represents.
  // ------------------------------------------------------------
     rule valueArg (arg(V, _)) => V
     rule lengthArg(arg(_, L)) => L
-```
 
-```k
 endmodule
 ```
 
-## Connecting Node and Wasm
+Auto Allocate Host Modules
+--------------------------
+
+When `AUTO-ALLOCATE` is imported, an new module will be automatically created and registered whenever necessary to resolve an import.
+This makes it possible to implement host modules easily in K.
+Accessing the import will result in an instruction being left on the `instrs` cell that can't be resolved in the regular Wasm semantics.
+Instead, the embedder can add rules for handling the host import.
+
+Currently, only function imports are supported.
+Calling an imported host function will result in `hostCall(MODULE_NAME, FUNCTION_NAME, FUNCTION_TYPE)` being left on the `instrs` cell.
+
+```k
+module WASM-AUTO-ALLOCATE
+    imports WASM-TEXT
+
+    syntax Stmt ::= "newEmptyModule" WasmString
+ // -------------------------------------------
+    rule <instrs> newEmptyModule MODNAME => . ... </instrs>
+         <moduleRegistry> MR => MR [ MODNAME <- NEXT ] </moduleRegistry>
+         <nextModuleIdx> NEXT => NEXT +Int 1 </nextModuleIdx>
+         <moduleInstances> ( .Bag => <moduleInst> <modIdx> NEXT </modIdx> ... </moduleInst>) ... </moduleInstances>
+
+    syntax Stmts ::=  autoAllocModules ( ModuleDecl, Map ) [function]
+                   | #autoAllocModules ( Defns     , Map ) [function]
+ // -----------------------------------------------------------------
+    rule  autoAllocModules(#module(... importDefns:IS), MR) => #autoAllocModules(IS, MR)
+```
+
+In helper function `#autoAllocModules`, the module registry map is passed along to check if the module being imported from is present.
+It is treated purely as a key set -- the actual stored values are not used or stored anywhere.
+
+```k
+    rule #autoAllocModules(.Defns, _) => .Stmts
+    rule #autoAllocModules((#import(MOD, _, _) DS) => DS, MR) requires MOD in_keys(MR)
+    rule #autoAllocModules((#import(MOD, _, _) DS), MR)
+      => newEmptyModule MOD #autoAllocModules(DS, MR [MOD <- -1])
+      requires notBool MOD in_keys(MR)
+
+    rule <instrs> MD:ModuleDecl
+               => sequenceStmts(autoAllocModules(MD, MR))
+               ~> MD
+              ...
+         </instrs>
+         <moduleRegistry> MR </moduleRegistry>
+      requires autoAllocModules(MD, MR) =/=K .Stmts
+      [priority(10)]
+
+    syntax Instr ::= hostCall(String, String, FuncType)
+ // ---------------------------------------------------
+    rule <instrs> (. => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(wasmString2StringStripped(MOD), wasmString2StringStripped(NAME), TYPE) .Instrs, #meta(... id: String2Identifier("$auto-alloc:" +String #parseWasmString(MOD) +String ":" +String #parseWasmString(NAME) ), localIds: .Map )))
+               ~> #import(MOD, NAME, #funcDesc(... type: TIDX))
+              ...
+         </instrs>
+         <curModIdx> CUR </curModIdx>
+         <moduleInst>
+           <modIdx> CUR </modIdx>
+           <types> ... TIDX |-> TYPE ... </types>
+           ...
+        </moduleInst>
+        <nextFuncAddr> NEXTADDR => NEXTADDR +Int 1 </nextFuncAddr>
+        <moduleRegistry> ... MOD |-> HOSTMOD ... </moduleRegistry>
+        <moduleInst>
+          <modIdx> HOSTMOD </modIdx>
+          <exports> EXPORTS => EXPORTS [NAME <- NEXTFUNC ] </exports>
+          <funcAddrs> FS => FS [NEXTFUNC <- NEXTADDR] </funcAddrs>
+          <nextFuncIdx> NEXTFUNC => NEXTFUNC +Int 1 </nextFuncIdx>
+          <nextTypeIdx> NEXTTYPE => NEXTTYPE +Int 1 </nextTypeIdx>
+          <types> TYPES => TYPES [ NEXTTYPE <- TYPE ] </types>
+          ...
+        </moduleInst>
+      requires notBool NAME in_keys(EXPORTS)
+
+    syntax String ::= wasmString2StringStripped ( WasmString ) [function]
+                    | #stripQuotes ( String ) [function]
+ // ----------------------------------------------------
+    rule wasmString2StringStripped(WS) => #stripQuotes(#parseWasmString(WS))
+
+    rule #stripQuotes(S) => replaceAll(S, "\"", "")
+
+endmodule
+```
+
+Combine Elrond Node With Wasm
+-----------------------------
 
 ```k
 module ELROND
     imports WASM-TEXT
     imports WASM-COVERAGE
-    imports AUTO-ALLOCATE
+    imports WASM-AUTO-ALLOCATE
     imports ELROND-NODE
 
     configuration
@@ -233,6 +202,10 @@ module ELROND
         <logging> "" </logging>
       </elrond>
 ```
+
+### Helper Functions
+
+- Bytes Stack
 
 ```k
     syntax BytesStack ::= List{Bytes, ":"}
@@ -248,25 +221,23 @@ module ELROND
          <bytesStack> _ : STACK => STACK </bytesStack>
 ```
 
-### Sync With WASM VM
+### Node And Wasm VM Synchronization
 
-`#endWASM` waits for the WASM VM to finish the execution and check the return code.
+- `#endWasm` waits for the Wasm VM to finish the execution and check the return code.
 
 ```k
-    syntax InternalCmd ::= "#endWASM"
+    syntax InternalCmd ::= "#endWasm"
  // ---------------------------------
-    rule <commands> #endWASM => dropWorldState ... </commands>
+    rule <commands> #endWasm => dropWorldState ... </commands>
          <returnCode> .ReturnCode => OK </returnCode>
          <instrs> . </instrs>
 
-    rule <commands> #endWASM => #exception ... </commands>
+    rule <commands> #endWasm => #exception ... </commands>
          <returnCode> _:ExceptionCode </returnCode>
          <instrs> . </instrs>
 ```
 
-### Elrond Exception Command
-
-`#exception` drops the rest of the computation in the `commands` cell and reverts the state.
+- `#exception` drops the rest of the computation in the `commands` and `instrs` cells and reverts the state.
 
 ```k
     syntax InternalCmd ::= "#exception"
@@ -275,11 +246,12 @@ module ELROND
          <instrs> _ => . </instrs>
 ```
 
-### Host Calls
+Host Calls
+----------
 
 Here, host calls are implemented, by defining the semantics when `hostCall(MODULE_NAME, EXPORT_NAME, TYPE)` is left on top of the `instrs` cell.
 
-#### Host Call : finish
+### Host Call : finish
 
 ```k
     rule <instrs> hostCall("env", "finish", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) => #local.get(0) ~> #local.get(1) ~> #finish ... </instrs>
@@ -309,7 +281,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
       requires (OFFSET +Int LENGTH) <=Int (SIZE *Int #pageSize())
 ```
 
-#### Call State
+### Call State
 
 ```k
     rule <instrs> hostCall("env", "getNumArguments", [ .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(ARGS) ... </instrs>
@@ -383,7 +355,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
       requires OFFSET +Int LENGTH <=Int (SIZE *Int #pageSize())
 ```
 
-#### BigInt Heap
+### BigInt Heap
 
 ```k
     rule <instrs> hostCall("env", "bigIntNew", [ i64 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(HEAP) ... </instrs>
@@ -551,7 +523,7 @@ Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
     rule #bigIntSign(I) => -1 requires I <Int 0
 ```
 
-#### Storage
+### Storage
 
 Storing a value returns a status code indicating if and how the storage was modified.
 
@@ -643,7 +615,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule #StorageDeleted   () => 3
 ```
 
-#### Block Information
+### Block Information
 
 ```k
     rule <instrs> hostCall("env", "getBlockTimestamp", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const TIMESTAMP ... </instrs>
@@ -657,7 +629,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <curBlockRandomSeed> SEED </curBlockRandomSeed>
 ```
 
-#### Other Host Calls
+### Other Host Calls
 
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.
 
@@ -847,7 +819,7 @@ The (incorrect) default implementation of a host call is to just return zero val
                  => pushWorldState
                  ~> transferFunds(FROM, TO, VALUE)
                  ~> mkCall(FROM, TO, VALUE, FUNCNAME, ARGS, GASLIMIT, GASPRICE)
-                 ~> #endWASM                
+                 ~> #endWasm
                     ...
          </commands>
       [priority(60)]
@@ -876,378 +848,5 @@ The (incorrect) default implementation of a host call is to just return zero val
          <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
       [priority(60)]
 
-endmodule
-```
-
-## Mandos Testing Framework
-
-```k
-module MANDOS
-    imports ELROND
-
-    configuration
-      <mandos>
-        <k> $PGM:Steps </k>
-        <newAddresses> .Map </newAddresses>
-        <checkedAccounts> .Set </checkedAccounts>
-        <elrond/>
-        <exit-code exit=""> 0 </exit-code>
-      </mandos>
-```
-
-### Wasm and Elrond Interaction
-
-Only take the next step once both the Elrond node and Wasm are done executing.
-
-```k
-    syntax Step ::= "#wait"
- // -----------------------
-    rule <k> #wait => . ... </k>
-         <commands> . </commands>
-         <instrs> . </instrs>
-
-    syntax Steps ::= List{Step, ""} [klabel(mandosSteps), symbol]
- // -------------------------------------------------------------
-    rule <k> .Steps => . </k> [priority(60)]
-    rule <k> S:Step SS:Steps => S ~> SS ... </k> [priority(60)]
-
-    syntax Step ::= "setExitCode" Int
- // ---------------------------------
-    rule <k> setExitCode I => . ... </k>
-         <commands> . </commands>
-         <instrs> . </instrs>
-         <exit-code> _ => I </exit-code>
-      [priority(60)]
-
-    syntax Step ::= ModuleDecl
- // --------------------------
-    rule <k> (module _:OptionalId _:Defns):ModuleDecl #as M => #wait ... </k>
-         <instrs> . => sequenceStmts(text2abstract(M .Stmts)) </instrs>
-    rule <k> M:ModuleDecl => #wait ... </k>
-         <instrs> . => M </instrs>
-      [owise]
-
-    syntax Step ::= "register" String [klabel(register), symbol]
- // ------------------------------------------------------------
-    rule <k> register NAME => . ... </k>
-         <moduleRegistry> REG => REG [NAME <- IDX -Int 1] </moduleRegistry>
-         <nextModuleIdx> IDX </nextModuleIdx>
-      [priority(60)]
-```
-
-### State Setup
-
-```k
-    syntax Step ::= setAccount    ( address: Address, nonce: Int, balance: Int, code: Code, storage: Map )  [klabel(setAccount), symbol]
-                  | setAccountAux ( address: Bytes, nonce: Int, balance: Int, code: Code, storage: Map )    [klabel(setAccountAux), symbol]
-                  | createAndSetAccount ( Bytes, Int, Int, CodeIndex, Map)                                  [klabel(createAndSetAccount), symbol]
- // ---------------------------------------------------------------------------------------------------------------------------------------------
-    rule <k> setAccount(ADDRESS, NONCE, BALANCE, CODE, STORAGE)
-          => setAccountAux(#address2Bytes(ADDRESS), NONCE, BALANCE, CODE, STORAGE) ... </k>
-      [priority(60)]
-
-    rule <k> setAccountAux(ADDRESS, NONCE, BALANCE, .Code, STORAGE)
-          => createAndSetAccount(ADDRESS, NONCE, BALANCE, .CodeIndex, STORAGE) ... </k>
-      [priority(60)]
-
-    rule <k> setAccountAux(ADDRESS, NONCE, BALANCE, MODULE:ModuleDecl, STORAGE)
-          => MODULE ~> createAndSetAccount(ADDRESS, NONCE, BALANCE, NEXTIDX, STORAGE) ... </k>
-         <nextModuleIdx> NEXTIDX </nextModuleIdx>
-      [priority(60)]
-
-    rule <k> createAndSetAccount(ADDRESS, NONCE, BALANCE, CODEIDX, STORAGE) => #wait ... </k>
-         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, CODEIDX, STORAGE) </commands>
-      [priority(60)]
-
-    syntax Step ::= newAddress    ( Address, Int, Address ) [klabel(newAddress), symbol]
-                  | newAddressAux ( Bytes, Int, Bytes )     [klabel(newAddressAux), symbol]
- // ---------------------------------------------------------------------------------------
-    rule <k> newAddress(CREATOR, NONCE, NEW)
-          => newAddressAux(#address2Bytes(CREATOR), NONCE, #address2Bytes(NEW)) ... </k>
-      [priority(60)]
-
-    rule <k> newAddressAux(CREATOR, NONCE, NEW) => . ... </k>
-         <newAddresses> NEWADDRESSES => NEWADDRESSES [tuple(CREATOR, NONCE) <- NEW] </newAddresses>
-      [priority(60)]
-
-    syntax AddressNonce ::= tuple( Bytes , Int )
- // ----------------------------------------------
-
-    syntax Step      ::= setCurBlockInfo  ( BlockInfo ) [klabel(setCurBlockInfo), symbol]
-                       | setPrevBlockInfo ( BlockInfo ) [klabel(setPrevBlockInfo), symbol]
-    syntax BlockInfo ::= blockTimestamp  ( Int )   [klabel(blockTimestamp), symbol]
-                       | blockNonce      ( Int )   [klabel(blockNonce), symbol]
-                       | blockRound      ( Int )   [klabel(blockRound), symbol]
-                       | blockEpoch      ( Int )   [klabel(blockEpoch), symbol]
-                       | blockRandomSeed ( Bytes ) [klabel(blockRandomSeed), symbol]
- // --------------------------------------------------------------------------------
-    rule <k> setCurBlockInfo(blockTimestamp(TIMESTAMP)) => . ... </k>
-         <curBlockTimestamp> _ => TIMESTAMP </curBlockTimestamp>
-      [priority(60)]
-
-    rule <k> setCurBlockInfo(blockNonce(NONCE)) => . ... </k>
-         <curBlockNonce> _ => NONCE </curBlockNonce>
-      [priority(60)]
-
-    rule <k> setCurBlockInfo(blockRound(ROUND)) => . ... </k>
-         <curBlockRound> _ => ROUND </curBlockRound>
-      [priority(60)]
-
-    rule <k> setCurBlockInfo(blockEpoch(EPOCH)) => . ... </k>
-         <curBlockEpoch> _ => EPOCH </curBlockEpoch>
-      [priority(60)]
-
-    rule <k> setCurBlockInfo(blockRandomSeed(SEED)) => . ... </k>
-         <curBlockRandomSeed> _ => SEED </curBlockRandomSeed>
-      [priority(60)]
-
-    rule <k> setPrevBlockInfo(blockTimestamp(TIMESTAMP)) => . ... </k>
-         <prevBlockTimestamp> _ => TIMESTAMP </prevBlockTimestamp>
-      [priority(60)]
-
-    rule <k> setPrevBlockInfo(blockNonce(NONCE)) => . ... </k>
-         <prevBlockNonce> _ => NONCE </prevBlockNonce>
-      [priority(60)]
-
-    rule <k> setPrevBlockInfo(blockRound(ROUND)) => . ... </k>
-         <prevBlockRound> _ => ROUND </prevBlockRound>
-      [priority(60)]
-
-    rule <k> setPrevBlockInfo(blockEpoch(EPOCH)) => . ... </k>
-         <prevBlockEpoch> _ => EPOCH </prevBlockEpoch>
-      [priority(60)]
-
-    rule <k> setPrevBlockInfo(blockRandomSeed(SEED)) => . ... </k>
-         <prevBlockRandomSeed> _ => SEED </prevBlockRandomSeed>
-      [priority(60)]
-```
-
-### Check State
-```k
-    syntax Step ::= checkAccountNonce    ( Address, Int ) [klabel(checkAccountNonce), symbol]
-                  | checkAccountNonceAux ( Bytes, Int )   [klabel(checkAccountNonceAux), symbol]
- // --------------------------------------------------------------------------------------------
-    rule <k> checkAccountNonce(ADDRESS, NONCE)
-             => checkAccountNonceAux(#address2Bytes(ADDRESS), NONCE) ... </k>
-      [priority(60)]
-
-    rule <k> checkAccountNonceAux(ADDR, NONCE) => . ... </k>
-         <account>
-           <address> ADDR </address>
-           <nonce> NONCE </nonce>
-           ...
-         </account>
-      [priority(60)]
-
-    syntax Step ::= checkAccountBalance    ( Address, Int ) [klabel(checkAccountBalance), symbol]
-                  | checkAccountBalanceAux ( Bytes, Int )   [klabel(checkAccountBalanceAux), symbol]
- // ------------------------------------------------------------------------------------------------
-    rule <k> checkAccountBalance(ADDRESS, BALANCE)
-             => checkAccountBalanceAux(#address2Bytes(ADDRESS), BALANCE) ... </k>
-      [priority(60)]
-
-    rule <k> checkAccountBalanceAux(ADDR, BALANCE) => . ... </k>
-         <account>
-           <address> ADDR </address>
-           <balance> BALANCE </balance>
-           ...
-         </account>
-      [priority(60)]
-
-    syntax Step ::= checkAccountStorage    ( Address, Map ) [klabel(checkAccountStorage), symbol]
-                  | checkAccountStorageAux ( Bytes, Map )   [klabel(checkAccountStorageAux), symbol]
- // ------------------------------------------------------------------------------------------------
-    rule <k> checkAccountStorage(ADDRESS, STORAGE)
-             => checkAccountStorageAux(#address2Bytes(ADDRESS), STORAGE) ... </k>
-      [priority(60)]
-
-    rule <k> checkAccountStorageAux(ADDR, STORAGE) => . ... </k>
-         <account>
-           <address> ADDR </address>
-           <storage> STORAGE </storage>
-           ...
-         </account>
-      [priority(60)]
-
-    syntax Step ::= checkAccountCode    ( Address, String ) [klabel(checkAccountCode), symbol]
-                  | checkAccountCodeAux ( Bytes, String )   [klabel(checkAccountCodeAux), symbol]
- // ---------------------------------------------------------------------------------------------
-    rule <k> checkAccountCode(ADDRESS, CODEPATH)
-             => checkAccountCodeAux(#address2Bytes(ADDRESS), CODEPATH) ... </k>
-      [priority(60)]
-
-    rule <k> checkAccountCodeAux(ADDR, "") => . ... </k>
-         <account>
-           <address> ADDR </address>
-           <codeIdx> .CodeIndex </codeIdx>
-           ...
-         </account>
-      [priority(60)]
-
-    rule <k> checkAccountCodeAux(ADDR, CODEPATH) => . ... </k>
-         <account>
-           <address> ADDR </address>
-           <codeIdx> CODEINDEX </codeIdx>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> CODEINDEX </modIdx>
-           <moduleMetadata>
-             <moduleFileName> CODEPATH </moduleFileName>
-             ...
-           </moduleMetadata>
-           ...
-         </moduleInst>
-      requires CODEPATH =/=String ""
-      [priority(60)]
-
-    syntax Step ::= checkedAccount    ( Address ) [klabel(checkedAccount), symbol]
-                  | checkedAccountAux ( Bytes )   [klabel(checkedAccountAux), symbol]
- // ---------------------------------------------------------------------------------
-    rule <k> checkedAccount(ADDRESS)
-             => checkedAccountAux(#address2Bytes(ADDRESS)) ... </k>
-      [priority(60)]
-
-    rule <k> checkedAccountAux(ADDR) => . ... </k>
-         <checkedAccounts> ... (.Set => SetItem(ADDR)) ... </checkedAccounts>
-      [priority(60)]
-
-    syntax Step ::= "checkNoAdditionalAccounts" [klabel(checkNoAdditionalAccounts), symbol]
- // ---------------------------------------------------------------------------------------
-    rule <k> checkNoAdditionalAccounts => . ... </k>
-         <checkedAccounts> CHECKEDACCTS </checkedAccounts>
-         <activeAccounts> CHECKEDACCTS </activeAccounts>
-      [priority(60)]
-
-    syntax Step ::= "clearCheckedAccounts" [klabel(clearCheckedAccounts), symbol]
- // -----------------------------------------------------------------------------
-    rule <k> clearCheckedAccounts => . ... </k>
-         <checkedAccounts> _ => .Set </checkedAccounts>
-      [priority(60)]
-```
-
-### Contract Interactions
-
-```k
-    syntax Step ::= scDeploy ( DeployTx, Expect ) [klabel(scDeploy), symbol]
- // ------------------------------------------------------------------------
-    rule <k> scDeploy( TX, EXPECT ) => TX ~> EXPECT ... </k> [priority(60)]
-
-    syntax DeployTx ::= deployTx    ( Address, Int, ModuleDecl, List, Int, Int ) [klabel(deployTx), symbol]
-                      | deployTxAux ( Bytes, Int, ModuleDecl, List, Int, Int )   [klabel(deployTxAux), symbol]
- // ----------------------------------------------------------------------------------------------------------
-    rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE)
-          => deployTxAux(#address2Bytes(FROM), VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) ... </k>
-      [priority(60)]
-
-    rule <k> deployTxAux(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE)
-          => MODULE ~> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) ... </k>
-      [priority(60)]
-
-    syntax Deployment ::= deployLastModule( Bytes, Int, List, Int, Int )
- // ----------------------------------------------------------------------
-    rule <k> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
-         <commands> . => createAccount(NEWADDR)
-                 ~> setAccountCodeIndex(NEWADDR, NEXTIDX -Int 1)
-                 ~> callContract(FROM, NEWADDR, VALUE, "init", ARGS, GASLIMIT, GASPRICE)
-         </commands>
-         <account>
-            <address> FROM </address>
-            <nonce> NONCE => NONCE +Int 1 </nonce>
-            <balance> BALANCE => BALANCE -Int GASLIMIT *Int GASPRICE </balance>
-            ...
-         </account>
-         <nextModuleIdx> NEXTIDX </nextModuleIdx>
-         <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
-         <logging> S => S +String " -- deployLastModule: " +String Int2String(NEXTIDX -Int 1) </logging>
-      [priority(60)]
-
-    syntax Step ::= scCall( CallTx, Expect ) [klabel(scCall), symbol]
- // ----------------------------------------------------------------
-    rule <k> scCall( TX, EXPECT ) => TX ~> EXPECT ... </k> [priority(60)]
-
-    syntax CallTx ::= callTx    (from: Address, to: Address, value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
-                    | callTxAux (from: Bytes,   to: Bytes,   value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
- // ------------------------------------------------------------------------------------------------------------------------------------------------------------
-    rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE)
-          => callTxAux(#address2Bytes(FROM), #address2Bytes(TO), VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) ... </k>
-      [priority(60)]
-
-    rule <k> callTxAux(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
-         <commands> . => callContract(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>
-         <account>
-            <address> FROM </address>
-            <nonce> NONCE => NONCE +Int 1 </nonce>
-            <balance> BALANCE => BALANCE -Int GASLIMIT *Int GASPRICE </balance>
-            ...
-         </account>
-         <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
-      [priority(60)]
-
-    syntax Expect ::= ".Expect" [klabel(.Expect), symbol]
- // -------------------------------------------------------
-    rule <k> .Expect => . ... </k> [priority(60)]
-
-    syntax Step ::= transfer(TransferTx) [klabel(transfer), symbol]
- // -----------------------------------------------------
-    rule <k> transfer(TX) => TX ... </k> [priority(60)]
-
-    syntax TransferTx ::= transferTx    ( from: Address, to: Bytes, value: Int ) [klabel(transferTx), symbol]
-                        | transferTxAux ( from: Bytes, to: Bytes, value: Int )   [klabel(transferTxAux), symbol]
- // ------------------------------------------------------------------------------------------------------------
-    rule <k> transferTx(FROM, TO, VAL) => transferTxAux(#address2Bytes(FROM), #address2Bytes(TO), VAL) ... </k> [priority(60)]
-
-    rule <k> transferTxAux(FROM, TO, VAL) => #wait ... </k>
-         <commands> . => transferFunds(FROM, TO, VAL) </commands>
-      [priority(60)]
-
-    syntax Step ::= validatorReward(ValidatorRewardTx) [klabel(validatorReward), symbol]
- // ------------------------------------------------------------------------------------
-    rule <k> validatorReward(TX) => TX ... </k> [priority(60)]
-
-    syntax ValidatorRewardTx ::= validatorRewardTx    ( to: Address, value: Int) [klabel(validatorRewardTx), symbol]
-                               | validatorRewardTxAux ( to: Bytes, value: Int )  [klabel(validatorRewardTxAux), symbol]
- // -------------------------------------------------------------------------------------------------------------------
-    rule <k> validatorRewardTx(TO, VAL) => validatorRewardTxAux(#address2Bytes(TO), VAL) ... </k> [priority(60)]
-
-    rule <k> validatorRewardTxAux(TO, VAL) => . ... </k>
-         <account>
-           <address> TO </address>
-            <storage> STOR => STOR[String2Bytes("ELRONDrewards") <- #incBytes({STOR[String2Bytes("ELRONDrewards")]}:>Bytes, VAL)] </storage>
-            <balance> TO_BAL => TO_BAL +Int VAL </balance>
-            ...
-         </account>
-      [priority(60)]
-
-    syntax Bytes ::= #incBytes(val : Bytes, inc : Int) [function]
- // -------------------------------------------------------------
-    rule #incBytes(VAL, INC) => Int2Bytes(Bytes2Int(VAL, BE, Signed) +Int INC, BE, Signed)
-
-```
-
-### Assertions About State
-
-```k
-    syntax Step ::= Assertion
- // --------------------------
-
-    syntax Assertion ::= assertOut    ( BytesStack ) [klabel(assertOut), symbol]
-                       | assertOutAux ( BytesStack, List)
- // -----------------------------------------------------
-    rule <k> assertOut(BS) => assertOutAux(BS, OUT) ... </k>
-         <out> OUT </out>
-
-    rule <k> assertOutAux(BS : RESTB, ListItem(BS) RESTL) => assertOutAux(RESTB, RESTL) ... </k>
-
-    rule <k> assertOutAux(.BytesStack, .List) => . ... </k>
-
-    syntax Assertion ::= assertMessage ( Bytes ) [klabel(assertMessage), symbol]
- // ----------------------------------------------------------------------------
-    rule <k> assertMessage(BS) => . ... </k>
-         <message> BS </message>
-      [priority(60)]
-```
-
-```k
 endmodule
 ```

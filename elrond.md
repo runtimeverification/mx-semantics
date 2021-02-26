@@ -8,6 +8,7 @@ require "wasm-coverage.md"
 
 Elrond Node
 -----------
+
 ```k
 module ELROND-NODE
     imports DOMAINS
@@ -205,7 +206,7 @@ module ELROND
 
 ### Helper Functions
 
-- Bytes Stack
+#### Bytes Stack
 
 ```k
     syntax BytesStack ::= List{Bytes, ":"}
@@ -219,6 +220,35 @@ module ELROND
 
     rule <instrs> #dropBytes => . ... </instrs>
          <bytesStack> _ : STACK => STACK </bytesStack>
+```
+
+#### World State
+
+```k
+    syntax Accounts ::= "{" AccountsCellFragment "|" Set "}"
+ // --------------------------------------------------------
+
+    syntax InternalCmd ::= "pushWorldState"
+ // ---------------------------------------
+    rule <commands> pushWorldState => . ... </commands>
+         <interimStates> (.List => ListItem({ ACCTDATA | ACCTS })) ... </interimStates>
+         <activeAccounts> ACCTS    </activeAccounts>
+         <accounts>       ACCTDATA </accounts>
+      [priority(60)]
+
+    syntax InternalCmd ::= "popWorldState"
+ // --------------------------------------
+    rule <commands> popWorldState => . ... </commands>
+         <interimStates> (ListItem({ ACCTDATA | ACCTS }) => .List) ... </interimStates>
+         <activeAccounts> _ => ACCTS    </activeAccounts>
+         <accounts>       _ => ACCTDATA </accounts>
+      [priority(60)]
+
+    syntax InternalCmd ::= "dropWorldState"
+ // ---------------------------------------
+    rule <commands> dropWorldState => . ... </commands>
+         <interimStates> (ListItem(_) => .List) ... </interimStates>
+      [priority(60)]
 ```
 
 ### Node And Wasm VM Synchronization
@@ -246,70 +276,137 @@ module ELROND
          <instrs> _ => . </instrs>
 ```
 
+### Managing Accounts
+
+```k
+    syntax InternalCmd ::= createAccount ( Bytes ) [klabel(createAccount), symbol]
+ // ------------------------------------------------------------------------------
+    rule <commands> createAccount(ADDR) => . ... </commands>
+         <activeAccounts> ... (.Set => SetItem(ADDR)) ... </activeAccounts>
+         <accounts>
+           ( .Bag
+          => <account>
+               <address> ADDR </address>
+               ...
+             </account>
+           )
+           ...
+         </accounts>
+         <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
+      [priority(60)]
+
+    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, CodeIndex, Map )
+                         | setAccountCodeIndex ( Bytes, CodeIndex )
+ // ---------------------------------------------------------------
+    rule <commands> setAccountFields(ADDR, NONCE, BALANCE, CODEIDX, STORAGE) => . ... </commands>
+         <account>
+           <address> ADDR </address>
+           <nonce> _ => NONCE </nonce>
+           <balance> _ => BALANCE </balance>
+           <codeIdx> _ => CODEIDX </codeIdx>
+           <storage> _ => STORAGE </storage>
+         </account>
+      [priority(60)]
+
+    rule <commands> setAccountCodeIndex(ADDR, CODEIDX) => . ... </commands>
+         <account>
+           <address> ADDR </address>
+           <codeIdx> _ => CODEIDX </codeIdx>
+           ...
+         </account>
+      [priority(60)]
+```
+
+### Transfer Funds
+
+```k
+    syntax InternalCmd ::= transferFunds ( Bytes, Bytes, Int )
+                         | "#transferSuccess"
+ // -----------------------------------------
+    rule <commands> transferFunds(ACCT, ACCT, VALUE) => #transferSuccess ... </commands>
+         <account>
+           <address> ACCT </address>
+           <balance> ORIGFROM </balance>
+           ...
+         </account>
+      requires VALUE <=Int ORIGFROM
+      [priority(60)]
+
+    rule <commands> transferFunds(ACCTFROM, ACCTTO, VALUE) => #transferSuccess ... </commands>
+         <account>
+           <address> ACCTFROM </address>
+           <balance> ORIGFROM => ORIGFROM -Int VALUE </balance>
+           ...
+         </account>
+         <account>
+           <address> ACCTTO </address>
+           <balance> ORIGTO => ORIGTO +Int VALUE </balance>
+           ...
+         </account>
+      requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
+      [priority(60)]
+
+    rule <commands> #transferSuccess => . ... </commands>
+         <instrs> . </instrs>
+```
+
+### Calling Contract
+
+```k
+    syntax InternalCmd ::= callContract ( Bytes, Bytes, Int,     String, List, Int, Int ) [klabel(callContractString)]
+                         | callContract ( Bytes, Bytes, Int, WasmString, List, Int, Int ) [klabel(callContractWasmString)]
+                         | mkCall       ( Bytes, Bytes, Int, WasmString, List, Int, Int )
+ // -------------------------------------------------------------------------------------
+    rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:String, ARGS, GASLIMIT, GASPRICE)
+                 => callContract(FROM, TO, VALUE, #unparseWasmString("\"" +String FUNCNAME +String "\""), ARGS, GASLIMIT, GASPRICE)
+                    ...
+         </commands>
+      [priority(60)]
+
+    rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, GASLIMIT, GASPRICE)
+                 => pushWorldState
+                 ~> transferFunds(FROM, TO, VALUE)
+                 ~> mkCall(FROM, TO, VALUE, FUNCNAME, ARGS, GASLIMIT, GASPRICE)
+                 ~> #endWasm
+                    ...
+         </commands>
+      [priority(60)]
+
+    rule <commands> mkCall(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
+         <callingArguments> _ => ARGS </callingArguments>
+         <caller> _ => FROM </caller>
+         <callee> _ => TO   </callee>
+         <callValue> _ => VALUE </callValue>
+         <out> _ => .List </out>
+         <message> _ => .Bytes </message>
+         <returnCode> _ => .ReturnCode </returnCode>
+         <bigIntHeap> _ => .Map </bigIntHeap>
+         <account>
+           <address> TO </address>
+           <codeIdx> CODE:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> CODE </modIdx>
+           <exports> ... FUNCNAME |-> FUNCIDX:Int </exports>
+           <funcAddrs> ... FUNCIDX |-> FUNCADDR:Int ... </funcAddrs>
+           ...
+         </moduleInst>
+         <instrs> . => ( invoke FUNCADDR ) </instrs>
+         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
+      [priority(60)]
+```
+
 Host Calls
 ----------
 
 Here, host calls are implemented, by defining the semantics when `hostCall(MODULE_NAME, EXPORT_NAME, TYPE)` is left on top of the `instrs` cell.
 
-### Host Call : finish
+### Helper functions
+
+#### Memory
 
 ```k
-    rule <instrs> hostCall("env", "finish", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) => #local.get(0) ~> #local.get(1) ~> #finish ... </instrs>
-
-    syntax InternalInstr ::= "#finish"
- // ----------------------------------
-    rule <instrs> #finish => . ... </instrs>
-         <valstack> <i32> LENGTH : <i32> OFFSET : VS => VS </valstack>
-         <callee> CALLEE </callee>
-         <out> ... (.List => ListItem(#getBytesRange(DATA, OFFSET, LENGTH))) </out>
-         <account>
-           <address> CALLEE </address>
-           <codeIdx> MODIDX:Int </codeIdx>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
-           ...
-         </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <msize> SIZE </msize>
-           <mdata> DATA </mdata>
-           ...
-         </memInst>
-      requires (OFFSET +Int LENGTH) <=Int (SIZE *Int #pageSize())
-```
-
-### Call State
-
-```k
-    rule <instrs> hostCall("env", "getNumArguments", [ .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(ARGS) ... </instrs>
-         <callingArguments> ARGS </callingArguments>
-
-    rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthArg({ARGS[IDX]}:>Argument) ... </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
-         <callingArguments> ARGS </callingArguments>
-      requires IDX <Int size(ARGS)
-
-    rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #setMem(Int2Bytes(lengthArg({ARGS[IDX]}:>Argument), valueArg({ARGS[IDX]}:>Argument), BE), OFFSET)
-               ~> i32.const lengthArg({ARGS[IDX]}:>Argument)
-                  ...
-         </instrs>
-         <locals>
-           0 |-> <i32> IDX
-           1 |-> <i32> OFFSET
-         </locals>
-         <callingArguments> ARGS </callingArguments>
-
-    rule <instrs> hostCall("env", "getCaller", [ i32 .ValTypes ] -> [ .ValTypes ])
-               => #setMem(CALLER, OFFSET)
-                  ...
-         </instrs>
-         <locals> 0 |-> <i32> OFFSET </locals>
-         <caller> CALLER </caller>
-
     syntax MemOp ::= #setMem ( bytes: Bytes, offset: Int )
                    | #getMem ( offset: Int , lenght: Int )
  // ------------------------------------------------------
@@ -355,207 +452,13 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
       requires OFFSET +Int LENGTH <=Int (SIZE *Int #pageSize())
 ```
 
-### BigInt Heap
-
-```k
-    rule <instrs> hostCall("env", "bigIntNew", [ i64 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(HEAP) ... </instrs>
-         <locals> 0 |-> <i64> INITIAL </locals>
-         <bigIntHeap> HEAP => HEAP[size(HEAP) <- INITIAL] </bigIntHeap>
-
-    rule <instrs> hostCall("env", "bigIntGetCallValue", [ i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
-         <bigIntHeap> HEAP => HEAP[IDX <- VALUE] </bigIntHeap>
-         <callValue> VALUE </callValue>
-
-    rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
-         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int +Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
-
-    rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
-         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int -Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
-
-    rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
-         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int *Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
-
-    rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
-         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int /Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
-
-    rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => i32.const #bigIntSign({HEAP[IDX]}:>Int)
-                  ...
-         </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
-         <bigIntHeap> HEAP </bigIntHeap>
-
-    rule <instrs> hostCall("env", "bigIntCmp", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => i32.const #cmpInt({HEAP[IDX1]}:>Int, {HEAP[IDX2]}:>Int)
-                  ...
-         </instrs>
-         <locals> 0 |-> <i32> IDX1  1 |-> <i32> IDX2 </locals>
-         <bigIntHeap> HEAP </bigIntHeap>
-
-    rule <instrs> hostCall("env", "bigIntSetSignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => #setBigInt(IDX, OFFSET, LENGTH, Signed) ... </instrs>
-         <locals> 0 |-> <i32> IDX 1 |-> <i32> OFFSET 2 |-> <i32> LENGTH </locals>
-
-    rule <instrs> hostCall("env", "bigIntSetUnsignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => #setBigInt(IDX, OFFSET, LENGTH, Unsigned) ... </instrs>
-         <locals> 0 |-> <i32> IDX 1 |-> <i32> OFFSET 2 |-> <i32> LENGTH </locals>
-
-    rule <instrs> hostCall("env", "bigIntSignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes(Int2Bytes({HEAP[IDX]}:>Int, BE, Signed)) ... </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
-         <bigIntHeap> HEAP </bigIntHeap>
-
-    rule <instrs> hostCall("env", "bigIntUnsignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes(Int2Bytes({HEAP[IDX]}:>Int, BE, Unsigned)) ... </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
-         <bigIntHeap> HEAP </bigIntHeap>
-
-    rule <instrs> hostCall("env", "bigIntGetSignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ]) => #getBigInt(IDX, OFFSET, Signed) ... </instrs>
-         <locals> 0 |-> <i32> IDX  1 |-> <i32> OFFSET </locals>
-
-    rule <instrs> hostCall("env", "bigIntGetUnsignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ]) => #getBigInt(IDX, OFFSET, Unsigned) ... </instrs>
-         <locals> 0 |-> <i32> IDX  1 |-> <i32> OFFSET </locals>
-
-    rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
-         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
-         <callingArguments> ARGS </callingArguments>
-         <bigIntHeap> HEAP => HEAP [BIG_IDX <- #signed({ARGS[ARG_IDX]}:>Argument)] </bigIntHeap>
-
-    rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
-         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
-         <callingArguments> ARGS </callingArguments>
-         <bigIntHeap> HEAP => HEAP [BIG_IDX <- #unsigned({ARGS[ARG_IDX]}:>Argument)] </bigIntHeap>
-
-    rule <instrs> hostCall("env", "bigIntFinishSigned", [ i32 .ValTypes ] -> [ .ValTypes ])
-               => i32.const 0
-               ~> #getBigInt(IDX, 0, Signed)
-               ~> #finish
-               ...
-         </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
-```
-
-Note: The Elrond host API interprets bytes as big-endian when setting BigInts.
-
-```k
-    syntax BigIntOp ::= #getBigInt ( idx : Int , offset : Int , Signedness )
- // ------------------------------------------------------------------------
-    rule <instrs> #getBigInt(BIGINT_IDX, OFFSET, SIGN) => i32.const lengthBytes(Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN)) ...</instrs>
-         <callee> CALLEE </callee>
-         <account>
-           <address> CALLEE </address>
-           <codeIdx> MODIDX:Int </codeIdx>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
-           ...
-         </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <msize> SIZE </msize>
-           <mdata> DATA => #setBytesRange(DATA, OFFSET, Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN)) </mdata>
-           ...
-         </memInst>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires (OFFSET +Int lengthBytes(Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN))) <=Int (SIZE *Int #pageSize())
-
-    syntax BigIntOp ::= #setBigInt ( idx : Int , offset : Int , length : Int , Signedness )
- // ---------------------------------------------------------------------------------------
-    rule <instrs> #setBigInt(BIGINT_IDX, OFFSET, LENGTH, SIGN) => . ... </instrs>
-         <callee> CALLEE </callee>
-         <account>
-           <address> CALLEE </address>
-           <codeIdx> MODIDX:Int </codeIdx>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
-           ...
-         </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <msize> SIZE </msize>
-           <mdata> DATA </mdata>
-           ...
-         </memInst>
-         <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- Bytes2Int(#getBytesRange(DATA, OFFSET, LENGTH), BE, SIGN)] </bigIntHeap>
-      requires (OFFSET +Int LENGTH) <=Int (SIZE *Int #pageSize())
-
-    syntax Bytes ::= #getBytesRange ( Bytes , Int , Int ) [function]
- // ----------------------------------------------------------------
-    rule #getBytesRange(_,  OFFSET, LENGTH) => .Bytes
-      requires notBool (LENGTH >=Int 0 andBool OFFSET >=Int 0)
-
-    rule #getBytesRange(BS, OFFSET, LENGTH) => substrBytes(padRightBytes(BS, OFFSET +Int LENGTH, 0), OFFSET, OFFSET +Int LENGTH)
-      requires OFFSET >=Int 0 andBool LENGTH >=Int 0 andBool OFFSET <Int lengthBytes(BS)
-
-    rule #getBytesRange(_, _, LENGTH) => padRightBytes(.Bytes, LENGTH, 0) [owise]
-
-    syntax Bytes ::= #setBytesRange ( Bytes , Int , Bytes ) [function]
- // ------------------------------------------------------------------
-    rule #setBytesRange(BS, OFFSET, NEW) => replaceAtBytes(padRightBytes(BS, OFFSET +Int lengthBytes(NEW), 0), OFFSET, NEW)
-```
-
-```k
-    syntax Int ::= #unsigned( Argument ) [function, functional]
-                 |   #signed( Argument ) [function, functional]
- // -----------------------------------------------------------
-    rule #unsigned(A) => valueArg(A)
-    rule #signed(A)   => valueArg(A)                                     requires notBool 2 ^Int (8 *Int lengthArg(A) -Int 1) <=Int valueArg(A)
-    rule #signed(A)   => valueArg(A) -Int (2 ^Int (lengthArg(A) *Int 8)) requires         2 ^Int (8 *Int lengthArg(A) -Int 1) <=Int valueArg(A)
-```
-
-```k
-    syntax Int ::= #cmpInt ( Int , Int ) [function, functional]
- // -----------------------------------------------------------
-    rule #cmpInt(I1, I2) => -1 requires I1  <Int I2
-    rule #cmpInt(I1, I2) =>  1 requires I1  >Int I2
-    rule #cmpInt(I1, I2) =>  0 requires I1 ==Int I2
-
-    syntax Int ::= #bigIntSign ( Int ) [function, functional]
- // ---------------------------------------------------------
-    rule #bigIntSign(I) => 0  requires I ==Int 0
-    rule #bigIntSign(I) => 1  requires I >Int 0
-    rule #bigIntSign(I) => -1 requires I <Int 0
-```
-
-### Storage
+#### Storage
 
 Storing a value returns a status code indicating if and how the storage was modified.
 
 TODO: Implement [reserved keys and read-only runtimes](https://github.com/ElrondNetwork/arwen-wasm-vm/blob/d6ea0489081f81fefba002609c34ece1365373dd/arwen/contexts/storage.go#L111).
 
 ```k
-    rule <instrs> hostCall("env", "storageLoadLength", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) => #getMem(KEYOFFSET, KEYLENGTH) ~> #storageLoad ~> #dropBytes ... </instrs>
-         <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLENGTH
-         </locals>
-
-    rule <instrs> hostCall("env", "storageLoad", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) => #getMem(KEYOFFSET, KEYLENGTH) ~> #storageLoad ~> #bytesToSetMem(VALOFFSET) ... </instrs>
-         <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLENGTH
-           2 |-> <i32> VALOFFSET
-         </locals>
-
-    rule <instrs> hostCall("env", "storageStore", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
-               => #getMem(KEYOFFSET, KEYLENGTH)
-               ~> #getMem(VALOFFSET, VALLENGTH)
-               ~> #storageStore
-                  ...
-         </instrs>
-         <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLENGTH
-           2 |-> <i32> VALOFFSET
-           3 |-> <i32> VALLENGTH
-         </locals>
-
     syntax StorageOp ::= "#storageStore"
                        | "#storageLoad"
                        | #bytesToSetMem (offset : Int)
@@ -615,28 +518,191 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule #StorageDeleted   () => 3
 ```
 
-### Block Information
+#### Bytes
 
 ```k
-    rule <instrs> hostCall("env", "getBlockTimestamp", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const TIMESTAMP ... </instrs>
-         <curBlockTimestamp> TIMESTAMP </curBlockTimestamp>
+    syntax Bytes ::= #getBytesRange ( Bytes , Int , Int ) [function]
+ // ----------------------------------------------------------------
+    rule #getBytesRange(_,  OFFSET, LENGTH) => .Bytes
+      requires notBool (LENGTH >=Int 0 andBool OFFSET >=Int 0)
 
-    rule <instrs> hostCall("env", "getBlockRandomSeed", [ i32 .ValTypes ] -> [ .ValTypes ])
-               => #setMem(SEED, OFFSET)
+    rule #getBytesRange(BS, OFFSET, LENGTH) => substrBytes(padRightBytes(BS, OFFSET +Int LENGTH, 0), OFFSET, OFFSET +Int LENGTH)
+      requires OFFSET >=Int 0 andBool LENGTH >=Int 0 andBool OFFSET <Int lengthBytes(BS)
+
+    rule #getBytesRange(_, _, LENGTH) => padRightBytes(.Bytes, LENGTH, 0) [owise]
+
+    syntax Bytes ::= #setBytesRange ( Bytes , Int , Bytes ) [function]
+ // ------------------------------------------------------------------
+    rule #setBytesRange(BS, OFFSET, NEW) => replaceAtBytes(padRightBytes(BS, OFFSET +Int lengthBytes(NEW), 0), OFFSET, NEW)
+```
+
+#### Integer Operation
+
+```k
+    syntax Int ::= #unsigned( Argument ) [function, functional]
+                 |   #signed( Argument ) [function, functional]
+ // -----------------------------------------------------------
+    rule #unsigned(A) => valueArg(A)
+    rule #signed(A)   => valueArg(A)                                     requires notBool 2 ^Int (8 *Int lengthArg(A) -Int 1) <=Int valueArg(A)
+    rule #signed(A)   => valueArg(A) -Int (2 ^Int (lengthArg(A) *Int 8)) requires         2 ^Int (8 *Int lengthArg(A) -Int 1) <=Int valueArg(A)
+
+    syntax Int ::= #cmpInt ( Int , Int ) [function, functional]
+ // -----------------------------------------------------------
+    rule #cmpInt(I1, I2) => -1 requires I1  <Int I2
+    rule #cmpInt(I1, I2) =>  1 requires I1  >Int I2
+    rule #cmpInt(I1, I2) =>  0 requires I1 ==Int I2
+
+    syntax Int ::= #bigIntSign ( Int ) [function, functional]
+ // ---------------------------------------------------------
+    rule #bigIntSign(I) => 0  requires I ==Int 0
+    rule #bigIntSign(I) => 1  requires I >Int 0
+    rule #bigIntSign(I) => -1 requires I <Int 0
+```
+
+### Elrond EI
+
+```k
+    // extern int32_t transferValue(void *context, int32_t dstOffset, int32_t valueOffset, int32_t dataOffset, int32_t length);
+    rule <instrs> hostCall("env", "transferValue", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #local.get(0) ~> #local.get(1) ~> #local.get(2) ~> #local.get(3)
+               ~> #transferValue
+                  ...
+         </instrs>
+
+    syntax InternalInstr ::= "#transferValue"
+                           | #transferValueAux ( Bytes, Bytes, Int )
+                           | "#waitForTransfer"
+ // -------------------------------------------
+    rule <instrs> #transferValue
+               => #transferValueAux(CALLEE,
+                                    #getBytesRange(DATA, DESTOFFSET, 32),
+                                    Bytes2Int(#getBytesRange(DATA, VALUEOFFSET, 32), BE, Unsigned))
+                  ...
+         </instrs>
+         <callee> CALLEE </callee>
+         <valstack> <i32> _ : <i32> _ : <i32> VALUEOFFSET : <i32> DESTOFFSET : VS => VS </valstack>
+         <account>
+           <address> CALLEE </address>
+           <codeIdx> MODIDX:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA </mdata>
+           ...
+         </memInst>
+      requires (VALUEOFFSET +Int 32) <=Int (SIZE *Int #pageSize())
+       andBool (DESTOFFSET +Int 32) <=Int (SIZE *Int #pageSize())
+
+    rule <commands> (. => transferFunds(ACCTFROM, ACCTTO, VALUE)) ... </commands>
+         <instrs> #transferValueAux(ACCTFROM, ACCTTO, VALUE) => #waitForTransfer ~> i32.const 0 ... </instrs>
+
+    rule <commands> #transferSuccess => . ... </commands>
+         <instrs> #waitForTransfer => . ... </instrs>
+
+    // extern int32_t getArgumentLength(void *context, int32_t id);
+    rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthArg({ARGS[IDX]}:>Argument) ... </instrs>
+         <locals> 0 |-> <i32> IDX </locals>
+         <callingArguments> ARGS </callingArguments>
+      requires IDX <Int size(ARGS)
+
+    // extern int32_t getArgument(void *context, int32_t id, int32_t argOffset);
+    rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #setMem(Int2Bytes(lengthArg({ARGS[IDX]}:>Argument), valueArg({ARGS[IDX]}:>Argument), BE), OFFSET)
+               ~> i32.const lengthArg({ARGS[IDX]}:>Argument)
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> IDX
+           1 |-> <i32> OFFSET
+         </locals>
+         <callingArguments> ARGS </callingArguments>
+
+    // extern int32_t getNumArguments(void *context);
+    rule <instrs> hostCall("env", "getNumArguments", [ .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(ARGS) ... </instrs>
+         <callingArguments> ARGS </callingArguments>
+
+    // extern int32_t storageStore(void *context, int32_t keyOffset, int32_t keyLength , int32_t dataOffset, int32_t dataLength);
+    rule <instrs> hostCall("env", "storageStore", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
+               => #getMem(KEYOFFSET, KEYLENGTH)
+               ~> #getMem(VALOFFSET, VALLENGTH)
+               ~> #storageStore
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> KEYOFFSET
+           1 |-> <i32> KEYLENGTH
+           2 |-> <i32> VALOFFSET
+           3 |-> <i32> VALLENGTH
+         </locals>
+
+    // extern int32_t storageLoadLength(void *context, int32_t keyOffset, int32_t keyLength );
+    rule <instrs> hostCall("env", "storageLoadLength", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
+               => #getMem(KEYOFFSET, KEYLENGTH)
+               ~> #storageLoad
+               ~> #dropBytes
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> KEYOFFSET
+           1 |-> <i32> KEYLENGTH
+         </locals>
+
+    // extern int32_t storageLoad(void *context, int32_t keyOffset, int32_t keyLength , int32_t dataOffset);
+    rule <instrs> hostCall("env", "storageLoad", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
+               => #getMem(KEYOFFSET, KEYLENGTH)
+               ~> #storageLoad
+               ~> #bytesToSetMem(VALOFFSET)
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> KEYOFFSET
+           1 |-> <i32> KEYLENGTH
+           2 |-> <i32> VALOFFSET
+         </locals>
+
+    // extern void getCaller(void *context, int32_t resultOffset);
+    rule <instrs> hostCall("env", "getCaller", [ i32 .ValTypes ] -> [ .ValTypes ])
+               => #setMem(CALLER, OFFSET)
                   ...
          </instrs>
          <locals> 0 |-> <i32> OFFSET </locals>
-         <curBlockRandomSeed> SEED </curBlockRandomSeed>
-```
+         <caller> CALLER </caller>
 
-### Other Host Calls
+    // extern void returnData(void* context, int32_t dataOffset, int32_t length);
+    rule <instrs> hostCall("env", "finish", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) => #local.get(0) ~> #local.get(1) ~> #finish ... </instrs>
 
-The (incorrect) default implementation of a host call is to just return zero values of the correct type.
+    syntax InternalInstr ::= "#finish"
+ // ----------------------------------
+    rule <instrs> #finish => . ... </instrs>
+         <valstack> <i32> LENGTH : <i32> OFFSET : VS => VS </valstack>
+         <callee> CALLEE </callee>
+         <out> ... (.List => ListItem(#getBytesRange(DATA, OFFSET, LENGTH))) </out>
+         <account>
+           <address> CALLEE </address>
+           <codeIdx> MODIDX:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA </mdata>
+           ...
+         </memInst>
+      requires (OFFSET +Int LENGTH) <=Int (SIZE *Int #pageSize())
 
-```k
-    rule <instrs> hostCall("env", "asyncCall", [ DOM ] -> [ CODOM ]) => . ... </instrs>
-         <valstack> VS => #zero(CODOM) ++ #drop(lengthValTypes(DOM), VS) </valstack>
-
+    // extern void signalError(void* context, int32_t messageOffset, int32_t messageLength);
     rule <instrs> hostCall("env", "signalError", [ i32 i32 .ValTypes ] -> [ .ValTypes ] )
                => #local.get(0) ~> #local.get(1) ~> #signalError ...
          </instrs>
@@ -666,22 +732,49 @@ The (incorrect) default implementation of a host call is to just return zero val
          </memInst>
       requires (OFFSET +Int LENGTH) <=Int (SIZE *Int #pageSize())
 
-    rule <instrs> hostCall("env", "transferValue", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #local.get(0) ~> #local.get(1) ~> #local.get(2) ~> #local.get(3)
-               ~> #transferValue
-                  ...
-         </instrs>
+    // extern long long getBlockTimestamp(void *context);
+    rule <instrs> hostCall("env", "getBlockTimestamp", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const TIMESTAMP ... </instrs>
+         <curBlockTimestamp> TIMESTAMP </curBlockTimestamp>
 
-    syntax InternalInstr ::= "#transferValue"
-                           | #transferValueAux ( Bytes, Bytes, Int )
-                           | "#waitForTransfer"
- // -------------------------------------------
-    rule <instrs> #transferValue
-               => #transferValueAux(CALLEE, #getBytesRange(DATA, DESTOFFSET, 32), Bytes2Int(#getBytesRange(DATA, VALUEOFFSET, 32), BE, Unsigned))
+    // extern void getBlockRandomSeed(void *context, int32_t resultOffset);
+    rule <instrs> hostCall("env", "getBlockRandomSeed", [ i32 .ValTypes ] -> [ .ValTypes ])
+               => #setMem(SEED, OFFSET)
                   ...
          </instrs>
+         <locals> 0 |-> <i32> OFFSET </locals>
+         <curBlockRandomSeed> SEED </curBlockRandomSeed>
+```
+
+### BigInt Ops
+
+```k
+    syntax InternalInstr ::= #getBigInt ( idx : Int , offset : Int , Signedness )
+ // -----------------------------------------------------------------------------
+    rule <instrs> #getBigInt(BIGINT_IDX, OFFSET, SIGN) => i32.const lengthBytes(Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN)) ...</instrs>
          <callee> CALLEE </callee>
-         <valstack> <i32> _ : <i32> _ : <i32> VALUEOFFSET : <i32> DESTOFFSET : VS => VS </valstack>
+         <account>
+           <address> CALLEE </address>
+           <codeIdx> MODIDX:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA => #setBytesRange(DATA, OFFSET, Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN)) </mdata>
+           ...
+         </memInst>
+         <bigIntHeap> HEAP </bigIntHeap>
+      requires (OFFSET +Int lengthBytes(Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN))) <=Int (SIZE *Int #pageSize())
+
+    syntax BigIntOp ::= #setBigInt ( idx : Int , offset : Int , length : Int , Signedness )
+ // ---------------------------------------------------------------------------------------
+    rule <instrs> #setBigInt(BIGINT_IDX, OFFSET, LENGTH, SIGN) => . ... </instrs>
+         <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
            <codeIdx> MODIDX:Int </codeIdx>
@@ -698,155 +791,113 @@ The (incorrect) default implementation of a host call is to just return zero val
            <mdata> DATA </mdata>
            ...
          </memInst>
-      requires (VALUEOFFSET +Int 32) <=Int (SIZE *Int #pageSize())
-       andBool (DESTOFFSET +Int 32) <=Int (SIZE *Int #pageSize())
-
-    rule <commands> (. => transferFunds(ACCTFROM, ACCTTO, VALUE)) ... </commands>
-         <instrs> #transferValueAux(ACCTFROM, ACCTTO, VALUE) => #waitForTransfer ~> i32.const 0 ... </instrs>
+         <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- Bytes2Int(#getBytesRange(DATA, OFFSET, LENGTH), BE, SIGN)] </bigIntHeap>
+      requires (OFFSET +Int LENGTH) <=Int (SIZE *Int #pageSize())
 ```
 
-### Managing Accounts
-
 ```k
-    syntax InternalCmd ::= createAccount ( Bytes ) [klabel(createAccount), symbol]
- // ------------------------------------------------------------------------------
-    rule <commands> createAccount(ADDR) => . ... </commands>
-         <activeAccounts> ... (.Set => SetItem(ADDR)) ... </activeAccounts>
-         <accounts>
-           ( .Bag
-          => <account>
-               <address> ADDR </address>
+    // extern int32_t bigIntNew(void* context, long long smallValue);
+    rule <instrs> hostCall("env", "bigIntNew", [ i64 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(HEAP) ... </instrs>
+         <locals> 0 |-> <i64> INITIAL </locals>
+         <bigIntHeap> HEAP => HEAP[size(HEAP) <- INITIAL] </bigIntHeap>
+
+    // extern int32_t bigIntUnsignedByteLength(void* context, int32_t reference);
+    rule <instrs> hostCall("env", "bigIntUnsignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes(Int2Bytes({HEAP[IDX]}:>Int, BE, Unsigned)) ... </instrs>
+         <locals> 0 |-> <i32> IDX </locals>
+         <bigIntHeap> HEAP </bigIntHeap>
+
+    // extern int32_t bigIntSignedByteLength(void* context, int32_t reference);
+    rule <instrs> hostCall("env", "bigIntSignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes(Int2Bytes({HEAP[IDX]}:>Int, BE, Signed)) ... </instrs>
+         <locals> 0 |-> <i32> IDX </locals>
+         <bigIntHeap> HEAP </bigIntHeap>
+
+    // extern int32_t bigIntGetUnsignedBytes(void* context, int32_t reference, int32_t byteOffset);
+    rule <instrs> hostCall("env", "bigIntGetUnsignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ]) => #getBigInt(IDX, OFFSET, Unsigned) ... </instrs>
+         <locals> 0 |-> <i32> IDX  1 |-> <i32> OFFSET </locals>
+
+    // extern int32_t bigIntGetSignedBytes(void* context, int32_t reference, int32_t byteOffset);
+    rule <instrs> hostCall("env", "bigIntGetSignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ]) => #getBigInt(IDX, OFFSET, Signed) ... </instrs>
+         <locals> 0 |-> <i32> IDX  1 |-> <i32> OFFSET </locals>
+
+    // extern void bigIntSetUnsignedBytes(void* context, int32_t destination, int32_t byteOffset, int32_t byteLength);
+    rule <instrs> hostCall("env", "bigIntSetUnsignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => #setBigInt(IDX, OFFSET, LENGTH, Unsigned) ... </instrs>
+         <locals> 0 |-> <i32> IDX 1 |-> <i32> OFFSET 2 |-> <i32> LENGTH </locals>
+
+    // extern void bigIntSetSignedBytes(void* context, int32_t destination, int32_t byteOffset, int32_t byteLength);
+    rule <instrs> hostCall("env", "bigIntSetSignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => #setBigInt(IDX, OFFSET, LENGTH, Signed) ... </instrs>
+         <locals> 0 |-> <i32> IDX 1 |-> <i32> OFFSET 2 |-> <i32> LENGTH </locals>
+
+    // extern void bigIntAdd(void* context, int32_t destination, int32_t op1, int32_t op2);
+    rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int +Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
+
+    // extern void bigIntSub(void* context, int32_t destination, int32_t op1, int32_t op2);
+    rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int -Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
+
+    // extern void bigIntMul(void* context, int32_t destination, int32_t op1, int32_t op2);
+    rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int *Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
+
+    // extern void bigIntTDiv(void* context, int32_t destination, int32_t op1, int32_t op2);
+    rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int /Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
+
+    // extern int32_t bigIntSign(void* context, int32_t op);
+    rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => i32.const #bigIntSign({HEAP[IDX]}:>Int)
+                  ...
+         </instrs>
+         <locals> 0 |-> <i32> IDX </locals>
+         <bigIntHeap> HEAP </bigIntHeap>
+
+    // extern int32_t bigIntCmp(void* context, int32_t op1, int32_t op2);
+    rule <instrs> hostCall("env", "bigIntCmp", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => i32.const #cmpInt({HEAP[IDX1]}:>Int, {HEAP[IDX2]}:>Int)
+                  ...
+         </instrs>
+         <locals> 0 |-> <i32> IDX1  1 |-> <i32> IDX2 </locals>
+         <bigIntHeap> HEAP </bigIntHeap>
+
+    // extern void bigIntFinishSigned(void* context, int32_t reference);
+    rule <instrs> hostCall("env", "bigIntFinishSigned", [ i32 .ValTypes ] -> [ .ValTypes ])
+               => i32.const 0
+               ~> #getBigInt(IDX, 0, Signed)
+               ~> #finish
                ...
-             </account>
-           )
-           ...
-         </accounts>
-         <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
-      [priority(60)]
+         </instrs>
+         <locals> 0 |-> <i32> IDX </locals>
 
-    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, CodeIndex, Map )
-                         | setAccountCodeIndex ( Bytes, CodeIndex )
- // ---------------------------------------------------------------
-    rule <commands> setAccountFields(ADDR, NONCE, BALANCE, CODEIDX, STORAGE) => . ... </commands>
-         <account>
-           <address> ADDR </address>
-           <nonce> _ => NONCE </nonce>
-           <balance> _ => BALANCE </balance>
-           <codeIdx> _ => CODEIDX </codeIdx>
-           <storage> _ => STORAGE </storage>
-         </account>
-      [priority(60)]
+    // extern void bigIntGetUnsignedArgument(void *context, int32_t id, int32_t destination);
+    rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
+         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
+         <callingArguments> ARGS </callingArguments>
+         <bigIntHeap> HEAP => HEAP [BIG_IDX <- #unsigned({ARGS[ARG_IDX]}:>Argument)] </bigIntHeap>
 
-    rule <commands> setAccountCodeIndex(ADDR, CODEIDX) => . ... </commands>
-         <account>
-           <address> ADDR </address>
-           <codeIdx> _ => CODEIDX </codeIdx>
-           ...
-         </account>
-      [priority(60)]
+    // extern void bigIntGetSignedArgument(void *context, int32_t id, int32_t destination);
+    rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
+         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
+         <callingArguments> ARGS </callingArguments>
+         <bigIntHeap> HEAP => HEAP [BIG_IDX <- #signed({ARGS[ARG_IDX]}:>Argument)] </bigIntHeap>
+
+    // extern void bigIntGetCallValue(void *context, int32_t destination);
+    rule <instrs> hostCall("env", "bigIntGetCallValue", [ i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+         <locals> 0 |-> <i32> IDX </locals>
+         <bigIntHeap> HEAP => HEAP[IDX <- VALUE] </bigIntHeap>
+         <callValue> VALUE </callValue>
 ```
 
-### Calling Contracts
+### Other Host Calls
+
+The (incorrect) default implementation of a host call is to just return zero values of the correct type.
 
 ```k
-    syntax Accounts ::= "{" AccountsCellFragment "|" Set "}"
-
-    syntax InternalCmd ::= "pushWorldState"
- // ---------------------------------------
-    rule <commands> pushWorldState => . ... </commands>
-         <interimStates> (.List => ListItem({ ACCTDATA | ACCTS })) ... </interimStates>
-         <activeAccounts> ACCTS    </activeAccounts>
-         <accounts>       ACCTDATA </accounts>
-      [priority(60)]
-
-    syntax InternalCmd ::= "popWorldState"
- // --------------------------------------
-    rule <commands> popWorldState => . ... </commands>
-         <interimStates> (ListItem({ ACCTDATA | ACCTS }) => .List) ... </interimStates>
-         <activeAccounts> _ => ACCTS    </activeAccounts>
-         <accounts>       _ => ACCTDATA </accounts>
-      [priority(60)]
-
-    syntax InternalCmd ::= "dropWorldState"
- // ---------------------------------------
-    rule <commands> dropWorldState => . ... </commands>
-         <interimStates> (ListItem(_) => .List) ... </interimStates>
-      [priority(60)]
-
-    syntax InternalCmd ::= transferFunds ( Bytes, Bytes, Int )
-                         | "#transferSuccess"
- // -----------------------------------------
-    rule <commands> transferFunds(ACCT, ACCT, VALUE) => #transferSuccess ... </commands>
-         <account>
-           <address> ACCT </address>
-           <balance> ORIGFROM </balance>
-           ...
-         </account>
-      requires VALUE <=Int ORIGFROM
-      [priority(60)]
-
-    rule <commands> transferFunds(ACCTFROM, ACCTTO, VALUE) => #transferSuccess ... </commands>
-         <account>
-           <address> ACCTFROM </address>
-           <balance> ORIGFROM => ORIGFROM -Int VALUE </balance>
-           ...
-         </account>
-         <account>
-           <address> ACCTTO </address>
-           <balance> ORIGTO => ORIGTO +Int VALUE </balance>
-           ...
-         </account>
-      requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
-      [priority(60)]
-
-    rule <commands> #transferSuccess => . ... </commands>
-         <instrs> . </instrs>
-
-    rule <commands> #transferSuccess => . ... </commands>
-         <instrs> #waitForTransfer => . ... </instrs>
-
-    syntax InternalCmd ::= callContract ( Bytes, Bytes, Int,     String, List, Int, Int ) [klabel(callContractString)]
-                         | callContract ( Bytes, Bytes, Int, WasmString, List, Int, Int ) [klabel(callContractWasmString)]
-                         | mkCall       ( Bytes, Bytes, Int, WasmString, List, Int, Int )
- // -------------------------------------------------------------------------------------
-    rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:String, ARGS, GASLIMIT, GASPRICE)
-                 => callContract(FROM, TO, VALUE, #unparseWasmString("\"" +String FUNCNAME +String "\""), ARGS, GASLIMIT, GASPRICE)
-                    ...
-         </commands>
-      [priority(60)]
-
-    rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, GASLIMIT, GASPRICE)
-                 => pushWorldState
-                 ~> transferFunds(FROM, TO, VALUE)
-                 ~> mkCall(FROM, TO, VALUE, FUNCNAME, ARGS, GASLIMIT, GASPRICE)
-                 ~> #endWasm
-                    ...
-         </commands>
-      [priority(60)]
-
-    rule <commands> mkCall(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
-         <callingArguments> _ => ARGS </callingArguments>
-         <caller> _ => FROM </caller>
-         <callee> _ => TO   </callee>
-         <callValue> _ => VALUE </callValue>
-         <out> _ => .List </out>
-         <message> _ => .Bytes </message>
-         <returnCode> _ => .ReturnCode </returnCode>
-         <bigIntHeap> _ => .Map </bigIntHeap>
-         <account>
-           <address> TO </address>
-           <codeIdx> CODE:Int </codeIdx>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> CODE </modIdx>
-           <exports> ... FUNCNAME |-> FUNCIDX:Int </exports>
-           <funcAddrs> ... FUNCIDX |-> FUNCADDR:Int ... </funcAddrs>
-           ...
-         </moduleInst>
-         <instrs> . => ( invoke FUNCADDR ) </instrs>
-         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
-      [priority(60)]
+    rule <instrs> hostCall("env", "asyncCall", [ DOM ] -> [ CODOM ]) => . ... </instrs>
+         <valstack> VS => #zero(CODOM) ++ #drop(lengthValTypes(DOM), VS) </valstack>
 
 endmodule
 ```

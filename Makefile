@@ -124,10 +124,10 @@ elrond-clean-sources:
 	rm $(ELROND_RUNTIME_JSON) $(ELROND_LOADED_JSON)
 
 $(ELROND_LOADED): $(ELROND_RUNTIME_JSON)
-	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< --parser cat > $(ELROND_LOADED)
+	$(TEST) run-legacy --backend $(TEST_CONCRETE_BACKEND) $< --parser cat > $(ELROND_LOADED)
 
 $(ELROND_LOADED_JSON): $(ELROND_RUNTIME_JSON)
-	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< --parser cat --output json > $@
+	$(TEST) run-legacy --backend $(TEST_CONCRETE_BACKEND) $< --parser cat --output json > $@
 
 $(ELROND_RUNTIME_JSON):
 	echo "setExitCode 0" | $(TEST) kast - json > $@

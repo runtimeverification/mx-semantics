@@ -160,10 +160,10 @@ ELROND_LOTTERY_SUBMODULE=$(ELROND_CONTRACT_EXAMPLES)/lottery-egld
 elrond_lottery_tests=$(shell find $(ELROND_LOTTERY_SUBMODULE) -name "*.scen.json")
 
 # Fix: the tests use an outdated name for the Wasm file.
-$(ELROND_LOTTERY_SUBMODULE)/output/lottery.wasm: $(ELROND_LOTTERY_SUBMODULE)/output/lottery-egld-dbg.wasm
+$(ELROND_LOTTERY_SUBMODULE)/output/lottery-egld.wasm: $(ELROND_LOTTERY_SUBMODULE)/output/lottery-egld-dbg.wasm
 	cp $< $@
 
-elrond-lottery-test: $(ELROND_LOTTERY_SUBMODULE)/output/lottery.wasm
+elrond-lottery-test: $(ELROND_LOTTERY_SUBMODULE)/output/lottery-egld.wasm
 	$(TEST_MANDOS) $(elrond_lottery_tests) --coverage
 
 ## Multisg Test

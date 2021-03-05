@@ -59,6 +59,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // --------------------------
     rule <k> (module _:OptionalId _:Defns):ModuleDecl #as M => #wait ... </k>
          <instrs> . => sequenceStmts(text2abstract(M .Stmts)) </instrs>
+
     rule <k> M:ModuleDecl => #wait ... </k>
          <instrs> . => M </instrs>
       [owise]
@@ -384,10 +385,13 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // -----------------------------------------------------
     rule <k> assertOut(BS) => assertOutAux(BS, OUT) ... </k>
          <out> OUT </out>
+      [priority(60)]
 
     rule <k> assertOutAux(BS : RESTB, ListItem(BS) RESTL) => assertOutAux(RESTB, RESTL) ... </k>
+      [priority(60)]
 
     rule <k> assertOutAux(.BytesStack, .List) => . ... </k>
+      [priority(60)]
 
     syntax Assertion ::= assertMessage ( Bytes ) [klabel(assertMessage), symbol]
  // ----------------------------------------------------------------------------

@@ -2,6 +2,7 @@ Elrond Semantics
 ================
 
 ```k
+require "blockchain-k-plugin/krypto.md"
 require "wasm-text.md"
 require "wasm-coverage.md"
 ```
@@ -177,6 +178,7 @@ Combine Elrond Node With Wasm
 
 ```k
 module ELROND
+    imports KRYPTO
     imports WASM-TEXT
     imports WASM-COVERAGE
     imports WASM-AUTO-ALLOCATE
@@ -511,24 +513,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule #StorageDeleted   () => 3
 ```
 
-#### Bytes
-
-```k
-    syntax Bytes ::= #getBytesRange ( Bytes , Int , Int ) [function]
- // ----------------------------------------------------------------
-    rule #getBytesRange(_,  OFFSET, LENGTH) => .Bytes
-      requires notBool (LENGTH >=Int 0 andBool OFFSET >=Int 0)
-
-    rule #getBytesRange(BS, OFFSET, LENGTH) => substrBytes(padRightBytes(BS, OFFSET +Int LENGTH, 0), OFFSET, OFFSET +Int LENGTH)
-      requires OFFSET >=Int 0 andBool LENGTH >=Int 0 andBool OFFSET <Int lengthBytes(BS)
-
-    rule #getBytesRange(_, _, LENGTH) => padRightBytes(.Bytes, LENGTH, 0) [owise]
-
-    syntax Bytes ::= #setBytesRange ( Bytes , Int , Bytes ) [function]
- // ------------------------------------------------------------------
-    rule #setBytesRange(BS, OFFSET, NEW) => replaceAtBytes(padRightBytes(BS, OFFSET +Int lengthBytes(NEW), 0), OFFSET, NEW)
-```
-
 #### Integer Operation
 
 ```k
@@ -562,24 +546,34 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule minUInt64 =>  0                    [macro]
     rule maxUInt64 =>  18446744073709551615 [macro] /*  2^64 - 1 */
 
-    syntax InternalInstr ::= #returnIfUInt64 ( Int )
-                           | #returnIfSInt64 ( Int )
- // ------------------------------------------------
-    rule <instrs> #returnIfUInt64(V) => i64.const V ... </instrs>
+    syntax InternalInstr ::= #checkIsUInt64 ( Int , String )
+                           | #checkIsSInt64 ( Int , String )
+ // --------------------------------------------------------
+    rule <instrs> #checkIsUInt64(V, _) => i64.const V ... </instrs>
       requires minUInt64 <=Int V
        andBool V <=Int maxUInt64
 
-    rule <instrs> #returnIfSInt64(V) => i64.const V ... </instrs>
+    rule <commands> (. => #exception(UserError)) ... </commands>
+         <instrs> (#checkIsUInt64(_, ERRORMSG) ~> _) => . </instrs>
+         <message> _ => String2Bytes(ERRORMSG) </message>
+      [owise]
+
+    rule <instrs> #checkIsSInt64(V, _) => i64.const V ... </instrs>
       requires minSInt64 <=Int V
        andBool V <=Int maxSInt64
 
-    syntax InternalInstr ::= "#loadBytesAsUInt64"
-                           | "#loadBytesAsSInt64"
- // ---------------------------------------------
-    rule <instrs> #loadBytesAsUInt64 => #returnIfUInt64(Bytes2Int(BS, BE, Unsigned)) ... </instrs>
+    rule <commands> (. => #exception(UserError)) ... </commands>
+         <instrs> (#checkIsSInt64(_, ERRORMSG) ~> _) => . </instrs>
+         <message> _ => String2Bytes(ERRORMSG) </message>
+      [owise]
+
+    syntax InternalInstr ::= #loadBytesAsUInt64 ( String )
+                           | #loadBytesAsSInt64 ( String )
+ // ------------------------------------------------------
+    rule <instrs> #loadBytesAsUInt64(ERRORMSG) => #checkIsUInt64(Bytes2Int(BS, BE, Unsigned), ERRORMSG) ... </instrs>
          <bytesStack> BS : STACK => STACK </bytesStack>
 
-    rule <instrs> #loadBytesAsSInt64 => #returnIfSInt64(Bytes2Int(BS, BE, Signed)) ... </instrs>
+    rule <instrs> #loadBytesAsSInt64(ERRORMSG) => #checkIsSInt64(Bytes2Int(BS, BE, Signed), ERRORMSG) ... </instrs>
          <bytesStack> BS : STACK => STACK </bytesStack>
 ```
 
@@ -595,6 +589,37 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 
     rule <instrs> #appendToOut(OUT) => . ... </instrs>
          <out> ... (.List => ListItem(OUT)) </out>
+```
+
+#### Parsing
+
+```k
+    syntax String ::= #alignHexString ( String ) [function, functional]
+ // -------------------------------------------------------------------
+    rule #alignHexString(S) => S             requires         lengthString(S) modInt 2 ==Int 0
+    rule #alignHexString(S) => "0" +String S requires notBool lengthString(S) modInt 2 ==Int 0
+
+    syntax Bytes ::= #parseHexBytes     ( String ) [function]
+                   | #parseHexBytesAux  ( String ) [function]
+ // ---------------------------------------------------------
+    rule #parseHexBytes(S)  => #parseHexBytesAux(#alignHexString(S))
+    rule #parseHexBytesAux("") => .Bytes
+    rule #parseHexBytesAux(S)  => Int2Bytes(lengthString(S) /Int 2, String2Base(S, 16), BE)
+      requires lengthString(S) >=Int 2
+```
+
+#### Crypto
+
+```k
+    syntax InternalInstr ::= "#sha256FromBytesStack"
+ // ------------------------------------------------
+    rule <instrs> #sha256FromBytesStack => . ... </instrs>
+         <bytesStack> (DATA => #parseHexBytes(Sha256(Bytes2String(DATA)))) : _STACK </bytesStack>
+
+    syntax InternalInstr ::= "#keccakFromBytesStack"
+ // ------------------------------------------------
+    rule <instrs> #keccakFromBytesStack => . ... </instrs>
+         <bytesStack> (DATA => #parseHexBytes(Keccak256(Bytes2String(DATA)))) : _STACK </bytesStack>
 ```
 
 ### Elrond EI
@@ -651,15 +676,15 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     // extern int32_t storageStore(void *context, int32_t keyOffset, int32_t keyLength , int32_t dataOffset, int32_t dataLength);
     rule <instrs> hostCall("env", "storageStore", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
                => #memLoad(KEYOFFSET, KEYLENGTH)
-               ~> #memLoad(VALOFFSET, VALLENGTH)
+               ~> #memLoad(DATAOFFSET, DATALENGTH)
                ~> #storageStore
                   ...
          </instrs>
          <locals>
            0 |-> <i32> KEYOFFSET
            1 |-> <i32> KEYLENGTH
-           2 |-> <i32> VALOFFSET
-           3 |-> <i32> VALLENGTH
+           2 |-> <i32> DATAOFFSET
+           3 |-> <i32> DATALENGTH
          </locals>
 
     // extern int32_t storageLoadLength(void *context, int32_t keyOffset, int32_t keyLength );
@@ -679,7 +704,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <instrs> hostCall("env", "storageLoad", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
                => #memLoad(KEYOFFSET, KEYLENGTH)
                ~> #storageLoad
-               ~> #memStoreFromBytesStack(VALOFFSET)
+               ~> #memStoreFromBytesStack(DATAOFFSET)
                ~> #returnLength
                ~> #dropBytes
                   ...
@@ -687,7 +712,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <locals>
            0 |-> <i32> KEYOFFSET
            1 |-> <i32> KEYLENGTH
-           2 |-> <i32> VALOFFSET
+           2 |-> <i32> DATAOFFSET
          </locals>
 
     // extern void getCaller(void *context, int32_t resultOffset);
@@ -745,7 +770,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <commands> (. => #exception(UserError)) ... </commands>
          <instrs> (#signalError ~> _) => . </instrs>
          <bytesStack> DATA : STACK => STACK </bytesStack>
-         <message> MSG => MSG +Bytes DATA </message>
+         <message> _ => DATA </message>
 
     // extern long long getBlockTimestamp(void *context);
     rule <instrs> hostCall("env", "getBlockTimestamp", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const TIMESTAMP ... </instrs>
@@ -867,6 +892,14 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <locals> 0 |-> <i32> IDX1  1 |-> <i32> IDX2 </locals>
          <bigIntHeap> HEAP </bigIntHeap>
 
+    // extern void bigIntFinishUnsigned(void* context, int32_t reference);
+    rule <instrs> hostCall("env", "bigIntFinishUnsigned", [ i32 .ValTypes ] -> [ .ValTypes ])
+               => #getBigInt(IDX, Unsigned)
+               ~> #appendToOutFromBytesStack
+                  ...
+         </instrs>
+         <locals> 0 |-> <i32> IDX </locals>
+
     // extern void bigIntFinishSigned(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntFinishSigned", [ i32 .ValTypes ] -> [ .ValTypes ])
                => #getBigInt(IDX, Signed)
@@ -874,6 +907,34 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
+
+    // extern int32_t bigIntStorageStoreUnsigned(void *context, int32_t keyOffset, int32_t keyLength, int32_t source);
+    rule <instrs> hostCall("env", "bigIntStorageStoreUnsigned", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #memLoad(KEYOFFSET, KEYLENGTH)
+               ~> #getBigInt(BIGINTIDX, Unsigned)
+               ~> #storageStore
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> KEYOFFSET
+           1 |-> <i32> KEYLENGTH
+           2 |-> <i32> BIGINTIDX
+         </locals>
+
+    // extern int32_t bigIntStorageLoadUnsigned(void *context, int32_t keyOffset, int32_t keyLength, int32_t destination);
+    rule <instrs> hostCall("env", "bigIntStorageLoadUnsigned", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #memLoad(KEYOFFSET, KEYLENGTH)
+               ~> #storageLoad
+               ~> #memStoreFromBytesStack(DEST)
+               ~> #returnLength
+               ~> #dropBytes
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> KEYOFFSET
+           1 |-> <i32> KEYLENGTH
+           2 |-> <i32> DEST
+         </locals>
 
     // extern void bigIntGetUnsignedArgument(void *context, int32_t id, int32_t destination);
     rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
@@ -899,13 +960,26 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ```k
     // extern long long smallIntGetUnsignedArgument(void *context, int32_t id);
     rule <instrs> hostCall("env", "smallIntGetUnsignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
-               => #returnIfUInt64(Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Unsigned)) ... </instrs>
+               => #checkIsUInt64(Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Unsigned), "argument out of range") ... </instrs>
+         <locals> 0 |-> <i32> ARG_IDX </locals>
+         <callArgs> ARGS </callArgs>
+
+    // extern long long smallIntGetSignedArgument(void *context, int32_t id);
+    rule <instrs> hostCall("env", "smallIntGetSignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
+               => #checkIsSInt64(Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Signed), "argument out of range") ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX </locals>
          <callArgs> ARGS </callArgs>
 
     // extern void smallIntFinishUnsigned(void* context, long long value);
     rule <instrs> hostCall("env", "smallIntFinishUnsigned", [ i64 .ValTypes ] -> [ .ValTypes ])
                => #appendToOut(Int2Bytes(VALUE, BE, Unsigned))
+                  ...
+         </instrs>
+         <locals> 0 |-> <i64> VALUE </locals>
+
+    // extern void smallIntFinishSigned(void* context, long long value);
+    rule <instrs> hostCall("env", "smallIntFinishSigned", [ i64 .ValTypes ] -> [ .ValTypes ])
+               => #appendToOut(Int2Bytes(VALUE, BE, Signed))
                   ...
          </instrs>
          <locals> 0 |-> <i64> VALUE </locals>
@@ -923,16 +997,75 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            2 |-> <i64> VALUE
          </locals>
 
+    // extern int32_t smallIntStorageStoreSigned(void *context, int32_t keyOffset, int32_t keyLength, long long value);
+    rule <instrs> hostCall("env", "smallIntStorageStoreSigned", [ i32 i32 i64 .ValTypes ] -> [ i32 .ValTypes ])
+               => #memLoad(KEYOFFSET, KEYLEN)
+               ~> #pushBytes(Int2Bytes(VALUE, BE, Signed))
+               ~> #storageStore
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> KEYOFFSET
+           1 |-> <i32> KEYLEN
+           2 |-> <i64> VALUE
+         </locals>
+
     // extern long long smallIntStorageLoadUnsigned(void *context, int32_t keyOffset, int32_t keyLength);
     rule <instrs> hostCall("env", "smallIntStorageLoadUnsigned", [ i32 i32 .ValTypes ] -> [ i64 .ValTypes ])
                => #memLoad(KEYOFFSET, KEYLENGTH)
                ~> #storageLoad
-               ~> #loadBytesAsUInt64
+               ~> #loadBytesAsUInt64("argument out of range")
                   ...
          </instrs>
          <locals>
            0 |-> <i32> KEYOFFSET
            1 |-> <i32> KEYLENGTH
+         </locals>
+
+    // extern long long smallIntStorageLoadSigned(void *context, int32_t keyOffset, int32_t keyLength);
+    rule <instrs> hostCall("env", "smallIntStorageLoadSigned", [ i32 i32 .ValTypes ] -> [ i64 .ValTypes ])
+               => #memLoad(KEYOFFSET, KEYLENGTH)
+               ~> #storageLoad
+               ~> #loadBytesAsSInt64("argument out of range")
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> KEYOFFSET
+           1 |-> <i32> KEYLENGTH
+         </locals>
+```
+
+### Crypto EI
+
+```k
+    // extern int32_t sha256(void* context, int32_t dataOffset, int32_t length, int32_t resultOffset);
+    rule <instrs> hostCall("env", "sha256", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #memLoad(DATAOFFSET, LENGTH)
+               ~> #sha256FromBytesStack
+               ~> #memStoreFromBytesStack(RESULTOFFSET)
+               ~> #dropBytes
+               ~> i32.const 0
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> DATAOFFSET
+           1 |-> <i32> LENGTH
+           2 |-> <i32> RESULTOFFSET
+         </locals>
+
+    // extern int32_t keccak256(void *context, int32_t dataOffset, int32_t length, int32_t resultOffset);
+    rule <instrs> hostCall("env", "keccak256", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #memLoad(DATAOFFSET, LENGTH)
+               ~> #keccakFromBytesStack
+               ~> #memStoreFromBytesStack(RESULTOFFSET)
+               ~> #dropBytes
+               ~> i32.const 0
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> DATAOFFSET
+           1 |-> <i32> LENGTH
+           2 |-> <i32> RESULTOFFSET
          </locals>
 ```
 

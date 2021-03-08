@@ -73,20 +73,35 @@ def mandos_int_to_kint(mandos_int: str):
     parsed_int = int(unseparated_int)
     return KInt(parsed_int)
 
-def mandos_argument_to_bytes(argument: str):
+def mandos_argument_to_bytes(arg):
+    if isinstance(arg, str):
+        return mandos_str_arg_to_bytes(arg)
+    if isinstance(arg, list):
+        barr = bytearray()
+        for elem in arg:
+            barr += bytearray(mandos_argument_to_bytes(elem))
+        return bytes(barr)
+
+    raise ValueError("Argument type not yet supported: %s" % argument)
+
+def mandos_str_arg_to_bytes(argument: str):
+    if argument == "":
+        return bytes()
+    if argument == "true":
+        return bytes([1])
+    if argument == "false":
+        return bytes()
     if '|' in argument:
         splits = argument.split('|')
-        bs = bytes()
+        barr = bytearray()
         for s in splits:
-            bs += mandos_argument_to_bytes(s)
-        return bs
+            barr += bytearray(mandos_argument_to_bytes(s))
+        return bytes(barr)
     if argument[0] == 'u':
         [numbitsstr, intstr] = argument[1:].split(':')
         num_bits = int(numbitsstr)
         as_int = int(intstr.replace(',', ''))
         return int.to_bytes(as_int, num_bits // 8, 'big')
-    if argument == "":
-        return bytes()
     if argument[0:2] == '0x':
         byte_array = bytes.fromhex(argument[2:])
         return byte_array
@@ -113,7 +128,7 @@ def mandos_argument_to_bytes(argument: str):
     except ValueError:
         pass
 
-    raise ValueError("Argument type not yet supported: %s" % argument)
+    return bytes(argument, 'ascii')
 
 def mandos_argument_to_kbytes(argument: str):
     return KBytes(mandos_argument_to_bytes(argument))

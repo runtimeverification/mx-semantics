@@ -18,7 +18,7 @@ module ELROND-NODE
       <node>
         <commands> .K </commands>
         <callState>
-          <callingArguments> .List </callingArguments>
+          <callArgs> .List </callArgs>
           <caller> .Bytes </caller>
           <callee> .Bytes </callee>
           <callValue> 0 </callValue>
@@ -86,20 +86,6 @@ Storage maps byte arrays to byte arrays.
     syntax Code ::= ".Code" [klabel(.Code), symbol]
                   | ModuleDecl
  // ----------------------------------------------
-```
-
-The value is an unsigned integer representation of the bytes.
-The length is the number of bytes the argument represents.
-
-```k
-    syntax Argument ::= arg ( value: Int, length: Int ) [klabel(tupleArg), symbol]
- // ------------------------------------------------------------------------------
-
-    syntax Int ::= valueArg  ( Argument ) [function, functional]
-                 | lengthArg ( Argument ) [function, functional]
- // ------------------------------------------------------------
-    rule valueArg (arg(V, _)) => V
-    rule lengthArg(arg(_, L)) => L
 
 endmodule
 ```
@@ -379,7 +365,7 @@ module ELROND
       [priority(60)]
 
     rule <commands> mkCall(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
-         <callingArguments> _ => ARGS </callingArguments>
+         <callArgs> _ => ARGS </callArgs>
          <caller> _ => FROM </caller>
          <callee> _ => TO   </callee>
          <callValue> _ => VALUE </callValue>
@@ -546,13 +532,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 #### Integer Operation
 
 ```k
-    syntax Int ::= #unsigned( Argument ) [function, functional]
-                 |   #signed( Argument ) [function, functional]
- // -----------------------------------------------------------
-    rule #unsigned(A) => valueArg(A)
-    rule #signed(A)   => valueArg(A)                                     requires notBool 2 ^Int (8 *Int lengthArg(A) -Int 1) <=Int valueArg(A)
-    rule #signed(A)   => valueArg(A) -Int (2 ^Int (lengthArg(A) *Int 8)) requires         2 ^Int (8 *Int lengthArg(A) -Int 1) <=Int valueArg(A)
-
     syntax Int ::= #cmpInt ( Int , Int ) [function, functional]
  // -----------------------------------------------------------
     rule #cmpInt(I1, I2) => -1 requires I1  <Int I2
@@ -583,24 +562,24 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule minUInt64 =>  0                    [macro]
     rule maxUInt64 =>  18446744073709551615 [macro] /*  2^64 - 1 */
 
-    syntax InternalInstr ::= #isUInt64 ( Int )
-                           | #isSInt64 ( Int )
- // ------------------------------------------
-    rule <instrs> #isUInt64(V) => i64.const V ... </instrs>
+    syntax InternalInstr ::= #returnIfUInt64 ( Int )
+                           | #returnIfSInt64 ( Int )
+ // ------------------------------------------------
+    rule <instrs> #returnIfUInt64(V) => i64.const V ... </instrs>
       requires minUInt64 <=Int V
        andBool V <=Int maxUInt64
 
-    rule <instrs> #isSInt64(V) => i64.const V ... </instrs>
+    rule <instrs> #returnIfSInt64(V) => i64.const V ... </instrs>
       requires minSInt64 <=Int V
        andBool V <=Int maxSInt64
 
     syntax InternalInstr ::= "#loadBytesAsUInt64"
                            | "#loadBytesAsSInt64"
  // ---------------------------------------------
-    rule <instrs> #loadBytesAsUInt64 => #isUInt64(Bytes2Int(BS, BE, Unsigned)) ... </instrs>
+    rule <instrs> #loadBytesAsUInt64 => #returnIfUInt64(Bytes2Int(BS, BE, Unsigned)) ... </instrs>
          <bytesStack> BS : STACK => STACK </bytesStack>
 
-    rule <instrs> #loadBytesAsSInt64 => #isSInt64(Bytes2Int(BS, BE, Signed)) ... </instrs>
+    rule <instrs> #loadBytesAsSInt64 => #returnIfSInt64(Bytes2Int(BS, BE, Signed)) ... </instrs>
          <bytesStack> BS : STACK => STACK </bytesStack>
 ```
 
@@ -648,26 +627,26 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <instrs> #waitForTransfer => . ... </instrs>
 
     // extern int32_t getArgumentLength(void *context, int32_t id);
-    rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthArg({ARGS[IDX]}:>Argument) ... </instrs>
+    rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes({ARGS[IDX]}:>Bytes) ... </instrs>
          <locals> 0 |-> <i32> IDX </locals>
-         <callingArguments> ARGS </callingArguments>
+         <callArgs> ARGS </callArgs>
       requires IDX <Int size(ARGS)
 
     // extern int32_t getArgument(void *context, int32_t id, int32_t argOffset);
     rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #memStore(OFFSET, Int2Bytes(lengthArg({ARGS[IDX]}:>Argument), valueArg({ARGS[IDX]}:>Argument), BE))
-               ~> i32.const lengthArg({ARGS[IDX]}:>Argument)
+               => #memStore(OFFSET, {ARGS[IDX]}:>Bytes)
+               ~> i32.const lengthBytes({ARGS[IDX]}:>Bytes)
                   ...
          </instrs>
          <locals>
            0 |-> <i32> IDX
            1 |-> <i32> OFFSET
          </locals>
-         <callingArguments> ARGS </callingArguments>
+         <callArgs> ARGS </callArgs>
 
     // extern int32_t getNumArguments(void *context);
     rule <instrs> hostCall("env", "getNumArguments", [ .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(ARGS) ... </instrs>
-         <callingArguments> ARGS </callingArguments>
+         <callArgs> ARGS </callArgs>
 
     // extern int32_t storageStore(void *context, int32_t keyOffset, int32_t keyLength , int32_t dataOffset, int32_t dataLength);
     rule <instrs> hostCall("env", "storageStore", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
@@ -899,14 +878,14 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     // extern void bigIntGetUnsignedArgument(void *context, int32_t id, int32_t destination);
     rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
-         <callingArguments> ARGS </callingArguments>
-         <bigIntHeap> HEAP => HEAP [BIG_IDX <- #unsigned({ARGS[ARG_IDX]}:>Argument)] </bigIntHeap>
+         <callArgs> ARGS </callArgs>
+         <bigIntHeap> HEAP => HEAP [BIG_IDX <- Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Unsigned)] </bigIntHeap>
 
     // extern void bigIntGetSignedArgument(void *context, int32_t id, int32_t destination);
     rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
-         <callingArguments> ARGS </callingArguments>
-         <bigIntHeap> HEAP => HEAP [BIG_IDX <- #signed({ARGS[ARG_IDX]}:>Argument)] </bigIntHeap>
+         <callArgs> ARGS </callArgs>
+         <bigIntHeap> HEAP => HEAP [BIG_IDX <- Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Signed)] </bigIntHeap>
 
     // extern void bigIntGetCallValue(void *context, int32_t destination);
     rule <instrs> hostCall("env", "bigIntGetCallValue", [ i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
@@ -920,11 +899,9 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ```k
     // extern long long smallIntGetUnsignedArgument(void *context, int32_t id);
     rule <instrs> hostCall("env", "smallIntGetUnsignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
-               => i64.const #unsigned({ARGS[ARG_IDX]}:>Argument) ... </instrs>
+               => #returnIfUInt64(Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Unsigned)) ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX </locals>
-         <callingArguments> ARGS </callingArguments>
-      requires minUInt64 <=Int #unsigned({ARGS[ARG_IDX]}:>Argument)
-       andBool #unsigned({ARGS[ARG_IDX]}:>Argument) <=Int maxUInt64
+         <callArgs> ARGS </callArgs>
 
     // extern void smallIntFinishUnsigned(void* context, long long value);
     rule <instrs> hostCall("env", "smallIntFinishUnsigned", [ i64 .ValTypes ] -> [ .ValTypes ])

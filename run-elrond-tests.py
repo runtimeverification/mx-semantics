@@ -87,12 +87,6 @@ def mandos_argument_to_bytes(argument: str):
         return int.to_bytes(as_int, num_bits // 8, 'big')
     if argument == "":
         return bytes()
-    try:
-        as_int = int(argument.replace(',', ''))
-        num_bytes = 1 + (as_int.bit_length() // 8)
-        return int.to_bytes(as_int, num_bytes, 'big')
-    except ValueError:
-        pass
     if argument[0:2] == '0x':
         byte_array = bytes.fromhex(argument[2:])
         return byte_array
@@ -105,18 +99,27 @@ def mandos_argument_to_bytes(argument: str):
         padded_addr = argument[8:].ljust(32, '_')
         padded_addr_bytes = bytes(padded_addr[:32], 'ascii')
         return padded_addr_bytes
+    if argument[0] == '+' or argument[0] == '-':
+        # encode signed integer
+        try:
+            int_num = int(argument.replace(',', ''))
+            return int_num.to_bytes(length=(8 + (int_num + (int_num < 0)).bit_length()) // 8, byteorder='big', signed=True)
+        except ValueError:
+            pass
+    try:
+        # encode unsigned integer
+        int_num = int(argument.replace(',', ''))
+        return int_num.to_bytes((int_num.bit_length() + 7) // 8, 'big')
+    except ValueError:
+        pass
 
     raise ValueError("Argument type not yet supported: %s" % argument)
 
 def mandos_argument_to_kbytes(argument: str):
     return KBytes(mandos_argument_to_bytes(argument))
 
-def mandos_argument_to_kargs(argument: str):
-    bs = mandos_argument_to_bytes(argument)
-    return KApply('tupleArg', [KInt(int.from_bytes(bs, 'big')), KInt(len(bs))])
-
 def mandos_arguments_to_arguments(arguments):
-    tokenized = list(map(lambda x: mandos_argument_to_kargs(x), arguments))
+    tokenized = list(map(lambda x: mandos_argument_to_kbytes(x), arguments))
     return KList(tokenized)
 
 def mandos_to_set_account(address, sections, filename, output_dir):

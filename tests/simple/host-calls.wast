@@ -232,7 +232,7 @@ scDeploy(
           call $bigIntFinishSigned
         )
       )
-      , ListItem(arg(0, 0)) ListItem(arg(2 ^Int 256 -Int 1, 32))
+      , ListItem(Int2Bytes(0, BE, Unsigned)) ListItem(Int2Bytes(32, 2 ^Int 256 -Int 1, BE))
       , 0
       , 0)
     , .Expect

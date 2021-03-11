@@ -612,7 +612,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <bytesStack> (DATA => #parseHexBytes(Keccak256(Bytes2String(DATA)))) : _STACK </bytesStack>
 ```
 
-### Elrond EI
+### Elrond API
 
 ```k
     // extern int32_t transferValue(void *context, int32_t dstOffset, int32_t valueOffset, int32_t dataOffset, int32_t length);
@@ -951,7 +951,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </locals>
 ```
 
-### Crypto EI
+### Crypto API
 
 ```k
     // extern int32_t sha256(void* context, int32_t dataOffset, int32_t length, int32_t resultOffset);

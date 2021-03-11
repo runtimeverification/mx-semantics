@@ -511,24 +511,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule #StorageDeleted   () => 3
 ```
 
-#### Bytes
-
-```k
-    syntax Bytes ::= #getBytesRange ( Bytes , Int , Int ) [function]
- // ----------------------------------------------------------------
-    rule #getBytesRange(_,  OFFSET, LENGTH) => .Bytes
-      requires notBool (LENGTH >=Int 0 andBool OFFSET >=Int 0)
-
-    rule #getBytesRange(BS, OFFSET, LENGTH) => substrBytes(padRightBytes(BS, OFFSET +Int LENGTH, 0), OFFSET, OFFSET +Int LENGTH)
-      requires OFFSET >=Int 0 andBool LENGTH >=Int 0 andBool OFFSET <Int lengthBytes(BS)
-
-    rule #getBytesRange(_, _, LENGTH) => padRightBytes(.Bytes, LENGTH, 0) [owise]
-
-    syntax Bytes ::= #setBytesRange ( Bytes , Int , Bytes ) [function]
- // ------------------------------------------------------------------
-    rule #setBytesRange(BS, OFFSET, NEW) => replaceAtBytes(padRightBytes(BS, OFFSET +Int lengthBytes(NEW), 0), OFFSET, NEW)
-```
-
 #### Integer Operation
 
 ```k

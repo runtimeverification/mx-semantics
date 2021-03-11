@@ -16,8 +16,9 @@ KWASM_SUBMODULE     := $(DEPS_DIR)/wasm-semantics
 K_SUBMODULE         := $(KWASM_SUBMODULE)/deps/k
 KWASM_BINARY_PARSER := $(KWASM_SUBMODULE)/binary-parser
 
-ELROND_WASM_SUBMODULE  := $(DEPS_DIR)/elrond-wasm-rs
-ELROND_CONTRACT_EXAMPLES := $(ELROND_WASM_SUBMODULE)/contracts/examples
+ELROND_WASM_SUBMODULE    := $(DEPS_DIR)/elrond-wasm-rs
+ELROND_CONTRACT          := $(ELROND_WASM_SUBMODULE)/contracts
+ELROND_CONTRACT_EXAMPLES := $(ELROND_CONTRACT)/examples
 
 ifneq (,$(wildcard $(K_SUBMODULE)/k-distribution/target/release/k/bin/*))
     K_RELEASE ?= $(abspath $(K_SUBMODULE)/k-distribution/target/release/k)
@@ -176,6 +177,17 @@ $(ELROND_MULTISIG_SUBMODULE)/output/multisig.wasm: $(ELROND_MULTISIG_SUBMODULE)/
 
 elrond-multisig-test:$(ELROND_MULTISIG_SUBMODULE)/output/multisig.wasm
 	$(TEST_MANDOS) $(elrond_multisig_tests) --coverage
+
+## Basic Feature Test
+
+ELROND_BASIC_FEATURES_SUBMODULE=$(ELROND_CONTRACT)/feature-tests/basic-features
+elrond_basic_features_tests=$(shell cat tests/basic_features.test)
+
+$(ELROND_BASIC_FEATURES_SUBMODULE)/output/basic-features.wasm: $(ELROND_BASIC_FEATURES_SUBMODULE)/output/basic-features-dbg.wasm
+	cp $< $@
+
+elrond-basic-features-test: $(ELROND_BASIC_FEATURES_SUBMODULE)/output/basic-features.wasm
+	$(TEST_MANDOS) $(elrond_basic_features_tests)
 
 # Unit Tests
 # ----------

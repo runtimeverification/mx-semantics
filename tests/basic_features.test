@@ -1,0 +1,2 @@
+deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/crypto_keccak256.scen.json
+deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/crypto_sha256.scen.json

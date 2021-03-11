@@ -2,6 +2,7 @@ Elrond Semantics
 ================
 
 ```k
+require "blockchain-k-plugin/krypto.md"
 require "wasm-text.md"
 require "wasm-coverage.md"
 ```
@@ -177,6 +178,7 @@ Combine Elrond Node With Wasm
 
 ```k
 module ELROND
+    imports KRYPTO
     imports WASM-TEXT
     imports WASM-COVERAGE
     imports WASM-AUTO-ALLOCATE
@@ -579,6 +581,37 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <out> ... (.List => ListItem(OUT)) </out>
 ```
 
+#### Parsing
+
+```k
+    syntax String ::= #alignHexString ( String ) [function, functional]
+ // -------------------------------------------------------------------
+    rule #alignHexString(S) => S             requires         lengthString(S) modInt 2 ==Int 0
+    rule #alignHexString(S) => "0" +String S requires notBool lengthString(S) modInt 2 ==Int 0
+
+    syntax Bytes ::= #parseHexBytes     ( String ) [function]
+                   | #parseHexBytesAux  ( String ) [function]
+ // ---------------------------------------------------------
+    rule #parseHexBytes(S)  => #parseHexBytesAux(#alignHexString(S))
+    rule #parseHexBytesAux("") => .Bytes
+    rule #parseHexBytesAux(S)  => Int2Bytes(lengthString(S) /Int 2, String2Base(S, 16), BE)
+      requires 2 <=Int lengthString(S)
+```
+
+#### Crypto
+
+```k
+    syntax InternalInstr ::= "#sha256FromBytesStack"
+ // ------------------------------------------------
+    rule <instrs> #sha256FromBytesStack => . ... </instrs>
+         <bytesStack> (DATA => #parseHexBytes(Sha256(Bytes2String(DATA)))) : _STACK </bytesStack>
+
+    syntax InternalInstr ::= "#keccakFromBytesStack"
+ // ------------------------------------------------
+    rule <instrs> #keccakFromBytesStack => . ... </instrs>
+         <bytesStack> (DATA => #parseHexBytes(Keccak256(Bytes2String(DATA)))) : _STACK </bytesStack>
+```
+
 ### Elrond EI
 
 ```k
@@ -915,6 +948,40 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <locals>
            0 |-> <i32> KEYOFFSET
            1 |-> <i32> KEYLENGTH
+         </locals>
+```
+
+### Crypto EI
+
+```k
+    // extern int32_t sha256(void* context, int32_t dataOffset, int32_t length, int32_t resultOffset);
+    rule <instrs> hostCall("env", "sha256", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #memLoad(DATAOFFSET, LENGTH)
+               ~> #sha256FromBytesStack
+               ~> #memStoreFromBytesStack(RESULTOFFSET)
+               ~> #dropBytes
+               ~> i32.const 0
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> DATAOFFSET
+           1 |-> <i32> LENGTH
+           2 |-> <i32> RESULTOFFSET
+         </locals>
+
+    // extern int32_t keccak256(void *context, int32_t dataOffset, int32_t length, int32_t resultOffset);
+    rule <instrs> hostCall("env", "keccak256", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #memLoad(DATAOFFSET, LENGTH)
+               ~> #keccakFromBytesStack
+               ~> #memStoreFromBytesStack(RESULTOFFSET)
+               ~> #dropBytes
+               ~> i32.const 0
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> DATAOFFSET
+           1 |-> <i32> LENGTH
+           2 |-> <i32> RESULTOFFSET
          </locals>
 ```
 

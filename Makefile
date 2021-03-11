@@ -9,9 +9,25 @@
 # Settings
 # --------
 
+UNAME_S := $(shell uname -s)
+
 BUILD_DIR := .build
 DEPS_DIR  := deps
 DEFN_DIR  := $(BUILD_DIR)/defn
+BUILD_LOCAL   := $(abspath $(BUILD_DIR)/local)
+LOCAL_LIB     := $(BUILD_LOCAL)/lib
+
+LIBRARY_PATH       := $(LOCAL_LIB)
+C_INCLUDE_PATH     += :$(BUILD_LOCAL)/include
+CPLUS_INCLUDE_PATH += :$(BUILD_LOCAL)/include
+
+export LIBRARY_PATH
+export C_INCLUDE_PATH
+export CPLUS_INCLUDE_PATH
+
+PLUGIN_SUBMODULE := $(abspath $(DEPS_DIR)/plugin)
+export PLUGIN_SUBMODULE
+
 KWASM_SUBMODULE     := $(DEPS_DIR)/wasm-semantics
 K_SUBMODULE         := $(KWASM_SUBMODULE)/deps/k
 KWASM_BINARY_PARSER := $(KWASM_SUBMODULE)/binary-parser
@@ -42,6 +58,26 @@ all: build
 clean:
 	rm -rf $(BUILD_DIR)
 
+# Non-K Dependencies
+# ------------------
+
+libff_out := $(LOCAL_LIB)/libff.a
+
+libff: $(libff_out)
+
+ifeq ($(UNAME_S),Linux)
+    LIBFF_CMAKE_FLAGS=
+else
+    LIBFF_CMAKE_FLAGS=-DWITH_PROCPS=OFF
+endif
+
+$(libff_out): $(PLUGIN_SUBMODULE)/deps/libff/CMakeLists.txt
+	@mkdir -p $(PLUGIN_SUBMODULE)/deps/libff/build
+	cd $(PLUGIN_SUBMODULE)/deps/libff/build                                                               \
+	    && cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(BUILD_LOCAL) $(LIBFF_CMAKE_FLAGS) \
+	    && make -s -j4                                                                                    \
+	    && make install
+
 # Build Dependencies (K Submodule)
 # --------------------------------
 
@@ -58,33 +94,48 @@ elrond-contracts:
 # Building Definition
 # -------------------
 
-KOMPILE_OPTS       := --emit-json
+HOOK_NAMESPACES    := KRYPTO
+KOMPILE_OPTS       := --hook-namespaces \"$(HOOK_NAMESPACES)\" --emit-json
+
+LLVM_KOMPILE_OPTS  := -L$(LOCAL_LIB)                               \
+                      $(PLUGIN_SUBMODULE)/plugin-c/plugin_util.cpp \
+                      $(PLUGIN_SUBMODULE)/plugin-c/crypto.cpp      \
+                      $(PLUGIN_SUBMODULE)/plugin-c/blake2.cpp      \
+                      -g -std=c++14 -lff -lcryptopp -lsecp256k1    \
+                      -lssl -lcrypto -lprocps
 
 MAIN_MODULE        := MANDOS
 MAIN_SYNTAX_MODULE := MANDOS-SYNTAX
 MAIN_DEFN_FILE     := mandos
 
-EXTRA_FILE_NAMES      := elrond        \
-                         mandos        \
-                         wasm-coverage
-EXTRA_FILES           := $(patsubst %,%.md,$(EXTRA_FILE_NAMES))
-EXTRA_FILES_KWASM_DIR := $(patsubst %,$(KWASM_SUBMODULE)/%.md,$(EXTRA_FILE_NAMES))
+ELROND_FILE_NAMES      := elrond        \
+                          mandos        \
+                          wasm-coverage
+PLUGIN_FILE_NAMES      := blockchain-k-plugin/krypto
+EXTRA_SOURCES          := $(patsubst %,%.md,$(ELROND_FILE_NAMES) $(PLUGIN_FILE_NAMES))
+ELROND_FILES_KWASM_DIR := $(patsubst %,$(KWASM_SUBMODULE)/%.md,$(ELROND_FILE_NAMES))
+PLUGIN_FILES_KWASM_DIR := $(patsubst %,$(KWASM_SUBMODULE)/%.md,$(PLUGIN_FILE_NAMES))
 
 build: build-llvm
 
 # Semantics Build
 # ---------------
 
-build-llvm: $(EXTRA_FILES_KWASM_DIR)
+build-llvm: $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(libff_out)
 	$(KWASM_MAKE) build-llvm                             \
 	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)            \
 	    llvm_main_module=$(MAIN_MODULE)                  \
 	    llvm_syntax_module=$(MAIN_SYNTAX_MODULE)         \
 	    llvm_main_file=$(MAIN_DEFN_FILE)                 \
-	    EXTRA_SOURCE_FILES="$(EXTRA_FILES)"              \
-	    KOMPILE_OPTS="$(KOMPILE_OPTS)"
+	    EXTRA_SOURCE_FILES="$(EXTRA_SOURCES)"            \
+	    KOMPILE_OPTS="$(KOMPILE_OPTS)"                   \
+	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"
 
 $(KWASM_SUBMODULE)/%.md: %.md
+	cp $< $@
+
+$(KWASM_SUBMODULE)/blockchain-k-plugin/%.md: $(PLUGIN_SUBMODULE)/plugin/%.md
+	@mkdir -p $(dir $@)
 	cp $< $@
 
 # Testing

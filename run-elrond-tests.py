@@ -63,6 +63,12 @@ WASM_definition_llvm_no_coverage_kompiled_dir = WASM_definition_llvm_no_coverage
 WASM_definition_llvm_no_coverage = pyk.readKastTerm(WASM_definition_llvm_no_coverage_kompiled_dir + '/compiled.json')
 WASM_symbols_llvm_no_coverage = pyk.buildSymbolTable(WASM_definition_llvm_no_coverage)
 
+addr_prefix = "address:"
+u64_prefix  = "u64:"
+u32_prefix  = "u32:"
+u16_prefix  = "u16:"
+u8_prefix   = "u8:"
+
 sys.setrecursionlimit(1500000000)
 resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
@@ -73,47 +79,111 @@ def mandos_int_to_kint(mandos_int: str):
     parsed_int = int(unseparated_int)
     return KInt(parsed_int)
 
-def mandos_argument_to_bytes(argument: str):
-    if '|' in argument:
-        splits = argument.split('|')
-        bs = bytes()
-        for s in splits:
-            bs += mandos_argument_to_bytes(s)
-        return bs
-    if argument[0] == 'u':
-        [numbitsstr, intstr] = argument[1:].split(':')
-        num_bits = int(numbitsstr)
-        as_int = int(intstr.replace(',', ''))
-        return int.to_bytes(as_int, num_bits // 8, 'big')
-    if argument == "":
+def mandos_argument_to_bytes(arg):
+    if isinstance(arg, str):
+        return mandos_string_to_bytes(arg)
+
+    if isinstance(arg, list):
+        barr = bytearray()
+        for elem in arg:
+            barr += bytearray(mandos_argument_to_bytes(elem))
+        return bytes(barr)
+
+    raise ValueError("Argument type not yet supported: %s" % argument)
+
+def mandos_string_to_bytes(raw_str: str):
+    if raw_str == "":
         return bytes()
-    if argument[0:2] == '0x':
-        byte_array = bytes.fromhex(argument[2:])
-        return byte_array
-    if argument[0:2] == "''" or argument[0:2] == '``':
-        byte_array = bytes(argument[2:], 'ascii')
-        return byte_array
-    if argument[0:4] == "str:":
-        return mandos_argument_to_bytes('``' + argument[4:])
-    if argument[0:8] == 'address:':
-        padded_addr = argument[8:].ljust(32, '_')
+
+    if '|' in raw_str:
+        splits = raw_str.split('|')
+        bs = bytearray()
+        for s in splits:
+            bs += bytearray(mandos_argument_to_bytes(s))
+        return bytes(bs)
+
+    if raw_str == "false":
+        return bytes()
+    if raw_str == "true":
+        return bytes([1])
+
+    # string prefix
+    if raw_str.startswith('str:'):
+        return bytes(raw_str[4:], 'ascii')
+    if raw_str.startswith("''") or raw_str.startswith('``'):
+        return bytes(raw_str[2:], 'ascii')
+
+    # address
+    if raw_str.startswith(addr_prefix):
+        padded_addr = raw_str[len(addr_prefix):].ljust(32, '_')
         padded_addr_bytes = bytes(padded_addr[:32], 'ascii')
         return padded_addr_bytes
-    if argument[0] == '+' or argument[0] == '-':
-        # encode signed integer
+
+    # fixed width number
+    if raw_str.startswith(u64_prefix):
+        return mandos_interpret_as_uint_fixedwidth(raw_str[len(u64_prefix):], 8)
+    if raw_str.startswith(u32_prefix):
+        return mandos_interpret_as_uint_fixedwidth(raw_str[len(u32_prefix):], 4)
+    if raw_str.startswith(u16_prefix):
+        return mandos_interpret_as_uint_fixedwidth(raw_str[len(u16_prefix):], 2)
+    if raw_str.startswith(u8_prefix):
+        return mandos_interpret_as_uint_fixedwidth(raw_str[len(u8_prefix):], 1)
+
+    # signed integer
+    if raw_str.startswith('+') or raw_str.startswith('-'):
         try:
-            int_num = int(argument.replace(',', ''))
-            return int_num.to_bytes(length=(8 + (int_num + (int_num < 0)).bit_length()) // 8, byteorder='big', signed=True)
+            num_int, num_len = convert_string_to_sint(raw_str)
+            return num_int.to_bytes(length=num_len, byteorder='big', signed=True)
         except ValueError:
             pass
+
+    # unsigned integer
     try:
-        # encode unsigned integer
-        int_num = int(argument.replace(',', ''))
-        return int_num.to_bytes((int_num.bit_length() + 7) // 8, 'big')
+        num_int, num_len = convert_string_to_uint(raw_str)
+        return num_int.to_bytes(num_len, 'big')
     except ValueError:
         pass
 
-    raise ValueError("Argument type not yet supported: %s" % argument)
+    raise ValueError("Argument type not yet supported: %s" % raw_str)
+
+def mandos_interpret_as_uint_fixedwidth(raw_str: str, width: int):
+    num_int, _ = convert_string_to_uint(raw_str)
+    return num_int.to_bytes(width, byteorder='big')
+
+def convert_string_to_uint(raw_str: str):
+    num_str = raw_str.replace('_', '')
+    num_str = num_str.replace(',', '')
+
+    if num_str.startswith('0x') or num_str.startswith('0X'):
+        num_str = num_str[2:]
+        num_len = len(num_str) // 2
+        if num_len == 0:
+            return (0, 0)
+        else:
+            num_int = int(num_str, 16)
+            return (num_int, num_len)
+
+    if num_str.startswith('0b') or num_str.startswith('0B'):
+        num_str = num_str[2:]
+        num_len = len(num_str) // 8
+        if num_len == 0:
+            return (0, 0)
+        else:
+            num_int = int(num_str, 2)
+            return (num_int, num_len)
+
+    num_int = int(num_str)
+    if (num_int < 0):
+        raise ValueError("Negative number not allowed in this context: %s" % raw_str)
+    num_len = (num_int.bit_length() + 7) // 8
+    return (num_int, num_len)
+
+def convert_string_to_sint(raw_str: str):
+    num_str = raw_str.replace('_', '')
+    num_str = num_str.replace(',', '')
+    num_int = int(num_str)
+    num_len = (8 + (num_int + (num_int < 0)).bit_length()) // 8
+    return (num_int, num_len)
 
 def mandos_argument_to_kbytes(argument: str):
     return KBytes(mandos_argument_to_bytes(argument))

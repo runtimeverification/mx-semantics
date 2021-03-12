@@ -1,2 +1,5 @@
+deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/block_info.scen.json
+deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/boxed_bytes_zeros.scen.json
+deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/count_ones.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/crypto_keccak256.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/crypto_sha256.scen.json

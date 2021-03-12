@@ -777,6 +777,18 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <instrs> hostCall("env", "getBlockTimestamp", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const TIMESTAMP ... </instrs>
          <curBlockTimestamp> TIMESTAMP </curBlockTimestamp>
 
+    // extern long long getBlockNonce(void *context);
+    rule <instrs> hostCall("env", "getBlockNonce", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const NONCE ... </instrs>
+         <curBlockNonce> NONCE </curBlockNonce>
+
+    // extern long long getBlockRound(void *context);
+    rule <instrs> hostCall("env", "getBlockRound", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const ROUND ... </instrs>
+         <curBlockRound> ROUND </curBlockRound>
+
+    // extern long long getBlockEpoch(void *context);
+    rule <instrs> hostCall("env", "getBlockEpoch", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const EPOCH ... </instrs>
+         <curBlockEpoch> EPOCH </curBlockEpoch>
+
     // extern void getBlockRandomSeed(void *context, int32_t resultOffset);
     rule <instrs> hostCall("env", "getBlockRandomSeed", [ i32 .ValTypes ] -> [ .ValTypes ])
                => #memStore(OFFSET, SEED)
@@ -784,6 +796,30 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </instrs>
          <locals> 0 |-> <i32> OFFSET </locals>
          <curBlockRandomSeed> SEED </curBlockRandomSeed>
+
+    // extern long long getPrevBlockTimestamp(void *context);
+    rule <instrs> hostCall("env", "getPrevBlockTimestamp", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const TIMESTAMP ... </instrs>
+         <prevBlockTimestamp> TIMESTAMP </prevBlockTimestamp>
+
+    // extern long long getPrevBlockNonce(void *context);
+    rule <instrs> hostCall("env", "getPrevBlockNonce", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const NONCE ... </instrs>
+         <prevBlockNonce> NONCE </prevBlockNonce>
+
+    // extern long long getPrevBlockRound(void *context);
+    rule <instrs> hostCall("env", "getPrevBlockRound", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const ROUND ... </instrs>
+         <prevBlockRound> ROUND </prevBlockRound>
+
+    // extern long long getPrevBlockEpoch(void *context);
+    rule <instrs> hostCall("env", "getPrevBlockEpoch", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const EPOCH ... </instrs>
+         <prevBlockEpoch> EPOCH </prevBlockEpoch>
+
+    // extern void getPrevBlockRandomSeed(void *context, int32_t resultOffset);
+    rule <instrs> hostCall("env", "getPrevBlockRandomSeed", [ i32 .ValTypes ] -> [ .ValTypes ])
+               => #memStore(OFFSET, SEED)
+                  ...
+         </instrs>
+         <locals> 0 |-> <i32> OFFSET </locals>
+         <prevBlockRandomSeed> SEED </prevBlockRandomSeed>
 ```
 
 ### BigInt Ops

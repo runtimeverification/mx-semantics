@@ -601,15 +601,26 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 #### Crypto
 
 ```k
-    syntax InternalInstr ::= "#sha256FromBytesStack"
- // ------------------------------------------------
+    syntax HashBytesStackInstr ::= "#sha256FromBytesStack"
+ // ------------------------------------------------------
     rule <instrs> #sha256FromBytesStack => . ... </instrs>
          <bytesStack> (DATA => #parseHexBytes(Sha256(Bytes2String(DATA)))) : _STACK </bytesStack>
 
-    syntax InternalInstr ::= "#keccakFromBytesStack"
- // ------------------------------------------------
+    syntax HashBytesStackInstr ::= "#keccakFromBytesStack"
+ // ------------------------------------------------------
     rule <instrs> #keccakFromBytesStack => . ... </instrs>
          <bytesStack> (DATA => #parseHexBytes(Keccak256(Bytes2String(DATA)))) : _STACK </bytesStack>
+
+    syntax InternalInstr ::= #hashMemory ( Int , Int , Int ,  HashBytesStackInstr )
+ // -------------------------------------------------------------------------------
+    rule <instrs> #hashMemory(DATAOFFSET, LENGTH, RESULTOFFSET, HASHINSTR)
+               => #memLoad(DATAOFFSET, LENGTH)
+               ~> HASHINSTR
+               ~> #memStoreFromBytesStack(RESULTOFFSET)
+               ~> #dropBytes
+               ~> i32.const 0
+               ...
+          </instrs>
 ```
 
 ### Elrond API
@@ -956,11 +967,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ```k
     // extern int32_t sha256(void* context, int32_t dataOffset, int32_t length, int32_t resultOffset);
     rule <instrs> hostCall("env", "sha256", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #memLoad(DATAOFFSET, LENGTH)
-               ~> #sha256FromBytesStack
-               ~> #memStoreFromBytesStack(RESULTOFFSET)
-               ~> #dropBytes
-               ~> i32.const 0
+               => #hashMemory(DATAOFFSET, LENGTH, RESULTOFFSET, #sha256FromBytesStack)
                   ...
          </instrs>
          <locals>
@@ -971,11 +978,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 
     // extern int32_t keccak256(void *context, int32_t dataOffset, int32_t length, int32_t resultOffset);
     rule <instrs> hostCall("env", "keccak256", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #memLoad(DATAOFFSET, LENGTH)
-               ~> #keccakFromBytesStack
-               ~> #memStoreFromBytesStack(RESULTOFFSET)
-               ~> #dropBytes
-               ~> i32.const 0
+               => #hashMemory(DATAOFFSET, LENGTH, RESULTOFFSET, #keccakFromBytesStack)
                   ...
          </instrs>
          <locals>

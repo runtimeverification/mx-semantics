@@ -1,5 +1,5 @@
 
-.PHONY: all clean deps wasm-deps                                           \
+.PHONY: all clean deps wasm-deps erdpy-deps                                \
         build build-llvm build-haskell                                     \
         mandos-test elrond-loaded                                          \
         test-elrond-contracts test-elrond-adder test-elrond-lottery-egld   \
@@ -84,10 +84,13 @@ $(libff_out): $(PLUGIN_SUBMODULE)/deps/libff/CMakeLists.txt
 
 K_JAR := $(K_SUBMODULE)/k-distribution/target/release/k/lib/java/kernel-1.0-SNAPSHOT.jar
 
-deps: wasm-deps
+deps: wasm-deps erdpy-deps
 
 wasm-deps:
 	$(KWASM_MAKE) deps
+
+erdpy-deps:
+	erdpy deps install rust
 
 # Building Definition
 # -------------------

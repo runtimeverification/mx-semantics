@@ -77,23 +77,28 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ```k
     syntax Step ::= setAccount    ( address: Address, nonce: Int, balance: Int, code: Code, storage: Map )  [klabel(setAccount), symbol]
                   | setAccountAux ( address: Bytes, nonce: Int, balance: Int, code: Code, storage: Map )    [klabel(setAccountAux), symbol]
-                  | createAndSetAccount ( Bytes, Int, Int, CodeIndex, Map)                                  [klabel(createAndSetAccount), symbol]
- // ---------------------------------------------------------------------------------------------------------------------------------------------
+                  | createAndSetAccountWithEmptyCode       ( Bytes, Int, Int, Map )
+                  | createAndSetAccountAfterInitCodeModule ( Bytes, Int, Int, Map )
+ // -------------------------------------------------------------------------------
     rule <k> setAccount(ADDRESS, NONCE, BALANCE, CODE, STORAGE)
           => setAccountAux(#address2Bytes(ADDRESS), NONCE, BALANCE, CODE, STORAGE) ... </k>
       [priority(60)]
 
     rule <k> setAccountAux(ADDRESS, NONCE, BALANCE, .Code, STORAGE)
-          => createAndSetAccount(ADDRESS, NONCE, BALANCE, .CodeIndex, STORAGE) ... </k>
+          => createAndSetAccountWithEmptyCode(ADDRESS, NONCE, BALANCE, STORAGE) ... </k>
       [priority(60)]
 
     rule <k> setAccountAux(ADDRESS, NONCE, BALANCE, MODULE:ModuleDecl, STORAGE)
-          => MODULE ~> createAndSetAccount(ADDRESS, NONCE, BALANCE, NEXTIDX, STORAGE) ... </k>
-         <nextModuleIdx> NEXTIDX </nextModuleIdx>
+          => MODULE ~> createAndSetAccountAfterInitCodeModule(ADDRESS, NONCE, BALANCE, STORAGE) ... </k>
       [priority(60)]
 
-    rule <k> createAndSetAccount(ADDRESS, NONCE, BALANCE, CODEIDX, STORAGE) => #wait ... </k>
-         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, CODEIDX, STORAGE) </commands>
+    rule <k> createAndSetAccountWithEmptyCode(ADDRESS, NONCE, BALANCE, STORAGE) => #wait ... </k>
+         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, .CodeIndex, STORAGE) </commands>
+      [priority(60)]
+
+    rule <k> createAndSetAccountAfterInitCodeModule(ADDRESS, NONCE, BALANCE, STORAGE) => #wait ... </k>
+         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, NEXTIDX -Int 1, STORAGE) </commands>
+         <nextModuleIdx> NEXTIDX </nextModuleIdx>
       [priority(60)]
 
     syntax Step ::= newAddress    ( Address, Int, Address ) [klabel(newAddress), symbol]

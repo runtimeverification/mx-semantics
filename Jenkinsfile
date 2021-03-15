@@ -26,6 +26,7 @@ pipeline {
         stage('Adder Contract Test')    { steps { sh 'make TEST_CONCRETE_BACKEND=llvm elrond-adder-test' } }
         stage('Lottery Contract Test')  { steps { sh 'make TEST_CONCRETE_BACKEND=llvm elrond-lottery-test' } }
         stage('Multisig Contract Test') { steps { sh 'make TEST_CONCRETE_BACKEND=llvm elrond-multisig-test' } }
+        stage('Basic Features Test')    { steps { sh 'make TEST_CONCRETE_BACKEND=llvm elrond-basic-features-test' } }
       }
     }
   }

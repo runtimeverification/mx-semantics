@@ -14,7 +14,6 @@ pipeline {
     stage('Build') {
       parallel {
         stage('Semantics') { steps { sh 'make build RELEASE=true' } }
-        stage('Erdpy')     { steps { sh 'make erdpy-deps' } }
       }
     }
     stage('Test') {

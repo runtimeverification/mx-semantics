@@ -179,9 +179,9 @@ def convert_string_to_uint(raw_str: str):
     return (num_int, num_len)
 
 def convert_string_to_sint(raw_str: str):
-    num_str = raw_str.replace('_', '')
-    num_str = num_str.replace(',', '')
-    num_int = int(num_str)
+    num_int, _ = convert_string_to_uint(raw_str[1:])
+    if raw_str.startswith('-'):
+        num_int = -num_int
     num_len = (8 + (num_int + (num_int < 0)).bit_length()) // 8
     return (num_int, num_len)
 

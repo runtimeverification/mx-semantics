@@ -89,7 +89,13 @@ def mandos_argument_to_bytes(arg):
             barr += bytearray(mandos_argument_to_bytes(elem))
         return bytes(barr)
 
-    raise ValueError("Argument type not yet supported: %s" % argument)
+    if isinstance(arg, dict):
+        barr = bytearray()
+        for key in sorted(arg.keys()):
+            barr += bytearray(mandos_argument_to_bytes(arg[key]))
+        return bytes(barr)
+
+    raise ValueError("Argument type not yet supported: %s" % arg)
 
 def mandos_string_to_bytes(raw_str: str):
     if raw_str == "":

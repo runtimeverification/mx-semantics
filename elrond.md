@@ -546,24 +546,32 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule minUInt64 =>  0                    [macro]
     rule maxUInt64 =>  18446744073709551615 [macro] /*  2^64 - 1 */
 
-    syntax InternalInstr ::= #returnIfUInt64 ( Int )
-                           | #returnIfSInt64 ( Int )
- // ------------------------------------------------
-    rule <instrs> #returnIfUInt64(V) => i64.const V ... </instrs>
-      requires minUInt64 <=Int V
-       andBool V <=Int maxUInt64
+    syntax InternalInstr ::= #returnIfUInt64 ( Int , String )
+                           | #returnIfSInt64 ( Int , String )
+ // ---------------------------------------------------------
+    rule <instrs> #returnIfUInt64(V, _) => i64.const V ... </instrs>
+      requires          minUInt64 <=Int V andBool V <=Int maxUInt64
 
-    rule <instrs> #returnIfSInt64(V) => i64.const V ... </instrs>
-      requires minSInt64 <=Int V
-       andBool V <=Int maxSInt64
+    rule <commands> (. => #exception(UserError)) ... </commands>
+         <instrs> (#returnIfUInt64(V, ERRORMSG) ~> _) => . </instrs>
+         <message> _ => String2Bytes(ERRORMSG) </message>
+      requires notBool (minUInt64 <=Int V andBool V <=Int maxUInt64)
 
-    syntax InternalInstr ::= "#loadBytesAsUInt64"
-                           | "#loadBytesAsSInt64"
- // ---------------------------------------------
-    rule <instrs> #loadBytesAsUInt64 => #returnIfUInt64(Bytes2Int(BS, BE, Unsigned)) ... </instrs>
+    rule <instrs> #returnIfSInt64(V, _) => i64.const V ... </instrs>
+      requires          minSInt64 <=Int V andBool V <=Int maxSInt64
+
+    rule <commands> (. => #exception(UserError)) ... </commands>
+         <instrs> (#returnIfSInt64(V, ERRORMSG) ~> _) => . </instrs>
+         <message> _ => String2Bytes(ERRORMSG) </message>
+      requires notBool (minSInt64 <=Int V andBool V <=Int maxSInt64)
+
+    syntax InternalInstr ::= #loadBytesAsUInt64 ( String )
+                           | #loadBytesAsSInt64 ( String )
+ // ------------------------------------------------------
+    rule <instrs> #loadBytesAsUInt64(ERRORMSG) => #returnIfUInt64(Bytes2Int(BS, BE, Unsigned), ERRORMSG) ... </instrs>
          <bytesStack> BS : STACK => STACK </bytesStack>
 
-    rule <instrs> #loadBytesAsSInt64 => #returnIfSInt64(Bytes2Int(BS, BE, Signed)) ... </instrs>
+    rule <instrs> #loadBytesAsSInt64(ERRORMSG) => #returnIfSInt64(Bytes2Int(BS, BE, Signed), ERRORMSG) ... </instrs>
          <bytesStack> BS : STACK => STACK </bytesStack>
 ```
 
@@ -929,6 +937,14 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <locals> 0 |-> <i32> IDX1  1 |-> <i32> IDX2 </locals>
          <bigIntHeap> HEAP </bigIntHeap>
 
+    // extern void bigIntFinishUnsigned(void* context, int32_t reference);
+    rule <instrs> hostCall("env", "bigIntFinishUnsigned", [ i32 .ValTypes ] -> [ .ValTypes ])
+               => #getBigInt(IDX, Unsigned)
+               ~> #appendToOutFromBytesStack
+                  ...
+         </instrs>
+         <locals> 0 |-> <i32> IDX </locals>
+
     // extern void bigIntFinishSigned(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntFinishSigned", [ i32 .ValTypes ] -> [ .ValTypes ])
                => #getBigInt(IDX, Signed)
@@ -961,13 +977,26 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ```k
     // extern long long smallIntGetUnsignedArgument(void *context, int32_t id);
     rule <instrs> hostCall("env", "smallIntGetUnsignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
-               => #returnIfUInt64(Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Unsigned)) ... </instrs>
+               => #returnIfUInt64(Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Unsigned), "argument out of range") ... </instrs>
+         <locals> 0 |-> <i32> ARG_IDX </locals>
+         <callArgs> ARGS </callArgs>
+
+    // extern long long smallIntGetSignedArgument(void *context, int32_t id);
+    rule <instrs> hostCall("env", "smallIntGetSignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
+               => #returnIfSInt64(Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Signed), "argument out of range") ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX </locals>
          <callArgs> ARGS </callArgs>
 
     // extern void smallIntFinishUnsigned(void* context, long long value);
     rule <instrs> hostCall("env", "smallIntFinishUnsigned", [ i64 .ValTypes ] -> [ .ValTypes ])
                => #appendToOut(Int2Bytes(VALUE, BE, Unsigned))
+                  ...
+         </instrs>
+         <locals> 0 |-> <i64> VALUE </locals>
+
+    // extern void smallIntFinishSigned(void* context, long long value);
+    rule <instrs> hostCall("env", "smallIntFinishSigned", [ i64 .ValTypes ] -> [ .ValTypes ])
+               => #appendToOut(Int2Bytes(VALUE, BE, Signed))
                   ...
          </instrs>
          <locals> 0 |-> <i64> VALUE </locals>
@@ -989,7 +1018,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <instrs> hostCall("env", "smallIntStorageLoadUnsigned", [ i32 i32 .ValTypes ] -> [ i64 .ValTypes ])
                => #memLoad(KEYOFFSET, KEYLENGTH)
                ~> #storageLoad
-               ~> #loadBytesAsUInt64
+               ~> #loadBytesAsUInt64("argument out of range")
                   ...
          </instrs>
          <locals>

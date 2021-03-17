@@ -14,7 +14,6 @@ pipeline {
     stage('Build') {
       parallel {
         stage('Semantics') { steps { sh 'make build RELEASE=true' } }
-        stage('Contracts') { steps { sh 'make elrond-contracts' } }
       }
     }
     stage('Test') {
@@ -23,10 +22,10 @@ pipeline {
         stage('Unit Test')              { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-simple -j4' } }
         stage('Unit Test Python')       { steps { sh 'make TEST_CONCRETE_BACKEND=llvm unittest-python' } }
         stage('Mandos Unit Test')       { steps { sh 'make TEST_CONCRETE_BACKEND=llvm mandos-test -j4' } }
-        stage('Adder Contract Test')    { steps { sh 'make TEST_CONCRETE_BACKEND=llvm elrond-adder-test' } }
-        stage('Lottery Contract Test')  { steps { sh 'make TEST_CONCRETE_BACKEND=llvm elrond-lottery-test' } }
-        stage('Multisig Contract Test') { steps { sh 'make TEST_CONCRETE_BACKEND=llvm elrond-multisig-test' } }
-        stage('Basic Features Test')    { steps { sh 'make TEST_CONCRETE_BACKEND=llvm elrond-basic-features-test' } }
+        stage('Adder Contract Test')    { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-adder' } }
+        stage('Lottery Contract Test')  { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-lottery-egld' } }
+        stage('Multisig Contract Test') { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-multisig' } }
+        stage('Basic Features Test')    { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features' } }
       }
     }
   }

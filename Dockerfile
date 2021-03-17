@@ -38,3 +38,5 @@ RUN    git clone 'https://github.com/WebAssembly/wabt' --branch 1.0.13 --recurse
     && cmake --build .
 
 ENV PATH=/home/user/wabt/build:/home/user/.local/bin:$PATH
+
+RUN erdpy deps install rust

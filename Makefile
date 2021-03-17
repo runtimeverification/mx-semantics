@@ -1,8 +1,9 @@
 
 .PHONY: all clean deps wasm-deps                                           \
         build build-llvm build-haskell                                     \
-        elrond-contracts mandos-test elrond-loaded                         \
-        elrond-contract-tests elrond-adder-test elrond-lottery-test        \
+        mandos-test elrond-loaded                                          \
+        test-elrond-contracts test-elrond-adder test-elrond-lottery-egld   \
+        test-elrond-multisig test-elrond-basic-features                    \
         unittest-python                                                    \
         test
 
@@ -83,13 +84,10 @@ $(libff_out): $(PLUGIN_SUBMODULE)/deps/libff/CMakeLists.txt
 
 K_JAR := $(K_SUBMODULE)/k-distribution/target/release/k/lib/java/kernel-1.0-SNAPSHOT.jar
 
-deps: wasm-deps elrond-contracts
+deps: wasm-deps
 
 wasm-deps:
 	$(KWASM_MAKE) deps
-
-elrond-contracts:
-	cd $(ELROND_WASM_SUBMODULE) && ./investigate-wasm.sh
 
 # Building Definition
 # -------------------
@@ -143,9 +141,13 @@ $(KWASM_SUBMODULE)/blockchain-k-plugin/%.md: $(PLUGIN_SUBMODULE)/plugin/%.md
 
 KRUN_OPTS :=
 
-elrond-contract-tests: elrond-adder-test elrond-lottery-test
+elrond-contract-deps := test-elrond-adder         \
+                        test-elrond-lottery-egld  \
+                        test-elrond-multisig      \
+                        test-elrond-basic-features
+test-elrond-contracts: $(elrond-contract-deps)
 
-test: test-simple mandos-test elrond-contract-tests
+test: test-simple mandos-test test-elrond-contracts
 
 # Unit Tests
 # ----------
@@ -196,48 +198,38 @@ mandos-test: $(llvm_kompiled)
 
 ## Adder Test
 
-ELROND_ADDER_SUBMODULE := $(ELROND_CONTRACT_EXAMPLES)/adder
-ELROND_ADDER_TESTS_DIR=$(ELROND_ADDER_SUBMODULE)/mandos
-elrond_adder_tests=$(ELROND_ADDER_TESTS_DIR)/adder.scen.json
+ELROND_ADDER_DIR := $(ELROND_CONTRACT_EXAMPLES)/adder
+elrond_adder_tests=$(shell find $(ELROND_ADDER_DIR) -name "*.scen.json")
 
-$(ELROND_ADDER_SUBMODULE)/output/adder.wasm: $(ELROND_ADDER_SUBMODULE)/output/adder-dbg.wasm
-	cp $< $@
-
-elrond-adder-test: $(ELROND_ADDER_SUBMODULE)/output/adder.wasm
+test-elrond-adder:
+	erdpy contract build "$(ELROND_ADDER_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_adder_tests) --coverage
 
 ## Lottery Test
 
-ELROND_LOTTERY_SUBMODULE=$(ELROND_CONTRACT_EXAMPLES)/lottery-egld
-elrond_lottery_tests=$(shell find $(ELROND_LOTTERY_SUBMODULE) -name "*.scen.json")
+ELROND_LOTTERY_EGLD_DIR=$(ELROND_CONTRACT_EXAMPLES)/lottery-egld
+elrond_lottery_tests=$(shell find $(ELROND_LOTTERY_EGLD_DIR) -name "*.scen.json")
 
-# Fix: the tests use an outdated name for the Wasm file.
-$(ELROND_LOTTERY_SUBMODULE)/output/lottery-egld.wasm: $(ELROND_LOTTERY_SUBMODULE)/output/lottery-egld-dbg.wasm
-	cp $< $@
-
-elrond-lottery-test: $(ELROND_LOTTERY_SUBMODULE)/output/lottery-egld.wasm
+test-elrond-lottery-egld:
+	erdpy contract build "$(ELROND_LOTTERY_EGLD_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_lottery_tests) --coverage
 
 ## Multisg Test
 
-ELROND_MULTISIG_SUBMODULE=$(ELROND_CONTRACT_EXAMPLES)/multisig
+ELROND_MULTISIG_DIR=$(ELROND_CONTRACT_EXAMPLES)/multisig
 elrond_multisig_tests=$(shell cat tests/multisig.test)
 
-$(ELROND_MULTISIG_SUBMODULE)/output/multisig.wasm: $(ELROND_MULTISIG_SUBMODULE)/output/multisig-dbg.wasm
-	cp $< $@
-
-elrond-multisig-test:$(ELROND_MULTISIG_SUBMODULE)/output/multisig.wasm
+elrond-multisig-test:
+	erdpy contract build "$(ELROND_MULTISIG_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_multisig_tests) --coverage
 
 ## Basic Feature Test
 
-ELROND_BASIC_FEATURES_SUBMODULE=$(ELROND_CONTRACT)/feature-tests/basic-features
+ELROND_BASIC_FEATURES_DIR=$(ELROND_CONTRACT)/feature-tests/basic-features
 elrond_basic_features_tests=$(shell cat tests/basic_features.test)
 
-$(ELROND_BASIC_FEATURES_SUBMODULE)/output/basic-features.wasm: $(ELROND_BASIC_FEATURES_SUBMODULE)/output/basic-features-dbg.wasm
-	cp $< $@
-
-elrond-basic-features-test: $(ELROND_BASIC_FEATURES_SUBMODULE)/output/basic-features.wasm
+test-elrond-basic-features:
+	erdpy contract build "$(ELROND_BASIC_FEATURES_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_basic_features_tests)
 
 # Unit Tests

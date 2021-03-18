@@ -66,12 +66,12 @@ Storage maps byte arrays to byte arrays.
          </currentBlockInfo>
        </node>
 
-    syntax ReturnCode ::= ".ReturnCode"
-                        | "OK"
-                        | ExceptionCode
+    syntax ReturnCode    ::= ".ReturnCode"
+                           | "OK"          [klabel(OK), symbol]
+                           | ExceptionCode
     syntax ExceptionCode ::= "OutOfFunds"
-                           | "UserError"
- // ------------------------------------
+                           | "UserError"   [klabel(UserError), symbol]
+ // ------------------------------------------------------------------
 
     syntax Address ::= Bytes
                      | WasmStringToken
@@ -989,14 +989,14 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 
     // extern void smallIntFinishUnsigned(void* context, long long value);
     rule <instrs> hostCall("env", "smallIntFinishUnsigned", [ i64 .ValTypes ] -> [ .ValTypes ])
-               => #appendToOut(Int2Bytes(VALUE, BE, Unsigned))
+               => #appendToOut(Int2Bytes(#unsigned(i64, VALUE), BE, Unsigned))
                   ...
          </instrs>
          <locals> 0 |-> <i64> VALUE </locals>
 
     // extern void smallIntFinishSigned(void* context, long long value);
     rule <instrs> hostCall("env", "smallIntFinishSigned", [ i64 .ValTypes ] -> [ .ValTypes ])
-               => #appendToOut(Int2Bytes(VALUE, BE, Signed))
+               => #appendToOut(Int2Bytes(#signed(i64, VALUE), BE, Signed))
                   ...
          </instrs>
          <locals> 0 |-> <i64> VALUE </locals>

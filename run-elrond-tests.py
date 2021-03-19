@@ -6,6 +6,7 @@ import pyk
 import resource
 import subprocess
 import sys
+import sha3
 import tempfile
 import os
 import wasm2kast
@@ -28,6 +29,7 @@ def KBytes(value: bytes):
     # Change from python bytes repr to bytes repr in K.
     byte_repr = '{}'.format(value)
     if byte_repr.startswith("b'") and byte_repr.endswith("'") :
+        byte_repr = byte_repr.replace('"', '\\"')
         byte_repr = 'b"' + byte_repr[2:-1] + '"'
     return KToken(byte_repr, 'Bytes')
 
@@ -63,11 +65,12 @@ WASM_definition_llvm_no_coverage_kompiled_dir = WASM_definition_llvm_no_coverage
 WASM_definition_llvm_no_coverage = pyk.readKastTerm(WASM_definition_llvm_no_coverage_kompiled_dir + '/compiled.json')
 WASM_symbols_llvm_no_coverage = pyk.buildSymbolTable(WASM_definition_llvm_no_coverage)
 
-addr_prefix = "address:"
-u64_prefix  = "u64:"
-u32_prefix  = "u32:"
-u16_prefix  = "u16:"
-u8_prefix   = "u8:"
+addr_prefix   = "address:"
+keccak_prefix = "keccak256:"
+u64_prefix    = "u64:"
+u32_prefix    = "u32:"
+u16_prefix    = "u16:"
+u8_prefix     = "u8:"
 
 sys.setrecursionlimit(1500000000)
 resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
@@ -125,6 +128,13 @@ def mandos_string_to_bytes(raw_str: str):
         padded_addr_bytes = bytes(padded_addr[:32], 'ascii')
         return padded_addr_bytes
 
+    # keccak256
+    if raw_str.startswith(keccak_prefix):
+        input_bytes = mandos_string_to_bytes(raw_str[len(keccak_prefix):])
+        k = sha3.keccak_256()
+        k.update(input_bytes)
+        return bytes.fromhex(k.hexdigest())
+
     # fixed width number
     if raw_str.startswith(u64_prefix):
         return mandos_interpret_as_uint_fixedwidth(raw_str[len(u64_prefix):], 8)
@@ -162,20 +172,22 @@ def convert_string_to_uint(raw_str: str):
 
     if num_str.startswith('0x') or num_str.startswith('0X'):
         num_str = num_str[2:]
-        num_len = len(num_str) // 2
-        if num_len == 0:
+        str_len = len(num_str)
+        if str_len == 0:
             return (0, 0)
         else:
             num_int = int(num_str, 16)
+            num_len = (str_len + 1) // 2
             return (num_int, num_len)
 
     if num_str.startswith('0b') or num_str.startswith('0B'):
         num_str = num_str[2:]
-        num_len = len(num_str) // 8
-        if num_len == 0:
+        str_len = len(num_str)
+        if str_len == 0:
             return (0, 0)
         else:
             num_int = int(num_str, 2)
+            num_len = (str_len + 7) // 8
             return (num_int, num_len)
 
     num_int = int(num_str)
@@ -194,7 +206,7 @@ def convert_string_to_sint(raw_str: str):
 def mandos_argument_to_kbytes(argument: str):
     return KBytes(mandos_argument_to_bytes(argument))
 
-def mandos_arguments_to_arguments(arguments):
+def mandos_arguments_to_klist(arguments: list):
     tokenized = list(map(lambda x: mandos_argument_to_kbytes(x), arguments))
     return KList(tokenized)
 
@@ -245,7 +257,7 @@ def mandos_to_check_account(address, sections, filename):
 def mandos_to_deploy_tx(tx, filename, output_dir):
     sender = mandos_argument_to_kbytes(tx['from'])
     value = mandos_int_to_kint(tx['value'])
-    arguments = mandos_arguments_to_arguments(tx['arguments']) #TODO
+    arguments = mandos_arguments_to_klist(tx['arguments'])
     gasLimit = mandos_int_to_kint(tx['gasLimit'])
     gasPrice = mandos_int_to_kint(tx['gasPrice'])
 
@@ -260,7 +272,7 @@ def mandos_to_call_tx(tx, filename):
     to = mandos_argument_to_kbytes(tx['to'])
     value = mandos_int_to_kint(tx['value'])
     function = KWasmString(tx['function'])
-    arguments = mandos_arguments_to_arguments(tx['arguments']) #TODO
+    arguments = mandos_arguments_to_klist(tx['arguments'])
     gasLimit = mandos_int_to_kint(tx['gasLimit'])
     gasPrice = mandos_int_to_kint(tx['gasPrice'])
 
@@ -282,9 +294,26 @@ def mandos_to_validator_reward_tx(tx):
     rewardTx = KApply('validatorRewardTx', [to, value])
     return rewardTx
 
+# TODO: implement checkExpect logs, gas, refund
 def mandos_to_expect(expect):
-    """ TODO """
-    return KApply('.Expect', [])
+    k_steps = []
+
+    def int_to_kreturncode(status: str):
+        if status == "" or status == "0":
+            return KApply('OK', [])
+        if status == "4":
+            return KApply('UserError', [])
+
+        raise ValueError("Status code %s not supported" % status)
+
+    if ('out' in expect) and (expect['out'] != '*'):
+        expect_out = mandos_arguments_to_klist(expect['out'])
+        k_steps.append(KApply('checkExpectOut', [expect_out]))
+    if ('status' in expect) and (expect['status'] != '*'):
+        k_steps.append(KApply('checkExpectStatus', [int_to_kreturncode(expect['status'])]))
+    if ('message' in expect) and (expect['message'] != '*'):
+        k_steps.append(KApply('checkExpectMessage', [mandos_argument_to_kbytes(expect['message'])]))
+    return k_steps
 
 def mandos_to_block_info(block_info):
     block_infos = []
@@ -296,6 +325,8 @@ def mandos_to_block_info(block_info):
         block_infos += [KApply('blockRound', [mandos_int_to_kint(block_info['blockRound'])])]
     if 'blockEpoch' in block_info:
         block_infos += [KApply('blockEpoch', [mandos_int_to_kint(block_info['blockEpoch'])])]
+    if 'blockRandomSeed' in block_info:
+        block_infos += [KApply('blockRandomSeed', [mandos_argument_to_kbytes(block_info['blockRandomSeed'])])]
     return block_infos
 
 def register(with_name: str):
@@ -344,14 +375,22 @@ def get_contract_code(code, filename):
     raise Exception('Currently only support getting code from file, or empty code.')
 
 def get_steps_sc_deploy(step, filename, output_dir):
+    k_steps = []
     tx = mandos_to_deploy_tx(step['tx'], filename, output_dir)
-    expect = mandos_to_expect(step['expect'])
-    return [KApply('scDeploy', [tx, expect])]
+    k_steps.append(tx)
+    if 'expect' in step:
+        expect = mandos_to_expect(step['expect'])
+        k_steps += expect
+    return k_steps
 
 def get_steps_sc_call(step, filename):
+    k_steps = []
     tx = mandos_to_call_tx(step['tx'], filename)
-    expect = mandos_to_expect(step['expect'])
-    return [KApply('scCall', [tx, expect])]
+    k_steps.append(tx)
+    if 'expect' in step:
+        expect = mandos_to_expect(step['expect'])
+        k_steps += expect
+    return k_steps
 
 def get_steps_transfer(step):
     tx = mandos_to_transfer_tx(step['tx'])

@@ -272,13 +272,9 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### Step type: scCall
 
 ```k
-    syntax Step ::= scCall( CallTx, Expect ) [klabel(scCall), symbol]
- // ----------------------------------------------------------------
-    rule <k> scCall( TX, EXPECT ) => TX ~> EXPECT ... </k> [priority(60)]
-
-    syntax CallTx ::= callTx    (from: Address, to: Address, value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
-                    | callTxAux (from: Bytes,   to: Bytes,   value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
- // ------------------------------------------------------------------------------------------------------------------------------------------------------------
+    syntax Step ::= callTx    (from: Address, to: Address, value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
+                  | callTxAux (from: Bytes,   to: Bytes,   value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
+ // ----------------------------------------------------------------------------------------------------------------------------------------------------------
     rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE)
           => callTxAux(#address2Bytes(FROM), #address2Bytes(TO), VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) ... </k>
       [priority(60)]
@@ -294,21 +290,31 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
       [priority(60)]
 
-    syntax Expect ::= ".Expect" [klabel(.Expect), symbol]
- // -------------------------------------------------------
-    rule <k> .Expect => . ... </k> [priority(60)]
+    syntax Step ::= checkExpectOut ( List ) [klabel(checkExpectOut), symbol]
+ // --------------------------------------------------------------------------
+    rule <k> checkExpectOut(OUT) => . ... </k>
+         <out> OUT </out>
+      [priority(60)]
+
+    syntax Step ::= checkExpectStatus ( ReturnCode ) [klabel(checkExpectStatus), symbol]
+ // ------------------------------------------------------------------------------------
+    rule <k> checkExpectStatus(RETURNCODE) => . ... </k>
+         <returnCode> RETURNCODE </returnCode>
+      [priority(60)]
+
+    syntax Step ::= checkExpectMessage ( Bytes ) [klabel(checkExpectMessage), symbol]
+ // ---------------------------------------------------------------------------------
+    rule <k> checkExpectMessage(MSG) => . ... </k>
+         <message> MSG </message>
+      [priority(60)]
 ```
 
 ### Step type: scDeploy
 
 ```k
-    syntax Step ::= scDeploy ( DeployTx, Expect ) [klabel(scDeploy), symbol]
- // ------------------------------------------------------------------------
-    rule <k> scDeploy( TX, EXPECT ) => TX ~> EXPECT ... </k> [priority(60)]
-
-    syntax DeployTx ::= deployTx    ( Address, Int, ModuleDecl, List, Int, Int ) [klabel(deployTx), symbol]
-                      | deployTxAux ( Bytes, Int, ModuleDecl, List, Int, Int )   [klabel(deployTxAux), symbol]
- // ----------------------------------------------------------------------------------------------------------
+    syntax Step ::= deployTx    ( Address, Int, ModuleDecl, List, Int, Int ) [klabel(deployTx), symbol]
+                  | deployTxAux ( Bytes, Int, ModuleDecl, List, Int, Int )   [klabel(deployTxAux), symbol]
+ // ------------------------------------------------------------------------------------------------------
     rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE)
           => deployTxAux(#address2Bytes(FROM), VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) ... </k>
       [priority(60)]
@@ -318,7 +324,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
       [priority(60)]
 
     syntax Deployment ::= deployLastModule( Bytes, Int, List, Int, Int )
- // ----------------------------------------------------------------------
+ // --------------------------------------------------------------------
     rule <k> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => createAccount(NEWADDR)
                  ~> setAccountCodeIndex(NEWADDR, NEXTIDX -Int 1)
@@ -379,30 +385,6 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule #incBytes(VAL, INC) => Int2Bytes(Bytes2Int(VAL, BE, Signed) +Int INC, BE, Signed)
 ```
 
-### Assertions About State
-
 ```k
-    syntax Step ::= Assertion
- // --------------------------
-
-    syntax Assertion ::= assertOut    ( BytesStack ) [klabel(assertOut), symbol]
-                       | assertOutAux ( BytesStack, List)
- // -----------------------------------------------------
-    rule <k> assertOut(BS) => assertOutAux(BS, OUT) ... </k>
-         <out> OUT </out>
-      [priority(60)]
-
-    rule <k> assertOutAux(BS : RESTB, ListItem(BS) RESTL) => assertOutAux(RESTB, RESTL) ... </k>
-      [priority(60)]
-
-    rule <k> assertOutAux(.BytesStack, .List) => . ... </k>
-      [priority(60)]
-
-    syntax Assertion ::= assertMessage ( Bytes ) [klabel(assertMessage), symbol]
- // ----------------------------------------------------------------------------
-    rule <k> assertMessage(BS) => . ... </k>
-         <message> BS </message>
-      [priority(60)]
-
 endmodule
 ```

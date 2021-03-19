@@ -387,7 +387,6 @@ def get_steps_sc_call(step, filename):
     k_steps = []
     tx = mandos_to_call_tx(step['tx'], filename)
     k_steps.append(tx)
-    expect = KApply('.Expect', [])
     if 'expect' in step:
         expect = mandos_to_expect(step['expect'])
         k_steps += expect

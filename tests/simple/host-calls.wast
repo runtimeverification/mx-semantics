@@ -236,8 +236,8 @@ deployTx(
     , 0
 )
 
-assertOut(Int2Bytes(777, BE, Signed))
-
+checkExpectStatus(OK)
+checkExpectOut(ListItem(Int2Bytes(777, BE, Signed)))
 checkAccountBalance("testDeployer", 0)
 
 setExitCode 0

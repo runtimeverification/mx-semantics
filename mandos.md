@@ -385,30 +385,6 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule #incBytes(VAL, INC) => Int2Bytes(Bytes2Int(VAL, BE, Signed) +Int INC, BE, Signed)
 ```
 
-### Assertions About State
-
 ```k
-    syntax Step ::= Assertion
- // --------------------------
-
-    syntax Assertion ::= assertOut    ( BytesStack ) [klabel(assertOut), symbol]
-                       | assertOutAux ( BytesStack, List)
- // -----------------------------------------------------
-    rule <k> assertOut(BS) => assertOutAux(BS, OUT) ... </k>
-         <out> OUT </out>
-      [priority(60)]
-
-    rule <k> assertOutAux(BS : RESTB, ListItem(BS) RESTL) => assertOutAux(RESTB, RESTL) ... </k>
-      [priority(60)]
-
-    rule <k> assertOutAux(.BytesStack, .List) => . ... </k>
-      [priority(60)]
-
-    syntax Assertion ::= assertMessage ( Bytes ) [klabel(assertMessage), symbol]
- // ----------------------------------------------------------------------------
-    rule <k> assertMessage(BS) => . ... </k>
-         <message> BS </message>
-      [priority(60)]
-
 endmodule
 ```

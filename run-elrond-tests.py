@@ -467,7 +467,7 @@ def get_steps_as_kseq(filename, output_dir):
         elif step['step'] == 'transfer':
             k_steps.append((step['step'], get_steps_transfer(step)))
         elif step['step'] == 'validatorReward':
-            k_steps.append((step['step'], get_steps_validator_reward(step, filename)))
+            k_steps.append((step['step'], get_steps_validator_reward(step)))
         else:
             raise Exception('Step %s not implemented yet' % step['step'])
     return k_steps

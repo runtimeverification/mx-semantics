@@ -398,6 +398,20 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
 
 ### Helper functions
 
+#### Misc
+
+```k
+    syntax Bool ::= #hasPrefix ( String , String ) [function, functional]
+ // ---------------------------------------------------------------------
+    rule #hasPrefix(STR, PREFIX) => true
+      requires lengthString(STR) >=Int lengthString(PREFIX)
+       andBool substrString(STR, 0, lengthString(PREFIX)) ==String PREFIX
+
+    rule #hasPrefix(STR, PREFIX) => false
+      requires notBool (       lengthString(STR) >=Int lengthString(PREFIX)
+                       andBool substrString(STR, 0, lengthString(PREFIX)) ==String PREFIX)
+```
+
 #### Memory
 
 ```k
@@ -458,11 +472,22 @@ Storing a value returns a status code indicating if and how the storage was modi
 TODO: Implement [reserved keys and read-only runtimes](https://github.com/ElrondNetwork/arwen-wasm-vm/blob/d6ea0489081f81fefba002609c34ece1365373dd/arwen/contexts/storage.go#L111).
 
 ```k
-    syntax StorageOp ::= "#storageStore"
-                       | "#storageLoad"
- // -----------------------------------
-    rule <instrs> #storageStore => i32.const #storageStatus(STORAGE, KEY, VALUE) ... </instrs>
+    syntax InternalInstr ::= "#storageStore"
+ // ----------------------------------------
+    rule <instrs> #storageStore => #setStorage(KEY, VALUE) ... </instrs>
          <bytesStack> VALUE : KEY : STACK => STACK </bytesStack>
+
+    syntax InternalInstr ::= #setStorage ( Bytes , Bytes )
+ // ------------------------------------------------------
+    rule <instrs> #setStorage(KEY, VALUE)
+               => #isReservedKey(Bytes2String(KEY))
+               ~> #writeToStorage(KEY, VALUE)
+                  ...
+         </instrs>
+
+    syntax InternalInstr ::= #writeToStorage ( Bytes , Bytes )
+ // ----------------------------------------------------------
+    rule <instrs> #writeToStorage(KEY, VALUE) => i32.const #storageStatus(STORAGE, KEY, VALUE) ... </instrs>
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
@@ -470,30 +495,39 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            ...
          </account>
 
-    rule <instrs> #storageLoad => . ... </instrs>
-         <bytesStack> KEY : STACK => {STORAGE[KEY]}:>Bytes : STACK </bytesStack>
-         <callee> CALLEE </callee>
-         <account>
-           <address> CALLEE </address>
-           <storage> STORAGE </storage>
-           ...
-         </account>
-      requires KEY in_keys(STORAGE)
+    syntax InternalInstr ::= #isReservedKey ( String )
+ // --------------------------------------------------
+    rule <instrs> #isReservedKey(KEY) => . ... </instrs>
+      requires notBool #hasPrefix(KEY, "ELROND")
 
+    rule <commands> (. => #exception(UserError)) ... </commands>
+         <instrs> (#isReservedKey(KEY) ~> _) => . </instrs>
+         <message> _ => String2Bytes("cannot write to storage under Elrond reserved key") </message>
+      requires         #hasPrefix(KEY, "ELROND")
+
+    syntax InternalInstr ::= "#storageLoad"
+ // ---------------------------------------
     rule <instrs> #storageLoad => . ... </instrs>
-         <bytesStack> KEY : STACK => .Bytes : STACK </bytesStack>
+         <bytesStack> KEY : STACK => #lookupStorage(STORAGE, KEY) : STACK </bytesStack>
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
            <storage> STORAGE </storage>
            ...
          </account>
-      requires notBool KEY in_keys(STORAGE)
 
     syntax Map ::= #updateStorage ( Map , key : Bytes , val : Bytes ) [function, functional]
  // ----------------------------------------------------------------------------------------
     rule #updateStorage(STOR, KEY, VAL) => STOR [KEY <- undef] requires VAL  ==K .Bytes
     rule #updateStorage(STOR, KEY, VAL) => STOR [KEY <- VAL  ] requires VAL =/=K .Bytes
+
+    syntax Bytes ::= #lookupStorage ( Map , key: Bytes ) [function]
+ // ---------------------------------------------------------------
+    rule #lookupStorage(STORAGE, KEY) => {STORAGE[KEY]}:>Bytes
+      requires         KEY in_keys(STORAGE)
+
+    rule #lookupStorage(STORAGE, KEY) => .Bytes
+      requires notBool KEY in_keys(STORAGE)
 
     syntax Int ::= #storageStatus ( Map , key : Bytes , val : Bytes ) [function, functional]
                  | #StorageUnmodified () [function, functional]
@@ -843,7 +877,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                            | #setBigInt ( idx: Int , value: Bytes , Signedness )
  // ----------------------------------------------------------------------------
     rule <instrs> #setBigIntFromBytesStack(BIGINT_IDX, SIGN) => #setBigInt(BIGINT_IDX, BS, SIGN) ... </instrs>
-         <bytesStack> BS : STACK => STACK </bytesStack>
+         <bytesStack> BS : _ </bytesStack>
 
     rule <instrs> #setBigInt(BIGINT_IDX, BS, SIGN) => . ... </instrs>
          <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- Bytes2Int(BS, BE, SIGN)] </bigIntHeap>
@@ -889,6 +923,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <instrs> hostCall("env", "bigIntSetUnsignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(OFFSET, LENGTH)
                ~> #setBigIntFromBytesStack(IDX, Unsigned)
+               ~> #dropBytes
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX 1 |-> <i32> OFFSET 2 |-> <i32> LENGTH </locals>
@@ -897,6 +932,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <instrs> hostCall("env", "bigIntSetSignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(OFFSET, LENGTH)
                ~> #setBigIntFromBytesStack(IDX, Signed)
+               ~> #dropBytes
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX 1 |-> <i32> OFFSET 2 |-> <i32> LENGTH </locals>
@@ -952,6 +988,34 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
+
+    // extern int32_t bigIntStorageStoreUnsigned(void *context, int32_t keyOffset, int32_t keyLength, int32_t source);
+    rule <instrs> hostCall("env", "bigIntStorageStoreUnsigned", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #memLoad(KEYOFFSET, KEYLENGTH)
+               ~> #getBigInt(BIGINTIDX, Unsigned)
+               ~> #storageStore
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> KEYOFFSET
+           1 |-> <i32> KEYLENGTH
+           2 |-> <i32> BIGINTIDX
+         </locals>
+
+    // extern int32_t bigIntStorageLoadUnsigned(void *context, int32_t keyOffset, int32_t keyLength, int32_t destination);
+    rule <instrs> hostCall("env", "bigIntStorageLoadUnsigned", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #memLoad(KEYOFFSET, KEYLENGTH)
+               ~> #storageLoad
+               ~> #setBigIntFromBytesStack(DEST, Unsigned)
+               ~> #returnLength
+               ~> #dropBytes
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> KEYOFFSET
+           1 |-> <i32> KEYLENGTH
+           2 |-> <i32> DEST
+         </locals>
 
     // extern void bigIntGetUnsignedArgument(void *context, int32_t id, int32_t destination);
     rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
@@ -1014,11 +1078,36 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            2 |-> <i64> VALUE
          </locals>
 
+    // extern int32_t smallIntStorageStoreSigned(void *context, int32_t keyOffset, int32_t keyLength, long long value);
+    rule <instrs> hostCall("env", "smallIntStorageStoreSigned", [ i32 i32 i64 .ValTypes ] -> [ i32 .ValTypes ])
+               => #memLoad(KEYOFFSET, KEYLEN)
+               ~> #pushBytes(Int2Bytes(VALUE, BE, Signed))
+               ~> #storageStore
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> KEYOFFSET
+           1 |-> <i32> KEYLEN
+           2 |-> <i64> VALUE
+         </locals>
+
     // extern long long smallIntStorageLoadUnsigned(void *context, int32_t keyOffset, int32_t keyLength);
     rule <instrs> hostCall("env", "smallIntStorageLoadUnsigned", [ i32 i32 .ValTypes ] -> [ i64 .ValTypes ])
                => #memLoad(KEYOFFSET, KEYLENGTH)
                ~> #storageLoad
-               ~> #loadBytesAsUInt64("argument out of range")
+               ~> #loadBytesAsUInt64("storage value out of range")
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> KEYOFFSET
+           1 |-> <i32> KEYLENGTH
+         </locals>
+
+    // extern long long smallIntStorageLoadSigned(void *context, int32_t keyOffset, int32_t keyLength);
+    rule <instrs> hostCall("env", "smallIntStorageLoadSigned", [ i32 i32 .ValTypes ] -> [ i64 .ValTypes ])
+               => #memLoad(KEYOFFSET, KEYLENGTH)
+               ~> #storageLoad
+               ~> #loadBytesAsSInt64("storage value out of range")
                   ...
          </instrs>
          <locals>

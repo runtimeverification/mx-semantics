@@ -16,6 +16,7 @@ Mandos Configuration
 
 ```k
 module MANDOS
+    imports COLLECTIONS
     imports ELROND
 
     configuration
@@ -70,6 +71,20 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <moduleRegistry> REG => REG [NAME <- IDX -Int 1] </moduleRegistry>
          <nextModuleIdx> IDX </nextModuleIdx>
       [priority(60)]
+```
+
+### Helper Functions
+
+```k
+    syntax Map ::= #removeEmptyBytes ( Map ) [function]
+                 | #removeEmptyBytes ( List , Map ) [function, klabel(#removeEmptyBytesAux)]
+ // ----------------------------------------------------------------------------------------
+    rule #removeEmptyBytes(M)                                    => #removeEmptyBytes(Set2List(keys(M)), M)
+    rule #removeEmptyBytes(.List, .Map)                          => .Map
+    rule #removeEmptyBytes(ListItem(KEY) L, KEY |-> VALUE REST) => #removeEmptyBytes(L, REST)
+      requires VALUE ==K .Bytes
+    rule #removeEmptyBytes(ListItem(KEY) L, KEY |-> VALUE REST ) => KEY |-> VALUE #removeEmptyBytes(L, REST)
+      requires VALUE =/=K .Bytes
 ```
 
 ### Step type: setState
@@ -207,9 +222,10 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkAccountStorageAux(ADDR, STORAGE) => . ... </k>
          <account>
            <address> ADDR </address>
-           <storage> STORAGE </storage>
+           <storage> ACCTSTORAGE </storage>
            ...
          </account>
+        requires ACCTSTORAGE ==K #removeEmptyBytes(STORAGE)
       [priority(60)]
 
     syntax Step ::= checkAccountCode    ( Address, String ) [klabel(checkAccountCode), symbol]
@@ -374,7 +390,10 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> validatorRewardTxAux(TO, VAL) => . ... </k>
          <account>
            <address> TO </address>
-            <storage> STOR => STOR[String2Bytes("ELRONDrewards") <- #incBytes({STOR[String2Bytes("ELRONDrewards")]}:>Bytes, VAL)] </storage>
+            <storage> STOR
+                   => STOR[String2Bytes("ELRONDreward") 
+                           <- #incBytes(#lookupStorage(STOR, String2Bytes("ELRONDreward")), VAL)]
+            </storage>
             <balance> TO_BAL => TO_BAL +Int VAL </balance>
             ...
          </account>

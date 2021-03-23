@@ -4,6 +4,7 @@ deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/count_ones.sce
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/crypto_keccak256.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/crypto_sha256.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/echo_array_u8.scen.json
+deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/echo_async_result_empty.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/echo_big_int.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/echo_big_uint.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/echo_boxed_bytes.scen.json
@@ -20,6 +21,10 @@ deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/echo_usize.sce
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/echo_varags_tuples.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/echo_varargs_u32.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/echo_vec_u8.scen.json
+deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/get_caller.scen.json
+deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/is_smart_contract.scen.json
+deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/panic.scen.json
+deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/sc_result.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/storage_addr.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/storage_big_int.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/storage_big_uint.scen.json

@@ -17,7 +17,7 @@ pipeline {
       }
     }
     stage('Test') {
-      options { timeout(time: 20, unit: 'MINUTES') }
+      options { timeout(time: 30, unit: 'MINUTES') }
       parallel {
         stage('Unit Test')              { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-simple -j4' } }
         stage('Unit Test Python')       { steps { sh 'make TEST_CONCRETE_BACKEND=llvm unittest-python' } }

@@ -668,6 +668,34 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ### Elrond API
 
 ```k
+    // extern int32_t isSmartContract(void *context, int32_t addressOffset);
+    rule <instrs> hostCall("env", "isSmartContract", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #memLoad(ADDROFFSET, 32)
+               ~> #checkIsSmartContract
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> ADDROFFSET
+         </locals>
+
+    syntax InternalInstr ::= "#checkIsSmartContract"
+ // ------------------------------------------------
+    rule <instrs> #checkIsSmartContract => i32.const 1 ... </instrs>
+         <bytesStack> ADDR : STACK => STACK </bytesStack>
+         <account>
+           <address> ADDR </address>
+           <codeIdx> _:Int </codeIdx>
+           ...
+         </account>
+
+    rule <instrs> #checkIsSmartContract => i32.const 0 ... </instrs>
+         <bytesStack> ADDR : STACK => STACK </bytesStack>
+         <account>
+           <address> ADDR </address>
+           <codeIdx> .CodeIndex </codeIdx>
+           ...
+         </account>
+
     // extern int32_t transferValue(void *context, int32_t dstOffset, int32_t valueOffset, int32_t dataOffset, int32_t length);
     rule <instrs> hostCall("env", "transferValue", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #memLoad(DSTOFFSET, 32)

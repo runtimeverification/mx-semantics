@@ -267,7 +267,7 @@ def mandos_to_deploy_tx(tx, filename, output_dir):
     deployTx = KApply('deployTx', [sender, value, module, arguments, gasLimit, gasPrice])
     return deployTx
 
-def mandos_to_call_tx(tx, filename):
+def mandos_to_call_tx(tx):
     sender = mandos_argument_to_kbytes(tx['from'])
     to = mandos_argument_to_kbytes(tx['to'])
     value = mandos_int_to_kint(tx['value'])
@@ -299,9 +299,12 @@ def mandos_to_expect(expect):
     k_steps = []
 
     def int_to_kreturncode(status: str):
-        if status == "" or status == "0":
+        if status == "":
             return KApply('OK', [])
-        if status == "4":
+        status_int, _ = convert_string_to_uint(status)
+        if status_int == 0:
+            return KApply('OK', [])
+        if status_int == 4:
             return KApply('UserError', [])
 
         raise ValueError("Status code %s not supported" % status)
@@ -383,14 +386,28 @@ def get_steps_sc_deploy(step, filename, output_dir):
         k_steps += expect
     return k_steps
 
-def get_steps_sc_call(step, filename):
+def get_steps_sc_call(step):
     k_steps = []
-    tx = mandos_to_call_tx(step['tx'], filename)
+    tx = mandos_to_call_tx(step['tx'])
     k_steps.append(tx)
     if 'expect' in step:
         expect = mandos_to_expect(step['expect'])
         k_steps += expect
     return k_steps
+
+def get_steps_sc_query(step):
+    tx_field = step['tx']
+    if 'from' not in tx_field:
+        tx_field['from'] = tx_field['to']
+    if 'value' not in tx_field:
+        tx_field['value'] = str(0)
+    if 'arguments' not in tx_field:
+        tx_field['arguments'] = []
+    if 'gasLimit' not in tx_field:
+        tx_field['gasLimit'] = str(2**64 - 1)
+    if 'gasPrice' not in tx_field:
+        tx_field['gasPrice'] = str(0)
+    return get_steps_sc_call(step)
 
 def get_steps_transfer(step):
     tx = mandos_to_transfer_tx(step['tx'])
@@ -457,7 +474,9 @@ def get_steps_as_kseq(filename, output_dir):
         elif step['step'] == 'scDeploy':
             k_steps.append((step['step'], get_steps_sc_deploy(step, filename, output_dir)))
         elif step['step'] == 'scCall':
-            k_steps.append((step['step'], get_steps_sc_call(step, filename)))
+            k_steps.append((step['step'], get_steps_sc_call(step)))
+        elif step['step'] == 'scQuery':
+            k_steps.append((step['step'], get_steps_sc_query(step)))
         elif step['step'] == 'checkState':
             k_steps.append((step['step'], get_steps_check_state(step, filename)))
         elif step['step'] == 'externalSteps':

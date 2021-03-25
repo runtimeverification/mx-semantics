@@ -72,6 +72,8 @@ u32_prefix    = "u32:"
 u16_prefix    = "u16:"
 u8_prefix     = "u8:"
 
+biguint_prefix = "biguint:"
+
 sys.setrecursionlimit(1500000000)
 resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
@@ -134,6 +136,14 @@ def mandos_string_to_bytes(raw_str: str):
         k = sha3.keccak_256()
         k.update(input_bytes)
         return bytes.fromhex(k.hexdigest())
+
+    # biguint
+    if raw_str.startswith(biguint_prefix):
+        bs = bytearray()
+        num_int, num_len = convert_string_to_uint(raw_str[len(biguint_prefix):])
+        bs += bytearray(num_len.to_bytes(4, 'big'))
+        bs += bytearray(num_int.to_bytes(num_len, 'big'))
+        return bytes(bs)
 
     # fixed width number
     if raw_str.startswith(u64_prefix):
@@ -294,7 +304,7 @@ def mandos_to_validator_reward_tx(tx):
     rewardTx = KApply('validatorRewardTx', [to, value])
     return rewardTx
 
-# TODO: implement checkExpect logs, gas, refund
+# TODO: implement checkExpect gas, refund
 def mandos_to_expect(expect):
     k_steps = []
 
@@ -316,6 +326,16 @@ def mandos_to_expect(expect):
         k_steps.append(KApply('checkExpectStatus', [int_to_kreturncode(expect['status'])]))
     if ('message' in expect) and (expect['message'] != '*'):
         k_steps.append(KApply('checkExpectMessage', [mandos_argument_to_kbytes(expect['message'])]))
+    if ('logs' in expect) and (expect['logs'] != '*'):
+        logs = []
+        for log in expect['logs']:
+            address = mandos_argument_to_kbytes(log['address'])
+            identifier = mandos_argument_to_kbytes(log['identifier'])
+            topics = mandos_arguments_to_klist(log['topics'])
+            data = mandos_argument_to_kbytes(log['data'])
+            logEntry = KApply('logEntry', [address, identifier, topics, data])
+            logs.append(logEntry)
+        k_steps.append(KApply('checkExpectLogs', [KList(logs)]))
     return k_steps
 
 def mandos_to_block_info(block_info):

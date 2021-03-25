@@ -689,22 +689,22 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 
     rule <instrs> #getArgsFromMemoryAux(NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
                => #memLoad(LENGTHOFFSET, 4)
-               ~> #loadArgsHelperWithLengthOnStack(NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
+               ~> #loadArgDataWithLengthOnStack(NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
                   ...
          </instrs>
        requires 0 <Int COUNTER
 
-    syntax InternalInstr ::= #loadArgsHelperWithLengthOnStack( Int , Int , Int , Int , Int )
-                           | #loadArgsHelper                 ( Int , Int , Int , Int , Int , Int )
- // ----------------------------------------------------------------------------------------------
-    rule <instrs> #loadArgsHelperWithLengthOnStack(NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
-               => #loadArgsHelper(Bytes2Int(ARGLEN, LE, Unsigned), NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
+    syntax InternalInstr ::= #loadArgDataWithLengthOnStack( Int , Int , Int , Int , Int )
+                           | #loadArgData                 ( Int , Int , Int , Int , Int , Int )
+ // -------------------------------------------------------------------------------------------
+    rule <instrs> #loadArgDataWithLengthOnStack(NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
+               => #loadArgData(Bytes2Int(ARGLEN, LE, Unsigned), NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
                   ...
          </instrs>
          <bytesStack> ARGLEN : STACK => STACK </bytesStack>
 
 
-    rule <instrs> #loadArgsHelper(ARGLEN, NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
+    rule <instrs> #loadArgData(ARGLEN, NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
                => #memLoad(DATAOFFSET, ARGLEN)
                ~> #getArgsFromMemoryAux(NUMARGS, TOTALLEN +Int ARGLEN, COUNTER -Int 1, LENGTHOFFSET +Int 4, DATAOFFSET +Int ARGLEN)
                   ...

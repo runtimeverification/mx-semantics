@@ -323,6 +323,12 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkExpectMessage(MSG) => . ... </k>
          <message> MSG </message>
       [priority(60)]
+
+    syntax Step ::= checkExpectLogs ( List ) [klabel(checkExpectLogs), symbol]
+ // --------------------------------------------------------------------------
+    rule <k> checkExpectLogs(LOGS) => . ... </k>
+         <logs> LOGS </logs>
+      [priority(60)]
 ```
 
 ### Step type: scDeploy

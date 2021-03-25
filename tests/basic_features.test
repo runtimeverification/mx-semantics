@@ -21,6 +21,7 @@ deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/echo_usize.sce
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/echo_varags_tuples.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/echo_varargs_u32.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/echo_vec_u8.scen.json
+deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/events.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/get_caller.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/is_smart_contract.scen.json
 deps/elrond-wasm-rs/contracts/feature-tests/basic-features/mandos/panic.scen.json

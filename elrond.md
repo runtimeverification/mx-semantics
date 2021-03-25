@@ -29,6 +29,7 @@ module ELROND-NODE
           <message> .Bytes </message>
           <returnCode> .ReturnCode </returnCode>
           <interimStates> .List </interimStates>
+          <logs> .List </logs>
         </callState>
         <activeAccounts> .Set </activeAccounts>
         <accounts>
@@ -374,6 +375,7 @@ module ELROND
          <out> _ => .List </out>
          <message> _ => .Bytes </message>
          <returnCode> _ => .ReturnCode </returnCode>
+         <logs> _ => .List </logs>
          <bigIntHeap> _ => .Map </bigIntHeap>
          <account>
            <address> TO </address>
@@ -665,6 +667,69 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           </instrs>
 ```
 
+#### Log
+
+```k
+    syntax LogEntry ::= logEntry ( Bytes , Bytes , List , Bytes ) [klabel(logEntry), symbol]
+ // ----------------------------------------------------------------------------------------
+
+    syntax InternalInstr ::= #getArgsFromMemory    ( Int , Int , Int )
+                           | #getArgsFromMemoryAux ( Int , Int , Int , Int , Int )
+ // ------------------------------------------------------------------------------
+    rule <instrs> #getArgsFromMemory(NUMARGS, LENGTHOFFSET, DATAOFFSET)
+               => #getArgsFromMemoryAux(NUMARGS, 0, NUMARGS, LENGTHOFFSET, DATAOFFSET)
+                  ...
+         </instrs>
+
+    rule <instrs> #getArgsFromMemoryAux(NUMARGS, TOTALLEN, 0,  _, _)
+               => i32.const TOTALLEN
+               ~> i32.const NUMARGS
+                  ...
+         </instrs>
+
+    rule <instrs> #getArgsFromMemoryAux(NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
+               => #memLoad(LENGTHOFFSET, 4)
+               ~> #loadArgDataWithLengthOnStack(NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
+                  ...
+         </instrs>
+       requires 0 <Int COUNTER
+
+    syntax InternalInstr ::= #loadArgDataWithLengthOnStack( Int , Int , Int , Int , Int )
+                           | #loadArgData                 ( Int , Int , Int , Int , Int , Int )
+ // -------------------------------------------------------------------------------------------
+    rule <instrs> #loadArgDataWithLengthOnStack(NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
+               => #loadArgData(Bytes2Int(ARGLEN, LE, Unsigned), NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
+                  ...
+         </instrs>
+         <bytesStack> ARGLEN : STACK => STACK </bytesStack>
+
+
+    rule <instrs> #loadArgData(ARGLEN, NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
+               => #memLoad(DATAOFFSET, ARGLEN)
+               ~> #getArgsFromMemoryAux(NUMARGS, TOTALLEN +Int ARGLEN, COUNTER -Int 1, LENGTHOFFSET +Int 4, DATAOFFSET +Int ARGLEN)
+                  ...
+         </instrs>
+
+    syntax InternalInstr ::= "#writeLog"
+                           | #writeLogAux ( Int , List , Bytes )
+ // ------------------------------------------------------------
+    rule <instrs> #writeLog => #writeLogAux(NUMTOPICS, .List, DATA) ... </instrs>
+         <bytesStack> DATA : STACK => STACK </bytesStack>
+         <valstack> <i32> NUMTOPICS : <i32> _ : VALSTACK => VALSTACK </valstack>
+
+    rule <instrs> #writeLogAux(1, TOPICS, DATA) => . ... </instrs>
+         <bytesStack> IDENTIFIER : STACK => STACK </bytesStack>
+         <callee> CALLEE </callee>
+         <logs> ... (.List => ListItem(logEntry(CALLEE, IDENTIFIER, TOPICS, DATA))) </logs>
+
+    rule <instrs> #writeLogAux(NUMTOPICS, TOPICS, DATA)
+               => #writeLogAux(NUMTOPICS -Int 1, ListItem(TOPIC) TOPICS, DATA)
+                  ...
+         </instrs>
+         <bytesStack> TOPIC : STACK => STACK </bytesStack>
+       requires 1 <Int NUMTOPICS
+```
+
 ### Elrond API
 
 ```k
@@ -799,6 +864,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <callValue> 0 </callValue>
          <esdtValue> 0 </esdtValue>
 
+    // extern int32_t getESDTTokenName(void *context, int32_t resultOffset);
     rule <instrs> hostCall("env", "getESDTTokenName", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #memStore(OFFSET, TOKENNAME)
                ~> i32.const lengthBytes(TOKENNAME)
@@ -806,6 +872,21 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </instrs>
          <locals> 0 |-> <i32> OFFSET </locals>
          <esdtTokenName> TOKENNAME </esdtTokenName>
+
+    // extern void writeEventLog(void *context, int32_t numTopics, int32_t topicLengthsOffset, int32_t topicOffset, int32_t dataOffset, int32_t dataLength);
+    rule <instrs> hostCall("env", "writeEventLog", [ i32 i32 i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
+               => #getArgsFromMemory(NUMTOPICS, TOPICLENGTHOFFSET, TOPICOFFSET)
+               ~> #memLoad(DATAOFFSET, DATALENGTH)
+               ~> #writeLog
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> NUMTOPICS
+           1 |-> <i32> TOPICLENGTHOFFSET
+           2 |-> <i32> TOPICOFFSET
+           3 |-> <i32> DATAOFFSET
+           4 |-> <i32> DATALENGTH
+         </locals>
 
     // extern void returnData(void* context, int32_t dataOffset, int32_t length);
     rule <instrs> hostCall("env", "finish", [ i32 i32 .ValTypes ] -> [ .ValTypes ])

@@ -109,6 +109,9 @@
         <interimStates>
           .List
         </interimStates>
+        <logs>
+          .List
+        </logs>
       </callState>
       <activeAccounts>
         .Set

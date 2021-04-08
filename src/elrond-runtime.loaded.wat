@@ -16,6 +16,12 @@
       <notCoveredFuncs>
         .Map
       </notCoveredFuncs>
+      <coveredBlock>
+        .Map
+      </coveredBlock>
+      <lastVisitedBlock>
+        -1
+      </lastVisitedBlock>
       <wasm>
         <instrs>
           .

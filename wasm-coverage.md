@@ -12,7 +12,7 @@ module WASM-COVERAGE
           <coveredFuncs> .Set </coveredFuncs>
           <notCoveredFuncs> .Map </notCoveredFuncs>
           <coveredBlock> .Map </coveredBlock>
-          <lastVisitedBlock> -1 </lastVisitedBlock>
+          <lastVisitedBlock> .Int </lastVisitedBlock>
           <wasm/>
       </wasmCoverage>
 ```
@@ -88,17 +88,17 @@ Block Coverage
     rule <instrs> #loop(_, _, BLOCKID:Int) ... </instrs>
          <coveredBlock> ... BLOCKID |-> loopCoverage(BLOCKID, T => T +Int 1) </coveredBlock>
          <lastVisitedBlock> LB => BLOCKID </lastVisitedBlock>
-      requires LB =/=Int BLOCKID
+      requires LB =/=K BLOCKID
       [priority(10)]
 
     rule <instrs> #br(0) ~> _L:Label ... </instrs>
-         <lastVisitedBlock> LB => -1 </lastVisitedBlock>
-      requires LB =/=Int -1
+         <lastVisitedBlock> LB => .Int </lastVisitedBlock>
+      requires LB =/=K .Int
       [priority(10)]
 
     rule <instrs> _L:Label ... </instrs>
-         <lastVisitedBlock> LB => -1 </lastVisitedBlock>
-      requires LB =/=Int -1
+         <lastVisitedBlock> LB => .Int </lastVisitedBlock>
+      requires LB =/=K .Int
       [priority(10)]
 ```
 

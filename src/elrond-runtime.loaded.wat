@@ -20,7 +20,7 @@
         .Map
       </coveredBlock>
       <lastVisitedBlock>
-        -1
+        .Int
       </lastVisitedBlock>
       <wasm>
         <instrs>

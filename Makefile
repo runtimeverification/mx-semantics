@@ -219,7 +219,7 @@ test-elrond-lottery-egld:
 ELROND_MULTISIG_DIR=$(ELROND_CONTRACT_EXAMPLES)/multisig
 elrond_multisig_tests=$(shell cat tests/multisig.test)
 
-elrond-multisig-test:
+test-elrond-multisig:
 	erdpy contract build "$(ELROND_MULTISIG_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_multisig_tests) --coverage
 

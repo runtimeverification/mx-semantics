@@ -43,7 +43,6 @@ Block Coverage
     syntax BlockCoverage ::= blockCoverage ( blockId: Int )
                            | ifCoverage    ( blockId: Int , truebr: Bool , falsebr: Bool )
                            | loopCoverage  ( blockId: Int , times: Int )
-                           | "#pause"
  // --------------------------------------------------------------------
     rule <instrs> #block(_, _, BLOCKID:Int) ... </instrs>
          <coveredBlock> BLOCKCOV => BLOCKCOV [ BLOCKID <- blockCoverage(BLOCKID) ] </coveredBlock>

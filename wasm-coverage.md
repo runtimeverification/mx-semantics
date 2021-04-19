@@ -31,9 +31,8 @@ Function Coverage
       [priority(10)]
 
     rule <instrs> allocfunc(MOD, ADDR, _, _, _, #meta(... id: OID)) ... </instrs>
-         <curModIdx> CUR </curModIdx>
          <moduleInst>
-           <modIdx> CUR </modIdx>
+           <modIdx> MOD </modIdx>
            <funcAddrs> ... FIDX |-> ADDR ... </funcAddrs>
            ...
          </moduleInst>

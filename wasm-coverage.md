@@ -21,7 +21,7 @@ Function Coverage
 -----------------
 
 ```k
-    syntax FuncCoverageDescription ::= fcd ( mod: Int, addr: Int, id: OptionalId ) [klabel(fcd), symbol]
+    syntax FuncCoverageDescription ::= fcd ( mod: Int, fidx: Int, id: OptionalId ) [klabel(fcd), symbol]
  // ----------------------------------------------------------------------------------------------------
 
     rule <instrs> ( invoke I ):Instr ... </instrs>
@@ -31,7 +31,13 @@ Function Coverage
       [priority(10)]
 
     rule <instrs> allocfunc(MOD, ADDR, _, _, _, #meta(... id: OID)) ... </instrs>
-         <notCoveredFuncs> NCOV => NCOV [ ADDR <- fcd(MOD, ADDR, OID)] </notCoveredFuncs>
+         <curModIdx> CUR </curModIdx>
+         <moduleInst>
+           <modIdx> CUR </modIdx>
+           <funcAddrs> ... FIDX |-> ADDR ... </funcAddrs>
+           ...
+         </moduleInst>
+         <notCoveredFuncs> NCOV => NCOV [ ADDR <- fcd(MOD, FIDX, OID)] </notCoveredFuncs>
       requires notBool ADDR in_keys(NCOV)
       [priority(10)]
 ```

@@ -45,52 +45,62 @@ Block Coverage
 --------------
 
 ```k
-    syntax BlockCoverage ::= blockCoverage ( blockId: Int )
-                           | ifCoverage    ( blockId: Int , truebr: Bool , falsebr: Bool )
-                           | loopCoverage  ( blockId: Int , times: Int )
- // --------------------------------------------------------------------
+    syntax BlockUID ::= blockUid ( mod: Int, blockId: Int ) [klabel(blockUid), symbol]
+ // ----------------------------------------------------------------------------------
+
+    syntax BlockCoverage ::= blockCov ( mod: Int, blockId: Int )                                [klabel(blockCov), symbol]
+                           | ifCov    ( mod: Int, blockId: Int , truebr: Bool , falsebr: Bool ) [klabel(ifCov), symbol]
+                           | loopCov  ( mod: Int, blockId: Int , times: Int )                   [klabel(loopCov), symbol]
+ // ---------------------------------------------------------------------------------------------------------------------
     rule <instrs> #block(_, _, BLOCKID:Int) ... </instrs>
-         <coveredBlock> BLOCKCOV => BLOCKCOV [ BLOCKID <- blockCoverage(BLOCKID) ] </coveredBlock>
+         <curModIdx> MODIDX </curModIdx>
+         <coveredBlock> BLOCKCOV => BLOCKCOV [ blockUid(MODIDX, BLOCKID) <- blockCov(MODIDX, BLOCKID) ] </coveredBlock>
          <lastVisitedBlock>  _ => BLOCKID </lastVisitedBlock>
-      requires notBool BLOCKID in_keys(BLOCKCOV)
+      requires notBool blockUid(MODIDX, BLOCKID) in_keys(BLOCKCOV)
       [priority(10)]
 
     rule <instrs> #if(_, _, _, BLOCKID:Int) ... </instrs>
          <valstack> < i32 > VAL : _ </valstack>
-         <coveredBlock> BLOCKCOV => BLOCKCOV [ BLOCKID <- ifCoverage(BLOCKID, true, false) ] </coveredBlock>
+         <curModIdx> MODIDX </curModIdx>
+         <coveredBlock> BLOCKCOV => BLOCKCOV [ blockUid(MODIDX, BLOCKID) <- ifCov(MODIDX, BLOCKID, true, false) ] </coveredBlock>
          <lastVisitedBlock>  _ => BLOCKID </lastVisitedBlock>
-      requires (notBool BLOCKID in_keys(BLOCKCOV)) andBool VAL =/=Int 0
+      requires (notBool blockUid(MODIDX, BLOCKID) in_keys(BLOCKCOV)) andBool VAL =/=Int 0
       [priority(10)]
 
     rule <instrs> #if(_, _, _, BLOCKID:Int) ... </instrs>
          <valstack> < i32 > VAL : _ </valstack>
-         <coveredBlock> BLOCKCOV => BLOCKCOV [ BLOCKID <- ifCoverage(BLOCKID, false, true) ] </coveredBlock>
+         <curModIdx> MODIDX </curModIdx>
+         <coveredBlock> BLOCKCOV => BLOCKCOV [ blockUid(MODIDX, BLOCKID) <- ifCov(MODIDX, BLOCKID, false, true) ] </coveredBlock>
          <lastVisitedBlock>  _ => BLOCKID </lastVisitedBlock>
-      requires (notBool BLOCKID in_keys(BLOCKCOV)) andBool VAL ==Int 0
+      requires (notBool blockUid(MODIDX, BLOCKID) in_keys(BLOCKCOV)) andBool VAL ==Int 0
       [priority(10)]
 
     rule <instrs> #if(_, _, _, BLOCKID:Int) ... </instrs>
          <valstack> < i32 > VAL : _ </valstack>
-         <coveredBlock> ... BLOCKID |-> ifCoverage(BLOCKID, false => true, _) ... </coveredBlock>
+         <curModIdx> MODIDX </curModIdx>
+         <coveredBlock> ... blockUid(MODIDX, BLOCKID) |-> ifCov(MODIDX, BLOCKID, false => true, _) ... </coveredBlock>
          <lastVisitedBlock>  _ => BLOCKID </lastVisitedBlock>
       requires VAL =/=Int 0
       [priority(10)]
 
     rule <instrs> #if(_, _, _, BLOCKID:Int) ... </instrs>
          <valstack> < i32 > VAL : _ </valstack>
-         <coveredBlock> ... BLOCKID |-> ifCoverage(BLOCKID, _, false => true) ... </coveredBlock>
+         <curModIdx> MODIDX </curModIdx>
+         <coveredBlock> ... blockUid(MODIDX, BLOCKID) |-> ifCov(MODIDX, BLOCKID, _, false => true) ... </coveredBlock>
          <lastVisitedBlock>  _ => BLOCKID </lastVisitedBlock>
       requires VAL ==Int 0
       [priority(10)]
 
     rule <instrs> #loop(_, _, BLOCKID:Int) ... </instrs>
-         <coveredBlock> BLOCKCOV => BLOCKCOV [ BLOCKID <- loopCoverage(BLOCKID, 1) ] </coveredBlock>
+         <curModIdx> MODIDX </curModIdx>
+         <coveredBlock> BLOCKCOV => BLOCKCOV [ blockUid(MODIDX, BLOCKID) <- loopCov(MODIDX, BLOCKID, 1) ] </coveredBlock>
          <lastVisitedBlock> _ => BLOCKID </lastVisitedBlock>
-      requires notBool BLOCKID in_keys(BLOCKCOV)
+      requires notBool blockUid(MODIDX, BLOCKID) in_keys(BLOCKCOV)
       [priority(10)]
 
     rule <instrs> #loop(_, _, BLOCKID:Int) ... </instrs>
-         <coveredBlock> ... BLOCKID |-> loopCoverage(BLOCKID, T => T +Int 1) </coveredBlock>
+         <curModIdx> MODIDX </curModIdx>
+         <coveredBlock> ... blockUid(MODIDX, BLOCKID) |-> loopCov(MODIDX, BLOCKID, T => T +Int 1) </coveredBlock>
          <lastVisitedBlock> LB => BLOCKID </lastVisitedBlock>
       requires LB =/=K BLOCKID
       [priority(10)]

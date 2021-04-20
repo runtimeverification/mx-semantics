@@ -591,19 +591,19 @@ def run_tests():
 
         if args.coverage:
             end_config = result_wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))
-            (covered, not_covered) = cov.get_coverage(end_config)
+            (covered, not_covered) = cov.get_function_coverage(end_config)
+            block_covered = cov.get_block_coverage(end_config)
             mods = cov.get_module_filename_map(result_wasm_config)
-            coverage = { 'cov' : covered , 'not_cov': not_covered, 'idx2file' : mods }
+            coverage = { 'cov': covered , 'not_cov': not_covered, 'block_cov': block_covered, 'idx2file': mods }
             per_test_coverage.append(coverage)
 
         print('See %s' % tmpdir)
         print()
 
     if args.coverage:
-        (_, not_cov) = cov.summarize_coverage(per_test_coverage, unnamed='import')
+        (_, not_cov, block_cov, all_module_files) = cov.summarize_coverage(per_test_coverage, unnamed='import')
 
-        print(not_cov)
-        text_modules = cov.insert_coverage_on_text_module(not_cov, imports_mod_name='import')
+        text_modules = cov.insert_coverage_on_text_module(not_cov, block_cov, all_module_files, imports_mod_name='import')
         for module in text_modules:
             for line in module.splitlines():
                 print(line.decode('utf8'))

@@ -230,7 +230,7 @@ elrond_basic_features_tests=$(shell cat tests/basic_features.test)
 
 test-elrond-basic-features:
 	erdpy contract build "$(ELROND_BASIC_FEATURES_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_basic_features_tests)
+	$(TEST_MANDOS) $(elrond_basic_features_tests) --coverage
 
 # Unit Tests
 # ----------

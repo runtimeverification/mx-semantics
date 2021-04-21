@@ -114,6 +114,16 @@ Block Coverage
          <lastVisitedBlock> LB => .Int </lastVisitedBlock>
       requires LB =/=K .Int
       [priority(10)]
+
+    rule <instrs> #call(_) ... </instrs>
+         <lastVisitedBlock> LB => .Int </lastVisitedBlock>
+      requires LB =/=K .Int
+      [priority(10)]
+
+    rule <instrs> #call_indirect(_) ... </instrs>
+         <lastVisitedBlock> LB => .Int </lastVisitedBlock>
+      requires LB =/=K .Int
+      [priority(10)]
 ```
 
 ```k

@@ -480,12 +480,15 @@ def get_steps_check_state(step, filename):
     return k_steps
 
 def get_steps_as_kseq(filename, output_dir):
+    global args
     with open(filename, 'r') as f:
         mandos_test = json.loads(f.read())
     if 'name' in mandos_test:
-        print('Reading "%s"' % mandos_test['name'])
+        if args.verbose:
+            print('Reading "%s"' % mandos_test['name'])
     if 'comment' in mandos_test:
-        print('Comment:\n"%s"' % mandos_test['comment'])
+        if args.verbose:
+            print('Comment:\n"%s"' % mandos_test['comment'])
 
     k_steps = []
     for step in mandos_test['steps']:
@@ -512,6 +515,7 @@ def get_steps_as_kseq(filename, output_dir):
     return k_steps
 
 def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
+    global args
     test_name = os.path.basename(test_file_path)
     k_steps = get_steps_as_kseq(test_file_path, output_dir)
     final_config = None
@@ -524,7 +528,8 @@ def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
 
     for i in range(len(k_steps)):
         step_name, curr_step = k_steps[i]
-        print('Executing step %s' % step_name)
+        if args.verbose:
+            print('Executing step %s' % step_name)
         init_subst['K_CELL'] = KSequence(curr_step)
 
         init_config = pyk.substitute(symbolic_config, init_subst)
@@ -563,12 +568,15 @@ def log_intermediate_state(name, config, output_dir):
         f.write(pretty)
 
 # Main Script
+args = None
 
 def run_tests():
     testArgs = argparse.ArgumentParser(description='')
     testArgs.add_argument('files', metavar='N', type=str, nargs='+', help='')
     testArgs.add_argument('--coverage', action='store_true', help='Display test coverage data.')
     testArgs.add_argument('--log-level', choices=['none', 'per-file', 'per-step'], default='per-file')
+    testArgs.add_argument('--verbose', action='store_true', help='')
+    global args
     args = testArgs.parse_args()
     tests = args.files
 
@@ -579,9 +587,11 @@ def run_tests():
     assert cells['K_CELL']['arity'] == 0
 
     for test in tests:
-        print("Running test %s" % test)
+        if args.verbose:
+            print("Running test %s" % test)
         tmpdir = tempfile.mkdtemp(prefix="mandos_")
-        print("Intermediate test outputs stored in:\n%s" % tmpdir)
+        if args.verbose:
+            print("Intermediate test outputs stored in:\n%s" % tmpdir)
 
         initial_name = "0000_initial_config"
         with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
@@ -597,8 +607,9 @@ def run_tests():
             coverage = { 'cov': covered , 'not_cov': not_covered, 'block_cov': block_covered, 'idx2file': mods }
             per_test_coverage.append(coverage)
 
-        print('See %s' % tmpdir)
-        print()
+        if args.verbose:
+            print('See %s' % tmpdir)
+            print()
 
     if args.coverage:
         (_, not_cov, block_cov, all_module_files) = cov.summarize_coverage(per_test_coverage, unnamed='import')

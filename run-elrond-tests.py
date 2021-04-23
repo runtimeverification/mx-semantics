@@ -535,7 +535,7 @@ def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
         # Run: generate a new JSON as a temporary file, then read that as the new wasm state.
         if cmd_args.log_level != 'none':
             log_intermediate_state("%s_%d_%s.pre" % (test_name, i, step_name), init_config, output_dir)
-        (rc, new_wasm_config, err) = pyk.krunJSON(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
+        (rc, new_wasm_config, err) = pyk.krunJSONLegacy(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
         if rc != 0:
             print('output:\n%s' % new_wasm_config, file=sys.stderr)
             print(pyk.prettyPrintKast(new_wasm_config, WASM_symbols_llvm_no_coverage))

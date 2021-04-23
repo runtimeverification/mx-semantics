@@ -733,6 +733,16 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ### Elrond API
 
 ```k
+    // extern void getSCAddress(void *context, int32_t resultOffset);
+    rule <instrs> hostCall("env", "getSCAddress", [ i32  .ValTypes ] -> [ .ValTypes ])
+               => #memStore(RESULTOFFSET, CALLEE)
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> RESULTOFFSET
+         </locals>
+         <callee> CALLEE </callee>
+
     // extern int32_t isSmartContract(void *context, int32_t addressOffset);
     rule <instrs> hostCall("env", "isSmartContract", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #memLoad(ADDROFFSET, 32)
@@ -758,6 +768,29 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <account>
            <address> ADDR </address>
            <codeIdx> .CodeIndex </codeIdx>
+           ...
+         </account>
+
+    // extern void getExternalBalance(void *context, int32_t addressOffset, int32_t resultOffset);
+    rule <instrs> hostCall("env", "getExternalBalance", [ i32 i32 .ValTypes ] -> [ .ValTypes ])
+               => #memLoad(ADDROFFSET, 32)
+               ~> #getExternalBalance
+               ~> #memStoreFromBytesStack(RESULTOFFSET)
+               ~> #dropBytes
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> ADDROFFSET
+           1 |-> <i32> RESULTOFFSET
+         </locals>
+
+    syntax InternalInstr ::= "#getExternalBalance"
+ // ----------------------------------------------
+    rule <instrs> #getExternalBalance => . ... </instrs>
+         <bytesStack> ADDR : STACK => Int2Bytes(BAL, BE, Unsigned) : STACK </bytesStack>
+         <account>
+           <address> ADDR </address>
+           <balance> BAL </balance>
            ...
          </account>
 
@@ -1143,6 +1176,19 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <locals> 0 |-> <i32> IDX </locals>
          <bigIntHeap> HEAP => HEAP[IDX <- VALUE] </bigIntHeap>
          <callValue> VALUE </callValue>
+
+    // extern void bigIntGetExternalBalance(void *context, int32_t addressOffset, int32_t result);
+    rule <instrs> hostCall("env", "bigIntGetExternalBalance", [ i32 i32 .ValTypes ] -> [ .ValTypes ])
+               => #memLoad(ADDROFFSET, 32)
+               ~> #getExternalBalance
+               ~> #setBigIntFromBytesStack(RESULT, Unsigned)
+               ~> #dropBytes
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> ADDROFFSET
+           1 |-> <i32> RESULT
+         </locals>
 ```
 
 ### SmallInt Ops

@@ -19,13 +19,14 @@ pipeline {
     stage('Test') {
       options { timeout(time: 30, unit: 'MINUTES') }
       parallel {
-        stage('Unit Test')              { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-simple -j4' } }
-        stage('Unit Test Python')       { steps { sh 'make TEST_CONCRETE_BACKEND=llvm unittest-python' } }
-        stage('Mandos Unit Test')       { steps { sh 'make TEST_CONCRETE_BACKEND=llvm mandos-test -j4' } }
-        stage('Adder Contract Test')    { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-adder' } }
-        stage('Lottery Contract Test')  { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-lottery-egld' } }
-        stage('Multisig Contract Test') { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-multisig' } }
-        stage('Basic Features Test')    { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features' } }
+        stage('Unit Test')                   { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-simple -j4' } }
+        stage('Unit Test Python')            { steps { sh 'make TEST_CONCRETE_BACKEND=llvm unittest-python' } }
+        stage('Mandos Unit Test')            { steps { sh 'make TEST_CONCRETE_BACKEND=llvm mandos-test -j4' } }
+        stage('Adder Contract Test')         { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-adder' } }
+        stage('Lottery Contract Test')       { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-lottery-egld' } }
+        stage('Multisig Contract Test')      { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-multisig' } }
+        stage('Basic Features Test')         { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features' } }
+        stage('Crowdfunding Contract Test')  { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-crowdfunding-egld' } }
       }
     }
   }

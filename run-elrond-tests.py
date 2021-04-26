@@ -571,12 +571,12 @@ def log_intermediate_state(name, config, output_dir):
 args = None
 
 def run_tests():
+    global args
     testArgs = argparse.ArgumentParser(description='')
     testArgs.add_argument('files', metavar='N', type=str, nargs='+', help='')
     testArgs.add_argument('--coverage', action='store_true', help='Display test coverage data.')
     testArgs.add_argument('--log-level', choices=['none', 'per-file', 'per-step'], default='per-file')
     testArgs.add_argument('--verbose', action='store_true', help='')
-    global args
     args = testArgs.parse_args()
     tests = args.files
 
@@ -586,6 +586,7 @@ def run_tests():
     cells = pyk.splitConfigFrom(template_wasm_config)[1]
     assert cells['K_CELL']['arity'] == 0
 
+    coverage = cov.Coverage()
     for test in tests:
         if args.verbose:
             print("Running test %s" % test)
@@ -601,20 +602,27 @@ def run_tests():
 
         if args.coverage:
             end_config = result_wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))
-            (covered, not_covered) = cov.get_function_coverage(end_config)
-            block_covered = cov.get_block_coverage(end_config)
+
+            collect_data_func = lambda entry: (int(entry['args'][0]['token']), int(entry['args'][1]['token']))
+
+            func_cov_filter_func = lambda term: 'label' in term and term['label'] == 'fcd'
+            func_cov = cov.get_coverage_data(end_config, 'COVEREDFUNCS_CELL', func_cov_filter_func, collect_data_func)
+
+            block_cov_filter_func = lambda term: 'label' in term and term['label'] == 'blockUid'
+            block_cov = cov.get_coverage_data(end_config, 'COVEREDBLOCK_CELL', block_cov_filter_func, collect_data_func)
+
             mods = cov.get_module_filename_map(result_wasm_config)
-            coverage = { 'cov': covered , 'not_cov': not_covered, 'block_cov': block_covered, 'idx2file': mods }
-            per_test_coverage.append(coverage)
+
+            cov_data = { 'func_cov': func_cov, 'block_cov': block_cov, 'idx2file': mods }
+
+            coverage.add_coverage(cov_data, unnamed='import')
 
         if args.verbose:
             print('See %s' % tmpdir)
             print()
 
     if args.coverage:
-        (_, not_cov, block_cov, all_module_files) = cov.summarize_coverage(per_test_coverage, unnamed='import')
-
-        text_modules = cov.insert_coverage_on_text_module(not_cov, block_cov, all_module_files, imports_mod_name='import')
+        text_modules = cov.insert_coverage_on_text_module(coverage, imports_mod_name='import')
         for module in text_modules:
             for line in module.splitlines():
                 print(line.decode('utf8'))

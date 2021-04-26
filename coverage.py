@@ -21,44 +21,50 @@ def fromKInt(ki):
     return int(i)
 
 
-# Coverage
+class Coverage:
 
-POSITIVE_COVERAGE_CELL = "COVEREDFUNCS_CELL"
-NEGATIVE_COVERAGE_CELL = "NOTCOVEREDFUNCS_CELL"
+    def __init__(self):
+        self.func_covered = {}
+        self.block_covered = {}
+        self.module_files = set()
 
+    def get_module_files(self):
+        return sorted(list(self.module_files))
 
-def summarize_coverage(coverage_data, unnamed=None):
-    """Takes the list of covered functions over several runs, and those not
-    covered for each run. Returns coverage data for the test suite: all
-    functions that were covered at least once, and all that were never
-    covered.
-    """
-    all_covered = set()
-    all_sometime_not_covered = set()
-    for test in coverage_data:
-        m2f = test['idx2file']
-        def lookup_filename(midx):
-            return m2f[midx] if m2f[midx] is not None else unnamed
+    def add_coverage(self, cov_data, unnamed=None):
+        m2f = cov_data['idx2file']
 
-        covered  =    [ (lookup_filename(midx), fidx) for (midx, fidx) in test['cov']]
-        not_covered = [ (lookup_filename(midx), fidx) for (midx, fidx) in test['not_cov']]
-        all_covered = all_covered.union(set(covered))
-        all_sometime_not_covered = all_sometime_not_covered.union(set(not_covered))
+        def lookup_filename(mod_idx):
+            if (mod_idx in m2f) and (m2f[mod_idx] is not None):
+                return m2f[mod_idx]
+            else:
+                return unnamed
 
-    all_not_coverd = all_sometime_not_covered.difference(all_covered)
+        def aggregate_coverage(summarized_data, new_cov_data):
+            for (mod_name, cov_idx) in new_cov_data:
+                if mod_name not in summarized_data:
+                    summarized_data[mod_name] = set()
+                summarized_data[mod_name].add(cov_idx)
 
-    def set2dict(s):
-        res = {}
-        for (k, v) in s:
-            if k not in res:
-                res[k] = []
-            res[k].append(v)
-        for (k, v) in res.items():
-            v.sort()
-        return res
+        new_func_cov = [ (lookup_filename(mod_idx), func_idx) for (mod_idx, func_idx) in cov_data['func_cov'] ]
+        aggregate_coverage(self.func_covered, new_func_cov)
 
-    return (set2dict(all_covered), set2dict(all_not_coverd))
+        new_block_cov = [ (lookup_filename(mod_idx), block_id) for (mod_idx, block_id) in cov_data['block_cov'] ]
+        aggregate_coverage(self.block_covered, new_block_cov)
 
+        self.module_files = self.module_files.union(set(filter(None, cov_data['idx2file'].values())))
+
+    def is_func_covered(self, mod_name, func_idx):
+        if mod_name in self.func_covered:
+            return func_idx in self.func_covered[mod_name]
+        else:
+            return False
+
+    def is_block_covered(self, mod_name, block_idx):
+        if mod_name in self.block_covered:
+            return block_idx in self.block_covered[mod_name]
+        else:
+            return False
 
 def get_module_filename_map(wasm_config):
     def mod_to_idx_and_filename(mod):
@@ -88,8 +94,8 @@ def get_module_filename_map(wasm_config):
     traverseBottomUp(wasm_config, callback)
     return dict(map(mod_to_idx_and_filename, mods))
 
+def get_coverage_data(term, cell_name, filter_func, collect_data_func):
 
-def get_coverage(term):
     # TODO: Use traverseBottomUp.
     def filter_term(filter_func, term):
         res = []
@@ -97,43 +103,73 @@ def get_coverage(term):
             res.append(term)
         if 'args' in term:
             for arg in term['args']:
-                for child in filter_term(filter_func, arg):
-                    res.append(child)
+                res.extend(filter_term(filter_func, arg))
         return res
 
     cells = pyk.splitConfigFrom(term)[1]
-    pos = cells[POSITIVE_COVERAGE_CELL]
-    neg = cells[NEGATIVE_COVERAGE_CELL]
-    filter_func = lambda term: 'label' in term and term['label'] == 'fcd'
-    pos_fcds = filter_term(filter_func, pos)
-    neg_fcds = filter_term(filter_func, neg)
-    def fcd_data(fcd):
-        mod  = int(fcd['args'][0]['token'])
-        addr = int(fcd['args'][1]['token'])
-        return (mod, addr)
-    pos_ids = [ fcd_data(fcd) for fcd in pos_fcds ]
-    neg_ids = [ fcd_data(fcd) for fcd in neg_fcds ]
-    return (pos_ids, neg_ids)
+    cov_cell = cells[cell_name]
+    cov_data = filter_term(filter_func, cov_cell)
+    result = [ collect_data_func(entry) for entry in cov_data ]
+    return result
 
+def insert_coverage_on_text_module(coverage, imports_mod_name=None):
+    def check_line_startswith(prefix):
+        def check_startswith(line):
+            stripped_line = line.lstrip()
+            if isinstance(prefix, bytes):
+                return stripped_line.startswith(prefix)
+            if isinstance(prefix, list):
+                for pre in prefix:
+                    if stripped_line.startswith(pre):
+                        return True
+                return False
+        return check_startswith
 
-def insert_coverage_on_text_module(cover, imports_mod_name=None):
-    def get_line_indices(lines, start):
-        return [i for i in range(len(lines)) if lines[i].startswith(start)]
+    def get_line_indices(lines, criteria_func):
+        return [i for i in range(len(lines)) if criteria_func(lines[i])]
+
     def imports(lines):
-        return get_line_indices(lines, b'  (import "env"')
+        return get_line_indices(lines, check_line_startswith(b'(import "env"'))
+
     def funcs(lines):
-        return get_line_indices(lines, b'  (func')
+        return get_line_indices(lines, check_line_startswith(b'(func'))
+
+    def blocks(lines):
+        return get_line_indices(lines, check_line_startswith([b'block', b'if', b'loop']))
+
+    def mark_uncovered_line(lines, uncovered_line_num):
+        lines[uncovered_line_num] = b'!' + lines[uncovered_line_num][1:]
 
     res = []
-    imps = cover[imports_mod_name] if imports_mod_name in cover else []
-    for (name, indices) in cover.items():
+    for name in coverage.get_module_files():
         try:
             wat = subprocess.check_output("wasm2wat %s" % (name), shell=True)
             lines = wat.splitlines()
-            line_idcs = imports(lines) + funcs(lines)
-            for idx in indices + imps:
-                lidx = line_idcs[idx]
-                lines[lidx] = b'!' + lines[lidx][1:]
+
+            # mark imports
+            import_lines = imports(lines)
+            import_size = len(import_lines)
+            for import_idx in range(import_size):
+                if not coverage.is_func_covered(imports_mod_name, import_idx):
+                    uncovered_line_num = import_lines[import_idx]
+                    mark_uncovered_line(lines, uncovered_line_num)
+
+            # mark funcs
+            func_lines = funcs(lines)
+            func_size = len(func_lines)
+            for idx in range(func_size):
+                if not coverage.is_func_covered(name, import_size + idx):
+                    uncovered_line_num = func_lines[idx]
+                    mark_uncovered_line(lines, uncovered_line_num)
+
+            # mark blocks
+            block_lines = blocks(lines)
+            block_size = len(block_lines)
+            for block_idx in range(block_size):
+                if not coverage.is_block_covered(name, block_idx):
+                    uncovered_line_num = block_lines[block_idx]
+                    mark_uncovered_line(lines, uncovered_line_num)
+
             res.append(b'\n'.join(lines))
 
         except subprocess.CalledProcessError as e:
@@ -144,44 +180,31 @@ def insert_coverage_on_text_module(cover, imports_mod_name=None):
 
 class TestCoverage(unittest.TestCase):
 
-    def dummy_coverage(_self, covered, not_covered):
-        coverage = { 'cov' : covered , 'not_cov': not_covered, 'idx2file' : {0: 'foo', 1: 'bar'} }
-        return [coverage]
+    def dummy_coverage(_self, func_cov, block_cov):
+        coverage = { 'func_cov': func_cov, 'block_cov': block_cov, 'idx2file' : {0: 'foo', 1: 'bar'} }
+        return coverage
 
-    def test_cover_empty(self):
-        cov = self.dummy_coverage([], [])
-        (c, nc) = summarize_coverage(cov)
-        self.assertEqual(c, nc)
-        self.assertEqual(c, {})
+    def test_coverage_empty(self):
+        coverage = Coverage()
+        cov1 = self.dummy_coverage([], [])
+        coverage.add_coverage(cov1)
+        self.assertEqual(coverage.func_covered, {})
+        self.assertEqual(coverage.block_covered, {})
+        self.assertEqual(coverage.module_files, {'foo', 'bar'})
 
-    def test_cover_all(self):
-        """All functions were covered in different tests."""
-        covs  = [
+    def test_coverage_aggregate(self):
+        func_cov1 = [
             (0, 0), (0, 1), (0, 2),
-            (1, 0), (1, 1), (1, 2)
+            (1, 0), (1, 1)
         ]
-        ncovs  = covs.copy()
-        ncovs.reverse()
-        cov = self.dummy_coverage(covs, ncovs)
-        (c, nc) = summarize_coverage(cov)
-        self.assertEqual(nc, {})
-
-    def test_cover_some(self):
-        covs  = [
-            (0, 0), (0, 1), (0, 2),
-            (1, 0), (1, 1), (1, 2)
-        ]
-        ncovs  = covs.copy()
-        ncovs.reverse()
-        extra_mod_idx = 0
-        extra_fun_idx = 3
-        extra = (extra_mod_idx, extra_fun_idx)
-        ncovs.append(extra)
-        cov = self.dummy_coverage(covs, ncovs)
-        extra_mod_file = cov[0]['idx2file'][extra_mod_idx]
-        (c, nc) = summarize_coverage(cov)
-        self.assertEqual(nc[extra_mod_file], [extra_fun_idx])
-
+        func_cov2 = [ (0, 0), (1, 2) ]
+        block_cov1 = [ (0, 0), (0, 1), (1, 0) ]
+        block_cov2 = [ (1, 1) ]
+        coverage = Coverage()
+        coverage.add_coverage(self.dummy_coverage(func_cov1, block_cov1))
+        coverage.add_coverage(self.dummy_coverage(func_cov2, block_cov2))
+        self.assertEqual(coverage.func_covered, { 'foo': {0, 1, 2}, 'bar': {0, 1, 2} })
+        self.assertEqual(coverage.block_covered, { 'foo': {0, 1}, 'bar': {0, 1} })
 
 if __name__ == '__main__':
     unittest.main()

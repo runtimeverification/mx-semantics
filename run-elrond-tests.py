@@ -577,6 +577,7 @@ def run_tests():
     testArgs.add_argument('--coverage', action='store_true', help='Display test coverage data.')
     testArgs.add_argument('--log-level', choices=['none', 'per-file', 'per-step'], default='per-file')
     testArgs.add_argument('--verbose', action='store_true', help='')
+    testArgs.add_argument('--raw_data', type=str, default=None, help='')
     args = testArgs.parse_args()
     tests = args.files
 
@@ -620,6 +621,20 @@ def run_tests():
         if args.verbose:
             print('See %s' % tmpdir)
             print()
+
+    if args.raw_data is not None:
+        raw_result = 'function coverage:\n'
+        for mod_name in sorted(coverage.func_covered.keys()):
+            raw_result += '{mod_name}: {cov_data}\n'.format(mod_name=mod_name, cov_data=sorted(list(coverage.func_covered[mod_name])))
+        raw_result += '\n'
+        raw_result += 'block coverage:\n'
+        for mod_name in sorted(coverage.block_covered.keys()):
+            raw_result += '{mod_name}: {cov_data}\n'.format(mod_name=mod_name, cov_data=sorted(list(coverage.block_covered[mod_name])))
+        raw_result += '\n'
+        raw_result += 'module files:\n'
+        raw_result += str(sorted(list(coverage.module_files)))
+        with open(args.raw_data, 'w') as f:
+            f.write(raw_result)
 
     if args.coverage:
         text_modules = cov.insert_coverage_on_text_module(coverage, imports_mod_name='import')

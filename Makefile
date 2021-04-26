@@ -199,28 +199,31 @@ TEST_MANDOS := python3 run-elrond-tests.py
 
 ## Mandos Test
 
-MANDOS_TESTS_DIR := tests/mandos
-mandos_tests=$(sort $(wildcard $(MANDOS_TESTS_DIR)/*.scen.json))
+TESTS_MANDOS_DIR := tests/mandos
+mandos_tests=$(sort $(wildcard $(TESTS_MANDOS_DIR)/*.scen.json))
 mandos-test: $(llvm_kompiled)
 	$(TEST_MANDOS) $(mandos_tests)
 
 ## Mandos Coverage
-MANDOS_COV_DIR := tests/coverage
-mandos_cov_tests=$(sort $(wildcard $(MANDOS_COV_DIR)/*.scen.json))
+TESTS_COV_DIR := tests/coverage
+mandos_cov_tests=$(sort $(wildcard $(TESTS_COV_DIR)/*.scen.json))
 
 mandos-coverage: $(llvm_kompiled)
-	$(TEST_MANDOS) $(mandos_cov_tests) --coverage > $(MANDOS_COV_DIR)/coverage.out
-	$(CHECK) $(MANDOS_COV_DIR)/coverage.out $(MANDOS_COV_DIR)/coverage-expected.out
-	rm $(MANDOS_COV_DIR)/coverage.out
+	$(TEST_MANDOS) $(mandos_cov_tests) --coverage > $(TESTS_COV_DIR)/coverage.out
+	$(CHECK) $(TESTS_COV_DIR)/coverage.out $(TESTS_COV_DIR)/coverage-expected.out
+	rm $(TESTS_COV_DIR)/coverage.out
 
 ## Adder Test
+TESTS_CONTRACTS_DIR := tests/contracts
 
 ELROND_ADDER_DIR := $(ELROND_CONTRACT_EXAMPLES)/adder
 elrond_adder_tests=$(shell find $(ELROND_ADDER_DIR) -name "*.scen.json")
 
 test-elrond-adder: $(llvm_kompiled)
 	erdpy contract build "$(ELROND_ADDER_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_adder_tests) --coverage
+	$(TEST_MANDOS) $(elrond_adder_tests) --coverage --raw_data $(TESTS_CONTRACTS_DIR)/elrond-adder.out
+	$(CHECK) $(TESTS_CONTRACTS_DIR)/elrond-adder.out $(TESTS_CONTRACTS_DIR)/elrond-adder-expected.out
+	rm $(TESTS_CONTRACTS_DIR)/elrond-adder.out
 
 ## Crowdfunding Test
 
@@ -229,7 +232,9 @@ elrond_crowdfunding_egld_tests=$(shell find $(ELROND_CROWDFUNDING_EGLD_DIR) -nam
 
 test-elrond-crowdfunding-egld: $(llvm_kompiled)
 	erdpy contract build "$(ELROND_CROWDFUNDING_EGLD_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_crowdfunding_egld_tests) --coverage
+	$(TEST_MANDOS) $(elrond_crowdfunding_egld_tests) --coverage --raw_data $(TESTS_CONTRACTS_DIR)/elrond-crowdfunding-egld.out
+	$(CHECK) $(TESTS_CONTRACTS_DIR)/elrond-crowdfunding-egld.out $(TESTS_CONTRACTS_DIR)/elrond-crowdfunding-egld-expected.out
+	rm $(TESTS_CONTRACTS_DIR)/elrond-crowdfunding-egld.out
 
 ## Lottery Test
 
@@ -238,7 +243,9 @@ elrond_lottery_egld_tests=$(shell find $(ELROND_LOTTERY_EGLD_DIR) -name "*.scen.
 
 test-elrond-lottery-egld: $(llvm_kompiled)
 	erdpy contract build "$(ELROND_LOTTERY_EGLD_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_lottery_egld_tests) --coverage
+	$(TEST_MANDOS) $(elrond_lottery_egld_tests) --coverage --raw_data $(TESTS_CONTRACTS_DIR)/elrond-lottery-egld.out
+	$(CHECK) $(TESTS_CONTRACTS_DIR)/elrond-lottery-egld.out $(TESTS_CONTRACTS_DIR)/elrond-lottery-egld-expected.out
+	rm $(TESTS_CONTRACTS_DIR)/elrond-lottery-egld.out
 
 ## Multisg Test
 
@@ -247,7 +254,9 @@ elrond_multisig_tests=$(shell cat tests/multisig.test)
 
 test-elrond-multisig: $(llvm_kompiled)
 	erdpy contract build "$(ELROND_MULTISIG_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_multisig_tests) --coverage
+	$(TEST_MANDOS) $(elrond_multisig_tests) --coverage --raw_data $(TESTS_CONTRACTS_DIR)/elrond-multisig.out
+	$(CHECK) $(TESTS_CONTRACTS_DIR)/elrond-multisig.out $(TESTS_CONTRACTS_DIR)/elrond-multisig-expected.out
+	rm $(TESTS_CONTRACTS_DIR)/elrond-multisig.out
 
 ## Basic Feature Test
 
@@ -256,7 +265,9 @@ elrond_basic_features_tests=$(shell cat tests/basic_features.test)
 
 test-elrond-basic-features: $(llvm_kompiled)
 	erdpy contract build "$(ELROND_BASIC_FEATURES_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_basic_features_tests) --coverage
+	$(TEST_MANDOS) $(elrond_basic_features_tests) --coverage --raw_data $(TESTS_CONTRACTS_DIR)/elrond-basic-features.out
+	$(CHECK) $(TESTS_CONTRACTS_DIR)/elrond-basic-features.out $(TESTS_CONTRACTS_DIR)/elrond-basic-features-expected.out
+	rm $(TESTS_CONTRACTS_DIR)/elrond-basic-features.out
 
 # Unit Tests
 # ----------

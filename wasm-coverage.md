@@ -5,6 +5,7 @@ Wasm Code Coverage
 require "wasm.md"
 
 module WASM-COVERAGE
+    imports SET
     imports WASM
 
     configuration

@@ -105,8 +105,15 @@ MAIN_MODULE        := MANDOS
 MAIN_SYNTAX_MODULE := MANDOS-SYNTAX
 MAIN_DEFN_FILE     := mandos
 
-ELROND_FILE_NAMES      := elrond        \
+ELROND_FILE_NAMES      := auto-allocate \
+                          bigIntOps     \
+                          cryptoei      \
+                          elrond        \
+                          elrond-config \
+                          elrond-node   \
+                          elrondei      \
                           mandos        \
+                          smallIntOps   \
                           wasm-coverage
 PLUGIN_FILE_NAMES      := blockchain-k-plugin/krypto
 EXTRA_SOURCES          := $(patsubst %,%.md,$(ELROND_FILE_NAMES) $(PLUGIN_FILE_NAMES))

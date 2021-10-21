@@ -1,0 +1,575 @@
+Elrond Configuration
+====================
+
+```k
+require "blockchain-k-plugin/krypto.md"
+require "elrond-node.md"
+require "wasm-text.md"
+require "wasm-coverage.md"
+
+module ELROND-CONFIG
+    imports BYTES
+    imports ELROND-NODE
+    imports KRYPTO
+    imports SET
+    imports STRING
+    imports WASM-COVERAGE
+    imports WASM-TEXT
+
+    configuration
+      <elrond>
+        <wasmCoverage/>
+        <node/>
+        <bigIntHeap> .Map </bigIntHeap>
+        <bytesStack> .BytesStack </bytesStack>
+        <logging> "" </logging>
+      </elrond>
+```
+
+## Helper Functions
+
+### Bytes Stack
+
+```k
+    syntax BytesStack ::= ".BytesStack"
+                        | Bytes ":" BytesStack
+ // ------------------------------------------
+
+    syntax BytesOp ::= #pushBytes ( Bytes )
+                     | "#dropBytes"
+ // ---------------------------------------
+    rule <instrs> #pushBytes(BS) => . ... </instrs>
+         <bytesStack> STACK => BS : STACK </bytesStack>
+
+    rule <instrs> #dropBytes => . ... </instrs>
+         <bytesStack> _ : STACK => STACK </bytesStack>
+
+    syntax InternalInstr ::= "#returnLength"
+ // ----------------------------------------
+    rule <instrs> #returnLength => i32.const lengthBytes(BS) ... </instrs>
+         <bytesStack> BS : _ </bytesStack>
+```
+
+### World State
+
+```k
+    syntax Accounts ::= "{" AccountsCellFragment "|" Set "}"
+ // --------------------------------------------------------
+
+    syntax InternalCmd ::= "pushWorldState"
+ // ---------------------------------------
+    rule <commands> pushWorldState => . ... </commands>
+         <interimStates> (.List => ListItem({ ACCTDATA | ACCTS })) ... </interimStates>
+         <activeAccounts> ACCTS    </activeAccounts>
+         <accounts>       ACCTDATA </accounts>
+      [priority(60)]
+
+    syntax InternalCmd ::= "popWorldState"
+ // --------------------------------------
+    rule <commands> popWorldState => . ... </commands>
+         <interimStates> (ListItem({ ACCTDATA | ACCTS }) => .List) ... </interimStates>
+         <activeAccounts> _ => ACCTS    </activeAccounts>
+         <accounts>       _ => ACCTDATA </accounts>
+      [priority(60)]
+
+    syntax InternalCmd ::= "dropWorldState"
+ // ---------------------------------------
+    rule <commands> dropWorldState => . ... </commands>
+         <interimStates> (ListItem(_) => .List) ... </interimStates>
+      [priority(60)]
+```
+
+### Misc
+
+```k
+    syntax Bool ::= #hasPrefix ( String , String ) [function, functional]
+ // ---------------------------------------------------------------------
+    rule #hasPrefix(STR, PREFIX) => true
+      requires lengthString(STR) >=Int lengthString(PREFIX)
+       andBool substrString(STR, 0, lengthString(PREFIX)) ==String PREFIX
+
+    rule #hasPrefix(STR, PREFIX) => false
+      requires notBool (       lengthString(STR) >=Int lengthString(PREFIX)
+                       andBool substrString(STR, 0, lengthString(PREFIX)) ==String PREFIX)
+```
+
+### Memory
+
+```k
+    syntax InternalInstr ::= #memStoreFromBytesStack ( Int )
+                           | #memStore ( offset: Int , bytes: Bytes )
+ // -----------------------------------------------------------------
+    rule <instrs> #memStoreFromBytesStack(OFFSET) => #memStore(OFFSET, BS) ... </instrs>
+         <bytesStack> BS : _ </bytesStack>
+
+    rule <instrs> #memStore(OFFSET, BS) => . ... </instrs>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <codeIdx> MODIDX:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA => #setBytesRange(DATA, OFFSET, BS) </mdata>
+           ...
+         </memInst>
+      requires OFFSET +Int lengthBytes(BS) <=Int (SIZE *Int #pageSize())
+
+    syntax InternalInstr ::= #memLoad ( offset: Int , length: Int )
+ // ---------------------------------------------------------------
+    rule <instrs> #memLoad(OFFSET, LENGTH) => . ... </instrs>
+         <bytesStack> STACK => #getBytesRange(DATA, OFFSET, LENGTH) : STACK </bytesStack>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <codeIdx> MODIDX:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           <mdata> DATA </mdata>
+           ...
+         </memInst>
+      requires OFFSET +Int LENGTH <=Int (SIZE *Int #pageSize())
+```
+
+### Storage
+
+Storing a value returns a status code indicating if and how the storage was modified.
+
+TODO: Implement [reserved keys and read-only runtimes](https://github.com/ElrondNetwork/arwen-wasm-vm/blob/d6ea0489081f81fefba002609c34ece1365373dd/arwen/contexts/storage.go#L111).
+
+```k
+    syntax InternalInstr ::= "#storageStore"
+ // ----------------------------------------
+    rule <instrs> #storageStore => #setStorage(KEY, VALUE) ... </instrs>
+         <bytesStack> VALUE : KEY : STACK => STACK </bytesStack>
+
+    syntax InternalInstr ::= #setStorage ( Bytes , Bytes )
+ // ------------------------------------------------------
+    rule <instrs> #setStorage(KEY, VALUE)
+               => #isReservedKey(Bytes2String(KEY))
+               ~> #writeToStorage(KEY, VALUE)
+                  ...
+         </instrs>
+
+    syntax InternalInstr ::= #writeToStorage ( Bytes , Bytes )
+ // ----------------------------------------------------------
+    rule <instrs> #writeToStorage(KEY, VALUE) => i32.const #storageStatus(STORAGE, KEY, VALUE) ... </instrs>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <storage> STORAGE => #updateStorage(STORAGE, KEY, VALUE) </storage>
+           ...
+         </account>
+
+    syntax InternalInstr ::= #isReservedKey ( String )
+ // --------------------------------------------------
+    rule <instrs> #isReservedKey(KEY) => . ... </instrs>
+      requires notBool #hasPrefix(KEY, "ELROND")
+
+    rule <commands> (. => #exception(UserError)) ... </commands>
+         <instrs> (#isReservedKey(KEY) ~> _) => . </instrs>
+         <message> _ => String2Bytes("cannot write to storage under Elrond reserved key") </message>
+      requires         #hasPrefix(KEY, "ELROND")
+
+    syntax InternalInstr ::= "#storageLoad"
+ // ---------------------------------------
+    rule <instrs> #storageLoad => . ... </instrs>
+         <bytesStack> KEY : STACK => #lookupStorage(STORAGE, KEY) : STACK </bytesStack>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <storage> STORAGE </storage>
+           ...
+         </account>
+
+    syntax Map ::= #updateStorage ( Map , key : Bytes , val : Bytes ) [function, functional]
+ // ----------------------------------------------------------------------------------------
+    rule #updateStorage(STOR, KEY, VAL) => STOR [KEY <- undef] requires VAL  ==K .Bytes
+    rule #updateStorage(STOR, KEY, VAL) => STOR [KEY <- VAL  ] requires VAL =/=K .Bytes
+
+    syntax Bytes ::= #lookupStorage ( Map , key: Bytes ) [function]
+ // ---------------------------------------------------------------
+    rule #lookupStorage(STORAGE, KEY) => {STORAGE[KEY]}:>Bytes
+      requires         KEY in_keys(STORAGE)
+
+    rule #lookupStorage(STORAGE, KEY) => .Bytes
+      requires notBool KEY in_keys(STORAGE)
+
+    syntax Int ::= #storageStatus ( Map , key : Bytes , val : Bytes ) [function, functional]
+                 | #StorageUnmodified () [function, functional]
+                 | #StorageModified   () [function, functional]
+                 | #StorageAdded      () [function, functional]
+                 | #StorageDeleted    () [function, functional]
+ // -----------------------------------------------------------
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL  ==K .Bytes andBool notBool KEY in_keys(STOR)
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL =/=K .Bytes andBool         KEY in_keys(STOR) andBool STOR[KEY]  ==K VAL
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageModified  () requires VAL =/=K .Bytes andBool         KEY in_keys(STOR) andBool STOR[KEY] =/=K VAL
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageAdded     () requires VAL =/=K .Bytes andBool notBool KEY in_keys(STOR)
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageDeleted   () requires VAL  ==K .Bytes andBool         KEY in_keys(STOR)
+
+    rule #StorageUnmodified() => 0
+    rule #StorageModified  () => 1
+    rule #StorageAdded     () => 2
+    rule #StorageDeleted   () => 3
+```
+
+### Integer Operation
+
+```k
+    syntax Int ::= #cmpInt ( Int , Int ) [function, functional]
+ // -----------------------------------------------------------
+    rule #cmpInt(I1, I2) => -1 requires I1  <Int I2
+    rule #cmpInt(I1, I2) =>  1 requires I1  >Int I2
+    rule #cmpInt(I1, I2) =>  0 requires I1 ==Int I2
+
+    syntax Int ::= #bigIntSign ( Int ) [function, functional]
+ // ---------------------------------------------------------
+    rule #bigIntSign(I) => 0  requires I ==Int 0
+    rule #bigIntSign(I) => 1  requires I >Int 0
+    rule #bigIntSign(I) => -1 requires I <Int 0
+
+    syntax Int ::= "minSInt32"
+                 | "maxSInt32"
+                 | "minUInt32"
+                 | "maxUInt32"
+                 | "minSInt64"
+                 | "maxSInt64"
+                 | "minUInt64"
+                 | "maxUInt64"
+ // --------------------------
+    rule minSInt32 => -2147483648           [macro] /* -2^31     */
+    rule maxSInt32 =>  2147483647           [macro] /*  2^31 - 1 */
+    rule minUInt32 =>  0                    [macro]
+    rule maxUInt32 =>  4294967296           [macro] /*  2^32 - 1 */
+    rule minSInt64 => -9223372036854775808  [macro] /* -2^63     */
+    rule maxSInt64 =>  9223372036854775807  [macro] /*  2^63 - 1 */
+    rule minUInt64 =>  0                    [macro]
+    rule maxUInt64 =>  18446744073709551615 [macro] /*  2^64 - 1 */
+
+    syntax InternalInstr ::= #returnIfUInt64 ( Int , String )
+                           | #returnIfSInt64 ( Int , String )
+ // ---------------------------------------------------------
+    rule <instrs> #returnIfUInt64(V, _) => i64.const V ... </instrs>
+      requires          minUInt64 <=Int V andBool V <=Int maxUInt64
+
+    rule <commands> (. => #exception(UserError)) ... </commands>
+         <instrs> (#returnIfUInt64(V, ERRORMSG) ~> _) => . </instrs>
+         <message> _ => String2Bytes(ERRORMSG) </message>
+      requires notBool (minUInt64 <=Int V andBool V <=Int maxUInt64)
+
+    rule <instrs> #returnIfSInt64(V, _) => i64.const V ... </instrs>
+      requires          minSInt64 <=Int V andBool V <=Int maxSInt64
+
+    rule <commands> (. => #exception(UserError)) ... </commands>
+         <instrs> (#returnIfSInt64(V, ERRORMSG) ~> _) => . </instrs>
+         <message> _ => String2Bytes(ERRORMSG) </message>
+      requires notBool (minSInt64 <=Int V andBool V <=Int maxSInt64)
+
+    syntax InternalInstr ::= #loadBytesAsUInt64 ( String )
+                           | #loadBytesAsSInt64 ( String )
+ // ------------------------------------------------------
+    rule <instrs> #loadBytesAsUInt64(ERRORMSG) => #returnIfUInt64(Bytes2Int(BS, BE, Unsigned), ERRORMSG) ... </instrs>
+         <bytesStack> BS : STACK => STACK </bytesStack>
+
+    rule <instrs> #loadBytesAsSInt64(ERRORMSG) => #returnIfSInt64(Bytes2Int(BS, BE, Signed), ERRORMSG) ... </instrs>
+         <bytesStack> BS : STACK => STACK </bytesStack>
+```
+
+### Output
+
+```k
+    syntax InternalInstr ::= "#appendToOutFromBytesStack"
+                           | #appendToOut ( Bytes )
+ // -----------------------------------------------
+    rule <instrs> #appendToOutFromBytesStack => . ... </instrs>
+         <bytesStack> OUT : STACK => STACK </bytesStack>
+         <out> ... (.List => ListItem(OUT)) </out>
+
+    rule <instrs> #appendToOut(OUT) => . ... </instrs>
+         <out> ... (.List => ListItem(OUT)) </out>
+```
+
+### Parsing
+
+```k
+    syntax String ::= #alignHexString ( String ) [function, functional]
+ // -------------------------------------------------------------------
+    rule #alignHexString(S) => S             requires         lengthString(S) modInt 2 ==Int 0
+    rule #alignHexString(S) => "0" +String S requires notBool lengthString(S) modInt 2 ==Int 0
+
+    syntax Bytes ::= #parseHexBytes     ( String ) [function]
+                   | #parseHexBytesAux  ( String ) [function]
+ // ---------------------------------------------------------
+    rule #parseHexBytes(S)  => #parseHexBytesAux(#alignHexString(S))
+    rule #parseHexBytesAux("") => .Bytes
+    rule #parseHexBytesAux(S)  => Int2Bytes(lengthString(S) /Int 2, String2Base(S, 16), BE)
+      requires 2 <=Int lengthString(S)
+```
+
+### Crypto
+
+```k
+    syntax HashBytesStackInstr ::= "#sha256FromBytesStack"
+ // ------------------------------------------------------
+    rule <instrs> #sha256FromBytesStack => . ... </instrs>
+         <bytesStack> (DATA => #parseHexBytes(Sha256(Bytes2String(DATA)))) : _STACK </bytesStack>
+
+    syntax HashBytesStackInstr ::= "#keccakFromBytesStack"
+ // ------------------------------------------------------
+    rule <instrs> #keccakFromBytesStack => . ... </instrs>
+         <bytesStack> (DATA => #parseHexBytes(Keccak256(Bytes2String(DATA)))) : _STACK </bytesStack>
+
+    syntax InternalInstr ::= #hashMemory ( Int , Int , Int ,  HashBytesStackInstr )
+ // -------------------------------------------------------------------------------
+    rule <instrs> #hashMemory(DATAOFFSET, LENGTH, RESULTOFFSET, HASHINSTR)
+               => #memLoad(DATAOFFSET, LENGTH)
+               ~> HASHINSTR
+               ~> #memStoreFromBytesStack(RESULTOFFSET)
+               ~> #dropBytes
+               ~> i32.const 0
+               ...
+          </instrs>
+```
+
+### Log
+
+```k
+    syntax LogEntry ::= logEntry ( Bytes , Bytes , List , Bytes ) [klabel(logEntry), symbol]
+ // ----------------------------------------------------------------------------------------
+
+    syntax InternalInstr ::= #getArgsFromMemory    ( Int , Int , Int )
+                           | #getArgsFromMemoryAux ( Int , Int , Int , Int , Int )
+ // ------------------------------------------------------------------------------
+    rule <instrs> #getArgsFromMemory(NUMARGS, LENGTHOFFSET, DATAOFFSET)
+               => #getArgsFromMemoryAux(NUMARGS, 0, NUMARGS, LENGTHOFFSET, DATAOFFSET)
+                  ...
+         </instrs>
+
+    rule <instrs> #getArgsFromMemoryAux(NUMARGS, TOTALLEN, 0,  _, _)
+               => i32.const TOTALLEN
+               ~> i32.const NUMARGS
+                  ...
+         </instrs>
+
+    rule <instrs> #getArgsFromMemoryAux(NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
+               => #memLoad(LENGTHOFFSET, 4)
+               ~> #loadArgDataWithLengthOnStack(NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
+                  ...
+         </instrs>
+       requires 0 <Int COUNTER
+
+    syntax InternalInstr ::= #loadArgDataWithLengthOnStack( Int , Int , Int , Int , Int )
+                           | #loadArgData                 ( Int , Int , Int , Int , Int , Int )
+ // -------------------------------------------------------------------------------------------
+    rule <instrs> #loadArgDataWithLengthOnStack(NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
+               => #loadArgData(Bytes2Int(ARGLEN, LE, Unsigned), NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
+                  ...
+         </instrs>
+         <bytesStack> ARGLEN : STACK => STACK </bytesStack>
+
+
+    rule <instrs> #loadArgData(ARGLEN, NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
+               => #memLoad(DATAOFFSET, ARGLEN)
+               ~> #getArgsFromMemoryAux(NUMARGS, TOTALLEN +Int ARGLEN, COUNTER -Int 1, LENGTHOFFSET +Int 4, DATAOFFSET +Int ARGLEN)
+                  ...
+         </instrs>
+
+    syntax InternalInstr ::= "#writeLog"
+                           | #writeLogAux ( Int , List , Bytes )
+ // ------------------------------------------------------------
+    rule <instrs> #writeLog => #writeLogAux(NUMTOPICS, .List, DATA) ... </instrs>
+         <bytesStack> DATA : STACK => STACK </bytesStack>
+         <valstack> <i32> NUMTOPICS : <i32> _ : VALSTACK => VALSTACK </valstack>
+
+    rule <instrs> #writeLogAux(1, TOPICS, DATA) => . ... </instrs>
+         <bytesStack> IDENTIFIER : STACK => STACK </bytesStack>
+         <callee> CALLEE </callee>
+         <logs> ... (.List => ListItem(logEntry(CALLEE, IDENTIFIER, TOPICS, DATA))) </logs>
+
+    rule <instrs> #writeLogAux(NUMTOPICS, TOPICS, DATA)
+               => #writeLogAux(NUMTOPICS -Int 1, ListItem(TOPIC) TOPICS, DATA)
+                  ...
+         </instrs>
+         <bytesStack> TOPIC : STACK => STACK </bytesStack>
+       requires 1 <Int NUMTOPICS
+```
+
+### Account
+
+```k
+    syntax InternalInstr ::= "#getExternalBalance"
+ // ----------------------------------------------
+    rule <instrs> #getExternalBalance => . ... </instrs>
+         <bytesStack> ADDR : STACK => Int2Bytes(BAL, BE, Unsigned) : STACK </bytesStack>
+         <account>
+           <address> ADDR </address>
+           <balance> BAL </balance>
+           ...
+         </account>
+```
+
+## Node And Wasm VM Synchronization
+
+- `#endWasm` waits for the Wasm VM to finish the execution and check the return code.
+
+```k
+    syntax InternalCmd ::= "#endWasm"
+ // ---------------------------------
+    rule <commands> #endWasm => dropWorldState ... </commands>
+         <returnCode> .ReturnCode => OK </returnCode>
+         <instrs> . </instrs>
+      [priority(60)]
+```
+
+- `#exception` drops the rest of the computation in the `commands` and `instrs` cells and reverts the state.
+
+```k
+    syntax InternalCmd ::= #exception ( ExceptionCode )
+ // ---------------------------------------------------
+    rule <commands> (#exception(EC) ~> _) => popWorldState </commands>
+         <returnCode> _ => EC </returnCode>
+         <instrs> _ => . </instrs>
+      [priority(10)]
+```
+
+## Managing Accounts
+
+```k
+    syntax InternalCmd ::= createAccount ( Bytes ) [klabel(createAccount), symbol]
+ // ------------------------------------------------------------------------------
+    rule <commands> createAccount(ADDR) => . ... </commands>
+         <activeAccounts> ... (.Set => SetItem(ADDR)) ... </activeAccounts>
+         <accounts>
+           ( .Bag
+          => <account>
+               <address> ADDR </address>
+               ...
+             </account>
+           )
+           ...
+         </accounts>
+         <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
+      [priority(60)]
+
+    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, CodeIndex, Map )
+                         | setAccountCodeIndex ( Bytes, CodeIndex )
+ // ---------------------------------------------------------------
+    rule <commands> setAccountFields(ADDR, NONCE, BALANCE, CODEIDX, STORAGE) => . ... </commands>
+         <account>
+           <address> ADDR </address>
+           <nonce> _ => NONCE </nonce>
+           <balance> _ => BALANCE </balance>
+           <codeIdx> _ => CODEIDX </codeIdx>
+           <storage> _ => STORAGE </storage>
+         </account>
+      [priority(60)]
+
+    rule <commands> setAccountCodeIndex(ADDR, CODEIDX) => . ... </commands>
+         <account>
+           <address> ADDR </address>
+           <codeIdx> _ => CODEIDX </codeIdx>
+           ...
+         </account>
+      [priority(60)]
+```
+
+## Transfer Funds
+
+```k
+    syntax InternalCmd ::= transferFunds ( Bytes, Bytes, Int )
+                         | "#transferSuccess"
+ // -----------------------------------------
+    rule <commands> transferFunds(ACCT, ACCT, VALUE) => #transferSuccess ... </commands>
+         <account>
+           <address> ACCT </address>
+           <balance> ORIGFROM </balance>
+           ...
+         </account>
+      requires VALUE <=Int ORIGFROM
+      [priority(60)]
+
+    rule <commands> transferFunds(ACCTFROM, ACCTTO, VALUE) => #transferSuccess ... </commands>
+         <account>
+           <address> ACCTFROM </address>
+           <balance> ORIGFROM => ORIGFROM -Int VALUE </balance>
+           ...
+         </account>
+         <account>
+           <address> ACCTTO </address>
+           <balance> ORIGTO => ORIGTO +Int VALUE </balance>
+           ...
+         </account>
+      requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
+      [priority(60)]
+
+    rule <commands> #transferSuccess => . ... </commands>
+         <instrs> . </instrs>
+```
+
+## Calling Contract
+
+```k
+    syntax WasmStringToken ::= #unparseWasmString ( String ) [function, functional, hook(STRING.string2token)]
+ // ----------------------------------------------------------------------------------------------------------
+
+    syntax InternalCmd ::= callContract ( Bytes, Bytes, Int,     String, List, Int, Int ) [klabel(callContractString)]
+                         | callContract ( Bytes, Bytes, Int, WasmString, List, Int, Int ) [klabel(callContractWasmString)]
+                         | mkCall       ( Bytes, Bytes, Int, WasmString, List, Int, Int )
+ // -------------------------------------------------------------------------------------
+    rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:String, ARGS, GASLIMIT, GASPRICE)
+                 => callContract(FROM, TO, VALUE, #unparseWasmString("\"" +String FUNCNAME +String "\""), ARGS, GASLIMIT, GASPRICE)
+                    ...
+         </commands>
+      [priority(60)]
+
+    rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, GASLIMIT, GASPRICE)
+                 => pushWorldState
+                 ~> transferFunds(FROM, TO, VALUE)
+                 ~> mkCall(FROM, TO, VALUE, FUNCNAME, ARGS, GASLIMIT, GASPRICE)
+                 ~> #endWasm
+                    ...
+         </commands>
+      [priority(60)]
+
+    rule <commands> mkCall(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
+         <callArgs> _ => ARGS </callArgs>
+         <caller> _ => FROM </caller>
+         <callee> _ => TO   </callee>
+         <callValue> _ => VALUE </callValue>
+         <out> _ => .List </out>
+         <message> _ => .Bytes </message>
+         <returnCode> _ => .ReturnCode </returnCode>
+         <logs> _ => .List </logs>
+         <bigIntHeap> _ => .Map </bigIntHeap>
+         <account>
+           <address> TO </address>
+           <codeIdx> CODE:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> CODE </modIdx>
+           <exports> ... FUNCNAME |-> FUNCIDX:Int </exports>
+           <funcAddrs> ... FUNCIDX |-> FUNCADDR:Int ... </funcAddrs>
+           ...
+         </moduleInst>
+         <instrs> . => ( invoke FUNCADDR ) </instrs>
+         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
+      [priority(60)]
+
+endmodule
+```

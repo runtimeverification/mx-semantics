@@ -27,7 +27,7 @@ ENV PATH=/home/user/.cargo/bin:$PATH
 RUN python3 -m pip install --upgrade pip
 RUN pip3 install --user --upgrade \
                  cytoolz          \
-                 erdpy            \
+                 erdpy==1.4.0     \
                  numpy            \
                  pysha3
 

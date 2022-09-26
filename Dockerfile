@@ -1,5 +1,5 @@
 ARG K_COMMIT
-FROM runtimeverificationinc/kframework-k:ubuntu-bionic-${K_COMMIT}
+FROM runtimeverificationinc/kframework-k:ubuntu-focal-${K_COMMIT}
 
 RUN    apt-get update                      \
     && apt-get upgrade --yes               \
@@ -27,7 +27,7 @@ ENV PATH=/home/user/.cargo/bin:$PATH
 RUN python3 -m pip install --upgrade pip
 RUN pip3 install --user --upgrade \
                  cytoolz          \
-                 erdpy            \
+                 erdpy==1.4.0     \
                  numpy            \
                  pysha3
 

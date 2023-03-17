@@ -76,7 +76,10 @@ Storage maps byte arrays to byte arrays.
 
     syntax Address ::= Bytes
                      | WasmStringToken
-    syntax Bytes ::= #address2Bytes ( Address ) [function, functional]
+
+    syntax WasmStringToken ::= #unparseWasmString ( String          ) [function, total, hook(STRING.string2token)]
+
+    syntax Bytes ::= #address2Bytes ( Address ) [function, total]
  // ------------------------------------------------------------------
     rule #address2Bytes(ADDR:WasmStringToken) => String2Bytes(#parseWasmString(ADDR))
     rule #address2Bytes(ADDR:Bytes) => ADDR
@@ -403,7 +406,7 @@ Here, host calls are implemented, by defining the semantics when `hostCall(MODUL
 #### Misc
 
 ```k
-    syntax Bool ::= #hasPrefix ( String , String ) [function, functional]
+    syntax Bool ::= #hasPrefix ( String , String ) [function, total]
  // ---------------------------------------------------------------------
     rule #hasPrefix(STR, PREFIX) => true
       requires lengthString(STR) >=Int lengthString(PREFIX)
@@ -518,7 +521,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            ...
          </account>
 
-    syntax Map ::= #updateStorage ( Map , key : Bytes , val : Bytes ) [function, functional]
+    syntax Map ::= #updateStorage ( Map , key : Bytes , val : Bytes ) [function, total]
  // ----------------------------------------------------------------------------------------
     rule #updateStorage(STOR, KEY, VAL) => STOR [KEY <- undef] requires VAL  ==K .Bytes
     rule #updateStorage(STOR, KEY, VAL) => STOR [KEY <- VAL  ] requires VAL =/=K .Bytes
@@ -531,11 +534,11 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule #lookupStorage(STORAGE, KEY) => .Bytes
       requires notBool KEY in_keys(STORAGE)
 
-    syntax Int ::= #storageStatus ( Map , key : Bytes , val : Bytes ) [function, functional]
-                 | #StorageUnmodified () [function, functional]
-                 | #StorageModified   () [function, functional]
-                 | #StorageAdded      () [function, functional]
-                 | #StorageDeleted    () [function, functional]
+    syntax Int ::= #storageStatus ( Map , key : Bytes , val : Bytes ) [function, total]
+                 | #StorageUnmodified () [function, total]
+                 | #StorageModified   () [function, total]
+                 | #StorageAdded      () [function, total]
+                 | #StorageDeleted    () [function, total]
  // -----------------------------------------------------------
     rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL  ==K .Bytes andBool notBool KEY in_keys(STOR)
     rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL =/=K .Bytes andBool         KEY in_keys(STOR) andBool STOR[KEY]  ==K VAL
@@ -552,35 +555,35 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 #### Integer Operation
 
 ```k
-    syntax Int ::= #cmpInt ( Int , Int ) [function, functional]
+    syntax Int ::= #cmpInt ( Int , Int ) [function, total]
  // -----------------------------------------------------------
     rule #cmpInt(I1, I2) => -1 requires I1  <Int I2
     rule #cmpInt(I1, I2) =>  1 requires I1  >Int I2
     rule #cmpInt(I1, I2) =>  0 requires I1 ==Int I2
 
-    syntax Int ::= #bigIntSign ( Int ) [function, functional]
+    syntax Int ::= #bigIntSign ( Int ) [function, total]
  // ---------------------------------------------------------
     rule #bigIntSign(I) => 0  requires I ==Int 0
     rule #bigIntSign(I) => 1  requires I >Int 0
     rule #bigIntSign(I) => -1 requires I <Int 0
 
-    syntax Int ::= "minSInt32"
-                 | "maxSInt32"
-                 | "minUInt32"
-                 | "maxUInt32"
-                 | "minSInt64"
-                 | "maxSInt64"
-                 | "minUInt64"
-                 | "maxUInt64"
+    syntax Int ::= "minSInt32"         [macro]
+                 | "maxSInt32"         [macro]
+                 | "minUInt32"         [macro]
+                 | "maxUInt32"         [macro]
+                 | "minSInt64"         [macro]
+                 | "maxSInt64"         [macro]
+                 | "minUInt64"         [macro]
+                 | "maxUInt64"         [macro]
  // --------------------------
-    rule minSInt32 => -2147483648           [macro] /* -2^31     */
-    rule maxSInt32 =>  2147483647           [macro] /*  2^31 - 1 */
-    rule minUInt32 =>  0                    [macro]
-    rule maxUInt32 =>  4294967296           [macro] /*  2^32 - 1 */
-    rule minSInt64 => -9223372036854775808  [macro] /* -2^63     */
-    rule maxSInt64 =>  9223372036854775807  [macro] /*  2^63 - 1 */
-    rule minUInt64 =>  0                    [macro]
-    rule maxUInt64 =>  18446744073709551615 [macro] /*  2^64 - 1 */
+    rule minSInt32 => -2147483648            /* -2^31     */
+    rule maxSInt32 =>  2147483647            /*  2^31 - 1 */
+    rule minUInt32 =>  0                    
+    rule maxUInt32 =>  4294967296            /*  2^32 - 1 */
+    rule minSInt64 => -9223372036854775808   /* -2^63     */
+    rule maxSInt64 =>  9223372036854775807   /*  2^63 - 1 */
+    rule minUInt64 =>  0                    
+    rule maxUInt64 =>  18446744073709551615  /*  2^64 - 1 */
 
     syntax InternalInstr ::= #returnIfUInt64 ( Int , String )
                            | #returnIfSInt64 ( Int , String )
@@ -628,7 +631,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 #### Parsing
 
 ```k
-    syntax String ::= #alignHexString ( String ) [function, functional]
+    syntax String ::= #alignHexString ( String ) [function, total]
  // -------------------------------------------------------------------
     rule #alignHexString(S) => S             requires         lengthString(S) modInt 2 ==Int 0
     rule #alignHexString(S) => "0" +String S requires notBool lengthString(S) modInt 2 ==Int 0

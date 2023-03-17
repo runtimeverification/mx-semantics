@@ -1,23 +1,22 @@
 import unittest
-import pyk
+from pyk.kast.manip import split_config_from, bottom_up
+from pyk.kast.inner import KApply, KLabel, KToken, KSort
 import subprocess
 
-from pyk.kast import isKApply, isKConstant, isKToken
-from pyk.kastManip import traverseBottomUp
 
 
 #### SHOULD BE UPSTREAMED ####
 
 def fromKString(ks):
-    assert isKToken(ks) and ks['sort'] == 'String', ks
-    s = ks['token']
+    assert isinstance(ks, KToken) and ks.sort == KSort('String'), ks
+    s = ks.token
     assert s[0] == s[-1] == '"'
     return s[1:-1]
 
 
 def fromKInt(ki):
-    assert isKToken(ki) and ki['sort'] == 'Int', ki
-    i = ki['token']
+    assert isinstance(ki, KToken) and ki.sort == KSort('Int'), ki
+    i = ki.token
     return int(i)
 
 
@@ -71,27 +70,28 @@ def get_module_filename_map(wasm_config):
         res = {}
 
         def callback(kast):
-            if isKApply(kast) and kast['label'] == '<modIdx>':
-                res['idx'] = fromKInt(kast['args'][0])
-            if isKApply(kast) and kast['label'] == '<moduleFileName>':
-                a = kast['args'][0]
-                if isKApply(a):
-                    res['name'] = None
-                else:
-                    res['name'] = fromKString(a)
+            if isinstance(kast, KApply):
+                if kast.label == KLabel('<modIdx>'):
+                    res['idx'] = fromKInt(kast.args[0])
+                if kast.label == KLabel('<moduleFileName>'):
+                    a = kast.args[0]
+                    if isinstance(a, KApply):
+                        res['name'] = None
+                    else:
+                        res['name'] = fromKString(a)
             return kast
 
-        traverseBottomUp(mod, callback)
+        bottom_up(callback, mod)
         return (res['idx'], res['name'])
 
     mods = []
 
     def callback(kast):
-        if isKApply(kast) and kast['label'] == '<moduleInst>':
+        if isinstance(kast, KApply) and kast.label == KLabel('<moduleInst>'):
             mods.append(kast)
         return kast
 
-    traverseBottomUp(wasm_config, callback)
+    bottom_up(callback, wasm_config)
     return dict(map(mod_to_idx_and_filename, mods))
 
 def get_coverage_data(term, cell_name, filter_func, collect_data_func):
@@ -101,12 +101,12 @@ def get_coverage_data(term, cell_name, filter_func, collect_data_func):
         res = []
         if filter_func(term):
             res.append(term)
-        if 'args' in term:
-            for arg in term['args']:
+        if isinstance(term, KApply):
+            for arg in term.args:
                 res.extend(filter_term(filter_func, arg))
         return res
 
-    cells = pyk.splitConfigFrom(term)[1]
+    cells = split_config_from(term)[1]
     cov_cell = cells[cell_name]
     cov_data = filter_term(filter_func, cov_cell)
     result = [ collect_data_func(entry) for entry in cov_data ]

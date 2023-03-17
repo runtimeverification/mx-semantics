@@ -17,7 +17,6 @@ import os
 import wasm2kast
 from kwasm_ast import KString, KInt, KBytes
 from tempfile import NamedTemporaryFile
-from functools import cache
 import coverage as cov
 
 import time

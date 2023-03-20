@@ -2,7 +2,7 @@ pipeline {
   agent {
     dockerfile {
       label 'docker'
-      additionalBuildArgs '--build-arg K_COMMIT="$(cd deps/wasm-semantics/deps/k && git tag --points-at HEAD | cut --characters=2-)" --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+      additionalBuildArgs '--build-arg K_COMMIT="$(cat deps/wasm-semantics/deps/k_release)" --build-arg PYK_VERSION="$(cat deps/wasm-semantics/deps/pyk_release)" --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
 
     }
   }

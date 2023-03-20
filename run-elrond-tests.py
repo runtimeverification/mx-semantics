@@ -504,7 +504,7 @@ def get_steps_as_kseq(filename, output_dir):
             raise Exception('Step %s not implemented yet' % step['step'])
     return k_steps
 
-def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
+def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args, return_final_config = True):
     global args
     test_name = os.path.basename(test_file_path)
     k_steps = get_steps_as_kseq(test_file_path, output_dir)
@@ -528,7 +528,17 @@ def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
         if cmd_args.log_level != 'none':
             log_intermediate_state("%s_%d_%s.pre" % (test_name, i, step_name), init_config, output_dir)
 
-        new_config = krun_config(init_config=init_config, output_dir=output_dir)
+        krun_result = krun_config(init_config=init_config, output_dir=output_dir)
+
+        # parsing krun_result is very expensive. return early if the result is not needed:
+        #     caller does not need the final config and
+        #     this is the last step and
+        #     log_level is 'none'
+        if not return_final_config and i >= len(k_steps) - 1 and cmd_args.log_level == 'none':
+            return final_config
+        
+        config_json = json.loads(krun_result)
+        new_config = KInner.from_dict(config_json['term'])    
         final_config = new_config
 
         if cmd_args.log_level != 'none':
@@ -567,8 +577,7 @@ def krun_config(init_config: KInner, output_dir: str):
         with NamedTemporaryFile('w', dir=output_dir) as conf_kore:
             conf_kore.write(kast_res.stdout)
             conf_kore.flush()
-
-            proc_res = _krun(
+            proc_res = _krun( 
                 input_file = Path(conf_kore.name),
                 definition_dir=Path(WASM_definition_llvm_no_coverage_kompiled_dir),
                 term=True,
@@ -580,9 +589,8 @@ def krun_config(init_config: KInner, output_dir: str):
             
             if proc_res.returncode != 0:
                 raise Exception("Received error while running: " + str(proc_res.stderr) )
-
-            config_json = json.loads(proc_res.stdout)
-            return KInner.from_dict(config_json['term'])
+            
+            return proc_res.stdout
 
 # ... Setup Elrond Wasm
 
@@ -626,7 +634,7 @@ def run_tests():
         with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
             f.write(json.dumps(config_to_kast_term(template_wasm_config)))
 
-        result_wasm_config = run_test_file(template_wasm_config, test, tmpdir, args)
+        result_wasm_config = run_test_file(template_wasm_config, test, tmpdir, args, return_final_config=args.coverage)
 
         if args.coverage:
             end_config = result_wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))

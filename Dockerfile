@@ -29,7 +29,8 @@ RUN pip3 install --user --upgrade \
                  cytoolz          \
                  erdpy==1.4.0     \
                  numpy            \
-                 pysha3
+                 pysha3           \
+                 git+https://github.com/runtimeverification/pyk.git@${PYK_VERSION}
 
 RUN    git clone 'https://github.com/WebAssembly/wabt' --branch 1.0.13 --recurse-submodules wabt \
     && cd wabt                                                                                   \

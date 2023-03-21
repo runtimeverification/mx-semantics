@@ -2,7 +2,12 @@
 
 import argparse
 import json
-import pyk
+from pathlib import Path
+from typing import Dict, Optional
+from pyk.kast.inner import KSequence, KInner, KToken, KApply, Subst, KSort
+from pyk.ktool.kprint import _kast, KAstInput, KAstOutput
+from pyk.ktool.krun import KRun, _krun, KRunOutput
+from pyk.kast.manip import split_config_from 
 import resource
 import subprocess
 import sys
@@ -10,28 +15,14 @@ import sha3
 import tempfile
 import os
 import wasm2kast
-
+from kwasm_ast import KString, KInt, KBytes
+from tempfile import NamedTemporaryFile
 import coverage as cov
 
-from pyk.kast import KSequence, KConstant, KApply, KToken
-
-
-def KString(value):
-    return KToken('"%s"' % value, 'String')
+import time
 
 def KWasmString(value):
     return KToken('"%s"' % value, 'WasmStringToken')
-
-def KInt(value: int):
-    return KToken(str(value), 'Int')
-
-def KBytes(value: bytes):
-    # Change from python bytes repr to bytes repr in K.
-    byte_repr = '{}'.format(value)
-    if byte_repr.startswith("b'") and byte_repr.endswith("'") :
-        byte_repr = byte_repr.replace('"', '\\"')
-        byte_repr = 'b"' + byte_repr[2:-1] + '"'
-    return KToken(byte_repr, 'Bytes')
 
 def KMap(kitem_pairs):
     """Takes a list of pairs of KItems and produces a Map with them as keys and values."""
@@ -55,15 +46,14 @@ def KList(items):
     return KList_aux(list_items)
 
 def config_to_kast_term(config):
-    return { 'format' : 'KAST', 'version': 1, 'term': config }
+    return { 'format' : 'KAST', 'version': 2, 'term': config.to_dict() }
 
 ###############################
 
 WASM_definition_main_file = 'mandos'
 WASM_definition_llvm_no_coverage_dir = '.build/defn/llvm'
 WASM_definition_llvm_no_coverage_kompiled_dir = WASM_definition_llvm_no_coverage_dir + '/' + WASM_definition_main_file + '-kompiled'
-WASM_definition_llvm_no_coverage = pyk.readKastTerm(WASM_definition_llvm_no_coverage_kompiled_dir + '/compiled.json')
-WASM_symbols_llvm_no_coverage = pyk.buildSymbolTable(WASM_definition_llvm_no_coverage)
+KRunner = KRun(WASM_definition_llvm_no_coverage_kompiled_dir)
 
 addr_prefix   = "address:"
 keccak_prefix = "keccak256:"
@@ -514,7 +504,7 @@ def get_steps_as_kseq(filename, output_dir):
             raise Exception('Step %s not implemented yet' % step['step'])
     return k_steps
 
-def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
+def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args, return_final_config = True):
     global args
     test_name = os.path.basename(test_file_path)
     k_steps = get_steps_as_kseq(test_file_path, output_dir)
@@ -524,7 +514,7 @@ def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
         # Flatten the list of k_steps, just run them all in one go.
         k_steps = [ ('full', [ y for (_, x) in k_steps for y in x ]) ]
 
-    (symbolic_config, init_subst) = pyk.splitConfigFrom(template_wasm_config)
+    (symbolic_config, init_subst) = split_config_from(template_wasm_config)
 
     for i in range(len(k_steps)):
         step_name, curr_step = k_steps[i]
@@ -532,31 +522,75 @@ def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
             print('Executing step %s' % step_name)
         init_subst['K_CELL'] = KSequence(curr_step)
 
-        init_config = pyk.substitute(symbolic_config, init_subst)
-
-        input_json = config_to_kast_term(init_config)
-        krun_args = [ '--term', '--debug']
+        init_config = Subst(init_subst)(symbolic_config)
 
         # Run: generate a new JSON as a temporary file, then read that as the new wasm state.
         if cmd_args.log_level != 'none':
             log_intermediate_state("%s_%d_%s.pre" % (test_name, i, step_name), init_config, output_dir)
-        (rc, new_wasm_config, err) = pyk.krunJSONLegacy(WASM_definition_llvm_no_coverage_dir, input_json, krunArgs = krun_args, teeOutput=True)
-        if rc != 0:
-            print('output:\n%s' % new_wasm_config, file=sys.stderr)
-            print(pyk.prettyPrintKast(new_wasm_config, WASM_symbols_llvm_no_coverage))
-            raise Exception("Received error while running: " + err )
 
-        final_config = new_wasm_config
+        krun_result = krun_config(init_config=init_config, output_dir=output_dir)
+
+        # parsing krun_result is very expensive. return early if the result is not needed:
+        #     caller does not need the final config and
+        #     this is the last step and
+        #     log_level is 'none'
+        if not return_final_config and i >= len(k_steps) - 1 and cmd_args.log_level == 'none':
+            return final_config
+        
+        config_json = json.loads(krun_result)
+        new_config = KInner.from_dict(config_json['term'])    
+        final_config = new_config
 
         if cmd_args.log_level != 'none':
-            log_intermediate_state("%s_%d_%s" % (test_name, i, step_name), new_wasm_config, output_dir)
+            log_intermediate_state("%s_%d_%s" % (test_name, i, step_name), final_config, output_dir)
 
         # Check if the k cell is empty
-        (symbolic_config, init_subst) = pyk.splitConfigFrom(new_wasm_config)
+        symbolic_config, init_subst = split_config_from(new_config)
         k_cell = init_subst['K_CELL']
-        assert k_cell['node'] == 'KSequence' and k_cell['arity'] == 0, "k cell not empty, contains a sequence of %d items.\nSee %s" % (k_cell['arity'], output_dir)
+
+        if not isinstance(k_cell, KSequence) or k_cell.arity != 0:
+            raise ValueError(f'k cell not empty, contains a sequence of {k_cell.arity} items.\nSee {output_dir}')
 
     return final_config
+
+def krun_config(init_config: KInner, output_dir: str):
+    """
+    call krun with initial configuration
+
+    1- dump config as json
+    2- kast -i json -o kore > config.kore
+    3- krun config.kore --term --parser cat
+    """
+    with NamedTemporaryFile('w', dir=output_dir) as f:
+        conf_dict = {"format":"KAST","version":2,"term":init_config.to_dict()}
+        f.write(json.dumps(conf_dict, sort_keys=True))
+        f.flush()
+        
+        kast_res = _kast(
+                Path(f.name),
+                definition_dir=Path(WASM_definition_llvm_no_coverage_kompiled_dir),
+                input=KAstInput.JSON,
+                output=KAstOutput.KORE,
+                sort='GeneratedTopCell',
+        )
+        
+        with NamedTemporaryFile('w', dir=output_dir) as conf_kore:
+            conf_kore.write(kast_res.stdout)
+            conf_kore.flush()
+            proc_res = _krun( 
+                input_file = Path(conf_kore.name),
+                definition_dir=Path(WASM_definition_llvm_no_coverage_kompiled_dir),
+                term=True,
+                check=False,
+                output=KRunOutput.JSON,
+                pipe_stderr=True,
+                parser='cat',
+            )
+            
+            if proc_res.returncode != 0:
+                raise Exception("Received error while running: " + str(proc_res.stderr) )
+            
+            return proc_res.stdout
 
 # ... Setup Elrond Wasm
 
@@ -564,7 +598,7 @@ def log_intermediate_state(name, config, output_dir):
     with open('%s/%s' % (output_dir, name), 'w') as f:
         f.write(json.dumps(config_to_kast_term(config)))
     with open('%s/%s.pretty.k' % (output_dir, name), 'w') as f:
-        pretty = pyk.prettyPrintKast(config, WASM_symbols_llvm_no_coverage)
+        pretty = KRunner.pretty_print(config)
         f.write(pretty)
 
 # Main Script
@@ -582,10 +616,12 @@ def run_tests():
 
     per_test_coverage = []
 
-    template_wasm_config = pyk.readKastTerm('src/elrond-runtime.loaded.json')
-    cells = pyk.splitConfigFrom(template_wasm_config)[1]
-    assert cells['K_CELL']['arity'] == 0
-
+    with open('src/elrond-runtime.loaded.json', 'r') as f:
+        runtime_json = json.load(f)
+        template_wasm_config = KInner.from_dict(runtime_json['term'])
+    
+    _, cells = split_config_from(template_wasm_config)
+    assert cells['K_CELL'].arity == 0
     coverage = cov.Coverage()
     for test in tests:
         if args.verbose:
@@ -598,17 +634,17 @@ def run_tests():
         with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
             f.write(json.dumps(config_to_kast_term(template_wasm_config)))
 
-        result_wasm_config = run_test_file(template_wasm_config, test, tmpdir, args)
+        result_wasm_config = run_test_file(template_wasm_config, test, tmpdir, args, return_final_config=args.coverage)
 
         if args.coverage:
             end_config = result_wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))
 
-            collect_data_func = lambda entry: (int(entry['args'][0]['token']), int(entry['args'][1]['token']))
+            collect_data_func = lambda entry: (int(entry.args[0].token), int(entry.args[1].token))
 
-            func_cov_filter_func = lambda term: 'label' in term and term['label'] == 'fcd'
+            func_cov_filter_func = lambda term: hasattr(term, 'label') and term.label.name == 'fcd'
             func_cov = cov.get_coverage_data(end_config, 'COVEREDFUNCS_CELL', func_cov_filter_func, collect_data_func)
 
-            block_cov_filter_func = lambda term: 'label' in term and term['label'] == 'blockUid'
+            block_cov_filter_func = lambda term: hasattr(term, 'label') and term.label.name == 'blockUid'
             block_cov = cov.get_coverage_data(end_config, 'COVEREDBLOCK_CELL', block_cov_filter_func, collect_data_func)
 
             mods = cov.get_module_filename_map(result_wasm_config)

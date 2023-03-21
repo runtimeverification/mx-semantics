@@ -6,6 +6,8 @@ require "wasm.md"
 
 module WASM-COVERAGE
     imports WASM
+    imports SET
+    imports MAP
 
     configuration
       <wasmCoverage>

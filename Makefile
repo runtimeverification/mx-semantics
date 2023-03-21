@@ -236,9 +236,10 @@ test-elrond-crowdfunding-egld: $(llvm_kompiled)
 ELROND_LOTTERY_EGLD_DIR=$(ELROND_CONTRACT_EXAMPLES)/lottery-egld
 elrond_lottery_egld_tests=$(shell find $(ELROND_LOTTERY_EGLD_DIR) -name "*.scen.json")
 
+# TODO optimize test runner and enable coverage and logging
 test-elrond-lottery-egld: $(llvm_kompiled)
 	erdpy contract build "$(ELROND_LOTTERY_EGLD_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_lottery_egld_tests) --coverage
+	$(TEST_MANDOS) $(elrond_lottery_egld_tests) --log-level none
 
 ## Multisg Test
 
@@ -254,9 +255,10 @@ test-elrond-multisig: $(llvm_kompiled)
 ELROND_BASIC_FEATURES_DIR=$(ELROND_CONTRACT)/feature-tests/basic-features
 elrond_basic_features_tests=$(shell cat tests/basic_features.test)
 
+# TODO optimize test runner and enable coverage and logging
 test-elrond-basic-features: $(llvm_kompiled)
 	erdpy contract build "$(ELROND_BASIC_FEATURES_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_basic_features_tests) --coverage
+	$(TEST_MANDOS) $(elrond_basic_features_tests) --log-level none
 
 # Unit Tests
 # ----------

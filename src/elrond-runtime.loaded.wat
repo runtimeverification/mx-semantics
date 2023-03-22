@@ -163,6 +163,9 @@
     <bigIntHeap>
       .Map
     </bigIntHeap>
+    <bufferHeap>
+      .Map
+    </bufferHeap>
     <bytesStack>
       .BytesStack
     </bytesStack>

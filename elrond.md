@@ -193,6 +193,7 @@ module ELROND
         <wasmCoverage/>
         <node/>
         <bigIntHeap> .Map </bigIntHeap>
+        <bufferHeap> .Map </bufferHeap>
         <bytesStack> .BytesStack </bytesStack>
         <logging> "" </logging>
       </elrond>
@@ -1272,6 +1273,78 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            0 |-> <i32> KEYOFFSET
            1 |-> <i32> KEYLENGTH
          </locals>
+```
+
+### Managed Buffer Ops
+
+#### Managed Buffer Internal Instructions
+
+```k
+    syntax InternalInstr ::= #getBuffer ( idx : Int )
+ // ---------------------------------------------------------------
+    rule <instrs> #getBuffer(BUFFER_IDX) => . ... </instrs>
+         <bytesStack> STACK => {HEAP[BUFFER_IDX]}:>Bytes : STACK </bytesStack>
+         <bufferHeap> HEAP </bufferHeap>
+
+    syntax InternalInstr ::= #setBufferFromBytesStack ( idx: Int )
+                           | #setBuffer ( idx: Int , value: Bytes )
+ // ----------------------------------------------------------------------------
+    rule <instrs> #setBufferFromBytesStack(BIGINT_IDX) => #setBuffer(BIGINT_IDX, BS) ... </instrs>
+         <bytesStack> BS : _ </bytesStack>
+
+    rule <instrs> #setBuffer(BIGINT_IDX, BS) => . ... </instrs>
+         <bufferHeap> HEAP => HEAP [ BIGINT_IDX <- BS ] </bufferHeap>
+```
+
+TODO separate bigint heap and mBuffer heap
+TODO add function signatures as comments
+
+```k
+    rule <instrs> hostCall("env", "mBufferSetBytes", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+               => #memLoad(OFFSET, LENGTH) 
+               ~> #setBufferFromBytesStack ( ARG_IDX ) 
+               ~> #dropBytes
+               ~> i32 . const 0
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH </locals>
+
+    rule <instrs> hostCall("env", "mBufferFromBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+               => #getBigInt(BIG_IDX, Unsigned) 
+               ~> #setBufferFromBytesStack ( BUFF_IDX ) 
+               ~> #dropBytes
+               ~> i32 . const 0
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> BIG_IDX </locals>
+
+    rule <instrs> hostCall("env", "mBufferStorageStore", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+               => #getBuffer(KEY_IDX) 
+               ~> #getBuffer(VAL_IDX) 
+               ~> #storageStore
+               ~> i32 . const 0
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> VAL_IDX </locals>
+
+    rule <instrs> hostCall("env", "mBufferStorageLoad", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+               => #getBuffer(KEY_IDX)
+               ~> #storageLoad
+               ~> #setBufferFromBytesStack(DEST_IDX)
+               ~> #dropBytes
+               ~> i32 . const 0
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> DEST_IDX </locals>
+
+    rule <instrs> hostCall("env", "mBufferToBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+               => #getBuffer(KEY_IDX)
+               ~> #setBigIntFromBytesStack(DEST_IDX, Unsigned)
+               ~> #dropBytes
+               ~> i32 . const 0
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> DEST_IDX </locals>
 ```
 
 ### Crypto API

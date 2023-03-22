@@ -56,6 +56,7 @@ WASM_definition_llvm_no_coverage_kompiled_dir = WASM_definition_llvm_no_coverage
 KRunner = KRun(WASM_definition_llvm_no_coverage_kompiled_dir)
 
 addr_prefix   = "address:"
+sc_prefix     = "sc:"
 keccak_prefix = "keccak256:"
 u64_prefix    = "u64:"
 u32_prefix    = "u32:"
@@ -63,6 +64,14 @@ u16_prefix    = "u16:"
 u8_prefix     = "u8:"
 
 biguint_prefix = "biguint:"
+
+# number of zero bytes every smart contract address begins with.
+sc_addr_num_leading_zeros = 8
+
+# sc_addr_reserved_prefix_len is the number of zero bytes every smart contract address begins with.
+# Its value is 10.
+# 10 = 8 zeros for all SC addresses + 2 zeros as placeholder for the VM type.
+sc_addr_reserved_prefix_len = sc_addr_num_leading_zeros + 2
 
 sys.setrecursionlimit(1500000000)
 resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
@@ -116,9 +125,13 @@ def mandos_string_to_bytes(raw_str: str):
 
     # address
     if raw_str.startswith(addr_prefix):
-        padded_addr = raw_str[len(addr_prefix):].ljust(32, '_')
-        padded_addr_bytes = bytes(padded_addr[:32], 'ascii')
-        return padded_addr_bytes
+        addr_arg = raw_str[len(addr_prefix):]
+        return address_expression(addr_arg)
+
+    # smart contract address
+    if raw_str.startswith(sc_prefix):
+        addr_arg = raw_str[len(sc_prefix):]
+        return sc_expression(addr_arg)
 
     # keccak256
     if raw_str.startswith(keccak_prefix):
@@ -161,6 +174,21 @@ def mandos_string_to_bytes(raw_str: str):
         pass
 
     raise ValueError("Argument type not yet supported: %s" % raw_str)
+
+def address_expression(addr_arg: str) -> bytes:
+    return create_address_optional_shard_id(addr_arg, 0)
+
+def create_address_optional_shard_id(input: str, num_leading_zeros: int) -> bytes:
+    # TODO implement addresses with optional shard ID: https://github.com/multiversx/mx-chain-scenario-go/blob/3d0b8aea51a94fe640bf1c62a78dd5b4abbad459/expression/interpreter/functions.go#L52
+    zero_padded = "\0" * num_leading_zeros + input
+    padded_addr = zero_padded.ljust(32, '_')
+    padded_addr_bytes = bytes(padded_addr[:32], 'ascii')
+    return padded_addr_bytes
+
+def sc_expression(input: str) -> bytes:
+    addr = create_address_optional_shard_id(input, sc_addr_reserved_prefix_len)
+    # TODO insert VM type: https://github.com/multiversx/mx-chain-scenario-go/blob/3d0b8aea51a94fe640bf1c62a78dd5b4abbad459/expression/interpreter/functions.go#L78
+    return addr
 
 def mandos_interpret_as_uint_fixedwidth(raw_str: str, width: int):
     num_int, _ = convert_string_to_uint(raw_str)
@@ -221,7 +249,7 @@ def mandos_to_set_account(address, sections, filename, output_dir):
         if code_path is not None:
             code_value = file_to_module_decl(code_path, output_dir)
 
-    storage_pairs = [ (mandos_argument_to_kbytes(k), mandos_argument_to_kbytes(v)) for (k, v) in sections['storage'].items() ]
+    storage_pairs = [ (mandos_argument_to_kbytes(k), mandos_argument_to_kbytes(v)) for (k, v) in sections.get('storage', {}).items() ]
     storage_value = KMap(storage_pairs)
 
     set_account_step  = KApply('setAccount', [address_value, nonce_value, balance_value, code_value, storage_value])
@@ -256,7 +284,7 @@ def mandos_to_check_account(address, sections, filename):
 
 def mandos_to_deploy_tx(tx, filename, output_dir):
     sender = mandos_argument_to_kbytes(tx['from'])
-    value = mandos_int_to_kint(tx['value'])
+    value = mandos_int_to_kint(tx.get('value', "0"))
     arguments = mandos_arguments_to_klist(tx['arguments'])
     gasLimit = mandos_int_to_kint(tx['gasLimit'])
     gasPrice = mandos_int_to_kint(tx['gasPrice'])
@@ -270,7 +298,7 @@ def mandos_to_deploy_tx(tx, filename, output_dir):
 def mandos_to_call_tx(tx):
     sender = mandos_argument_to_kbytes(tx['from'])
     to = mandos_argument_to_kbytes(tx['to'])
-    value = mandos_int_to_kint(tx['value'])
+    value = mandos_int_to_kint(tx.get('value', "0"))
     function = KWasmString(tx['function'])
     arguments = mandos_arguments_to_klist(tx['arguments'])
     gasLimit = mandos_int_to_kint(tx['gasLimit'])
@@ -405,19 +433,25 @@ def get_steps_sc_call(step):
         k_steps += expect
     return k_steps
 
+def mandos_to_query_tx(tx):
+    to = mandos_argument_to_kbytes(tx['to'])
+    function = KWasmString(tx['function'])
+    arguments = mandos_arguments_to_klist(tx.get('arguments', []))
+
+    queryTx = KApply('queryTx', [to, function, arguments])
+    return queryTx
+
 def get_steps_sc_query(step):
-    tx_field = step['tx']
-    if 'from' not in tx_field:
-        tx_field['from'] = tx_field['to']
-    if 'value' not in tx_field:
-        tx_field['value'] = str(0)
-    if 'arguments' not in tx_field:
-        tx_field['arguments'] = []
-    if 'gasLimit' not in tx_field:
-        tx_field['gasLimit'] = str(2**64 - 1)
-    if 'gasPrice' not in tx_field:
-        tx_field['gasPrice'] = str(0)
-    return get_steps_sc_call(step)
+    k_steps = []
+
+    tx = mandos_to_query_tx(step['tx'])
+    k_steps.append(tx)
+
+    if 'expect' in step:
+        expect = mandos_to_expect(step['expect'])
+        k_steps += expect
+    
+    return k_steps
 
 def get_steps_transfer(step):
     tx = mandos_to_transfer_tx(step['tx'])

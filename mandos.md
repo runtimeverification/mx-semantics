@@ -329,6 +329,24 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkExpectLogs(LOGS) => . ... </k>
          <logs> LOGS </logs>
       [priority(60)]
+
+```
+
+## Step type: scQuery
+
+TODO make sure that none of the state changes are persisted -- [Doc](https://docs.multiversx.com/developers/scenario-reference/structure#step-type-scquery)
+
+```k
+    syntax Step ::= queryTx    (to: Address, func: WasmString, args: List) [klabel(queryTx), symbol]
+                  | queryTxAux (to: Bytes,   func: WasmString, args: List) [klabel(queryTxAux), symbol]
+ // ---------------------------------------------------------------------------------------------------
+    rule <k> queryTx(TO, FUNCTION, ARGS) => queryTxAux(#address2Bytes(TO), FUNCTION, ARGS) ... </k>
+      [priority(60)]
+
+    rule <k> queryTxAux(TO, FUNCTION, ARGS) => #wait ... </k>
+         <commands> . => callContract(TO, TO, 0, FUNCTION, ARGS, maxUInt64, 0) </commands>
+         <logging> S => S +String " -- query contract: " +String #parseWasmString(FUNCTION) </logging>
+      [priority(60)]
 ```
 
 ### Step type: scDeploy

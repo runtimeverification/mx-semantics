@@ -241,8 +241,8 @@ def mandos_arguments_to_klist(arguments: list):
 def mandos_to_set_account(address, sections, filename, output_dir):
     """Creates a K account cell from a Mandos account description. """
     address_value = mandos_argument_to_kbytes(address)
-    nonce_value   = mandos_int_to_kint(sections['nonce'])
-    balance_value = mandos_int_to_kint(sections['balance'])
+    nonce_value   = mandos_int_to_kint(sections.get('nonce', '0'))
+    balance_value = mandos_int_to_kint(sections.get('balance', '0'))
     code_value = KApply(".Code", [])
     if 'code' in sections:
         code_path = get_contract_code(sections['code'], filename)

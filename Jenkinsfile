@@ -27,7 +27,7 @@ pipeline {
         stage('Adder Contract Test')         { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-adder' } }
         // stage('Lottery Contract Test')       { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-lottery-egld' } }
         stage('Multisig Contract Test')      { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-multisig' } }
-        // stage('Basic Features Test')         { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features' } }
+        stage('Basic Features Test')         { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features' } }
         // stage('Crowdfunding Contract Test')  { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-crowdfunding-egld' } }
       }
     }

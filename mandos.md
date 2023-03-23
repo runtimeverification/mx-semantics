@@ -108,11 +108,11 @@ Only take the next step once both the Elrond node and Wasm are done executing.
       [priority(60)]
 
     rule <k> createAndSetAccountWithEmptyCode(ADDRESS, NONCE, BALANCE, STORAGE) => #wait ... </k>
-         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, .CodeIndex, STORAGE) </commands>
+         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, .CodeIndex, .Bytes, STORAGE) </commands>
       [priority(60)]
 
     rule <k> createAndSetAccountAfterInitCodeModule(ADDRESS, NONCE, BALANCE, STORAGE) => #wait ... </k>
-         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, NEXTIDX -Int 1, STORAGE) </commands>
+         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, NEXTIDX -Int 1, .Bytes, STORAGE) </commands>
          <nextModuleIdx> NEXTIDX </nextModuleIdx>
       [priority(60)]
 
@@ -367,6 +367,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
  // --------------------------------------------------------------------
     rule <k> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => createAccount(NEWADDR)
+                 ~> setAccountOwner(NEWADDR, FROM)
                  ~> setAccountCodeIndex(NEWADDR, NEXTIDX -Int 1)
                  ~> callContract(FROM, NEWADDR, VALUE, "init", ARGS, GASLIMIT, GASPRICE)
          </commands>

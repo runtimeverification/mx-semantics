@@ -317,8 +317,13 @@ def mandos_to_transfer_tx(tx):
 
 def mandos_to_validator_reward_tx(tx):
     to = mandos_argument_to_kbytes(tx['to'])
-    value = mandos_int_to_kint(tx['value'])
 
+    # backwards compatibility
+    if 'value' in tx:
+        value = mandos_int_to_kint(tx['value'])
+    else:
+        value = mandos_int_to_kint(tx.get('egldValue', "0"))
+        
     rewardTx = KApply('validatorRewardTx', [to, value])
     return rewardTx
 
@@ -348,7 +353,7 @@ def mandos_to_expect(expect):
         logs = []
         for log in expect['logs']:
             address = mandos_argument_to_kbytes(log['address'])
-            identifier = mandos_argument_to_kbytes(log['identifier'])
+            identifier = mandos_argument_to_kbytes(log['endpoint'])
             topics = mandos_arguments_to_klist(log['topics'])
             data = mandos_argument_to_kbytes(log['data'])
             logEntry = KApply('logEntry', [address, identifier, topics, data])

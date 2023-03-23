@@ -23,8 +23,7 @@ module ELROND-NODE
           <caller> .Bytes </caller>
           <callee> .Bytes </callee>
           <callValue> 0 </callValue>
-          <esdtTokenName> .Bytes </esdtTokenName>
-          <esdtValue> 0 </esdtValue>
+          <esdtTransfers> .List </esdtTransfers>
           <out> .List </out>
           <message> .Bytes </message>
           <returnCode> .ReturnCode </returnCode>
@@ -41,9 +40,11 @@ module ELROND-NODE
 
 If the codeIdx is ".CodeIndex", it means the account is not a contract.
 If the codeIdx is an integer, it is the exact module index from the Wasm store which specifies the contract.
+If the account is not a contract, ownerAddress is .Bytes
 
 ```k
              <codeIdx> .CodeIndex </codeIdx>
+             <ownerAddress> .Bytes </ownerAddress>
 ```
 Storage maps byte arrays to byte arrays.
 
@@ -91,6 +92,8 @@ Storage maps byte arrays to byte arrays.
     syntax Code ::= ".Code" [klabel(.Code), symbol]
                   | ModuleDecl
  // ----------------------------------------------
+
+    syntax ESDTTransfer ::= esdt( tokenName : Bytes , tokenValue : Int )
 
 endmodule
 ```
@@ -220,6 +223,12 @@ module ELROND
  // ----------------------------------------
     rule <instrs> #returnLength => i32.const lengthBytes(BS) ... </instrs>
          <bytesStack> BS : _ </bytesStack>
+
+    syntax InternalInstr ::= "#bytesEqual"
+ // --------------------------------------
+    rule <instrs> #bytesEqual => i32.const #bool( BS1 ==K BS2 ) ... </instrs>
+         <bytesStack> BS1 : BS2 : _ </bytesStack>
+
 ```
 
 #### World State
@@ -294,15 +303,17 @@ module ELROND
          <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
       [priority(60)]
 
-    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, CodeIndex, Map )
+    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, CodeIndex, Bytes, Map )
                          | setAccountCodeIndex ( Bytes, CodeIndex )
+                         | setAccountOwner     ( Bytes, Bytes )
  // ---------------------------------------------------------------
-    rule <commands> setAccountFields(ADDR, NONCE, BALANCE, CODEIDX, STORAGE) => . ... </commands>
+    rule <commands> setAccountFields(ADDR, NONCE, BALANCE, CODEIDX, OWNER_ADDR, STORAGE) => . ... </commands>
          <account>
            <address> ADDR </address>
            <nonce> _ => NONCE </nonce>
            <balance> _ => BALANCE </balance>
            <codeIdx> _ => CODEIDX </codeIdx>
+           <ownerAddress> _ => OWNER_ADDR </ownerAddress>
            <storage> _ => STORAGE </storage>
          </account>
       [priority(60)]
@@ -311,6 +322,14 @@ module ELROND
          <account>
            <address> ADDR </address>
            <codeIdx> _ => CODEIDX </codeIdx>
+           ...
+         </account>
+      [priority(60)]
+
+    rule <commands> setAccountOwner(ADDR, OWNER) => . ... </commands>
+         <account>
+           <address> ADDR </address>
+           <ownerAddress> _ => OWNER </ownerAddress>
            ...
          </account>
       [priority(60)]
@@ -381,6 +400,7 @@ module ELROND
          <returnCode> _ => .ReturnCode </returnCode>
          <logs> _ => .List </logs>
          <bigIntHeap> _ => .Map </bigIntHeap>
+         <bufferHeap> _ => .Map </bufferHeap>
          <account>
            <address> TO </address>
            <codeIdx> CODE:Int </codeIdx>
@@ -512,12 +532,21 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       requires         #hasPrefix(KEY, "ELROND")
 
     syntax InternalInstr ::= "#storageLoad"
+                           | "#storageLoadFromAddress"
  // ---------------------------------------
     rule <instrs> #storageLoad => . ... </instrs>
          <bytesStack> KEY : STACK => #lookupStorage(STORAGE, KEY) : STACK </bytesStack>
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
+           <storage> STORAGE </storage>
+           ...
+         </account>
+
+    rule <instrs> #storageLoadFromAddress => . ... </instrs>
+         <bytesStack> ADDR : KEY : STACK => #lookupStorage(STORAGE, KEY) : STACK </bytesStack>
+         <account>
+           <address> ADDR </address>
            <storage> STORAGE </storage>
            ...
          </account>
@@ -899,7 +928,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     // extern void checkNoPayment(void *context);
     rule <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
          <callValue> 0 </callValue>
-         <esdtValue> 0 </esdtValue>
+         <esdtTransfers> .List </esdtTransfers>
 
     // extern int32_t getESDTTokenName(void *context, int32_t resultOffset);
     rule <instrs> hostCall("env", "getESDTTokenName", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -908,7 +937,14 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                   ...
          </instrs>
          <locals> 0 |-> <i32> OFFSET </locals>
-         <esdtTokenName> TOKENNAME </esdtTokenName>
+         <esdtTransfers> ListItem( esdt( TOKENNAME , _VALUE ) ) </esdtTransfers>
+
+    // extern int32_t   getNumESDTTransfers(void* context);
+    rule <instrs> hostCall ( "env" , "getNumESDTTransfers" , [ .ValTypes ] -> [ i32  .ValTypes ] )
+               => i32.const size( TS )
+                  ...
+         </instrs>
+         <esdtTransfers> TS </esdtTransfers>
 
     // extern void writeEventLog(void *context, int32_t numTopics, int32_t topicLengthsOffset, int32_t topicOffset, int32_t dataOffset, int32_t dataLength);
     rule <instrs> hostCall("env", "writeEventLog", [ i32 i32 i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
@@ -960,6 +996,14 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <instrs> (#signalError ~> _) => . </instrs>
          <bytesStack> DATA : STACK => STACK </bytesStack>
          <message> MSG => MSG +Bytes DATA </message>
+
+ // extern void      managedSignalError(void* context, int32_t errHandle);
+    rule <instrs> hostCall ( "env" , "managedSignalError" , [ i32  .ValTypes ] -> [ .ValTypes ] )
+               => #getBuffer(ERR_IDX)
+               ~> #signalError
+                  ...
+         </instrs>
+         <locals>  0 |-> <i32> ERR_IDX  </locals>
 
     // extern long long getBlockTimestamp(void *context);
     rule <instrs> hostCall("env", "getBlockTimestamp", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const TIMESTAMP ... </instrs>
@@ -1021,12 +1065,16 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 
     syntax InternalInstr ::= #setBigIntFromBytesStack ( idx: Int , Signedness )
                            | #setBigInt ( idx: Int , value: Bytes , Signedness )
+                           | #setBigIntValue ( Int , Int )
  // ----------------------------------------------------------------------------
     rule <instrs> #setBigIntFromBytesStack(BIGINT_IDX, SIGN) => #setBigInt(BIGINT_IDX, BS, SIGN) ... </instrs>
          <bytesStack> BS : _ </bytesStack>
 
     rule <instrs> #setBigInt(BIGINT_IDX, BS, SIGN) => . ... </instrs>
          <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- Bytes2Int(BS, BE, SIGN)] </bigIntHeap>
+
+    rule <instrs> #setBigIntValue(BIGINT_IDX, VALUE) => . ... </instrs>
+         <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- VALUE] </bigIntHeap>
 ```
 
 ```k
@@ -1082,6 +1130,13 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX 1 |-> <i32> OFFSET 2 |-> <i32> LENGTH </locals>
+
+ // extern void      bigIntSetInt64(void* context, int32_t destinationHandle, long long value);
+    rule <instrs> hostCall ( "env" , "bigIntSetInt64" , [ i32  i64  .ValTypes ] -> [ .ValTypes ] )
+               => #setBigIntValue(DEST_IDX, VALUE)
+                  ...
+         </instrs>
+         <locals> 0 |-> <i32> DEST_IDX 1 |-> <i64> VALUE </locals>
 
     // extern void bigIntAdd(void* context, int32_t destination, int32_t op1, int32_t op2);
     rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
@@ -1289,17 +1344,49 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     syntax InternalInstr ::= #setBufferFromBytesStack ( idx: Int )
                            | #setBuffer ( idx: Int , value: Bytes )
  // ----------------------------------------------------------------------------
-    rule <instrs> #setBufferFromBytesStack(BIGINT_IDX) => #setBuffer(BIGINT_IDX, BS) ... </instrs>
+    rule <instrs> #setBufferFromBytesStack(BUFFER_IDX) => #setBuffer(BUFFER_IDX, BS) ... </instrs>
          <bytesStack> BS : _ </bytesStack>
 
-    rule <instrs> #setBuffer(BIGINT_IDX, BS) => . ... </instrs>
-         <bufferHeap> HEAP => HEAP [ BIGINT_IDX <- BS ] </bufferHeap>
+    rule <instrs> #setBuffer(BUFFER_IDX, BS) => . ... </instrs>
+         <bufferHeap> HEAP => HEAP [ BUFFER_IDX <- BS ] </bufferHeap>
+
+    syntax InternalInstr ::= #appendBytesToBuffer( Int )
+                           | "#appendBytes"
+ // -----------------------------------------------------------------
+    rule <instrs> #appendBytesToBuffer( DEST_IDX )
+               => #getBuffer(DEST_IDX)
+               ~> #appendBytes
+               ~> #setBufferFromBytesStack( DEST_IDX )
+                  ... 
+         </instrs>
+
+    rule <instrs> #appendBytes => . ... </instrs>
+         <bytesStack> BS1 : BS2 : BSS => (BS1 +Bytes BS2) : BSS </bytesStack>
+
+    syntax InternalInstr ::= #sliceBytes( Int , Int )
+ // ------------------------------------------------------------------
+    rule <instrs> #sliceBytes(OFFSET, LENGTH) => . ... </instrs>
+         <bytesStack> (BS => substrBytes(BS, OFFSET, OFFSET +Int LENGTH)) : _ </bytesStack>
+         requires OFFSET >=Int 0
+          andBool LENGTH >=Int 0
+          andBool OFFSET +Int LENGTH <=Int lengthBytes(BS)
+
 ```
 
-TODO separate bigint heap and mBuffer heap
-TODO add function signatures as comments
+TODO out-of-bounds in `#sliceBytes` should not fail the execution -- https://github.com/multiversx/mx-chain-vm-go/blob/5b4d6b04f038a5369f9604ed46f949dff9d4b745/arwen/elrondapi/manBufOps.go#L133
+
+```
+if startingPosition < 0 || sliceLength < 0 || int(startingPosition+sliceLength) > len(sourceBytes) {
+   // does not fail execution if slice exceeds bounds
+   return 1
+}
+```
+
+
+#### Managed Buffer host functions
 
 ```k
+ // extern int32_t   mBufferSetBytes(void* context, int32_t mBufferHandle, int32_t dataOffset, int32_t dataLength);
     rule <instrs> hostCall("env", "mBufferSetBytes", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #memLoad(OFFSET, LENGTH) 
                ~> #setBufferFromBytesStack ( ARG_IDX ) 
@@ -1309,6 +1396,7 @@ TODO add function signatures as comments
          </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH </locals>
 
+ // extern int32_t   mBufferFromBigIntUnsigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
     rule <instrs> hostCall("env", "mBufferFromBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBigInt(BIG_IDX, Unsigned) 
                ~> #setBufferFromBytesStack ( BUFF_IDX ) 
@@ -1318,6 +1406,7 @@ TODO add function signatures as comments
          </instrs>
          <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> BIG_IDX </locals>
 
+ // extern int32_t   mBufferStorageStore(void* context, int32_t keyHandle, int32_t sourceHandle);
     rule <instrs> hostCall("env", "mBufferStorageStore", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBuffer(KEY_IDX) 
                ~> #getBuffer(VAL_IDX) 
@@ -1327,6 +1416,7 @@ TODO add function signatures as comments
          </instrs>
          <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> VAL_IDX </locals>
 
+ // extern int32_t   mBufferStorageLoad(void* context, int32_t keyHandle, int32_t destinationHandle);
     rule <instrs> hostCall("env", "mBufferStorageLoad", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBuffer(KEY_IDX)
                ~> #storageLoad
@@ -1337,6 +1427,7 @@ TODO add function signatures as comments
          </instrs>
          <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> DEST_IDX </locals>
 
+ // extern int32_t   mBufferToBigIntUnsigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
     rule <instrs> hostCall("env", "mBufferToBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBuffer(KEY_IDX)
                ~> #setBigIntFromBytesStack(DEST_IDX, Unsigned)
@@ -1345,6 +1436,140 @@ TODO add function signatures as comments
                   ... 
          </instrs>
          <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> DEST_IDX </locals>
+
+ // extern int32_t   mBufferGetArgument(void* context, int32_t id, int32_t destinationHandle);
+    rule <instrs> hostCall("env", "mBufferGetArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+               => #setBuffer(DEST_IDX, {ARGS[ARG_IDX]}:>Bytes)
+               ~> i32 . const 0
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> DEST_IDX </locals>
+         <callArgs> ARGS </callArgs>
+
+ // extern int32_t   mBufferAppend(void* context, int32_t accumulatorHandle, int32_t dataHandle);
+    rule <instrs> hostCall("env", "mBufferAppend", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+               => #getBuffer(DATA_IDX)
+               ~> #appendBytesToBuffer( ACC_IDX )
+               ~> #dropBytes
+               ~> i32 . const 0
+                  ...
+         </instrs>
+         <locals> 0 |-> <i32> ACC_IDX  1 |-> <i32> DATA_IDX </locals>
+
+
+ // extern int32_t   mBufferEq(void* context, int32_t mBufferHandle1, int32_t mBufferHandle2);
+    rule <instrs> hostCall ( "env" , "mBufferEq" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] ) 
+               => #getBuffer(BUFF1_IDX)
+               ~> #getBuffer(BUFF2_IDX)
+               ~> #bytesEqual
+               ~> #dropBytes
+               ~> #dropBytes
+                  ...
+         </instrs>
+         <locals> 0 |-> <i32> BUFF1_IDX  1 |-> <i32> BUFF2_IDX </locals>
+
+
+
+ // extern int32_t   mBufferAppendBytes(void* context, int32_t accumulatorHandle, int32_t dataOffset, int32_t dataLength);
+    rule <instrs> hostCall("env", "mBufferAppendBytes", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+               => #memLoad( OFFSET , LENGTH )
+               ~> #appendBytesToBuffer( BUFF_IDX )
+               ~> #dropBytes
+               ~> i32 . const 0
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH </locals>
+
+ // extern int32_t   mBufferGetLength(void* context, int32_t mBufferHandle);
+    rule <instrs> hostCall("env", "mBufferGetLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+               => #getBuffer( BUFF_IDX )
+               ~> #returnLength
+               ~> #dropBytes
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> BUFF_IDX </locals>
+
+ // extern int32_t   mBufferGetByteSlice(void* context, int32_t sourceHandle, int32_t startingPosition, int32_t sliceLength, int32_t resultOffset);
+    rule <instrs> hostCall("env", "mBufferGetByteSlice", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+               => #getBuffer( SRC_BUFF_IDX )
+               ~> #sliceBytes( OFFSET , LENGTH )
+               ~> #memStoreFromBytesStack( DEST_OFFSET )
+               ~> #dropBytes
+               ~> i32 . const 0
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> SRC_BUFF_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH  3 |-> <i32> DEST_OFFSET </locals>
+
+ // extern int32_t   mBufferNew(void* context);
+    rule <instrs> hostCall("env", "mBufferNew", [ .ValTypes ] -> [ i32 .ValTypes ] ) => i32.const size(HEAP) ... </instrs>
+         <bufferHeap> HEAP => HEAP[size(HEAP) <- .Bytes] </bufferHeap>
+
+ // extern int32_t   v1_5_mBufferNewFromBytes(void* context, int32_t dataOffset, int32_t dataLength);
+    rule <instrs> hostCall ( "env" , "mBufferNewFromBytes" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] )
+              => #memLoad( OFFSET , LENGTH )
+              ~> #setBufferFromBytesStack( size(HEAP) )
+              ~> #dropBytes
+              ~> i32 . const size(HEAP)
+                 ... 
+         </instrs>
+         <locals> 0 |-> <i32> OFFSET  1 |-> <i32> LENGTH </locals>
+         <bufferHeap> HEAP => HEAP[size(HEAP) <- .Bytes] </bufferHeap>
+
+ // extern void      managedCaller(void* context, int32_t destinationHandle);
+    rule <instrs> hostCall("env", "managedCaller", [ i32 .ValTypes ] -> [ .ValTypes ] )
+               => #setBuffer( DEST_IDX , CALLER )
+                 ... 
+         </instrs>
+         <locals> 0 |-> <i32> DEST_IDX </locals>
+         <caller> CALLER </caller>
+
+ // extern void      mBufferStorageLoadFromAddress(void* context, int32_t addressHandle, int32_t keyHandle, int32_t destinationHandle);
+    rule <instrs> hostCall("env", "mBufferStorageLoadFromAddress", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ] )
+               => #getBuffer( KEY_IDX )
+               ~> #getBuffer( ADDR_IDX )
+               ~> #storageLoadFromAddress
+               ~> #setBufferFromBytesStack( DEST_IDX )
+               ~> #dropBytes
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> ADDR_IDX  1 |-> <i32> KEY_IDX  2 |-> <i32> DEST_IDX </locals>
+
+
+
+ // extern int32_t   mBufferFinish(void* context, int32_t sourceHandle);
+    rule <instrs> hostCall ( "env" , "mBufferFinish" , [ i32  .ValTypes ] -> [ i32  .ValTypes ] )
+               => #getBuffer( SRC_IDX )
+               ~> #appendToOutFromBytesStack
+               ~> i32 . const 0
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> SRC_IDX </locals>
+
+ // extern int32_t   mBufferCopyByteSlice(void* context, int32_t sourceHandle, int32_t startingPosition, int32_t sliceLength, int32_t destinationHandle);
+    rule <instrs> hostCall ( "env" , "mBufferCopyByteSlice" , [ i32  i32  i32  i32  .ValTypes ] -> [ i32  .ValTypes ] )
+               => #getBuffer( SRC_IDX )
+               ~> #sliceBytes( OFFSET , LENGTH )
+               ~> #setBufferFromBytesStack( DEST_IDX )
+               ~> i32 . const 0
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> SRC_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH  3 |-> <i32> DEST_IDX </locals>
+
+
+ // extern void      v1_5_managedGetOriginalTxHash(void* context, int32_t resultHandle);
+   //  rule <instrs> hostCall ( "env" , "managedGetOriginalTxHash" , [ i32  .ValTypes ] -> [ .ValTypes ] )
+   //             => 
+   //                ... 
+   //       </instrs>
+   //       <locals> 0 |-> <i32> DEST_IDX </locals>
+
+    // TODO implement managedWriteLog
+    // extern void      managedWriteLog(void* context, int32_t topicsHandle, int32_t dataHandle);
+    rule <instrs> hostCall ( "env" , "managedWriteLog" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
+               => .
+                  ...
+         </instrs>
+
 ```
 
 ### Crypto API
@@ -1374,6 +1599,22 @@ TODO add function signatures as comments
 ```
 
 ### Other Host Calls
+
+```k
+
+    // extern void managedOwnerAddress(void* context, int32_t destinationHandle);
+    rule <instrs> hostCall ( "env" , "managedOwnerAddress" , [ i32  .ValTypes ] -> [ .ValTypes ] )
+               => #setBuffer( DEST_IDX , OWNER )
+                  ...
+         </instrs>
+         <locals> 0 |-> DEST_IDX </locals>
+         <callee> CALLEE </callee>
+         <account>
+            <address> CALLEE </address>
+            <ownerAddress> OWNER </ownerAddress>
+            ...
+         </account>
+```
 
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.
 

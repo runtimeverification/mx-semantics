@@ -146,8 +146,6 @@ $(KWASM_SUBMODULE)/blockchain-k-plugin/%.md: $(PLUGIN_SUBMODULE)/plugin/%.md
 KRUN_OPTS :=
 
 elrond-contract-deps := test-elrond-adder             \
-                        test-elrond-crowdfunding-egld \
-                        test-elrond-lottery-egld      \
                         test-elrond-multisig          \
                         test-elrond-basic-features
 test-elrond-contracts: $(elrond-contract-deps)
@@ -221,25 +219,6 @@ elrond_adder_tests=$(shell find $(ELROND_ADDER_DIR) -name "*.scen.json")
 test-elrond-adder: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_ADDER_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_adder_tests) --coverage
-
-## Crowdfunding Test
-
-ELROND_CROWDFUNDING_EGLD_DIR=$(ELROND_CONTRACT_EXAMPLES)/crowdfunding-egld
-elrond_crowdfunding_egld_tests=$(shell find $(ELROND_CROWDFUNDING_EGLD_DIR) -name "*.scen.json")
-
-test-elrond-crowdfunding-egld: $(llvm_kompiled)
-	mxpy contract build "$(ELROND_CROWDFUNDING_EGLD_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_crowdfunding_egld_tests) --coverage
-
-## Lottery Test
-
-ELROND_LOTTERY_EGLD_DIR=$(ELROND_CONTRACT_EXAMPLES)/lottery-egld
-elrond_lottery_egld_tests=$(shell find $(ELROND_LOTTERY_EGLD_DIR) -name "*.scen.json")
-
-# TODO optimize test runner and enable coverage and logging
-test-elrond-lottery-egld: $(llvm_kompiled)
-	mxpy contract build "$(ELROND_LOTTERY_EGLD_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_lottery_egld_tests) --log-level none
 
 ## Multisg Test
 

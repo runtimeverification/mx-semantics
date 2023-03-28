@@ -6,13 +6,15 @@ RUN    apt-get update                      \
     && apt-get install --yes               \
                        cmake               \
                        curl                \
+                       wget                \
                        libcrypto++-dev     \
                        libprocps-dev       \
                        libsecp256k1-dev    \
                        libssl-dev          \
                        pandoc              \
                        python3             \
-                       python3-pip
+                       python3-pip         \
+                       python3-venv
 
 ARG USER_ID=1000
 ARG GROUP_ID=1000
@@ -27,7 +29,6 @@ ENV PATH=/home/user/.cargo/bin:$PATH
 RUN python3 -m pip install --upgrade pip
 RUN pip3 install --user --upgrade \
                  cytoolz          \
-                 erdpy==1.4.0     \
                  numpy            \
                  pysha3           \
                  git+https://github.com/runtimeverification/pyk.git@${PYK_VERSION}
@@ -39,6 +40,9 @@ RUN    git clone 'https://github.com/WebAssembly/wabt' --branch 1.0.13 --recurse
     && cmake ..                                                                                  \
     && cmake --build .
 
-ENV PATH=/home/user/wabt/build:/home/user/.local/bin:$PATH
+RUN    wget -O mxpy-up.py https://raw.githubusercontent.com/multiversx/mx-sdk-py-cli/main/mxpy-up.py    \
+    && python3 mxpy-up.py --not-interactive
 
-RUN erdpy deps install rust
+ENV PATH=/home/user/multiversx-sdk:/home/user/wabt/build:/home/user/.local/bin:$PATH
+
+RUN mxpy deps install rust

@@ -2,10 +2,9 @@
 	path = deps/wasm-semantics
 	url = https://github.com/kframework/wasm-semantics
 	ignore = untracked
-[submodule "deps/elrond-wasm-rs"]
-	path = deps/elrond-wasm-rs
-	url = https://github.com/ElrondNetwork/elrond-wasm-rs
-	ignore = untracked
 [submodule "deps/plugin"]
 	path = deps/plugin
 	url = https://github.com/runtimeverification/blockchain-k-plugin.git
+[submodule "deps/mx-sdk-rs"]
+	path = deps/mx-sdk-rs
+	url = https://github.com/multiversx/mx-sdk-rs.git

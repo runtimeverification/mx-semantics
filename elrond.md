@@ -570,7 +570,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     syntax Bool ::= #lookupStorageDefined( Map , Bytes )       [function, total]
  // -----------------------------------------------------------------------------------
     rule #lookupStorageDefined(STORAGE, KEY) => notBool( KEY in_keys(STORAGE) )
-                                         orBool isBytes(STORAGE[KEY]) 
+                                         orBool isBytes(STORAGE[KEY] orDefault .Bytes) 
 
     syntax Int ::= #storageStatus ( Map , key : Bytes , val : Bytes ) [function, total]
                  | #StorageUnmodified () [function, total]

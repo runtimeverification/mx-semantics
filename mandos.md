@@ -108,11 +108,11 @@ Only take the next step once both the Elrond node and Wasm are done executing.
       [priority(60)]
 
     rule <k> createAndSetAccountWithEmptyCode(ADDRESS, NONCE, BALANCE, STORAGE) => #wait ... </k>
-         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, .CodeIndex, STORAGE) </commands>
+         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, .CodeIndex, .Bytes, STORAGE) </commands>
       [priority(60)]
 
     rule <k> createAndSetAccountAfterInitCodeModule(ADDRESS, NONCE, BALANCE, STORAGE) => #wait ... </k>
-         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, NEXTIDX -Int 1, STORAGE) </commands>
+         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, NEXTIDX -Int 1, .Bytes, STORAGE) </commands>
          <nextModuleIdx> NEXTIDX </nextModuleIdx>
       [priority(60)]
 
@@ -329,6 +329,24 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkExpectLogs(LOGS) => . ... </k>
          <logs> LOGS </logs>
       [priority(60)]
+
+```
+
+## Step type: scQuery
+
+TODO make sure that none of the state changes are persisted -- [Doc](https://docs.multiversx.com/developers/scenario-reference/structure#step-type-scquery)
+
+```k
+    syntax Step ::= queryTx    (to: Address, func: WasmString, args: List) [klabel(queryTx), symbol]
+                  | queryTxAux (to: Bytes,   func: WasmString, args: List) [klabel(queryTxAux), symbol]
+ // ---------------------------------------------------------------------------------------------------
+    rule <k> queryTx(TO, FUNCTION, ARGS) => queryTxAux(#address2Bytes(TO), FUNCTION, ARGS) ... </k>
+      [priority(60)]
+
+    rule <k> queryTxAux(TO, FUNCTION, ARGS) => #wait ... </k>
+         <commands> . => callContract(TO, TO, 0, FUNCTION, ARGS, maxUInt64, 0) </commands>
+         <logging> S => S +String " -- query contract: " +String #parseWasmString(FUNCTION) </logging>
+      [priority(60)]
 ```
 
 ### Step type: scDeploy
@@ -349,6 +367,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // --------------------------------------------------------------------
     rule <k> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
          <commands> . => createAccount(NEWADDR)
+                 ~> setAccountOwner(NEWADDR, FROM)
                  ~> setAccountCodeIndex(NEWADDR, NEXTIDX -Int 1)
                  ~> callContract(FROM, NEWADDR, VALUE, "init", ARGS, GASLIMIT, GASPRICE)
          </commands>

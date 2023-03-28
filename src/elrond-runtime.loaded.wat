@@ -97,12 +97,9 @@
         <callValue>
           0
         </callValue>
-        <esdtTokenName>
-          b""
-        </esdtTokenName>
-        <esdtValue>
-          0
-        </esdtValue>
+        <esdtTransfers>
+          .List
+        </esdtTransfers>
         <out>
           .List
         </out>
@@ -163,6 +160,9 @@
     <bigIntHeap>
       .Map
     </bigIntHeap>
+    <bufferHeap>
+      .Map
+    </bufferHeap>
     <bytesStack>
       .BytesStack
     </bytesStack>

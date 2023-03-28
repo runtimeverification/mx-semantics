@@ -32,8 +32,8 @@ KWASM_SUBMODULE     := $(DEPS_DIR)/wasm-semantics
 K_SUBMODULE         := $(KWASM_SUBMODULE)/deps/k
 KWASM_BINARY_PARSER := $(KWASM_SUBMODULE)/binary-parser
 
-ELROND_WASM_SUBMODULE    := $(DEPS_DIR)/elrond-wasm-rs
-ELROND_CONTRACT          := $(ELROND_WASM_SUBMODULE)/contracts
+ELROND_SDK_SUBMODULE     := $(DEPS_DIR)/mx-sdk-rs
+ELROND_CONTRACT          := $(ELROND_SDK_SUBMODULE)/contracts
 ELROND_CONTRACT_EXAMPLES := $(ELROND_CONTRACT)/examples
 
 ifneq (,$(wildcard $(K_SUBMODULE)/k-distribution/target/release/k/bin/*))
@@ -145,9 +145,9 @@ $(KWASM_SUBMODULE)/blockchain-k-plugin/%.md: $(PLUGIN_SUBMODULE)/plugin/%.md
 
 KRUN_OPTS :=
 
+# TODO add test-elrond-crowdfunding-esdt
+# TODO add test-elrond-lottery-esdt
 elrond-contract-deps := test-elrond-adder             \
-                        test-elrond-crowdfunding-egld \
-                        test-elrond-lottery-egld      \
                         test-elrond-multisig          \
                         test-elrond-basic-features
 test-elrond-contracts: $(elrond-contract-deps)
@@ -219,27 +219,8 @@ ELROND_ADDER_DIR := $(ELROND_CONTRACT_EXAMPLES)/adder
 elrond_adder_tests=$(shell find $(ELROND_ADDER_DIR) -name "*.scen.json")
 
 test-elrond-adder: $(llvm_kompiled)
-	erdpy contract build "$(ELROND_ADDER_DIR)" --wasm-symbols
+	mxpy contract build "$(ELROND_ADDER_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_adder_tests) --coverage
-
-## Crowdfunding Test
-
-ELROND_CROWDFUNDING_EGLD_DIR=$(ELROND_CONTRACT_EXAMPLES)/crowdfunding-egld
-elrond_crowdfunding_egld_tests=$(shell find $(ELROND_CROWDFUNDING_EGLD_DIR) -name "*.scen.json")
-
-test-elrond-crowdfunding-egld: $(llvm_kompiled)
-	erdpy contract build "$(ELROND_CROWDFUNDING_EGLD_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_crowdfunding_egld_tests) --coverage
-
-## Lottery Test
-
-ELROND_LOTTERY_EGLD_DIR=$(ELROND_CONTRACT_EXAMPLES)/lottery-egld
-elrond_lottery_egld_tests=$(shell find $(ELROND_LOTTERY_EGLD_DIR) -name "*.scen.json")
-
-# TODO optimize test runner and enable coverage and logging
-test-elrond-lottery-egld: $(llvm_kompiled)
-	erdpy contract build "$(ELROND_LOTTERY_EGLD_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_lottery_egld_tests) --log-level none
 
 ## Multisg Test
 
@@ -247,7 +228,7 @@ ELROND_MULTISIG_DIR=$(ELROND_CONTRACT_EXAMPLES)/multisig
 elrond_multisig_tests=$(shell cat tests/multisig.test)
 
 test-elrond-multisig: $(llvm_kompiled)
-	erdpy contract build "$(ELROND_MULTISIG_DIR)" --wasm-symbols
+	mxpy contract build "$(ELROND_MULTISIG_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_multisig_tests) --coverage
 
 ## Basic Feature Test
@@ -257,7 +238,7 @@ elrond_basic_features_tests=$(shell cat tests/basic_features.test)
 
 # TODO optimize test runner and enable coverage and logging
 test-elrond-basic-features: $(llvm_kompiled)
-	erdpy contract build "$(ELROND_BASIC_FEATURES_DIR)" --wasm-symbols
+	mxpy contract build "$(ELROND_BASIC_FEATURES_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_basic_features_tests) --log-level none
 
 # Unit Tests

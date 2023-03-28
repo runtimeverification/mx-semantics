@@ -145,6 +145,8 @@ $(KWASM_SUBMODULE)/blockchain-k-plugin/%.md: $(PLUGIN_SUBMODULE)/plugin/%.md
 
 KRUN_OPTS :=
 
+# TODO add test-elrond-crowdfunding-esdt
+# TODO add test-elrond-lottery-esdt
 elrond-contract-deps := test-elrond-adder             \
                         test-elrond-multisig          \
                         test-elrond-basic-features

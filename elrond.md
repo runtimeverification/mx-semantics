@@ -542,6 +542,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <storage> STORAGE </storage>
            ...
          </account>
+         requires #lookupStorageDefined(STORAGE, KEY)
 
     rule <instrs> #storageLoadFromAddress => . ... </instrs>
          <bytesStack> ADDR : KEY : STACK => #lookupStorage(STORAGE, KEY) : STACK </bytesStack>
@@ -550,6 +551,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <storage> STORAGE </storage>
            ...
          </account>
+         requires #lookupStorageDefined(STORAGE, KEY)
 
     syntax Map ::= #updateStorage ( Map , key : Bytes , val : Bytes ) [function, total]
  // ----------------------------------------------------------------------------------------
@@ -560,9 +562,15 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
  // ---------------------------------------------------------------
     rule #lookupStorage(STORAGE, KEY) => {STORAGE[KEY]}:>Bytes
       requires         KEY in_keys(STORAGE)
+       andBool isBytes(STORAGE[KEY])
 
     rule #lookupStorage(STORAGE, KEY) => .Bytes
       requires notBool KEY in_keys(STORAGE)
+
+    syntax Bool ::= #lookupStorageDefined( Map , Bytes )       [function, total]
+ // -----------------------------------------------------------------------------------
+    rule #lookupStorageDefined(STORAGE, KEY) => notBool( KEY in_keys(STORAGE) )
+                                         orBool isBytes(STORAGE[KEY]) 
 
     syntax Int ::= #storageStatus ( Map , key : Bytes , val : Bytes ) [function, total]
                  | #StorageUnmodified () [function, total]
@@ -858,6 +866,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <locals> 0 |-> <i32> IDX </locals>
          <callArgs> ARGS </callArgs>
       requires IDX <Int size(ARGS)
+       andBool isBytes(ARGS[IDX])
 
     // extern int32_t getArgument(void *context, int32_t id, int32_t argOffset);
     rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -870,6 +879,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            1 |-> <i32> OFFSET
          </locals>
          <callArgs> ARGS </callArgs>
+      requires IDX <Int size(ARGS)
+       andBool isBytes(ARGS[IDX])
 
     // extern int32_t getNumArguments(void *context);
     rule <instrs> hostCall("env", "getNumArguments", [ .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(ARGS) ... </instrs>
@@ -1062,6 +1073,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <instrs> #getBigInt(BIGINT_IDX, SIGN) => . ... </instrs>
          <bytesStack> STACK => Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN) : STACK </bytesStack>
          <bigIntHeap> HEAP </bigIntHeap>
+      requires BIGINT_IDX in_keys(HEAP)
+       andBool isInt(HEAP[BIGINT_IDX])
 
     syntax InternalInstr ::= #setBigIntFromBytesStack ( idx: Int , Signedness )
                            | #setBigInt ( idx: Int , value: Bytes , Signedness )
@@ -1087,11 +1100,15 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <instrs> hostCall("env", "bigIntUnsignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes(Int2Bytes({HEAP[IDX]}:>Int, BE, Unsigned)) ... </instrs>
          <locals> 0 |-> <i32> IDX </locals>
          <bigIntHeap> HEAP </bigIntHeap>
+      requires IDX in_keys(HEAP)
+       andBool isInt(HEAP[IDX])
 
     // extern int32_t bigIntSignedByteLength(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntSignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes(Int2Bytes({HEAP[IDX]}:>Int, BE, Signed)) ... </instrs>
          <locals> 0 |-> <i32> IDX </locals>
          <bigIntHeap> HEAP </bigIntHeap>
+      requires IDX in_keys(HEAP)
+       andBool isInt(HEAP[IDX])
 
     // extern int32_t bigIntGetUnsignedBytes(void* context, int32_t reference, int32_t byteOffset);
     rule <instrs> hostCall("env", "bigIntGetUnsignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -1142,21 +1159,37 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
          <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int +Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
+      requires OP1_IDX in_keys(HEAP)
+       andBool isInt(HEAP[OP1_IDX])
+       andBool OP2_IDX in_keys(HEAP)
+       andBool isInt(HEAP[OP2_IDX])
 
     // extern void bigIntSub(void* context, int32_t destination, int32_t op1, int32_t op2);
     rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
          <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int -Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
+      requires OP1_IDX in_keys(HEAP)
+       andBool isInt(HEAP[OP1_IDX])
+       andBool OP2_IDX in_keys(HEAP)
+       andBool isInt(HEAP[OP2_IDX])
 
     // extern void bigIntMul(void* context, int32_t destination, int32_t op1, int32_t op2);
     rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
          <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int *Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
+      requires OP1_IDX in_keys(HEAP)
+       andBool isInt(HEAP[OP1_IDX])
+       andBool OP2_IDX in_keys(HEAP)
+       andBool isInt(HEAP[OP2_IDX])
 
     // extern void bigIntTDiv(void* context, int32_t destination, int32_t op1, int32_t op2);
     rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
          <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int /Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
+      requires OP1_IDX in_keys(HEAP)
+       andBool isInt(HEAP[OP1_IDX])
+       andBool OP2_IDX in_keys(HEAP)
+       andBool isInt(HEAP[OP2_IDX])
 
     // extern int32_t bigIntSign(void* context, int32_t op);
     rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -1165,6 +1198,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
          <bigIntHeap> HEAP </bigIntHeap>
+      requires IDX in_keys(HEAP)
+       andBool isInt(HEAP[IDX])
 
     // extern int32_t bigIntCmp(void* context, int32_t op1, int32_t op2);
     rule <instrs> hostCall("env", "bigIntCmp", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -1173,6 +1208,10 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </instrs>
          <locals> 0 |-> <i32> IDX1  1 |-> <i32> IDX2 </locals>
          <bigIntHeap> HEAP </bigIntHeap>
+      requires IDX1 in_keys(HEAP)
+       andBool isInt(HEAP[IDX1])
+       andBool IDX2 in_keys(HEAP)
+       andBool isInt(HEAP[IDX2])
 
     // extern void bigIntFinishUnsigned(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntFinishUnsigned", [ i32 .ValTypes ] -> [ .ValTypes ])
@@ -1223,12 +1262,16 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
          <callArgs> ARGS </callArgs>
          <bigIntHeap> HEAP => HEAP [BIG_IDX <- Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Unsigned)] </bigIntHeap>
+      requires ARG_IDX <Int size(ARGS)
+       andBool isBytes(ARGS[ARG_IDX])
 
     // extern void bigIntGetSignedArgument(void *context, int32_t id, int32_t destination);
     rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
          <callArgs> ARGS </callArgs>
          <bigIntHeap> HEAP => HEAP [BIG_IDX <- Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Signed)] </bigIntHeap>
+      requires ARG_IDX <Int size(ARGS)
+       andBool isBytes(ARGS[ARG_IDX])
 
     // extern void bigIntGetCallValue(void *context, int32_t destination);
     rule <instrs> hostCall("env", "bigIntGetCallValue", [ i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
@@ -1258,12 +1301,16 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                => #returnIfUInt64(Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Unsigned), "argument out of range") ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX </locals>
          <callArgs> ARGS </callArgs>
+      requires ARG_IDX <Int size(ARGS)
+       andBool isBytes(ARGS[ARG_IDX])
 
     // extern long long smallIntGetSignedArgument(void *context, int32_t id);
     rule <instrs> hostCall("env", "smallIntGetSignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
                => #returnIfSInt64(Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Signed), "argument out of range") ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX </locals>
          <callArgs> ARGS </callArgs>
+      requires ARG_IDX <Int size(ARGS)
+       andBool isBytes(ARGS[ARG_IDX])
 
     // extern void smallIntFinishUnsigned(void* context, long long value);
     rule <instrs> hostCall("env", "smallIntFinishUnsigned", [ i64 .ValTypes ] -> [ .ValTypes ])
@@ -1340,6 +1387,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <instrs> #getBuffer(BUFFER_IDX) => . ... </instrs>
          <bytesStack> STACK => {HEAP[BUFFER_IDX]}:>Bytes : STACK </bytesStack>
          <bufferHeap> HEAP </bufferHeap>
+      requires BUFFER_IDX in_keys(HEAP)
+       andBool isBytes(HEAP[BUFFER_IDX])
 
     syntax InternalInstr ::= #setBufferFromBytesStack ( idx: Int )
                            | #setBuffer ( idx: Int , value: Bytes )
@@ -1367,19 +1416,14 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
  // ------------------------------------------------------------------
     rule <instrs> #sliceBytes(OFFSET, LENGTH) => . ... </instrs>
          <bytesStack> (BS => substrBytes(BS, OFFSET, OFFSET +Int LENGTH)) : _ </bytesStack>
-         requires OFFSET >=Int 0
-          andBool LENGTH >=Int 0
-          andBool OFFSET +Int LENGTH <=Int lengthBytes(BS)
+         requires #sliceBytesInBounds( BS , OFFSET , LENGTH )
 
-```
+    syntax Bool ::= #sliceBytesInBounds( Bytes , Int , Int )      [function, total]
+    rule #sliceBytesInBounds( BS , OFFSET , LENGTH ) 
+            => OFFSET >=Int 0 andBool 
+               LENGTH >=Int 0 andBool 
+               OFFSET +Int LENGTH <=Int lengthBytes(BS)
 
-TODO out-of-bounds in `#sliceBytes` should not fail the execution -- https://github.com/multiversx/mx-chain-vm-go/blob/5b4d6b04f038a5369f9604ed46f949dff9d4b745/arwen/elrondapi/manBufOps.go#L133
-
-```
-if startingPosition < 0 || sliceLength < 0 || int(startingPosition+sliceLength) > len(sourceBytes) {
-   // does not fail execution if slice exceeds bounds
-   return 1
-}
 ```
 
 
@@ -1445,6 +1489,8 @@ if startingPosition < 0 || sliceLength < 0 || int(startingPosition+sliceLength) 
          </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> DEST_IDX </locals>
          <callArgs> ARGS </callArgs>
+      requires ARG_IDX <Int size(ARGS)
+       andBool isBytes(ARGS[ARG_IDX])
 
  // extern int32_t   mBufferAppend(void* context, int32_t accumulatorHandle, int32_t dataHandle);
     rule <instrs> hostCall("env", "mBufferAppend", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
@@ -1492,19 +1538,36 @@ if startingPosition < 0 || sliceLength < 0 || int(startingPosition+sliceLength) 
  // extern int32_t   mBufferGetByteSlice(void* context, int32_t sourceHandle, int32_t startingPosition, int32_t sliceLength, int32_t resultOffset);
     rule <instrs> hostCall("env", "mBufferGetByteSlice", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBuffer( SRC_BUFF_IDX )
-               ~> #sliceBytes( OFFSET , LENGTH )
-               ~> #memStoreFromBytesStack( DEST_OFFSET )
+               ~> #mBufferGetByteSliceH( OFFSET , LENGTH , DEST_OFFSET )
                ~> #dropBytes
-               ~> i32 . const 0
                   ... 
          </instrs>
          <locals> 0 |-> <i32> SRC_BUFF_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH  3 |-> <i32> DEST_OFFSET </locals>
+
+
+    syntax InternalInstr ::= #mBufferGetByteSliceH( Int , Int , Int )
+ // ----------------------------------------------------------------
+    rule <instrs> #mBufferGetByteSliceH( OFFSET , LENGTH , DEST_OFFSET )
+               => #sliceBytes( OFFSET , LENGTH )
+               ~> #memStoreFromBytesStack( DEST_OFFSET )
+               ~> i32 . const 0
+                  ...
+         </instrs>
+         <bytesStack> BS : _ </bytesStack>
+         requires #sliceBytesInBounds( BS , OFFSET , LENGTH )
+
+    rule <instrs> #mBufferGetByteSliceH( OFFSET , LENGTH , _DEST_OFFSET )
+               => i32 . const 1
+                  ...
+         </instrs> 
+         <bytesStack> BS : _ </bytesStack>
+         requires notBool( #sliceBytesInBounds( BS , OFFSET , LENGTH ) )
 
  // extern int32_t   mBufferNew(void* context);
     rule <instrs> hostCall("env", "mBufferNew", [ .ValTypes ] -> [ i32 .ValTypes ] ) => i32.const size(HEAP) ... </instrs>
          <bufferHeap> HEAP => HEAP[size(HEAP) <- .Bytes] </bufferHeap>
 
- // extern int32_t   v1_5_mBufferNewFromBytes(void* context, int32_t dataOffset, int32_t dataLength);
+ // extern int32_t   mBufferNewFromBytes(void* context, int32_t dataOffset, int32_t dataLength);
     rule <instrs> hostCall ( "env" , "mBufferNewFromBytes" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] )
               => #memLoad( OFFSET , LENGTH )
               ~> #setBufferFromBytesStack( size(HEAP) )
@@ -1548,20 +1611,30 @@ if startingPosition < 0 || sliceLength < 0 || int(startingPosition+sliceLength) 
  // extern int32_t   mBufferCopyByteSlice(void* context, int32_t sourceHandle, int32_t startingPosition, int32_t sliceLength, int32_t destinationHandle);
     rule <instrs> hostCall ( "env" , "mBufferCopyByteSlice" , [ i32  i32  i32  i32  .ValTypes ] -> [ i32  .ValTypes ] )
                => #getBuffer( SRC_IDX )
-               ~> #sliceBytes( OFFSET , LENGTH )
-               ~> #setBufferFromBytesStack( DEST_IDX )
-               ~> i32 . const 0
+               ~> #mBufferCopyByteSliceH( OFFSET , LENGTH , DEST_IDX )
+               ~> #dropBytes
                   ... 
          </instrs>
          <locals> 0 |-> <i32> SRC_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH  3 |-> <i32> DEST_IDX </locals>
 
+    syntax InternalInstr ::= #mBufferCopyByteSliceH( Int , Int , Int )
+ // ------------------------------------------------------------------
+    rule <instrs> #mBufferCopyByteSliceH( OFFSET , LENGTH , DEST_IDX )
+               => #sliceBytes( OFFSET , LENGTH )
+               ~> #setBufferFromBytesStack( DEST_IDX )
+               ~> i32 . const 0
+                  ...
+         </instrs> 
+         <bytesStack> BS : _ </bytesStack>
+         requires #sliceBytesInBounds( BS , OFFSET , LENGTH )
 
- // extern void      v1_5_managedGetOriginalTxHash(void* context, int32_t resultHandle);
-   //  rule <instrs> hostCall ( "env" , "managedGetOriginalTxHash" , [ i32  .ValTypes ] -> [ .ValTypes ] )
-   //             => 
-   //                ... 
-   //       </instrs>
-   //       <locals> 0 |-> <i32> DEST_IDX </locals>
+    rule <instrs> #mBufferGetByteSliceH( OFFSET , LENGTH , _DEST_OFFSET )
+               => i32 . const 1
+                  ...
+         </instrs> 
+         <bytesStack> BS : _ </bytesStack>
+         requires notBool( #sliceBytesInBounds( BS , OFFSET , LENGTH ) )
+
 
     // TODO implement managedWriteLog
     // extern void      managedWriteLog(void* context, int32_t topicsHandle, int32_t dataHandle);

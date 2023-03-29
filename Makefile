@@ -105,13 +105,18 @@ MAIN_MODULE        := MANDOS
 MAIN_SYNTAX_MODULE := MANDOS-SYNTAX
 MAIN_DEFN_FILE     := mandos
 
-ELROND_FILE_NAMES      := elrond        \
-                          mandos        \
-                          wasm-coverage
-PLUGIN_FILE_NAMES      := blockchain-k-plugin/krypto
-EXTRA_SOURCES          := $(patsubst %,%.md,$(ELROND_FILE_NAMES) $(PLUGIN_FILE_NAMES))
-ELROND_FILES_KWASM_DIR := $(patsubst %,$(KWASM_SUBMODULE)/%.md,$(ELROND_FILE_NAMES))
-PLUGIN_FILES_KWASM_DIR := $(patsubst %,$(KWASM_SUBMODULE)/%.md,$(PLUGIN_FILE_NAMES))
+ELROND_FILE_NAMES      := elrond.md                   \
+                          elrond-config.md            \
+                          elrond-node.md              \
+                          auto-allocate.md            \
+                          mandos.md                   \
+                          wasm-coverage.md            \
+                          $(wildcard elrondapi/*.md)
+
+PLUGIN_FILE_NAMES      := blockchain-k-plugin/krypto.md
+EXTRA_SOURCES          := $(ELROND_FILE_NAMES) $(PLUGIN_FILE_NAMES)
+ELROND_FILES_KWASM_DIR := $(patsubst %,$(KWASM_SUBMODULE)/%,$(ELROND_FILE_NAMES))
+PLUGIN_FILES_KWASM_DIR := $(patsubst %,$(KWASM_SUBMODULE)/%,$(PLUGIN_FILE_NAMES))
 
 build: build-llvm
 
@@ -137,6 +142,10 @@ $(KWASM_SUBMODULE)/%.md: %.md
 	cp $< $@
 
 $(KWASM_SUBMODULE)/blockchain-k-plugin/%.md: $(PLUGIN_SUBMODULE)/plugin/%.md
+	@mkdir -p $(dir $@)
+	cp $< $@
+
+$(KWASM_SUBMODULE)/elrondapi/%.md: elrondapi/%.md
 	@mkdir -p $(dir $@)
 	cp $< $@
 

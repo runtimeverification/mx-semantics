@@ -3,10 +3,10 @@ Elrond Semantics
 
 ```k
 require "elrond-config.md"
-require "elrondapi/elrondapi.md"
+require "vmhooks/vmhooks.md"
 
 module ELROND
    imports ELROND-CONFIG
-   imports ELRONDAPI
+   imports VMHOOKS
 endmodule
 ```

@@ -1,6 +1,8 @@
 Managed Buffers
 ===============
 
+Go implementation: [mx-chain-vm-go/vmhost/vmhooks/manBufOps.go](https://github.com/multiversx/mx-chain-vm-go/blob/ea3d78d34c35f7ef9c1a9ea4fce8288608763229/vmhost/vmhooks/manBufOps.go)
+
 ```k
 require "../elrond-config.md"
 require "bigIntOps.md"

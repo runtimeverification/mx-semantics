@@ -111,7 +111,7 @@ ELROND_FILE_NAMES      := elrond.md                   \
                           auto-allocate.md            \
                           mandos.md                   \
                           wasm-coverage.md            \
-                          $(wildcard elrondapi/*.md)
+                          $(wildcard vmhooks/*.md)
 
 PLUGIN_FILE_NAMES      := blockchain-k-plugin/krypto.md
 EXTRA_SOURCES          := $(ELROND_FILE_NAMES) $(PLUGIN_FILE_NAMES)
@@ -145,7 +145,7 @@ $(KWASM_SUBMODULE)/blockchain-k-plugin/%.md: $(PLUGIN_SUBMODULE)/plugin/%.md
 	@mkdir -p $(dir $@)
 	cp $< $@
 
-$(KWASM_SUBMODULE)/elrondapi/%.md: elrondapi/%.md
+$(KWASM_SUBMODULE)/vmhooks/%.md: vmhooks/%.md
 	@mkdir -p $(dir $@)
 	cp $< $@
 

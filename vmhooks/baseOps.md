@@ -1,10 +1,12 @@
-Elrond EI
-=========
+Base Operations
+===============
+
+Go implementation: [mx-chain-vm-go/vmhost/vmhooks/baseOps.go](https://github.com/multiversx/mx-chain-vm-go/blob/ea3d78d34c35f7ef9c1a9ea4fce8288608763229/vmhost/vmhooks/baseOps.go)
 
 ```k
 require "../elrond-config.md"
 
-module ELRONDEI
+module BASEOPS
      imports ELROND-CONFIG
 
     // extern void getSCAddress(void *context, int32_t resultOffset);

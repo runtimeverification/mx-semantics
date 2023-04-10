@@ -667,6 +667,27 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </memInst>
       [priority(60)]
 
+    // The module does not have any memory instances. Nothing to restore.
+    rule <commands> callContract(FROM, TO, VALUE, ESDT, FUNCNAME:WasmStringToken, ARGS, GASLIMIT, GASPRICE)
+                 => pushWorldState
+                 ~> transferFunds(FROM, TO, VALUE)
+                 ~> transferESDTs(FROM, TO, ESDT)
+                 ~> mkCall(FROM, TO, VALUE, ESDT, FUNCNAME, ARGS, GASLIMIT, GASPRICE)
+                 ~> #endWasm
+                    ...
+         </commands>
+         <account>
+           <address> TO </address>
+           <codeIdx> MODIDX:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> .Map </memAddrs>
+           ...
+         </moduleInst>
+      [priority(60)]
+
     syntax InternalCmd ::= #restoreMem(Int, OptionalInt, Int, Bytes)
  // ---------------------------------------------------------
     rule <commands> #restoreMem(MEMADDR, MMAX, SIZE, DATA) => . ... </commands>

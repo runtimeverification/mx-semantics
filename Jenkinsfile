@@ -25,6 +25,7 @@ pipeline {
         stage('Mandos Unit Test')            { steps { sh 'make TEST_CONCRETE_BACKEND=llvm mandos-test -j4' } }
         stage('Mandos Coverage Test')        { steps { sh 'make TEST_CONCRETE_BACKEND=llvm mandos-coverage' } }
         stage('Adder Contract Test')         { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-adder' } }
+        stage('Crowdfunding Contract Test')  { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-crowdfunding-esdt' } }
         stage('Multisig Contract Test')      { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-multisig' } }
         stage('Basic Features Test')         { steps { sh 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features' } }
       }

@@ -71,6 +71,16 @@ module MANBUFOPS
          </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH </locals>
 
+ // extern int32_t   mBufferGetBytes(void* context, int32_t mBufferHandle, int32_t resultOffset);
+    rule <instrs> hostCall ( "env" , "mBufferGetBytes" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] ) 
+               => #getBuffer( BUFF_IDX ) 
+               ~> #memStoreFromBytesStack ( DEST_OFFSET ) 
+               ~> #dropBytes
+               ~> i32 . const 0
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> DEST_OFFSET </locals>
+
  // extern int32_t   mBufferFromBigIntUnsigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
     rule <instrs> hostCall("env", "mBufferFromBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBigInt(BIG_IDX, Unsigned) 
@@ -86,7 +96,6 @@ module MANBUFOPS
                => #getBuffer(KEY_IDX) 
                ~> #getBuffer(VAL_IDX) 
                ~> #storageStore
-               ~> i32 . const 0
                   ... 
          </instrs>
          <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> VAL_IDX </locals>

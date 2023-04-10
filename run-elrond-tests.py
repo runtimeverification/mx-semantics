@@ -19,8 +19,6 @@ from kwasm_ast import KString, KInt, KBytes
 from tempfile import NamedTemporaryFile
 import coverage as cov
 
-import time
-
 def flatten(l):
     return [item for sublist in l for item in sublist]
 
@@ -67,6 +65,7 @@ u16_prefix    = "u16:"
 u8_prefix     = "u8:"
 
 biguint_prefix = "biguint:"
+nested_prefix  = "nested:"
 
 # number of zero bytes every smart contract address begins with.
 sc_addr_num_leading_zeros = 8
@@ -169,6 +168,9 @@ def mandos_string_to_bytes(raw_str: str):
         except ValueError:
             pass
 
+    if raw_str.startswith(nested_prefix):
+        return interpret_nested_bytes(raw_str[len(nested_prefix):])
+
     # unsigned integer
     try:
         num_int, num_len = convert_string_to_uint(raw_str)
@@ -177,6 +179,11 @@ def mandos_string_to_bytes(raw_str: str):
         pass
 
     raise ValueError("Argument type not yet supported: %s" % raw_str)
+
+def interpret_nested_bytes(raw_str):
+    nested_bytes = mandos_string_to_bytes(raw_str)
+    length_bytes = len(nested_bytes).to_bytes(4, 'big')
+    return length_bytes + nested_bytes
 
 def address_expression(addr_arg: str) -> bytes:
     return create_address_optional_shard_id(addr_arg, 0)
@@ -260,11 +267,19 @@ def mandos_to_set_account(address, sections, filename, output_dir):
     if 'esdt' in sections:
         for k, v in sections['esdt'].items():
             tok_id = mandos_argument_to_kbytes(k)
-            value = mandos_int_to_kint(v)
+            value = mandos_to_esdt_value(v)
             step = KApply('setEsdtBalance', [address_value, tok_id, value])
             set_account_steps.append(step)
 
     return set_account_steps
+
+# ESDT value is either an integer (compact) or a dictionary (full) 
+def mandos_to_esdt_value(v):
+    try:
+        return mandos_int_to_kint(v)
+    except TypeError:
+        # TODO properly parse 'instances'
+        return mandos_int_to_kint(v['instances'][0]['balance'])
 
 def mandos_to_check_account(address, sections, filename):
     k_steps = []
@@ -310,13 +325,24 @@ def mandos_to_call_tx(tx):
     sender = mandos_argument_to_kbytes(tx['from'])
     to = mandos_argument_to_kbytes(tx['to'])
     value = mandos_int_to_kint(getEgldValue(tx))
+    esdt_value = mandos_esdt_to_klist(tx.get('esdtValue', []))
     function = KWasmString(tx['function'])
     arguments = mandos_arguments_to_klist(tx['arguments'])
     gasLimit = mandos_int_to_kint(tx['gasLimit'])
     gasPrice = mandos_int_to_kint(tx['gasPrice'])
 
-    callTx = KApply('callTx', [sender, to, value, function, arguments, gasLimit, gasPrice])
+    callTx = KApply('callTx', [sender, to, value, esdt_value, function, arguments, gasLimit, gasPrice])
     return callTx
+
+def mandos_esdt_to_klist(esdt_values):
+    def esdt(esdt_value):
+        tok_id = mandos_argument_to_kbytes(esdt_value['tokenIdentifier'])
+        value = mandos_int_to_kint(esdt_value['value'])
+        nonce = mandos_int_to_kint(esdt_value.get('nonce', '0'))
+        return KApply('esdtTransfer', [tok_id, value, nonce])
+
+    return KList(esdt(i) for i in esdt_values)
+
 
 def mandos_to_transfer_tx(tx):
     print(tx)

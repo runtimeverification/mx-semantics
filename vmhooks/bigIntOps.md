@@ -237,6 +237,53 @@ module BIGINTOPS
            1 |-> <i32> RESULT
          </locals>
 
+    // extern void bigIntGetESDTExternalBalance(void* context, int32_t addressOffset, int32_t tokenIDOffset, int32_t tokenIDLen, long long nonce, int32_t resultHandle);
+    rule <instrs> hostCall ( "env" , "bigIntGetESDTExternalBalance" , [ i32  i32  i32  i64  i32  .ValTypes ] -> [ .ValTypes ] )
+               => #memLoad(ADDR_OFFSET, 32)
+               ~> #memLoad(TOK_ID_OFFSET, TOK_ID_LEN)
+               ~> #bigIntGetESDTExternalBalance(RES_HANDLE)
+               ~> #dropBytes
+               ~> #dropBytes
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> ADDR_OFFSET
+           1 |-> <i32> TOK_ID_OFFSET
+           2 |-> <i32> TOK_ID_LEN
+           3 |-> <i64> _NONCE   // TODO use nonce
+           4 |-> <i32> RES_HANDLE
+         </locals>
+
+    syntax InternalInstr ::= #bigIntGetESDTExternalBalance(Int)
+ // -----------------------------------------------------------
+    rule <instrs> #bigIntGetESDTExternalBalance(RES_HANDLE)
+               => #setBigIntValue( RES_HANDLE , BALANCE )
+                  ...
+         </instrs>
+         <bytesStack> TOK_ID : ADDR : _ </bytesStack>
+         <account>
+           <address> ADDR </address>
+           <esdtData>
+             <esdtId> TOK_ID </esdtId>
+             <esdtBalance> BALANCE </esdtBalance>
+             ...
+           </esdtData>
+           ...
+         </account>
+      [priority(60)]
+
+    rule <instrs> #bigIntGetESDTExternalBalance(RES_HANDLE)
+               => #setBigIntValue( RES_HANDLE , 0 )
+                  ...
+         </instrs>
+         <bytesStack> _TOK_ID : ADDR : _ </bytesStack>
+         <account>
+           <address> ADDR </address>
+           ...
+         </account>
+      [priority(61)]
+
+
 endmodule
 ```
 

@@ -93,7 +93,7 @@ Storage maps byte arrays to byte arrays.
                   | ModuleDecl
  // ----------------------------------------------
 
-    syntax ESDTTransfer ::= esdt( tokenName : Bytes , tokenValue : Int )
+    syntax ESDTTransfer ::= esdtTransfer( tokenName : Bytes , tokenValue : Int , tokenNonce : Int )    [klabel(esdtTransfer), symbol]
 
 endmodule
 ```

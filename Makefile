@@ -231,6 +231,15 @@ test-elrond-adder: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_ADDER_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_adder_tests) --coverage
 
+## Crowdfunding Test
+
+ELROND_CROWDFUNDING_DIR := $(ELROND_CONTRACT_EXAMPLES)/crowdfunding-esdt
+elrond_crowdfunding_tests=$(shell find $(ELROND_CROWDFUNDING_DIR) -name "*.scen.json")
+
+test-elrond-crowdfunding-esdt: $(llvm_kompiled)
+	mxpy contract build "$(ELROND_CROWDFUNDING_DIR)" --wasm-symbols
+	$(TEST_MANDOS) $(elrond_crowdfunding_tests) --coverage
+
 ## Multisg Test
 
 ELROND_MULTISIG_DIR=$(ELROND_CONTRACT_EXAMPLES)/multisig

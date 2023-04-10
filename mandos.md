@@ -116,6 +116,35 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <nextModuleIdx> NEXTIDX </nextModuleIdx>
       [priority(60)]
 
+    syntax Step ::= setEsdtBalance( Bytes , Bytes, Int )     [klabel(setEsdtBalance), symbol]
+ // ------------------------------------------------
+    rule <k> setEsdtBalance( ADDR , TokId , Value ) => . ... </k>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TokId </esdtId>
+            <esdtBalance> _ => Value </esdtBalance>
+            ...
+           </esdtData>
+          ...
+        </account>
+      [priority(60)]
+    
+    rule <k> setEsdtBalance( ADDR , TokId , Value ) => . ... </k>
+        <account>
+          <address> ADDR </address>
+          <esdtDatas>
+            (.Bag => <esdtData>
+              <esdtId> TokId </esdtId>
+              <esdtBalance> Value </esdtBalance>
+              <frozen> false </frozen>
+            </esdtData>)
+            ...
+          </esdtDatas>
+          ...
+        </account>
+      [priority(61)]
+    
     syntax Step ::= newAddress    ( Address, Int, Address ) [klabel(newAddress), symbol]
                   | newAddressAux ( Bytes, Int, Bytes )     [klabel(newAddressAux), symbol]
  // ---------------------------------------------------------------------------------------

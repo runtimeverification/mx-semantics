@@ -26,9 +26,16 @@ module ELROND-NODE
         <activeAccounts> .Set </activeAccounts>
         <accounts>
           <account multiplicity="*" type="Map">
-             <address> .Bytes </address>
-             <nonce> 0 </nonce>
-             <balance> 0 </balance>
+            <address> .Bytes </address>
+            <nonce> 0 </nonce>
+            <balance> 0 </balance>
+            <esdtDatas>
+              <esdtData multiplicity="*" type="Map">
+                <esdtId> .Bytes </esdtId>
+                <esdtBalance> 0 </esdtBalance>
+                <frozen> false </frozen>
+              </esdtData>
+            </esdtDatas>
 ```
 
 If the codeIdx is ".CodeIndex", it means the account is not a contract.

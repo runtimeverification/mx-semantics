@@ -489,6 +489,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <codeIdx> _ => CODEIDX </codeIdx>
            <ownerAddress> _ => OWNER_ADDR </ownerAddress>
            <storage> _ => STORAGE </storage>
+           ...
          </account>
       [priority(60)]
 

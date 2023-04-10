@@ -21,6 +21,9 @@ import coverage as cov
 
 import time
 
+def flatten(l):
+    return [item for sublist in l for item in sublist]
+
 def KWasmString(value):
     return KToken('"%s"' % value, 'WasmStringToken')
 
@@ -252,8 +255,16 @@ def mandos_to_set_account(address, sections, filename, output_dir):
     storage_pairs = [ (mandos_argument_to_kbytes(k), mandos_argument_to_kbytes(v)) for (k, v) in sections.get('storage', {}).items() ]
     storage_value = KMap(storage_pairs)
 
-    set_account_step  = KApply('setAccount', [address_value, nonce_value, balance_value, code_value, storage_value])
-    return set_account_step
+    set_account_steps = [KApply('setAccount', [address_value, nonce_value, balance_value, code_value, storage_value])]
+
+    if 'esdt' in sections:
+        for k, v in sections['esdt'].items():
+            tok_id = mandos_argument_to_kbytes(k)
+            value = mandos_int_to_kint(v)
+            step = KApply('setEsdtBalance', [address_value, tok_id, value])
+            set_account_steps.append(step)
+
+    return set_account_steps
 
 def mandos_to_check_account(address, sections, filename):
     k_steps = []
@@ -284,7 +295,7 @@ def mandos_to_check_account(address, sections, filename):
 
 def mandos_to_deploy_tx(tx, filename, output_dir):
     sender = mandos_argument_to_kbytes(tx['from'])
-    value = mandos_int_to_kint(tx.get('value', "0"))
+    value = mandos_int_to_kint(getEgldValue(tx))
     arguments = mandos_arguments_to_klist(tx['arguments'])
     gasLimit = mandos_int_to_kint(tx['gasLimit'])
     gasPrice = mandos_int_to_kint(tx['gasPrice'])
@@ -298,7 +309,7 @@ def mandos_to_deploy_tx(tx, filename, output_dir):
 def mandos_to_call_tx(tx):
     sender = mandos_argument_to_kbytes(tx['from'])
     to = mandos_argument_to_kbytes(tx['to'])
-    value = mandos_int_to_kint(tx.get('value', "0"))
+    value = mandos_int_to_kint(getEgldValue(tx))
     function = KWasmString(tx['function'])
     arguments = mandos_arguments_to_klist(tx['arguments'])
     gasLimit = mandos_int_to_kint(tx['gasLimit'])
@@ -308,24 +319,25 @@ def mandos_to_call_tx(tx):
     return callTx
 
 def mandos_to_transfer_tx(tx):
+    print(tx)
     sender = mandos_argument_to_kbytes(tx['from'])
     to = mandos_argument_to_kbytes(tx['to'])
-    value = mandos_int_to_kint(tx['value'])
-
+    value = mandos_int_to_kint(getEgldValue(tx))
+    
     transferTx = KApply('transferTx', [sender, to, value])
     return transferTx
 
 def mandos_to_validator_reward_tx(tx):
     to = mandos_argument_to_kbytes(tx['to'])
-
-    # backwards compatibility
-    if 'value' in tx:
-        value = mandos_int_to_kint(tx['value'])
-    else:
-        value = mandos_int_to_kint(tx.get('egldValue', "0"))
-        
+    value = mandos_int_to_kint(getEgldValue(tx))
     rewardTx = KApply('validatorRewardTx', [to, value])
     return rewardTx
+
+def getEgldValue(tx):
+    # backwards compatibility
+    if 'value' in tx:
+        return tx['value']
+    return tx.get('egldValue', "0")
 
 # TODO: implement checkExpect gas, refund
 def mandos_to_expect(expect):
@@ -481,7 +493,7 @@ def get_steps_set_state(step, filename, output_dir):
     k_steps = []
     if 'accounts' in step:
         set_accounts = [ mandos_to_set_account(address, sections, filename, output_dir) for (address, sections) in step['accounts'].items() ]
-        k_steps = k_steps + set_accounts
+        k_steps = k_steps + flatten(set_accounts)
     if 'newAddresses' in step:
         new_addresses = get_steps_new_addresses(step['newAddresses'])
         k_steps = k_steps + new_addresses

@@ -14,7 +14,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          submodules: recursive
+          token: ${{ secrets.JENKINS_GITHUB_PAT }}
+          # fetch-depth 0 means deep clone the repo
+          fetch-depth: 0
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
@@ -38,7 +40,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          submodules: recursive
+          token: ${{ secrets.JENKINS_GITHUB_PAT }}
+          # fetch-depth 0 means deep clone the repo
+          fetch-depth: 0
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
@@ -62,7 +66,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          submodules: recursive
+          token: ${{ secrets.JENKINS_GITHUB_PAT }}
+          # fetch-depth 0 means deep clone the repo
+          fetch-depth: 0
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
@@ -84,7 +90,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          submodules: recursive
+          token: ${{ secrets.JENKINS_GITHUB_PAT }}
+          # fetch-depth 0 means deep clone the repo
+          fetch-depth: 0
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:

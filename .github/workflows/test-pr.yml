@@ -1,0 +1,82 @@
+name: 'Run Tests'
+on:
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-test:
+    runs-on: [self-hosted, linux, normal]
+    name: 'Unit Test'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: 'Set up Docker'
+        uses: ./.github/actions/with-docker
+        with:
+          container-name: elrond-semantics-ci-conformance-${{ github.sha }}
+      - name: 'Build LLVM Backend'
+        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make build RELEASE=true
+      - name: 'Run Simple Test'
+        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm test-simple -j6
+      - name: 'Run Python Unit Tests'
+        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm unittest-python
+
+  mandos-test:
+    runs-on: [self-hosted, linux, normal]
+    name: 'Mandos Tests'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: 'Set up Docker'
+        uses: ./.github/actions/with-docker
+        with:
+          container-name: elrond-semantics-ci-conformance-${{ github.sha }}
+      - name: 'Build LLVM Backend'
+        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make build RELEASE=true
+      - name: 'Run Mando Coverage'
+        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm mandos-coverage
+      - name: 'Run Mando Test'
+        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm mandos-test -j6
+
+  basic-feature-test:
+    runs-on: [self-hosted, linux, normal]
+    name: 'Basic Feature Test'
+    needs: [unit-test, mandos-test]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: 'Set up Docker'
+        uses: ./.github/actions/with-docker
+        with:
+          container-name: elrond-semantics-ci-conformance-${{ github.sha }}
+      - name: 'Build LLVM Backend'
+        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make build RELEASE=true
+      - name: 'Run Basic Feature Test'
+        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features
+
+  multisig-contract-test:
+    runs-on: [self-hosted, linux, normal]
+    name: 'Multisig Contract Test'
+    needs: [unit-test, mandos-test]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: 'Set up Docker'
+        uses: ./.github/actions/with-docker
+        with:
+          container-name: elrond-semantics-ci-conformance-${{ github.sha }}
+      - name: 'Build LLVM Backend'
+        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make build RELEASE=true
+      - name: 'Run Multisig Contract Test'
+        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm test-elrond-multisig

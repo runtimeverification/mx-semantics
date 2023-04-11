@@ -1,0 +1,32 @@
+name: 'With Docker'
+description: 'Run a given stage with Docker Image'
+inputs:
+  container-name:
+    description: 'Docker container name to use'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+  - name: 'Set up Docker'
+    shell: bash {0}
+    env:
+      CONTAINER_NAME: ${{ inputs.container-name }}
+    run: |
+      set -euxo pipefail
+
+      TAG=runtimeverificationinc/${CONTAINER_NAME}
+
+      docker build . --tag ${TAG} --build-arg K_COMMIT="$(cat deps/wasm-semantics/deps/k_release)" --build-arg PYK_VERSION="$(cat deps/wasm-semantics/deps/pyk_release)" --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)
+
+      docker run                 \
+        --name ${CONTAINER_NAME} \
+        --rm                     \
+        --interactive            \
+        --tty                    \
+        --detach                 \
+        --user root              \
+        --workdir /home/user     \
+        ${TAG}
+
+      docker cp . ${CONTAINER_NAME}:/home/user
+      docker exec ${CONTAINER_NAME} chown -R user:user /home/user

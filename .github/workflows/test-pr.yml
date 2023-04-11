@@ -18,17 +18,22 @@ jobs:
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
-          container-name: elrond-semantics-ci-conformance-${{ github.sha }}
-      - name: 'Build LLVM Backend'
-        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make build RELEASE=true
+          container-name: elrond-semantics-ci-${{ github.sha }}
+      - name: 'Build'
+        run: docker exec -u user elrond-semantics-ci-${GITHUB_SHA} make build RELEASE=true
       - name: 'Run Simple Test'
-        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm test-simple -j6
+        run: docker exec -u user elrond-semantics-ci-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm test-simple -j6
       - name: 'Run Python Unit Tests'
-        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm unittest-python
+        run: docker exec -u user elrond-semantics-ci-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm unittest-python
+      - name: 'Tear down Docker'
+        if: always()
+        run: |
+          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
 
   mandos-test:
     runs-on: [self-hosted, linux, normal]
     name: 'Mandos Tests'
+    needs: [unit-test]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -37,13 +42,17 @@ jobs:
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
-          container-name: elrond-semantics-ci-conformance-${{ github.sha }}
-      - name: 'Build LLVM Backend'
-        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make build RELEASE=true
+          container-name: elrond-semantics-ci-${{ github.sha }}
+      - name: 'Build'
+        run: docker exec -u user elrond-semantics-ci-${GITHUB_SHA} make build RELEASE=true
       - name: 'Run Mando Coverage'
-        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm mandos-coverage
+        run: docker exec -u user elrond-semantics-ci-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm mandos-coverage
       - name: 'Run Mando Test'
-        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm mandos-test -j6
+        run: docker exec -u user elrond-semantics-ci-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm mandos-test -j6
+      - name: 'Tear down Docker'
+        if: always()
+        run: |
+          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
 
   basic-feature-test:
     runs-on: [self-hosted, linux, normal]
@@ -57,11 +66,15 @@ jobs:
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
-          container-name: elrond-semantics-ci-conformance-${{ github.sha }}
-      - name: 'Build LLVM Backend'
-        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make build RELEASE=true
+          container-name: elrond-semantics-ci-${{ github.sha }}
+      - name: 'Build'
+        run: docker exec -u user elrond-semantics-ci-${GITHUB_SHA} make build RELEASE=true
       - name: 'Run Basic Feature Test'
-        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features
+        run: docker exec -u user elrond-semantics-ci-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features
+      - name: 'Tear down Docker'
+        if: always()
+        run: |
+          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
 
   multisig-contract-test:
     runs-on: [self-hosted, linux, normal]
@@ -75,8 +88,12 @@ jobs:
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
-          container-name: elrond-semantics-ci-conformance-${{ github.sha }}
-      - name: 'Build LLVM Backend'
-        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make build RELEASE=true
+          container-name: elrond-semantics-ci-${{ github.sha }}
+      - name: 'Build'
+        run: docker exec -u user elrond-semantics-ci-${GITHUB_SHA} make build RELEASE=true
       - name: 'Run Multisig Contract Test'
-        run: docker exec -u user kwasm-ci-conformance-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm test-elrond-multisig
+        run: docker exec -u user elrond-semantics-ci-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm test-elrond-multisig
+      - name: 'Tear down Docker'
+        if: always()
+        run: |
+          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}

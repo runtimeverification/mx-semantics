@@ -22,12 +22,12 @@ module MANAGEDCONVERSIONS
         </instrs>
     
     rule <instrs> #writeEsdtToBytes(esdtTransfer(TokId, Value, Nonce))
-               => #setBuffer(      size(BUF_HEAP) , TokId )
-               ~> #setBigIntValue( size(INT_HEAP) , Value )
+               => #setBuffer(      #newKey(BUF_HEAP) , TokId )
+               ~> #setBigIntValue( #newKey(INT_HEAP) , Value )
                ~> #pushBytes(
-                    Int2Bytes(4, size(BUF_HEAP), BE) +Bytes
-                    Int2Bytes(8, Nonce,          BE) +Bytes
-                    Int2Bytes(4, size(BUF_HEAP), BE)
+                    Int2Bytes(4, #newKey(BUF_HEAP), BE) +Bytes
+                    Int2Bytes(8, Nonce,             BE) +Bytes
+                    Int2Bytes(4, #newKey(INT_HEAP), BE)
                   )
                ~> #appendBytes
                   ...

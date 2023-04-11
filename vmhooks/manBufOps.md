@@ -204,19 +204,22 @@ module MANBUFOPS
          requires notBool( #sliceBytesInBounds( BS , OFFSET , LENGTH ) )
 
  // extern int32_t   mBufferNew(void* context);
-    rule <instrs> hostCall("env", "mBufferNew", [ .ValTypes ] -> [ i32 .ValTypes ] ) => i32.const size(HEAP) ... </instrs>
-         <bufferHeap> HEAP => HEAP[size(HEAP) <- .Bytes] </bufferHeap>
+    rule <instrs> hostCall("env", "mBufferNew", [ .ValTypes ] -> [ i32 .ValTypes ] ) 
+               => i32.const #newKey(HEAP) 
+                  ... 
+         </instrs>
+         <bufferHeap> HEAP => HEAP[#newKey(HEAP) <- .Bytes] </bufferHeap>
 
  // extern int32_t   mBufferNewFromBytes(void* context, int32_t dataOffset, int32_t dataLength);
     rule <instrs> hostCall ( "env" , "mBufferNewFromBytes" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] )
               => #memLoad( OFFSET , LENGTH )
-              ~> #setBufferFromBytesStack( size(HEAP) )
+              ~> #setBufferFromBytesStack( #newKey(HEAP) )
               ~> #dropBytes
-              ~> i32 . const size(HEAP)
+              ~> i32 . const #newKey(HEAP)
                  ... 
          </instrs>
          <locals> 0 |-> <i32> OFFSET  1 |-> <i32> LENGTH </locals>
-         <bufferHeap> HEAP => HEAP[size(HEAP) <- .Bytes] </bufferHeap>
+         <bufferHeap> HEAP => HEAP[#newKey(HEAP) <- .Bytes] </bufferHeap>
 
  // extern void      managedCaller(void* context, int32_t destinationHandle);
     rule <instrs> hostCall("env", "managedCaller", [ i32 .ValTypes ] -> [ .ValTypes ] )

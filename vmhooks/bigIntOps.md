@@ -31,15 +31,26 @@ module BIGINT-HELPERS
 
     rule <instrs> #setBigIntValue(BIGINT_IDX, VALUE) => . ... </instrs>
          <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- VALUE] </bigIntHeap>
+
+    syntax Int ::= #newKey(Map)          [function, total]
+                 | #newKeyAux(Int, Map)  [function, total]
+ // -------------------------------------------------------
+    rule #newKey(M)       => #newKeyAux(size(M), M)
+    rule #newKeyAux(I, M) => I                        requires notBool(I in_keys(M))
+    rule #newKeyAux(I, M) => #newKeyAux(I +Int 1, M)  requires         I in_keys(M)
+
 endmodule
 
 module BIGINTOPS
      imports BIGINT-HELPERS
 
     // extern int32_t bigIntNew(void* context, long long smallValue);
-    rule <instrs> hostCall("env", "bigIntNew", [ i64 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(HEAP) ... </instrs>
+    rule <instrs> hostCall("env", "bigIntNew", [ i64 .ValTypes ] -> [ i32 .ValTypes ]) 
+               => i32.const #newKey(HEAP) 
+                  ... 
+         </instrs>
          <locals> 0 |-> <i64> INITIAL </locals>
-         <bigIntHeap> HEAP => HEAP[size(HEAP) <- INITIAL] </bigIntHeap>
+         <bigIntHeap> HEAP => HEAP[#newKey(HEAP) <- INITIAL] </bigIntHeap>
 
     // extern int32_t bigIntUnsignedByteLength(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntUnsignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes(Int2Bytes({HEAP[IDX]}:>Int, BE, Unsigned)) ... </instrs>

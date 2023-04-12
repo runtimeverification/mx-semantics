@@ -551,7 +551,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
       [priority(60)]
 
-    // transferESDTs performs multiple ESDT transfers and finally returns #transferSuccess  
+    // transferESDTs performs multiple ESDT transfers and finally returns #transferSuccess
+    // TODO handle failure if one of the transfers fail  
     rule <commands> transferESDTs(_, _, .List) => #transferSuccess ... </commands>
     rule <commands> transferESDTs(FROM, TO, ListItem(T:ESDTTransfer) Ls) 
                  => transferESDT(FROM, TO, T) 
@@ -559,6 +560,10 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                     ... 
          </commands>
   
+    // TODO handle failure cases
+    // - insufficient balance
+    // - frozen / paused / non-payable / limited transfer...
+    // TODO implement NFT/SFT transfers
     rule <commands> transferESDT(ACCT, ACCT, esdtTransfer(TOKEN, VALUE, 0)) 
                  => . ... 
          </commands>

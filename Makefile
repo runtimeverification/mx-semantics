@@ -3,7 +3,7 @@
         build build-llvm build-haskell                                           \
         elrond-clean-sources elrond-loaded                                       \
         test unittest-python mandos-test mandos-coverage test-elrond-contracts   \
-        test-elrond-adder test-elrond-crowdfunding-egld test-elrond-lottery-egld \
+        test-elrond-adder test-elrond-crowdfunding-esdt                          \
         test-elrond-multisig test-elrond-basic-features                          \
 
 # Settings
@@ -156,6 +156,7 @@ KRUN_OPTS :=
 
 # TODO add test-elrond-lottery-esdt
 elrond-contract-deps := test-elrond-adder             \
+												test-elrond-crowdfunding-esdt \
                         test-elrond-multisig          \
                         test-elrond-basic-features
 test-elrond-contracts: $(elrond-contract-deps)

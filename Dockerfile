@@ -16,8 +16,8 @@ RUN    apt-get update                      \
                        python3-pip         \
                        python3-venv
 
-ARG USER_ID=1000
-ARG GROUP_ID=1000
+ARG USER_ID=9876
+ARG GROUP_ID=9876
 RUN groupadd -g $GROUP_ID user && useradd -m -u $USER_ID -s /bin/sh -g user user
 
 USER user:user
@@ -26,6 +26,7 @@ WORKDIR /home/user
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly --target wasm32-unknown-unknown
 ENV PATH=/home/user/.cargo/bin:$PATH
 
+ARG PYK_VERSION
 RUN python3 -m pip install --upgrade pip
 RUN pip3 install --user --upgrade \
                  cytoolz          \

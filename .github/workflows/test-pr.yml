@@ -112,7 +112,7 @@ jobs:
 
   adder-test:
     runs-on: [self-hosted, linux, normal]
-    name: 'Multisig Contract Test'
+    name: 'Adder Contract Test'
     needs: [unit-test, mandos-test]
     timeout-minutes: 90
     steps:

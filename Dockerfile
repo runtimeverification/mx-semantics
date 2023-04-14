@@ -1,5 +1,5 @@
 ARG K_COMMIT
-FROM runtimeverificationinc/kframework-k:ubuntu-focal-${K_COMMIT}
+FROM runtimeverificationinc/kframework-k:ubuntu-jammy-${K_COMMIT}
 
 RUN    apt-get update                      \
     && apt-get upgrade --yes               \
@@ -23,9 +23,10 @@ RUN groupadd -g $GROUP_ID user && useradd -m -u $USER_ID -s /bin/sh -g user user
 USER user:user
 WORKDIR /home/user
 
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly --target wasm32-unknown-unknown
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2023-03-01 --target wasm32-unknown-unknown
 ENV PATH=/home/user/.cargo/bin:$PATH
 
+ARG PYK_VERSION
 RUN python3 -m pip install --upgrade pip
 RUN pip3 install --user --upgrade \
                  cytoolz          \
@@ -45,4 +46,5 @@ RUN    wget -O mxpy-up.py https://raw.githubusercontent.com/multiversx/mx-sdk-py
 
 ENV PATH=/home/user/multiversx-sdk:/home/user/wabt/build:/home/user/.local/bin:$PATH
 
-RUN mxpy deps install rust
+# Use a specific version of rustc installed via rustup
+RUN mxpy config set dependencies.rust.resolution host

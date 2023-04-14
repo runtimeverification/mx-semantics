@@ -10,6 +10,7 @@ jobs:
   unit-test:
     runs-on: [self-hosted, linux, normal]
     name: 'Unit Test'
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -36,6 +37,7 @@ jobs:
     runs-on: [self-hosted, linux, normal]
     name: 'Mandos Tests'
     needs: [unit-test]
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -62,6 +64,7 @@ jobs:
     runs-on: [self-hosted, linux, normal]
     name: 'Basic Feature Test'
     needs: [unit-test, mandos-test]
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -86,6 +89,7 @@ jobs:
     runs-on: [self-hosted, linux, normal]
     name: 'Multisig Contract Test'
     needs: [unit-test, mandos-test]
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v3

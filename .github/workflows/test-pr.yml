@@ -109,3 +109,30 @@ jobs:
         if: always()
         run: |
           docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
+
+  adder-test:
+    runs-on: [self-hosted, linux, normal]
+    name: 'Multisig Contract Test'
+    needs: [unit-test, mandos-test]
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.JENKINS_GITHUB_PAT }}
+          # fetch-depth 0 means deep clone the repo
+          fetch-depth: 0
+      - name: 'Set up Docker'
+        uses: ./.github/actions/with-docker
+        with:
+          container-name: elrond-semantics-ci-${{ github.sha }}
+      - name: 'Build'
+        run: docker exec -u user elrond-semantics-ci-${GITHUB_SHA} make build RELEASE=true
+      - name: 'Run Multisig Contract Test'
+        run: docker exec -u user elrond-semantics-ci-${GITHUB_SHA} make TEST_CONCRETE_BACKEND=llvm test-elrond-adder
+      - name: 'Tear down Docker'
+        if: always()
+        run: |
+          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
+
+          

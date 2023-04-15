@@ -19,7 +19,7 @@ runs:
       USER=$(id -un)
       USER_ID=$(id -u)
       GROUP=$(id -gn)
-      GROUP_ID=$(id -g)      
+      GROUP_ID=$(id -g)
 
       docker build . --tag ${TAG} --build-arg K_COMMIT="$(cat deps/wasm-semantics/deps/k_release)" --build-arg PYK_VERSION="$(cat deps/wasm-semantics/deps/pyk_release)" --build-arg USER_ID=${USER_ID} --build-arg GROUP_ID=${GROUP_ID}
 

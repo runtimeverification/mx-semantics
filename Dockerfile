@@ -16,9 +16,9 @@ RUN    apt-get update                      \
                        python3-pip         \
                        python3-venv
 
-ARG USER=$USER
-ARG GROUP=$GROUP
-ARG USER_ID=$USER_ID
+ARG USER=github-user
+ARG GROUP=$USER
+ARG USER_ID=1000
 ARG GROUP_ID=$USER_ID
 
 RUN groupadd -g $GROUP_ID $GROUP && useradd -m -u $USER_ID -s /bin/sh -g $GROUP $USER

@@ -21,7 +21,7 @@ ARG GROUP=$GROUP
 ARG USER_ID=$USER_ID
 ARG GROUP_ID=$USER_ID
 
-RUN groupadd -g $GROUP_ID $USER && useradd -m -u $USER_ID -s /bin/sh -g $USER $USER
+RUN groupadd -g $GROUP_ID $GROUP && useradd -m -u $USER_ID -s /bin/sh -g $GROUP $USER
 
 USER $USER:$USER
 WORKDIR /home/$USER

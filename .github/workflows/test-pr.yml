@@ -95,9 +95,9 @@ jobs:
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash 'make build RELEASE=true'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true'
       - name: 'Run Basic Feature Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features'
       - name: 'Tear down Docker'
         if: always()
         run: |
@@ -126,9 +126,9 @@ jobs:
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash 'make build RELEASE=true'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true'
       - name: 'Run Multisig Contract Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash 'make TEST_CONCRETE_BACKEND=llvm test-elrond-multisig'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-multisig'
       - name: 'Tear down Docker'
         if: always()
         run: |
@@ -157,9 +157,9 @@ jobs:
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash 'make build RELEASE=true'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true'
       - name: 'Run Multisig Contract Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash 'make TEST_CONCRETE_BACKEND=llvm test-elrond-adder'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-adder'
       - name: 'Tear down Docker'
         if: always()
         run: |

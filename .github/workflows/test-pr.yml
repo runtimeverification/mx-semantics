@@ -17,7 +17,9 @@ jobs:
         with:
           token: ${{ secrets.JENKINS_GITHUB_PAT }}
           # fetch-depth 0 means deep clone the repo
-          recursive: true
+          fetch-depth: 0
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:

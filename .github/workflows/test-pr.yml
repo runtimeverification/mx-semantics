@@ -20,7 +20,10 @@ jobs:
       - name: Checkout submodules
         env: 
           GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}
-        run: git submodule update --init --recursive
+        run: |
+          git submodule sync --recursive
+          git submodule foreach --recursive git fetch
+          git submodule update --init --recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:

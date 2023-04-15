@@ -23,7 +23,7 @@ ARG GROUP_ID=$USER_ID
 
 RUN groupadd -g $GROUP_ID $GROUP && useradd -m -u $USER_ID -s /bin/sh -g $GROUP $USER
 
-USER $USER:$USER
+USER $USER:$GROUP
 WORKDIR /home/$USER
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2023-03-01 --target wasm32-unknown-unknown

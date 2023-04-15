@@ -17,7 +17,6 @@ jobs:
         with:
           token: ${{ secrets.JENKINS_GITHUB_PAT }}
           # fetch-depth 0 means deep clone the repo
-          fetch-depth: 0
       - name: Checkout submodules
         env: 
           GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}

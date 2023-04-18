@@ -7,7 +7,9 @@ from typing import Dict, Optional
 from pyk.kast.inner import KSequence, KInner, KToken, KApply, Subst, KSort
 from pyk.ktool.kprint import _kast, KAstInput, KAstOutput
 from pyk.ktool.krun import KRun, _krun, KRunOutput
-from pyk.kast.manip import split_config_from 
+from pyk.kast.manip import split_config_from
+from pyk.prelude.bytes import bytesToken
+from pyk.utils import dequote_str
 import resource
 import subprocess
 import sys
@@ -15,7 +17,7 @@ import sha3
 import tempfile
 import os
 import wasm2kast
-from kwasm_ast import KString, KInt, KBytes
+from kwasm_ast import KString, KInt
 from tempfile import NamedTemporaryFile
 import coverage as cov
 
@@ -242,7 +244,9 @@ def convert_string_to_sint(raw_str: str):
     return (num_int, num_len)
 
 def mandos_argument_to_kbytes(argument: str):
-    return KBytes(mandos_argument_to_bytes(argument))
+    bs = mandos_argument_to_bytes(argument)
+    hex_str = ''.join(('\\x%02x' % i) for i in bs)
+    return bytesToken(dequote_str(hex_str))
 
 def mandos_arguments_to_klist(arguments: list):
     tokenized = list(map(lambda x: mandos_argument_to_kbytes(x), arguments))

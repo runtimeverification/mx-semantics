@@ -188,9 +188,9 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <instrs> #isReservedKey(KEY) => . ... </instrs>
       requires notBool #hasPrefix(KEY, "ELROND")
 
-    rule <commands> (. => #exception(UserError)) ... </commands>
-         <instrs> (#isReservedKey(KEY) ~> _) => . </instrs>
-         <message> _ => String2Bytes("cannot write to storage under Elrond reserved key") </message>
+    rule <instrs> #isReservedKey(KEY)
+               => #throwException(UserError, "cannot write to storage under Elrond reserved key") ...
+         </instrs>
       requires         #hasPrefix(KEY, "ELROND")
 
     syntax InternalInstr ::= "#storageLoad"
@@ -292,17 +292,17 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <instrs> #returnIfUInt64(V, _) => i64.const V ... </instrs>
       requires          minUInt64 <=Int V andBool V <=Int maxUInt64
 
-    rule <commands> (. => #exception(UserError)) ... </commands>
-         <instrs> (#returnIfUInt64(V, ERRORMSG) ~> _) => . </instrs>
-         <message> _ => String2Bytes(ERRORMSG) </message>
+    rule <instrs> #returnIfUInt64(V, ERRORMSG) 
+               => #throwException(UserError, ERRORMSG) ... 
+         </instrs>
       requires notBool (minUInt64 <=Int V andBool V <=Int maxUInt64)
 
     rule <instrs> #returnIfSInt64(V, _) => i64.const V ... </instrs>
       requires          minSInt64 <=Int V andBool V <=Int maxSInt64
 
-    rule <commands> (. => #exception(UserError)) ... </commands>
-         <instrs> (#returnIfSInt64(V, ERRORMSG) ~> _) => . </instrs>
-         <message> _ => String2Bytes(ERRORMSG) </message>
+    rule <instrs> #returnIfSInt64(V, ERRORMSG) 
+               => #throwException(UserError, ERRORMSG) ... 
+         </instrs>
       requires notBool (minSInt64 <=Int V andBool V <=Int maxSInt64)
 
     syntax InternalInstr ::= #loadBytesAsUInt64 ( String )
@@ -447,6 +447,9 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       [priority(60)]
 ```
 
+
+## Exception Handling
+
 - `#exception` drops the rest of the computation in the `commands` and `instrs` cells and reverts the state.
 
 ```k
@@ -456,6 +459,13 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <returnCode> _ => EC </returnCode>
          <instrs> _ => . </instrs>
       [priority(10)]
+
+    syntax InternalInstr ::= #throwException( ExceptionCode , String )
+ // ------------------------------------------------------------------
+    rule <instrs> #throwException( EC , MSG ) => . ... </instrs>
+         <commands> (. => #exception(EC)) ... </commands>
+         <message> _ => String2Bytes(MSG) </message>
+
 ```
 
 ## Managing Accounts

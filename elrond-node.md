@@ -64,8 +64,19 @@ Storage maps byte arrays to byte arrays.
     syntax ReturnCode    ::= ".ReturnCode"
                            | "OK"          [klabel(OK), symbol]
                            | ExceptionCode
-    syntax ExceptionCode ::= "OutOfFunds"
-                           | "UserError"   [klabel(UserError), symbol]
+    syntax ExceptionCode ::= "FunctionNotFound"         [klabel(FunctionNotFound), symbol]         
+                           | "FunctionWrongSignature"   [klabel(FunctionWrongSignature), symbol]
+                           | "ContractNotFound"         [klabel(ContractNotFound), symbol]
+                           | "UserError"                [klabel(UserError), symbol]
+                           | "OutOfGas"                 [klabel(OutOfGas), symbol]
+                           | "AccountCollision"         [klabel(AccountCollision), symbol]
+                           | "OutOfFunds"               [klabel(OutOfFunds), symbol]
+                           | "CallStackOverFlow"        [klabel(CallStackOverFlow), symbol]
+                           | "ContractInvalid"          [klabel(ContractInvalid), symbol]
+                           | "ExecutionFailed"          [klabel(ExecutionFailed), symbol]
+                           | "UpgradeFailed"            [klabel(UpgradeFailed), symbol]
+                           | "SimulateFailed"           [klabel(SimulateFailed), symbol]
+
  // ------------------------------------------------------------------
 
     syntax Address ::= Bytes

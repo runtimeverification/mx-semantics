@@ -600,5 +600,21 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
       [priority(60)]
 
+    rule <commands> mkCall(_FROM, TO, _VALUE, FUNCNAME:WasmStringToken, _ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
+         <account>
+           <address> TO </address>
+           <codeIdx> CODE:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> CODE </modIdx>
+           <exports> EXPORTS </exports>
+           ...
+         </moduleInst>
+         <instrs> . => #throwException(FunctionNotFound, "invalid function (not found)") </instrs>
+         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
+      requires notBool( FUNCNAME in_keys(EXPORTS) )
+      [priority(60)]
+
 endmodule
 ```

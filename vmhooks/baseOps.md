@@ -70,6 +70,11 @@ module BASEOPS
            ...
          </account>
 
+    // return 0 if account does not exist (see the priority)
+    rule <instrs> #getExternalBalance => . ... </instrs>
+         <bytesStack> _ADDR : STACK => Int2Bytes(0, BE, Unsigned) : STACK </bytesStack>
+      [priority(201)]
+         
     // extern int32_t transferValue(void *context, int32_t dstOffset, int32_t valueOffset, int32_t dataOffset, int32_t length);
     rule <instrs> hostCall("env", "transferValue", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #memLoad(DSTOFFSET, 32)
@@ -103,6 +108,13 @@ module BASEOPS
       requires IDX <Int size(ARGS)
        andBool isBytes(ARGS[IDX])
 
+    rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #throwException(ExecutionFailed, "invalid argument") ... 
+         </instrs>
+         <locals> 0 |-> <i32> IDX </locals>
+         <callArgs> ARGS </callArgs>
+      requires IDX >=Int size(ARGS)
+
     // extern int32_t getArgument(void *context, int32_t id, int32_t argOffset);
     rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #memStore(OFFSET, {ARGS[IDX]}:>Bytes)
@@ -114,8 +126,20 @@ module BASEOPS
            1 |-> <i32> OFFSET
          </locals>
          <callArgs> ARGS </callArgs>
-      requires IDX <Int size(ARGS)
+      requires 0 <=Int #signed(i32, IDX)
+       andBool IDX <Int size(ARGS)
        andBool isBytes(ARGS[IDX])
+
+    rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+               => #throwException(ExecutionFailed, "invalid argument") ...
+         </instrs>
+         <locals>
+           0 |-> <i32> IDX
+           1 |-> <i32> _OFFSET
+         </locals>
+         <callArgs> ARGS </callArgs>
+      requires #signed(i32, IDX) <Int 0
+        orBool IDX >=Int size(ARGS)
 
     // extern int32_t getNumArguments(void *context);
     rule <instrs> hostCall("env", "getNumArguments", [ .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(ARGS) ... </instrs>
@@ -175,6 +199,12 @@ module BASEOPS
     rule <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
          <callValue> 0 </callValue>
          <esdtTransfers> .List </esdtTransfers>
+
+    // TODO check ESDT payment
+    rule <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) 
+               => #throwException(ExecutionFailed, "function does not accept EGLD payment") ... </instrs>
+         <callValue> VAL </callValue>
+      requires 0 <Int VAL
 
     // extern int32_t getESDTTokenName(void *context, int32_t resultOffset);
     rule <instrs> hostCall("env", "getESDTTokenName", [ i32 .ValTypes ] -> [ i32 .ValTypes ])

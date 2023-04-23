@@ -439,6 +439,12 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                => #getArgsFromMemoryAux(NUMARGS, 0, NUMARGS, LENGTHOFFSET, DATAOFFSET)
                   ...
          </instrs>
+      requires 0 <=Int #signed(i32, NUMARGS)
+
+    rule <instrs> #getArgsFromMemory(NUMARGS, _, _)
+               => #throwException(ExecutionFailed, "negative numArguments") ...
+         </instrs>
+      requires #signed(i32, NUMARGS) <Int 0
 
     rule <instrs> #getArgsFromMemoryAux(NUMARGS, TOTALLEN, 0,  _, _)
                => i32.const TOTALLEN

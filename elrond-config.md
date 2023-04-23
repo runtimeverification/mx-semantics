@@ -109,6 +109,33 @@ module ELROND-CONFIG
     rule <instrs> #memStoreFromBytesStack(OFFSET) => #memStore(OFFSET, BS) ... </instrs>
          <bytesStack> BS : _ </bytesStack>
 
+    rule <instrs> #memStore(OFFSET, _) 
+               => #throwException(ExecutionFailed, "bad bounds (lower)") ... 
+         </instrs>
+      requires #signed(i32 , OFFSET) <Int 0
+
+    rule <instrs> #memStore(OFFSET, BS) 
+               => #throwException(ExecutionFailed, "bad bounds (upper)") ... 
+         </instrs>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <codeIdx> MODIDX:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           ...
+         </memInst>
+      requires 0 <=Int #signed(i32 , OFFSET)
+       andBool #signed(i32 , OFFSET) +Int lengthBytes(BS) >Int (SIZE *Int #pageSize())
+
     rule <instrs> #memStore(OFFSET, BS) => . ... </instrs>
          <callee> CALLEE </callee>
          <account>
@@ -127,10 +154,36 @@ module ELROND-CONFIG
            <mdata> DATA => #setBytesRange(DATA, OFFSET, BS) </mdata>
            ...
          </memInst>
-      requires OFFSET +Int lengthBytes(BS) <=Int (SIZE *Int #pageSize())
+      requires #signed(i32 , OFFSET) +Int lengthBytes(BS) <=Int (SIZE *Int #pageSize())
+       andBool 0 <=Int #signed(i32 , OFFSET)
 
     syntax InternalInstr ::= #memLoad ( offset: Int , length: Int )
  // ---------------------------------------------------------------
+
+    rule <instrs> #memLoad(_, LENGTH) => #throwException(ExecutionFailed, "mem load: negative length") ... </instrs>
+      requires #signed(i32 , LENGTH) <Int 0
+
+    rule <instrs> #memLoad(OFFSET, LENGTH) => #throwException(ExecutionFailed, "mem load: bad bounds") ... </instrs>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <codeIdx> MODIDX:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           ...
+         </memInst>
+      requires #signed(i32 , LENGTH) >=Int 0
+       andBool (#signed(i32 , OFFSET) <Int 0
+         orBool #signed(i32 , OFFSET) +Int #signed(i32 , LENGTH) >Int (SIZE *Int #pageSize()))
+
     rule <instrs> #memLoad(OFFSET, LENGTH) => . ... </instrs>
          <bytesStack> STACK => #getBytesRange(DATA, OFFSET, LENGTH) : STACK </bytesStack>
          <callee> CALLEE </callee>
@@ -150,7 +203,9 @@ module ELROND-CONFIG
            <mdata> DATA </mdata>
            ...
          </memInst>
-      requires OFFSET +Int LENGTH <=Int (SIZE *Int #pageSize())
+      requires #signed(i32 , LENGTH) >=Int 0
+       andBool #signed(i32 , OFFSET) >=Int 0
+       andBool #signed(i32 , OFFSET) +Int #signed(i32 , LENGTH) <=Int (SIZE *Int #pageSize())
 ```
 
 ### Storage

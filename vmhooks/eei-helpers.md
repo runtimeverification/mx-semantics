@@ -19,8 +19,8 @@ module EEI-HELPERS
   rule #tickerMinLen    => 3
   rule #tickerMaxLen    => 10
   rule #randomCharsLen  => 6
-  rule #idMinLen        => 10
-  rule #idMaxLen        => 17
+  rule #idMinLen        => #tickerMinLen +Int #randomCharsLen +Int 1
+  rule #idMaxLen        => #tickerMaxLen +Int #randomCharsLen +Int 1
 
   syntax Bool ::= #validateToken( Bytes )                [function, total]
  // -----------------------------------------------------------------

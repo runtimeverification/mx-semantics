@@ -465,7 +465,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
  // ------------------------------------------------------------------------------
     // ignore if the account already exists
     rule <commands> createAccount(ADDR) => . ... </commands>
-         <activeAccounts> ... (.Set => SetItem(ADDR)) ... </activeAccounts>
+         <activeAccounts> ADDRs => ADDRs |Set SetItem(ADDR) </activeAccounts>
          <account>
            <address> ADDR </address>
            ...
@@ -474,7 +474,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       [priority(60)]
 
     rule <commands> createAccount(ADDR) => . ... </commands>
-         <activeAccounts> ... (.Set => SetItem(ADDR)) ... </activeAccounts>
+         <activeAccounts> ADDRs => ADDRs |Set SetItem(ADDR) </activeAccounts>
          <accounts>
            ( .Bag
           => <account>
@@ -552,7 +552,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       [priority(60)]
 
     // transferESDTs performs multiple ESDT transfers and finally returns #transferSuccess
-    // TODO handle failure if one of the transfers fail  
+    // TODO handle failure if one of the transfers fails
     rule <commands> transferESDTs(_, _, .List) => #transferSuccess ... </commands>
     rule <commands> transferESDTs(FROM, TO, ListItem(T:ESDTTransfer) Ls) 
                  => transferESDT(FROM, TO, T) 
@@ -645,6 +645,10 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       [priority(60)]
 
     // The memory instance linked to the contract's account should be restored to the initial state after the contract call.
+    // TODO Create a new wasm instance to run the contract call. Execute all contract calls on a separate wasm instance.
+    //      This will eliminate the need for #restoreMem
+    //          https://github.com/multiversx/mx-chain-vm-go/blob/255d2b23189cbc8a80312ab89890163800255dba/vmhost/hostCore/execution.go#L779
+    //      Push the current <callState>, <bigIntHeap>, <bufferHeap> and wasm instance to a call stack (add new configuration cell <callStack>)       
     rule <commands> callContract(FROM, TO, VALUE, ESDT, FUNCNAME:WasmStringToken, ARGS, GASLIMIT, GASPRICE)
                  => pushWorldState
                  ~> transferFunds(FROM, TO, VALUE)

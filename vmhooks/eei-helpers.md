@@ -36,12 +36,12 @@ module EEI-HELPERS
                  | #getRandomChars(Bytes)               [function, total]
  // ------------------------------------------------------------------------------------
   rule #getTicker(Bs) => substrBytes(Bs, 0, lengthBytes(Bs) -Int #randomCharsLen -Int 1) 
-    requires lengthBytes(Bs) >=Int #randomCharsLen
+    requires lengthBytes(Bs) >Int #randomCharsLen
   rule #getRandomChars(Bs) => substrBytes(Bs, lengthBytes(Bs) -Int #randomCharsLen, lengthBytes(Bs))
     requires lengthBytes(Bs) >=Int #randomCharsLen
   // make the functions total
   rule #getTicker(Bs) => .Bytes
-    requires lengthBytes(Bs) <Int #randomCharsLen
+    requires lengthBytes(Bs) <=Int #randomCharsLen
   rule #getRandomChars(Bs) => .Bytes
     requires lengthBytes(Bs) <Int #randomCharsLen
 

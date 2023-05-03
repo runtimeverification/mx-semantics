@@ -5,9 +5,11 @@ Go implementation: [mx-chain-vm-go/vmhost/vmhooks/baseOps.go](https://github.com
 
 ```k
 require "../elrond-config.md"
+require "eei-helpers.md"
 
 module BASEOPS
      imports ELROND-CONFIG
+     imports EEI-HELPERS
 
     // extern void getSCAddress(void *context, int32_t resultOffset);
     rule <instrs> hostCall("env", "getSCAddress", [ i32  .ValTypes ] -> [ .ValTypes ])
@@ -183,7 +185,7 @@ module BASEOPS
                   ...
          </instrs>
          <locals> 0 |-> <i32> OFFSET </locals>
-         <esdtTransfers> ListItem( esdt( TOKENNAME , _VALUE ) ) </esdtTransfers>
+         <esdtTransfers> ListItem( esdtTransfer( TOKENNAME , _VALUE , _NONCE ) ) </esdtTransfers>
 
     // extern int32_t   getNumESDTTransfers(void* context);
     rule <instrs> hostCall ( "env" , "getNumESDTTransfers" , [ .ValTypes ] -> [ i32  .ValTypes ] )
@@ -290,6 +292,38 @@ module BASEOPS
          </instrs>
          <locals> 0 |-> <i32> OFFSET </locals>
          <prevBlockRandomSeed> SEED </prevBlockRandomSeed>
+
+ // extern int32_t   validateTokenIdentifier(void* context, int32_t tokenIdHandle);
+   rule <instrs> hostCall("env", "validateTokenIdentifier", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
+              => i32 . const #bool( #validateToken(TokId) )
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> ID_IDX </locals>
+        <bufferHeap> ... ID_IDX |-> TokId ... </bufferHeap>
+
+  // TODO implement contract call after ESDT transfer
+    syntax InternalInstr ::= #transferESDTNFTExecuteWithTypedArgs(Bytes, List, Int, Bytes, List)
+ // -------------------------------------------------------------------------------------------
+    rule <instrs> #transferESDTNFTExecuteWithTypedArgs(Dest, Transfers, _GasLimit, b"", _Data)
+               => #waitForTransfer
+               ~> i32.const 0
+                  ...
+         </instrs>
+         <callee> Callee </callee>
+         <commands> (. => transferESDTs(Callee, Dest, Transfers)) ... </commands>
+
+
+  // TODO implement contract call after transfer
+    syntax InternalInstr ::= #transferValueExecuteWithTypedArgs(Bytes, Int, Int, Bytes, List)
+ // -------------------------------------------------------------------------------------------
+    rule <instrs> #transferValueExecuteWithTypedArgs(Dest, Value, _GasLimit, b"", _Data)
+               => #waitForTransfer
+               ~> i32.const 0
+                  ...
+         </instrs>
+         <callee> Callee </callee>
+         <commands> (. => transferFunds(Callee, Dest, Value)) ... </commands>
+
 ```
 
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.

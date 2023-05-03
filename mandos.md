@@ -116,6 +116,35 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <nextModuleIdx> NEXTIDX </nextModuleIdx>
       [priority(60)]
 
+    syntax Step ::= setEsdtBalance( Bytes , Bytes, Int )     [klabel(setEsdtBalance), symbol]
+ // ------------------------------------------------
+    rule <k> setEsdtBalance( ADDR , TokId , Value ) => . ... </k>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TokId </esdtId>
+            <esdtBalance> _ => Value </esdtBalance>
+            ...
+           </esdtData>
+          ...
+        </account>
+      [priority(60)]
+    
+    rule <k> setEsdtBalance( ADDR , TokId , Value ) => . ... </k>
+        <account>
+          <address> ADDR </address>
+          <esdtDatas>
+            (.Bag => <esdtData>
+              <esdtId> TokId </esdtId>
+              <esdtBalance> Value </esdtBalance>
+              <frozen> false </frozen>
+            </esdtData>)
+            ...
+          </esdtDatas>
+          ...
+        </account>
+      [priority(61)]
+    
     syntax Step ::= newAddress    ( Address, Int, Address ) [klabel(newAddress), symbol]
                   | newAddressAux ( Bytes, Int, Bytes )     [klabel(newAddressAux), symbol]
  // ---------------------------------------------------------------------------------------
@@ -288,15 +317,15 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### Step type: scCall
 
 ```k
-    syntax Step ::= callTx    (from: Address, to: Address, value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
-                  | callTxAux (from: Bytes,   to: Bytes,   value: Int, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
+    syntax Step ::= callTx    (from: Address, to: Address, value: Int, esdtValue: List, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
+                  | callTxAux (from: Bytes,   to: Bytes,   value: Int, esdtValue: List, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
  // ----------------------------------------------------------------------------------------------------------------------------------------------------------
-    rule <k> callTx(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE)
-          => callTxAux(#address2Bytes(FROM), #address2Bytes(TO), VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) ... </k>
+    rule <k> callTx(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE)
+          => callTxAux(#address2Bytes(FROM), #address2Bytes(TO), VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE) ... </k>
       [priority(60)]
 
-    rule <k> callTxAux(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
-         <commands> . => callContract(FROM, TO, VALUE, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>
+    rule <k> callTxAux(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
+         <commands> . => callContract(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>
          <account>
             <address> FROM </address>
             <nonce> NONCE => NONCE +Int 1 </nonce>
@@ -329,6 +358,9 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkExpectLogs(LOGS) => . ... </k>
          <logs> LOGS </logs>
       [priority(60)]
+    // TODO implement event logs (some host functions like ESDT transfer should emit event logs. see crowdfunding-claim-successful.json)
+    rule <k> checkExpectLogs(_LOGS) => . ... </k>
+      [priority(61)]
 
 ```
 
@@ -344,7 +376,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
       [priority(60)]
 
     rule <k> queryTxAux(TO, FUNCTION, ARGS) => #wait ... </k>
-         <commands> . => callContract(TO, TO, 0, FUNCTION, ARGS, maxUInt64, 0) </commands>
+         <commands> . => callContract(TO, TO, 0, .List, FUNCTION, ARGS, maxUInt64, 0) </commands>
          <logging> S => S +String " -- query contract: " +String #parseWasmString(FUNCTION) </logging>
       [priority(60)]
 ```
@@ -369,7 +401,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
          <commands> . => createAccount(NEWADDR)
                  ~> setAccountOwner(NEWADDR, FROM)
                  ~> setAccountCodeIndex(NEWADDR, NEXTIDX -Int 1)
-                 ~> callContract(FROM, NEWADDR, VALUE, "init", ARGS, GASLIMIT, GASPRICE)
+                 ~> callContract(FROM, NEWADDR, VALUE, .List, "init", ARGS, GASLIMIT, GASPRICE)
          </commands>
          <account>
             <address> FROM </address>

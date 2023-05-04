@@ -23,7 +23,7 @@ setAccount("testCaller", 0, 100, .Code, .Map)
 callTx(
     "testCaller"
   , "testContract"
-  , 10
+  , 10, .List
   , "payable", .List
   , 0
   , 0
@@ -36,7 +36,7 @@ checkAccountBalance("testContract", 10)
 callTx(
     "testCaller"
   , "testContract"
-  , 10
+  , 10, .List
   , "nonPayable", .List
   , 0
   , 0

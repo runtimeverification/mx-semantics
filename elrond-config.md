@@ -806,7 +806,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
       [priority(60)]
 
-    rule <commands> mkCall(_FROM, TO, _VALUE, FUNCNAME:WasmStringToken, _ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
+    rule <commands> mkCall(_FROM, TO, _VALUE, _ESDT, FUNCNAME:WasmStringToken, _ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
          <account>
            <address> TO </address>
            <codeIdx> CODE:Int </codeIdx>

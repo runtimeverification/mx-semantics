@@ -35,7 +35,7 @@ setAccount("testCaller", 0, 0, .Code, .Map)
 callTx(
     "testCaller"
   , "testContract"
-  , 0
+  , 0, .List
   , "invalidHandle", .List
   , 0
   , 0
@@ -47,7 +47,7 @@ checkExpectMessage(b"no bigInt under the given handle")
 callTx(
     "testCaller"
   , "testContract"
-  , 0
+  , 0, .List
   , "invalidHandleAdd", .List
   , 0
   , 0

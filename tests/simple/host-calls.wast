@@ -262,7 +262,7 @@ checkAccountBalance("testDeployer", 0)
 
 setAccount("testCaller", 0, 0, .Code, .Map)
 
-callTx( "testCaller" , "testContract" , 0 
+callTx( "testCaller" , "testContract" , 0 , .List
       , "argsTest_getArgumentLength_invalidArg_neg", .List
       , 0 , 0
 )
@@ -270,7 +270,7 @@ callTx( "testCaller" , "testContract" , 0
 checkExpectStatus(ExecutionFailed)
 checkExpectMessage(b"invalid argument")
 
-callTx( "testCaller" , "testContract" , 0 
+callTx( "testCaller" , "testContract" , 0 , .List
       , "argsTest_getArgumentLength_invalidArg_oob", ListItem(b"foo") ListItem(b"bar")
      , 0 , 0
 )
@@ -278,7 +278,7 @@ callTx( "testCaller" , "testContract" , 0
 checkExpectStatus(ExecutionFailed)
 checkExpectMessage(b"invalid argument")
 
-callTx( "testCaller" , "testContract" , 0 
+callTx( "testCaller" , "testContract" , 0 , .List
       , "argsTest_getArgument_invalidArg_neg", .List
       , 0 , 0
 )
@@ -286,7 +286,7 @@ callTx( "testCaller" , "testContract" , 0
 checkExpectStatus(ExecutionFailed)
 checkExpectMessage(b"invalid argument")
 
-callTx( "testCaller" , "testContract" , 0 
+callTx( "testCaller" , "testContract" , 0 , .List
       , "argsTest_getArgument_invalidArg_oob", ListItem(b"foo") ListItem(b"bar")
      , 0 , 0
 )

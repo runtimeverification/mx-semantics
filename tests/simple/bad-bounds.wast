@@ -48,7 +48,7 @@ setAccount("testCaller", 0, 0, .Code, .Map)
 callTx(
     "testCaller"
   , "testContract"
-  , 0
+  , 0, .List
   , "memStoreNegativeOffset", .List
   , 0
   , 0
@@ -60,7 +60,7 @@ checkExpectMessage(b"bad bounds (lower)")
 callTx(
     "testCaller"
   , "testContract"
-  , 0
+  , 0, .List
   , "memStoreTooBigOffset", .List
   , 0
   , 0
@@ -72,7 +72,7 @@ checkExpectMessage(b"bad bounds (upper)")
 callTx(
     "testCaller"
   , "testContract"
-  , 0
+  , 0, .List
   , "memLoadNegativeOffset", .List
   , 0
   , 0
@@ -84,7 +84,7 @@ checkExpectMessage(b"mem load: bad bounds")
 callTx(
     "testCaller"
   , "testContract"
-  , 0
+  , 0, .List
   , "memLoadTooBigOffset", .List
   , 0
   , 0
@@ -96,7 +96,7 @@ checkExpectMessage(b"mem load: bad bounds")
 callTx(
     "testCaller"
   , "testContract"
-  , 0
+  , 0, .List
   , "negativeNumArgs", .List
   , 0
   , 0

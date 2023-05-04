@@ -40,15 +40,25 @@ module BIGINT-HELPERS
  // -------------------------------------------------------------
     rule #validIntId( IDX , HEAP ) => IDX in_keys(HEAP) andBool isInt(HEAP[IDX] orDefault 0)
 
+    syntax Int ::= #newKey(Map)          [function, total]
+                 | #newKeyAux(Int, Map)  [function, total]
+ // -------------------------------------------------------
+    rule #newKey(M)       => #newKeyAux(size(M), M)
+    rule #newKeyAux(I, M) => I                        requires notBool(I in_keys(M))
+    rule #newKeyAux(I, M) => #newKeyAux(I +Int 1, M)  requires         I in_keys(M)
+
 endmodule
 
 module BIGINTOPS
      imports BIGINT-HELPERS
 
     // extern int32_t bigIntNew(void* context, long long smallValue);
-    rule <instrs> hostCall("env", "bigIntNew", [ i64 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(HEAP) ... </instrs>
+    rule <instrs> hostCall("env", "bigIntNew", [ i64 .ValTypes ] -> [ i32 .ValTypes ]) 
+               => i32.const #newKey(HEAP) 
+                  ... 
+         </instrs>
          <locals> 0 |-> <i64> INITIAL </locals>
-         <bigIntHeap> HEAP => HEAP[size(HEAP) <- INITIAL] </bigIntHeap>
+         <bigIntHeap> HEAP => HEAP[#newKey(HEAP) <- INITIAL] </bigIntHeap>
 
     // extern int32_t bigIntUnsignedByteLength(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntUnsignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -299,6 +309,53 @@ module BIGINTOPS
            0 |-> <i32> ADDROFFSET
            1 |-> <i32> RESULT
          </locals>
+
+    // extern void bigIntGetESDTExternalBalance(void* context, int32_t addressOffset, int32_t tokenIDOffset, int32_t tokenIDLen, long long nonce, int32_t resultHandle);
+    rule <instrs> hostCall ( "env" , "bigIntGetESDTExternalBalance" , [ i32  i32  i32  i64  i32  .ValTypes ] -> [ .ValTypes ] )
+               => #memLoad(ADDR_OFFSET, 32)
+               ~> #memLoad(TOK_ID_OFFSET, TOK_ID_LEN)
+               ~> #bigIntGetESDTExternalBalance(RES_HANDLE)
+               ~> #dropBytes
+               ~> #dropBytes
+                  ...
+         </instrs>
+         <locals>
+           0 |-> <i32> ADDR_OFFSET
+           1 |-> <i32> TOK_ID_OFFSET
+           2 |-> <i32> TOK_ID_LEN
+           3 |-> <i64> _NONCE   // TODO use nonce
+           4 |-> <i32> RES_HANDLE
+         </locals>
+
+    syntax InternalInstr ::= #bigIntGetESDTExternalBalance(Int)
+ // -----------------------------------------------------------
+    rule <instrs> #bigIntGetESDTExternalBalance(RES_HANDLE)
+               => #setBigIntValue( RES_HANDLE , BALANCE )
+                  ...
+         </instrs>
+         <bytesStack> TOK_ID : ADDR : _ </bytesStack>
+         <account>
+           <address> ADDR </address>
+           <esdtData>
+             <esdtId> TOK_ID </esdtId>
+             <esdtBalance> BALANCE </esdtBalance>
+             ...
+           </esdtData>
+           ...
+         </account>
+      [priority(60)]
+
+    rule <instrs> #bigIntGetESDTExternalBalance(RES_HANDLE)
+               => #setBigIntValue( RES_HANDLE , 0 )
+                  ...
+         </instrs>
+         <bytesStack> _TOK_ID : ADDR : _ </bytesStack>
+         <account>
+           <address> ADDR </address>
+           ...
+         </account>
+      [priority(61)]
+
 
 endmodule
 ```

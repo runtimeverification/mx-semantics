@@ -20,6 +20,7 @@ callTx(
     "testCaller"
   , "testContract"
   , 0
+  , .List
   , "test"
   , .List
   , 0

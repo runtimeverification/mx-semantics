@@ -71,6 +71,16 @@ module MANBUFOPS
          </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH </locals>
 
+ // extern int32_t   mBufferGetBytes(void* context, int32_t mBufferHandle, int32_t resultOffset);
+    rule <instrs> hostCall ( "env" , "mBufferGetBytes" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] ) 
+               => #getBuffer( BUFF_IDX ) 
+               ~> #memStoreFromBytesStack ( DEST_OFFSET ) 
+               ~> #dropBytes
+               ~> i32 . const 0
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> DEST_OFFSET </locals>
+
  // extern int32_t   mBufferFromBigIntUnsigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
     rule <instrs> hostCall("env", "mBufferFromBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBigInt(BIG_IDX, Unsigned) 
@@ -86,7 +96,6 @@ module MANBUFOPS
                => #getBuffer(KEY_IDX) 
                ~> #getBuffer(VAL_IDX) 
                ~> #storageStore
-               ~> i32 . const 0
                   ... 
          </instrs>
          <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> VAL_IDX </locals>
@@ -195,19 +204,22 @@ module MANBUFOPS
          requires notBool( #sliceBytesInBounds( BS , OFFSET , LENGTH ) )
 
  // extern int32_t   mBufferNew(void* context);
-    rule <instrs> hostCall("env", "mBufferNew", [ .ValTypes ] -> [ i32 .ValTypes ] ) => i32.const size(HEAP) ... </instrs>
-         <bufferHeap> HEAP => HEAP[size(HEAP) <- .Bytes] </bufferHeap>
+    rule <instrs> hostCall("env", "mBufferNew", [ .ValTypes ] -> [ i32 .ValTypes ] ) 
+               => i32.const #newKey(HEAP) 
+                  ... 
+         </instrs>
+         <bufferHeap> HEAP => HEAP[#newKey(HEAP) <- .Bytes] </bufferHeap>
 
  // extern int32_t   mBufferNewFromBytes(void* context, int32_t dataOffset, int32_t dataLength);
     rule <instrs> hostCall ( "env" , "mBufferNewFromBytes" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] )
               => #memLoad( OFFSET , LENGTH )
-              ~> #setBufferFromBytesStack( size(HEAP) )
+              ~> #setBufferFromBytesStack( #newKey(HEAP) )
               ~> #dropBytes
-              ~> i32 . const size(HEAP)
+              ~> i32 . const #newKey(HEAP)
                  ... 
          </instrs>
          <locals> 0 |-> <i32> OFFSET  1 |-> <i32> LENGTH </locals>
-         <bufferHeap> HEAP => HEAP[size(HEAP) <- .Bytes] </bufferHeap>
+         <bufferHeap> HEAP => HEAP[#newKey(HEAP) <- .Bytes] </bufferHeap>
 
  // extern void      managedCaller(void* context, int32_t destinationHandle);
     rule <instrs> hostCall("env", "managedCaller", [ i32 .ValTypes ] -> [ .ValTypes ] )

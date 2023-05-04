@@ -534,8 +534,18 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ```k
     syntax InternalCmd ::= createAccount ( Bytes ) [klabel(createAccount), symbol]
  // ------------------------------------------------------------------------------
+    // ignore if the account already exists
     rule <commands> createAccount(ADDR) => . ... </commands>
-         <activeAccounts> ... (.Set => SetItem(ADDR)) ... </activeAccounts>
+         <activeAccounts> ADDRs => ADDRs |Set SetItem(ADDR) </activeAccounts>
+         <account>
+           <address> ADDR </address>
+           ...
+         </account>
+         <logging> S => S +String " -- initAccount duplicate " +String Bytes2String(ADDR) </logging>
+      [priority(60)]
+
+    rule <commands> createAccount(ADDR) => . ... </commands>
+         <activeAccounts> ADDRs => ADDRs |Set SetItem(ADDR) </activeAccounts>
          <accounts>
            ( .Bag
           => <account>
@@ -546,7 +556,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            ...
          </accounts>
          <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
-      [priority(60)]
+      [priority(61)]
 
     syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, CodeIndex, Bytes, Map )
                          | setAccountCodeIndex ( Bytes, CodeIndex )
@@ -560,6 +570,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <codeIdx> _ => CODEIDX </codeIdx>
            <ownerAddress> _ => OWNER_ADDR </ownerAddress>
            <storage> _ => STORAGE </storage>
+           ...
          </account>
       [priority(60)]
 
@@ -584,6 +595,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 
 ```k
     syntax InternalCmd ::= transferFunds ( Bytes, Bytes, Int )
+                         | transferESDT ( Bytes , Bytes , ESDTTransfer )
+                         | transferESDTs ( Bytes , Bytes , List )
                          | "#transferSuccess"
  // -----------------------------------------
     rule <commands> transferFunds(ACCT, ACCT, VALUE) => #transferSuccess ... </commands>
@@ -609,6 +622,82 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
       [priority(60)]
 
+    // transferESDTs performs multiple ESDT transfers and finally returns #transferSuccess
+    // TODO handle failure if one of the transfers fails
+    rule <commands> transferESDTs(_, _, .List) => #transferSuccess ... </commands>
+    rule <commands> transferESDTs(FROM, TO, ListItem(T:ESDTTransfer) Ls) 
+                 => transferESDT(FROM, TO, T) 
+                 ~> transferESDTs(FROM, TO, Ls)
+                    ... 
+         </commands>
+  
+    // TODO handle failure cases
+    // - insufficient balance
+    // - frozen / paused / non-payable / limited transfer...
+    // TODO implement NFT/SFT transfers
+    rule <commands> transferESDT(ACCT, ACCT, esdtTransfer(TOKEN, VALUE, 0)) 
+                 => . ... 
+         </commands>
+         <account>
+           <address> ACCT </address>
+           <esdtData>
+             <esdtId> TOKEN </esdtId>
+             <esdtBalance> ORIGFROM </esdtBalance>
+             <frozen> false </frozen>
+           </esdtData>
+           ...
+         </account>
+      requires VALUE <=Int ORIGFROM
+      [priority(60)]
+
+    rule <commands> transferESDT(ACCTFROM, ACCTTO, esdtTransfer(TOKEN, VALUE, 0)) 
+                 => . ... 
+         </commands>
+         <account>
+           <address> ACCTFROM </address>
+           <esdtData>
+             <esdtId> TOKEN </esdtId>
+             <esdtBalance> ORIGFROM => ORIGFROM -Int VALUE </esdtBalance>
+             <frozen> false </frozen>
+           </esdtData>
+           ...
+         </account>
+         <account>
+           <address> ACCTTO </address>
+           <esdtData>
+             <esdtId> TOKEN </esdtId>
+             <esdtBalance> ORIGTO => ORIGTO +Int VALUE </esdtBalance>
+             <frozen> false </frozen>
+           </esdtData>
+           ...
+         </account>
+      requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
+      [priority(60)]
+
+    rule <commands> transferESDT(ACCTFROM, ACCTTO, esdtTransfer(TOKEN, VALUE, 0)) 
+                 => . ... 
+         </commands>
+         <account>
+           <address> ACCTFROM </address>
+           <esdtData>
+             <esdtId> TOKEN </esdtId>
+             <esdtBalance> ORIGFROM => ORIGFROM -Int VALUE </esdtBalance>
+             <frozen> false </frozen>
+           </esdtData>
+           ...
+         </account>
+         <account>
+           <address> ACCTTO </address>
+           (.Bag => <esdtData>
+             <esdtId> TOKEN </esdtId>
+             <esdtBalance> VALUE </esdtBalance>
+             <frozen> false </frozen>
+           </esdtData>)
+           ...
+         </account>
+      requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
+      [priority(61)]
+
     rule <commands> #transferSuccess => . ... </commands>
          <instrs> . </instrs>
 ```
@@ -616,30 +705,86 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ## Calling Contract
 
 ```k
-    syntax InternalCmd ::= callContract ( Bytes, Bytes, Int,     String, List, Int, Int ) [klabel(callContractString)]
-                         | callContract ( Bytes, Bytes, Int, WasmString, List, Int, Int ) [klabel(callContractWasmString)]
-                         | mkCall       ( Bytes, Bytes, Int, WasmString, List, Int, Int )
+    syntax InternalCmd ::= callContract ( Bytes, Bytes, Int, List,     String, List, Int, Int ) [klabel(callContractString)]
+                         | callContract ( Bytes, Bytes, Int, List, WasmString, List, Int, Int ) [klabel(callContractWasmString)]
+                         | mkCall       ( Bytes, Bytes, Int, List, WasmString, List, Int, Int )
  // -------------------------------------------------------------------------------------
-    rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:String, ARGS, GASLIMIT, GASPRICE)
-                 => callContract(FROM, TO, VALUE, #unparseWasmString("\"" +String FUNCNAME +String "\""), ARGS, GASLIMIT, GASPRICE)
+    rule <commands> callContract(FROM, TO, VALUE, ESDT, FUNCNAME:String, ARGS, GASLIMIT, GASPRICE)
+                 => callContract(FROM, TO, VALUE, ESDT, #unparseWasmString("\"" +String FUNCNAME +String "\""), ARGS, GASLIMIT, GASPRICE)
                     ...
          </commands>
       [priority(60)]
 
-    rule <commands> callContract(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, GASLIMIT, GASPRICE)
+    // The memory instance linked to the contract's account should be restored to the initial state after the contract call.
+    // TODO Create a new wasm instance to run the contract call. Execute all contract calls on a separate wasm instance.
+    //      This will eliminate the need for #restoreMem
+    //          https://github.com/multiversx/mx-chain-vm-go/blob/255d2b23189cbc8a80312ab89890163800255dba/vmhost/hostCore/execution.go#L779
+    //      Push the current <callState>, <bigIntHeap>, <bufferHeap> and wasm instance to a call stack (add new configuration cell <callStack>)       
+    rule <commands> callContract(FROM, TO, VALUE, ESDT, FUNCNAME:WasmStringToken, ARGS, GASLIMIT, GASPRICE)
                  => pushWorldState
                  ~> transferFunds(FROM, TO, VALUE)
-                 ~> mkCall(FROM, TO, VALUE, FUNCNAME, ARGS, GASLIMIT, GASPRICE)
+                 ~> transferESDTs(FROM, TO, ESDT)
+                 ~> mkCall(FROM, TO, VALUE, ESDT, FUNCNAME, ARGS, GASLIMIT, GASPRICE)
+                 ~> #endWasm
+                 ~> #restoreMem(MEMADDR, MMAX, SIZE, DATA)
+                    ...
+         </commands>
+         <account>
+           <address> TO </address>
+           <codeIdx> MODIDX:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <mmax> MMAX </mmax>
+           <msize> SIZE </msize>
+           <mdata> DATA </mdata>
+         </memInst>
+      [priority(60)]
+
+    // The module does not have any memory instances. Nothing to restore.
+    rule <commands> callContract(FROM, TO, VALUE, ESDT, FUNCNAME:WasmStringToken, ARGS, GASLIMIT, GASPRICE)
+                 => pushWorldState
+                 ~> transferFunds(FROM, TO, VALUE)
+                 ~> transferESDTs(FROM, TO, ESDT)
+                 ~> mkCall(FROM, TO, VALUE, ESDT, FUNCNAME, ARGS, GASLIMIT, GASPRICE)
                  ~> #endWasm
                     ...
          </commands>
+         <account>
+           <address> TO </address>
+           <codeIdx> MODIDX:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> .Map </memAddrs>
+           ...
+         </moduleInst>
       [priority(60)]
 
-    rule <commands> mkCall(FROM, TO, VALUE, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
+    syntax InternalCmd ::= #restoreMem(Int, OptionalInt, Int, Bytes)
+ // ---------------------------------------------------------
+    rule <commands> #restoreMem(MEMADDR, MMAX, SIZE, DATA) => . ... </commands>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <mmax> _ => MMAX  </mmax>
+           <msize> _ => SIZE </msize>
+           <mdata> _ => DATA </mdata>
+         </memInst>
+      [priority(60)]
+
+    rule <commands> mkCall(FROM, TO, VALUE, ESDT, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
          <callArgs> _ => ARGS </callArgs>
          <caller> _ => FROM </caller>
          <callee> _ => TO   </callee>
          <callValue> _ => VALUE </callValue>
+         <esdtTransfers> _ => ESDT </esdtTransfers>
          <out> _ => .List </out>
          <message> _ => .Bytes </message>
          <returnCode> _ => .ReturnCode </returnCode>

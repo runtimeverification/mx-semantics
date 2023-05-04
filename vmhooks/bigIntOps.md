@@ -18,7 +18,7 @@ module BIGINT-HELPERS
          <bigIntHeap> HEAP </bigIntHeap>
       requires #validIntId(BIGINT_IDX, HEAP)
 
-    rule <instrs> #getBigInt(BIGINT_IDX, SIGN) => #throwException(ExecutionFailed, "no bigInt under the given handle") ... </instrs>
+    rule <instrs> #getBigInt(BIGINT_IDX, _SIGN) => #throwException(ExecutionFailed, "no bigInt under the given handle") ... </instrs>
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool #validIntId(BIGINT_IDX, HEAP)
 
@@ -260,31 +260,26 @@ module BIGINTOPS
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
          <callArgs> ARGS </callArgs>
          <bigIntHeap> HEAP => HEAP [BIG_IDX <- Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Unsigned)] </bigIntHeap>
-      requires 0 <=Int #signed(i32, ARG_IDX)
-       andBool ARG_IDX <Int size(ARGS)
-       andBool isBytes(ARGS[ARG_IDX])
+      requires #validArgIdx(ARG_IDX, ARGS)
 
+    // If ARG_IDX is invalid (out of bounds) just ignore
+    // https://github.com/multiversx/mx-chain-vm-go/blob/ea3d78d34c35f7ef9c1a9ea4fce8288608763229/vmhost/vmhooks/bigIntOps.go#L68
     rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> _BIG_IDX </locals>
          <callArgs> ARGS </callArgs>
-      requires #signed(i32, ARG_IDX) <Int 0
-        orBool size(ARGS) <=Int ARG_IDX
-        orBool notBool isBytes(ARGS[ARG_IDX])
+      requires notBool #validArgIdx(ARG_IDX, ARGS)
 
     // extern void bigIntGetSignedArgument(void *context, int32_t id, int32_t destination);
     rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
          <callArgs> ARGS </callArgs>
          <bigIntHeap> HEAP => HEAP [BIG_IDX <- Bytes2Int({ARGS[ARG_IDX]}:>Bytes, BE, Signed)] </bigIntHeap>
-      requires ARG_IDX <Int size(ARGS)
-       andBool isBytes(ARGS[ARG_IDX])
+      requires #validArgIdx(ARG_IDX, ARGS)
 
     rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> _BIG_IDX </locals>
          <callArgs> ARGS </callArgs>
-      requires #signed(i32, ARG_IDX) <Int 0
-        orBool size(ARGS) <=Int ARG_IDX
-        orBool notBool isBytes(ARGS[ARG_IDX])
+      requires notBool #validArgIdx(ARG_IDX, ARGS)
 
     // extern void bigIntGetCallValue(void *context, int32_t destination);
     rule <instrs> hostCall("env", "bigIntGetCallValue", [ i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>

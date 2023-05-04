@@ -101,19 +101,24 @@ module BASEOPS
     rule <commands> #transferSuccess => . ... </commands>
          <instrs> #waitForTransfer => . ... </instrs>
 
+    syntax Bool ::= #validArgIdx( Int , List )        [function, total]
+ // -------------------------------------------------------------------
+    rule #validArgIdx(IDX, ARGS) => (0 <=Int #signed(i32, IDX) andBool 
+                                     IDX <Int size(ARGS))
+                        andThenBool isBytes(ARGS[IDX])
+
     // extern int32_t getArgumentLength(void *context, int32_t id);
     rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes({ARGS[IDX]}:>Bytes) ... </instrs>
          <locals> 0 |-> <i32> IDX </locals>
          <callArgs> ARGS </callArgs>
-      requires IDX <Int size(ARGS)
-       andBool isBytes(ARGS[IDX])
+      requires #validArgIdx(IDX, ARGS)
 
     rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #throwException(ExecutionFailed, "invalid argument") ... 
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
          <callArgs> ARGS </callArgs>
-      requires IDX >=Int size(ARGS)
+      requires notBool #validArgIdx(IDX, ARGS)
 
     // extern int32_t getArgument(void *context, int32_t id, int32_t argOffset);
     rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -126,9 +131,7 @@ module BASEOPS
            1 |-> <i32> OFFSET
          </locals>
          <callArgs> ARGS </callArgs>
-      requires 0 <=Int #signed(i32, IDX)
-       andBool IDX <Int size(ARGS)
-       andBool isBytes(ARGS[IDX])
+      requires #validArgIdx(IDX, ARGS)
 
     rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #throwException(ExecutionFailed, "invalid argument") ...
@@ -138,8 +141,7 @@ module BASEOPS
            1 |-> <i32> _OFFSET
          </locals>
          <callArgs> ARGS </callArgs>
-      requires #signed(i32, IDX) <Int 0
-        orBool IDX >=Int size(ARGS)
+      requires notBool #validArgIdx(IDX, ARGS)
 
     // extern int32_t getNumArguments(void *context);
     rule <instrs> hostCall("env", "getNumArguments", [ .ValTypes ] -> [ i32 .ValTypes ]) => i32.const size(ARGS) ... </instrs>

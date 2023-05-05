@@ -105,9 +105,10 @@ module BASEOPS
 
     syntax Bool ::= #validArgIdx( Int , List )        [function, total]
  // -------------------------------------------------------------------
-    rule #validArgIdx(IDX, ARGS) => (0 <=Int #signed(i32, IDX) andBool 
-                                     IDX <Int size(ARGS))
-                        andThenBool isBytes(ARGS[IDX])
+    rule #validArgIdx(IDX, ARGS) => isBytes(ARGS[IDX]) 
+      requires 0 <=Int #signed(i32, IDX) 
+       andBool IDX <Int size(ARGS)
+    rule #validArgIdx(_, _) => false  [owise]
 
     // extern int32_t getArgumentLength(void *context, int32_t id);
     rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes({ARGS[IDX]}:>Bytes) ... </instrs>

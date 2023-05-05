@@ -207,7 +207,8 @@ module BASEOPS
 
     // TODO check ESDT payment
     rule <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) 
-               => #throwException(ExecutionFailed, "function does not accept EGLD payment") ... </instrs>
+               => #throwException(ExecutionFailed, "function does not accept EGLD payment") ... 
+         </instrs>
          <callValue> VAL </callValue>
       requires 0 <Int VAL
 

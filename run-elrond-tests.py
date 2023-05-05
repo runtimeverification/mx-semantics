@@ -377,11 +377,25 @@ def mandos_to_expect(expect):
         if status == "":
             return KApply('OK', [])
         status_int, _ = convert_string_to_uint(status)
-        if status_int == 0:
-            return KApply('OK', [])
-        if status_int == 4:
-            return KApply('UserError', [])
 
+        STATUS_CODES = {
+            0: 'OK',
+            1: 'FunctionNotFound',         
+            2: 'FunctionWrongSignature',
+            3: 'ContractNotFound',
+            4: 'UserError',
+            5: 'OutOfGas',
+            6: 'AccountCollision',
+            7: 'OutOfFunds',
+            8: 'CallStackOverFlow',
+            9: 'ContractInvalid',
+            10: 'ExecutionFailed',
+            11: 'UpgradeFailed',
+            12: 'SimulateFailed',
+        }
+
+        if status_int in STATUS_CODES:
+            return KApply(STATUS_CODES[status_int], [])
         raise ValueError("Status code %s not supported" % status)
 
     if ('out' in expect) and (expect['out'] != '*'):

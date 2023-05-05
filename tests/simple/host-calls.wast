@@ -180,6 +180,26 @@ deployTx(
          call $i32.assertEqual
       )
 
+      (func (export "argsTest_getArgumentLength_invalidArg_neg")
+         (call $getArgumentLength (i32.const -123))
+         drop         
+      )
+
+      (func (export "argsTest_getArgumentLength_invalidArg_oob")
+         (call $getArgumentLength (i32.const 123))
+         drop         
+      )
+
+      (func (export "argsTest_getArgument_invalidArg_neg")
+         (call $getArgument (i32.const -1) (i32.const 32))
+         drop         
+      )
+
+      (func (export "argsTest_getArgument_invalidArg_oob")
+         (call $getArgument (i32.const 123) (i32.const 32))
+         drop         
+      )
+
       (func $storageTest
         i32.const 0
         i64.const 1848529
@@ -239,5 +259,39 @@ deployTx(
 checkExpectStatus(OK)
 checkExpectOut(ListItem(Int2Bytes(777, BE, Signed)))
 checkAccountBalance("testDeployer", 0)
+
+setAccount("testCaller", 0, 0, .Code, .Map)
+
+callTx( "testCaller" , "testContract" , 0 , .List
+      , "argsTest_getArgumentLength_invalidArg_neg", .List
+      , 0 , 0
+)
+
+checkExpectStatus(ExecutionFailed)
+checkExpectMessage(b"invalid argument")
+
+callTx( "testCaller" , "testContract" , 0 , .List
+      , "argsTest_getArgumentLength_invalidArg_oob", ListItem(b"foo") ListItem(b"bar")
+     , 0 , 0
+)
+
+checkExpectStatus(ExecutionFailed)
+checkExpectMessage(b"invalid argument")
+
+callTx( "testCaller" , "testContract" , 0 , .List
+      , "argsTest_getArgument_invalidArg_neg", .List
+      , 0 , 0
+)
+
+checkExpectStatus(ExecutionFailed)
+checkExpectMessage(b"invalid argument")
+
+callTx( "testCaller" , "testContract" , 0 , .List
+      , "argsTest_getArgument_invalidArg_oob", ListItem(b"foo") ListItem(b"bar")
+     , 0 , 0
+)
+
+checkExpectStatus(ExecutionFailed)
+checkExpectMessage(b"invalid argument")
 
 setExitCode 0

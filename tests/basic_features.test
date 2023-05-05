@@ -46,6 +46,7 @@ deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/managed_vec_bigu
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/only_owner.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/only_user_account.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/panic.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/return_codes.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/sc_properties.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_big_int.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_big_uint.scen.json

@@ -5,7 +5,7 @@
         test unittest-python mandos-test mandos-coverage test-elrond-contracts   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
         test-elrond-multisig test-elrond-basic-features                          \
-				rule-coverage clean-coverage                                             \
+        rule-coverage clean-coverage                                             \
 
 # Settings
 # --------
@@ -161,7 +161,7 @@ KRUN_OPTS :=
 
 # TODO add test-elrond-lottery-esdt
 elrond-contract-deps := test-elrond-adder             \
-												test-elrond-crowdfunding-esdt \
+                        test-elrond-crowdfunding-esdt \
                         test-elrond-multisig          \
                         test-elrond-basic-features
 test-elrond-contracts: $(elrond-contract-deps)

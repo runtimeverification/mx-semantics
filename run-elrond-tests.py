@@ -349,7 +349,6 @@ def mandos_esdt_to_klist(esdt_values):
 
 
 def mandos_to_transfer_tx(tx):
-    print(tx)
     sender = mandos_argument_to_kbytes(tx['from'])
     to = mandos_argument_to_kbytes(tx['to'])
     value = mandos_int_to_kint(getEgldValue(tx))

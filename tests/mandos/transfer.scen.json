@@ -1,0 +1,45 @@
+{
+    "name": "set state",
+    "comment": "set up state and contract names",
+    "steps": [
+        {
+            "step": "setState",
+            "comment": "set accounts and balances",
+            "accounts": {
+                "address:sender": {
+                    "nonce": "123",
+                    "balance": "100",
+                    "storage": {},
+                    "code": ""
+                },
+                "address:receiver": {
+                    "nonce": "456",
+                    "balance": "10",
+                    "storage": {},
+                    "code": ""
+                }
+            }
+        },
+        {
+            "step": "transfer",
+            "txId": "1",
+            "comment": "simple EGLD transfer",
+            "tx": {
+                "from": "address:sender",
+                "to": "address:receiver",
+                "egldValue": "20"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:sender": {
+                    "balance": "80"
+                },
+                "address:receiver": {
+                    "balance": "30"
+                }
+            }
+        }
+    ]
+}

@@ -5,6 +5,7 @@
         test unittest-python mandos-test mandos-coverage test-elrond-contracts   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
         test-elrond-multisig test-elrond-basic-features                          \
+				rule-coverage clean-coverage                                             \
 
 # Settings
 # --------
@@ -93,6 +94,10 @@ wasm-deps:
 
 HOOK_NAMESPACES    := KRYPTO
 KOMPILE_OPTS       := --hook-namespaces \"$(HOOK_NAMESPACES)\" --emit-json
+
+ifneq (,$(K_COVERAGE))
+    KOMPILE_OPTS += --coverage
+endif
 
 LLVM_KOMPILE_OPTS  := -L$(LOCAL_LIB)                               \
                       $(PLUGIN_SUBMODULE)/plugin-c/plugin_util.cpp \
@@ -266,3 +271,9 @@ unittest-python: $(PYTHON_UNITTEST_FILES:=.unit)
 
 %.unit: %
 	python3 $<
+
+rule-coverage:
+	python3 rule_coverage.py $(llvm_dir)/mandos-kompiled $(ELROND_FILES_KWASM_DIR)
+
+clean-coverage:
+	rm $(llvm_dir)/mandos-kompiled/*_coverage.txt $(llvm_dir)/mandos-kompiled/coverage.txt

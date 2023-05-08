@@ -257,12 +257,17 @@ test-elrond-multisig: $(llvm_kompiled)
 ## Basic Feature Test
 
 ELROND_BASIC_FEATURES_DIR=$(ELROND_CONTRACT)/feature-tests/basic-features
+ELROND_BASIC_FEATURES_WASM=$(ELROND_BASIC_FEATURES_DIR)/output/basic-features.wasm
 elrond_basic_features_tests=$(shell cat tests/basic_features.test)
 
-# TODO optimize test runner and enable coverage and logging
-test-elrond-basic-features: $(llvm_kompiled)
+$(ELROND_BASIC_FEATURES_WASM):
 	mxpy contract build "$(ELROND_BASIC_FEATURES_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_basic_features_tests) --log-level none
+
+# TODO optimize test runner and enable coverage and logging
+test-elrond-basic-features: $(elrond_basic_features_tests:=.mandos)
+
+$(ELROND_BASIC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_BASIC_FEATURES_WASM)
+	$(TEST_MANDOS) $(ELROND_BASIC_FEATURES_DIR)/scenarios/$*.scen.json --log-level none
 
 # Unit Tests
 # ----------

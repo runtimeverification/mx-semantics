@@ -109,6 +109,33 @@ module ELROND-CONFIG
     rule <instrs> #memStoreFromBytesStack(OFFSET) => #memStore(OFFSET, BS) ... </instrs>
          <bytesStack> BS : _ </bytesStack>
 
+    rule <instrs> #memStore(OFFSET, _) 
+               => #throwException(ExecutionFailed, "bad bounds (lower)") ... 
+         </instrs>
+      requires #signed(i32 , OFFSET) <Int 0
+
+    rule <instrs> #memStore(OFFSET, BS) 
+               => #throwException(ExecutionFailed, "bad bounds (upper)") ... 
+         </instrs>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <codeIdx> MODIDX:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           ...
+         </memInst>
+      requires 0 <=Int #signed(i32 , OFFSET)
+       andBool #signed(i32 , OFFSET) +Int lengthBytes(BS) >Int (SIZE *Int #pageSize())
+
     rule <instrs> #memStore(OFFSET, BS) => . ... </instrs>
          <callee> CALLEE </callee>
          <account>
@@ -127,10 +154,36 @@ module ELROND-CONFIG
            <mdata> DATA => #setBytesRange(DATA, OFFSET, BS) </mdata>
            ...
          </memInst>
-      requires OFFSET +Int lengthBytes(BS) <=Int (SIZE *Int #pageSize())
+      requires #signed(i32 , OFFSET) +Int lengthBytes(BS) <=Int (SIZE *Int #pageSize())
+       andBool 0 <=Int #signed(i32 , OFFSET)
 
     syntax InternalInstr ::= #memLoad ( offset: Int , length: Int )
  // ---------------------------------------------------------------
+
+    rule <instrs> #memLoad(_, LENGTH) => #throwException(ExecutionFailed, "mem load: negative length") ... </instrs>
+      requires #signed(i32 , LENGTH) <Int 0
+
+    rule <instrs> #memLoad(OFFSET, LENGTH) => #throwException(ExecutionFailed, "mem load: bad bounds") ... </instrs>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <codeIdx> MODIDX:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> MODIDX </modIdx>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           ...
+         </moduleInst>
+         <memInst>
+           <mAddr> MEMADDR </mAddr>
+           <msize> SIZE </msize>
+           ...
+         </memInst>
+      requires #signed(i32 , LENGTH) >=Int 0
+       andBool (#signed(i32 , OFFSET) <Int 0
+         orBool #signed(i32 , OFFSET) +Int #signed(i32 , LENGTH) >Int (SIZE *Int #pageSize()))
+
     rule <instrs> #memLoad(OFFSET, LENGTH) => . ... </instrs>
          <bytesStack> STACK => #getBytesRange(DATA, OFFSET, LENGTH) : STACK </bytesStack>
          <callee> CALLEE </callee>
@@ -150,7 +203,9 @@ module ELROND-CONFIG
            <mdata> DATA </mdata>
            ...
          </memInst>
-      requires OFFSET +Int LENGTH <=Int (SIZE *Int #pageSize())
+      requires #signed(i32 , LENGTH) >=Int 0
+       andBool #signed(i32 , OFFSET) >=Int 0
+       andBool #signed(i32 , OFFSET) +Int #signed(i32 , LENGTH) <=Int (SIZE *Int #pageSize())
 ```
 
 ### Storage
@@ -188,9 +243,9 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <instrs> #isReservedKey(KEY) => . ... </instrs>
       requires notBool #hasPrefix(KEY, "ELROND")
 
-    rule <commands> (. => #exception(UserError)) ... </commands>
-         <instrs> (#isReservedKey(KEY) ~> _) => . </instrs>
-         <message> _ => String2Bytes("cannot write to storage under Elrond reserved key") </message>
+    rule <instrs> #isReservedKey(KEY)
+               => #throwException(UserError, "cannot write to storage under Elrond reserved key") ...
+         </instrs>
       requires         #hasPrefix(KEY, "ELROND")
 
     syntax InternalInstr ::= "#storageLoad"
@@ -292,17 +347,17 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <instrs> #returnIfUInt64(V, _) => i64.const V ... </instrs>
       requires          minUInt64 <=Int V andBool V <=Int maxUInt64
 
-    rule <commands> (. => #exception(UserError)) ... </commands>
-         <instrs> (#returnIfUInt64(V, ERRORMSG) ~> _) => . </instrs>
-         <message> _ => String2Bytes(ERRORMSG) </message>
+    rule <instrs> #returnIfUInt64(V, ERRORMSG) 
+               => #throwException(UserError, ERRORMSG) ... 
+         </instrs>
       requires notBool (minUInt64 <=Int V andBool V <=Int maxUInt64)
 
     rule <instrs> #returnIfSInt64(V, _) => i64.const V ... </instrs>
       requires          minSInt64 <=Int V andBool V <=Int maxSInt64
 
-    rule <commands> (. => #exception(UserError)) ... </commands>
-         <instrs> (#returnIfSInt64(V, ERRORMSG) ~> _) => . </instrs>
-         <message> _ => String2Bytes(ERRORMSG) </message>
+    rule <instrs> #returnIfSInt64(V, ERRORMSG) 
+               => #throwException(UserError, ERRORMSG) ... 
+         </instrs>
       requires notBool (minSInt64 <=Int V andBool V <=Int maxSInt64)
 
     syntax InternalInstr ::= #loadBytesAsUInt64 ( String )
@@ -384,6 +439,12 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                => #getArgsFromMemoryAux(NUMARGS, 0, NUMARGS, LENGTHOFFSET, DATAOFFSET)
                   ...
          </instrs>
+      requires 0 <=Int #signed(i32, NUMARGS)
+
+    rule <instrs> #getArgsFromMemory(NUMARGS, _, _)
+               => #throwException(ExecutionFailed, "negative numArguments") ...
+         </instrs>
+      requires #signed(i32, NUMARGS) <Int 0
 
     rule <instrs> #getArgsFromMemoryAux(NUMARGS, TOTALLEN, 0,  _, _)
                => i32.const TOTALLEN
@@ -447,6 +508,9 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       [priority(60)]
 ```
 
+
+## Exception Handling
+
 - `#exception` drops the rest of the computation in the `commands` and `instrs` cells and reverts the state.
 
 ```k
@@ -456,6 +520,13 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <returnCode> _ => EC </returnCode>
          <instrs> _ => . </instrs>
       [priority(10)]
+
+    syntax InternalInstr ::= #throwException( ExceptionCode , String )
+ // ------------------------------------------------------------------
+    rule <instrs> #throwException( EC , MSG ) => . ... </instrs>
+         <commands> (. => #exception(EC)) ... </commands>
+         <message> _ => String2Bytes(MSG) </message>
+
 ```
 
 ## Managing Accounts
@@ -733,6 +804,22 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </moduleInst>
          <instrs> . => ( invoke FUNCADDR ) </instrs>
          <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
+      [priority(60)]
+
+    rule <commands> mkCall(_FROM, TO, _VALUE, _ESDT, FUNCNAME:WasmStringToken, _ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
+         <account>
+           <address> TO </address>
+           <codeIdx> CODE:Int </codeIdx>
+           ...
+         </account>
+         <moduleInst>
+           <modIdx> CODE </modIdx>
+           <exports> EXPORTS </exports>
+           ...
+         </moduleInst>
+         <instrs> . => #throwException(FunctionNotFound, "invalid function (not found)") </instrs>
+         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
+      requires notBool( FUNCNAME in_keys(EXPORTS) )
       [priority(60)]
 
 endmodule

@@ -5,6 +5,7 @@
         test unittest-python mandos-test mandos-coverage test-elrond-contracts   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
         test-elrond-multisig test-elrond-basic-features                          \
+        rule-coverage clean-coverage                                             \
 
 # Settings
 # --------
@@ -94,6 +95,10 @@ wasm-deps:
 HOOK_NAMESPACES    := KRYPTO
 KOMPILE_OPTS       := --hook-namespaces \"$(HOOK_NAMESPACES)\" --emit-json
 
+ifneq (,$(K_COVERAGE))
+    KOMPILE_OPTS += --coverage
+endif
+
 LLVM_KOMPILE_OPTS  := -L$(LOCAL_LIB)                               \
                       $(PLUGIN_SUBMODULE)/plugin-c/plugin_util.cpp \
                       $(PLUGIN_SUBMODULE)/plugin-c/crypto.cpp      \
@@ -156,7 +161,7 @@ KRUN_OPTS :=
 
 # TODO add test-elrond-lottery-esdt
 elrond-contract-deps := test-elrond-adder             \
-												test-elrond-crowdfunding-esdt \
+                        test-elrond-crowdfunding-esdt \
                         test-elrond-multisig          \
                         test-elrond-basic-features
 test-elrond-contracts: $(elrond-contract-deps)
@@ -252,12 +257,17 @@ test-elrond-multisig: $(llvm_kompiled)
 ## Basic Feature Test
 
 ELROND_BASIC_FEATURES_DIR=$(ELROND_CONTRACT)/feature-tests/basic-features
+ELROND_BASIC_FEATURES_WASM=$(ELROND_BASIC_FEATURES_DIR)/output/basic-features.wasm
 elrond_basic_features_tests=$(shell cat tests/basic_features.test)
 
-# TODO optimize test runner and enable coverage and logging
-test-elrond-basic-features: $(llvm_kompiled)
+$(ELROND_BASIC_FEATURES_WASM):
 	mxpy contract build "$(ELROND_BASIC_FEATURES_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_basic_features_tests) --log-level none
+
+# TODO optimize test runner and enable coverage and logging
+test-elrond-basic-features: $(elrond_basic_features_tests:=.mandos)
+
+$(ELROND_BASIC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_BASIC_FEATURES_WASM)
+	$(TEST_MANDOS) $(ELROND_BASIC_FEATURES_DIR)/scenarios/$*.scen.json --log-level none
 
 # Unit Tests
 # ----------
@@ -266,3 +276,9 @@ unittest-python: $(PYTHON_UNITTEST_FILES:=.unit)
 
 %.unit: %
 	python3 $<
+
+rule-coverage:
+	python3 rule_coverage.py $(llvm_dir)/mandos-kompiled $(ELROND_FILES_KWASM_DIR)
+
+clean-coverage:
+	rm $(llvm_dir)/mandos-kompiled/*_coverage.txt $(llvm_dir)/mandos-kompiled/coverage.txt

@@ -97,7 +97,7 @@ jobs:
       - name: 'Build'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true'
       - name: 'Run Basic Feature Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features -j6'
       - name: 'Tear down Docker'
         if: always()
         run: |

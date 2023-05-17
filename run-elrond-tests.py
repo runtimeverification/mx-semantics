@@ -3,13 +3,10 @@
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, Optional
-from pyk.kast.inner import KSequence, KInner, KToken, KApply, Subst, KSort
+from pyk.kast.inner import KSequence, KInner, KToken, KApply, Subst
 from pyk.ktool.kprint import _kast, KAstInput, KAstOutput
 from pyk.ktool.krun import KRun, _krun, KRunOutput
 from pyk.kast.manip import split_config_from
-from pyk.prelude.bytes import bytesToken
-from pyk.utils import dequote_str
 import resource
 import subprocess
 import sys
@@ -17,7 +14,7 @@ import sha3
 import tempfile
 import os
 import wasm2kast
-from kwasm_ast import KString, KInt
+from kwasm_ast import KString, KInt, KBytes
 from tempfile import NamedTemporaryFile
 import coverage as cov
 
@@ -54,8 +51,8 @@ def config_to_kast_term(config):
 ###############################
 
 WASM_definition_main_file = 'mandos'
-WASM_definition_llvm_no_coverage_dir = '.build/defn/llvm'
-WASM_definition_llvm_no_coverage_kompiled_dir = WASM_definition_llvm_no_coverage_dir + '/' + WASM_definition_main_file + '-kompiled'
+WASM_definition_llvm_no_coverage_dir = Path('.build/defn/llvm')
+WASM_definition_llvm_no_coverage_kompiled_dir = WASM_definition_llvm_no_coverage_dir / (WASM_definition_main_file + '-kompiled')
 KRunner = KRun(WASM_definition_llvm_no_coverage_kompiled_dir)
 
 addr_prefix   = "address:"
@@ -245,8 +242,7 @@ def convert_string_to_sint(raw_str: str):
 
 def mandos_argument_to_kbytes(argument: str):
     bs = mandos_argument_to_bytes(argument)
-    hex_str = ''.join(('\\x%02x' % i) for i in bs)
-    return bytesToken(dequote_str(hex_str))
+    return KBytes(bs)
 
 def mandos_arguments_to_klist(arguments: list):
     tokenized = list(map(lambda x: mandos_argument_to_kbytes(x), arguments))
@@ -655,7 +651,7 @@ def krun_config(init_config: KInner, output_dir: str):
         
         kast_res = _kast(
                 Path(f.name),
-                definition_dir=Path(WASM_definition_llvm_no_coverage_kompiled_dir),
+                definition_dir=WASM_definition_llvm_no_coverage_kompiled_dir,
                 input=KAstInput.JSON,
                 output=KAstOutput.KORE,
                 sort='GeneratedTopCell',
@@ -665,8 +661,8 @@ def krun_config(init_config: KInner, output_dir: str):
             conf_kore.write(kast_res.stdout)
             conf_kore.flush()
             proc_res = _krun( 
-                input_file = Path(conf_kore.name),
-                definition_dir=Path(WASM_definition_llvm_no_coverage_kompiled_dir),
+                input_file=Path(conf_kore.name),
+                definition_dir=WASM_definition_llvm_no_coverage_kompiled_dir,
                 term=True,
                 check=False,
                 output=KRunOutput.JSON,

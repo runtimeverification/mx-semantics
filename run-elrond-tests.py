@@ -623,13 +623,6 @@ def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args, re
             log_intermediate_state("%s_%d_%s.pre" % (test_name, i, step_name), init_config, output_dir)
 
         krun_result = krun_config(init_config=init_config, output_dir=output_dir)
-
-        # parsing krun_result is very expensive. return early if the result is not needed:
-        #     caller does not need the final config and
-        #     this is the last step and
-        #     log_level is 'none'
-        if not return_final_config and i >= len(k_steps) - 1 and cmd_args.log_level == 'none':
-            return final_config
         
         config_json = json.loads(krun_result)
         new_config = KInner.from_dict(config_json['term'])    

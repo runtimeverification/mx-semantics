@@ -271,7 +271,7 @@ module MANBUFOPS
          <bytesStack> BS : _ </bytesStack>
          requires #sliceBytesInBounds( BS , OFFSET , LENGTH )
 
-    rule <instrs> #mBufferGetByteSliceH( OFFSET , LENGTH , _DEST_OFFSET )
+    rule <instrs> #mBufferCopyByteSliceH( OFFSET , LENGTH , _DEST_OFFSET )
                => i32 . const 1
                   ...
          </instrs> 

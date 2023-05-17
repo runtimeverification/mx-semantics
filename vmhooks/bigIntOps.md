@@ -58,7 +58,7 @@ module BIGINTOPS
                   ... 
          </instrs>
          <locals> 0 |-> <i64> INITIAL </locals>
-         <bigIntHeap> HEAP => HEAP[#newKey(HEAP) <- INITIAL] </bigIntHeap>
+         <bigIntHeap> HEAP => HEAP[#newKey(HEAP) <- #signed(i64, INITIAL)] </bigIntHeap>
 
     // extern int32_t bigIntUnsignedByteLength(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntUnsignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -118,7 +118,7 @@ module BIGINTOPS
 
  // extern void      bigIntSetInt64(void* context, int32_t destinationHandle, long long value);
     rule <instrs> hostCall ( "env" , "bigIntSetInt64" , [ i32  i64  .ValTypes ] -> [ .ValTypes ] )
-               => #setBigIntValue(DEST_IDX, VALUE)
+               => #setBigIntValue(DEST_IDX, #signed(i64, VALUE))
                   ...
          </instrs>
          <locals> 0 |-> <i32> DEST_IDX 1 |-> <i64> VALUE </locals>

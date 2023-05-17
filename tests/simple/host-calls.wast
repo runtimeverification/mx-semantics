@@ -67,7 +67,7 @@ deployTx(
         call $i32.assertEqual
         i32.const 0
         i32.load8_s
-        i32.const 1
+        i32.const -1
         call $i32.assertEqual
         i32.const 1
         i64.load

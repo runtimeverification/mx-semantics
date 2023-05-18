@@ -5,9 +5,57 @@ Go implementation: [mx-chain-vm-go/vmhost/vmhooks/cryptoei.go](https://github.co
 
 ```k
 require "../elrond-config.md"
+require "manBufOps.md"
+```
 
+## Helpers
+
+```k
+module CRYPTOEI-HELPERS
+    imports ELROND-CONFIG
+    imports MANBUFOPS
+
+    syntax HashBytesStackInstr ::= "#sha256FromBytesStack"
+ // ------------------------------------------------------
+    rule <instrs> #sha256FromBytesStack => . ... </instrs>
+         <bytesStack> (DATA => #parseHexBytes(Sha256(Bytes2String(DATA)))) : _STACK </bytesStack>
+
+    syntax HashBytesStackInstr ::= "#keccakFromBytesStack"
+ // ------------------------------------------------------
+    rule <instrs> #keccakFromBytesStack => . ... </instrs>
+         <bytesStack> (DATA => #parseHexBytes(Keccak256(Bytes2String(DATA)))) : _STACK </bytesStack>
+
+    syntax InternalInstr ::= #hashMemory ( Int , Int , Int ,  HashBytesStackInstr )
+ // -------------------------------------------------------------------------------
+    rule <instrs> #hashMemory(DATAOFFSET, LENGTH, RESULTOFFSET, HASHINSTR)
+               => #memLoad(DATAOFFSET, LENGTH)
+               ~> HASHINSTR
+               ~> #memStoreFromBytesStack(RESULTOFFSET)
+               ~> #dropBytes
+               ~> i32.const 0
+               ...
+          </instrs>
+
+    syntax InternalInstr ::= #hashManBuffer ( Int , Int , HashBytesStackInstr )
+ // -------------------------------------------------------------------------------
+    rule [hashManBuffer]:
+        <instrs> #hashManBuffer(DATA_HANDLE, DEST_HANDLE, HASHINSTR)
+              => #getBuffer(DATA_HANDLE)
+              ~> HASHINSTR
+              ~> #setBufferFromBytesStack(DEST_HANDLE)
+              ~> #dropBytes
+              ~> i32.const 0
+                ...
+        </instrs>
+
+endmodule
+```
+
+## Host functions
+
+```k
 module CRYPTOEI
-     imports ELROND-CONFIG
+    imports CRYPTOEI-HELPERS
 
     // extern int32_t sha256(void* context, int32_t dataOffset, int32_t length, int32_t resultOffset);
     rule <instrs> hostCall("env", "sha256", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -20,6 +68,14 @@ module CRYPTOEI
            2 |-> <i32> RESULTOFFSET
          </locals>
 
+    // extern int32_t managedSha256(void* context, int32_t inputHandle, int32_t outputHandle);
+    rule [managedSha256]:
+        <instrs> hostCall("env", "managedSha256", [ i32 i32  .ValTypes ] -> [ i32  .ValTypes ] )
+              => #hashManBuffer(DATA, DEST, #sha256FromBytesStack)
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> DATA 1 |-> <i32> DEST </locals>
+
     // extern int32_t keccak256(void *context, int32_t dataOffset, int32_t length, int32_t resultOffset);
     rule <instrs> hostCall("env", "keccak256", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #hashMemory(DATAOFFSET, LENGTH, RESULTOFFSET, #keccakFromBytesStack)
@@ -30,6 +86,14 @@ module CRYPTOEI
            1 |-> <i32> LENGTH
            2 |-> <i32> RESULTOFFSET
          </locals>
+
+    // extern int32_t managedKeccak256(void* context, int32_t inputHandle, int32_t outputHandle);
+    rule [managedKeccak256]:
+        <instrs> hostCall("env", "managedKeccak256", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+              => #hashManBuffer(DATA, DEST, #keccakFromBytesStack)
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> DATA 1 |-> <i32> DEST </locals>
 
 endmodule
 ```

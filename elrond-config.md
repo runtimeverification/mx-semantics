@@ -401,31 +401,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       requires 2 <=Int lengthString(S)
 ```
 
-### Crypto
-
-```k
-    syntax HashBytesStackInstr ::= "#sha256FromBytesStack"
- // ------------------------------------------------------
-    rule <instrs> #sha256FromBytesStack => . ... </instrs>
-         <bytesStack> (DATA => #parseHexBytes(Sha256(Bytes2String(DATA)))) : _STACK </bytesStack>
-
-    syntax HashBytesStackInstr ::= "#keccakFromBytesStack"
- // ------------------------------------------------------
-    rule <instrs> #keccakFromBytesStack => . ... </instrs>
-         <bytesStack> (DATA => #parseHexBytes(Keccak256(Bytes2String(DATA)))) : _STACK </bytesStack>
-
-    syntax InternalInstr ::= #hashMemory ( Int , Int , Int ,  HashBytesStackInstr )
- // -------------------------------------------------------------------------------
-    rule <instrs> #hashMemory(DATAOFFSET, LENGTH, RESULTOFFSET, HASHINSTR)
-               => #memLoad(DATAOFFSET, LENGTH)
-               ~> HASHINSTR
-               ~> #memStoreFromBytesStack(RESULTOFFSET)
-               ~> #dropBytes
-               ~> i32.const 0
-               ...
-          </instrs>
-```
-
 ### Log
 
 ```k

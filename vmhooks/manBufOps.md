@@ -17,11 +17,21 @@ module MANBUFOPS
 ```k
     syntax InternalInstr ::= #getBuffer ( idx : Int )
  // ---------------------------------------------------------------
-    rule <instrs> #getBuffer(BUFFER_IDX) => . ... </instrs>
-         <bytesStack> STACK => {HEAP[BUFFER_IDX]}:>Bytes : STACK </bytesStack>
-         <bufferHeap> HEAP </bufferHeap>
+    rule [getBuffer]:
+        <instrs> #getBuffer(BUFFER_IDX) => . ... </instrs>
+        <bytesStack> STACK => {HEAP[BUFFER_IDX]}:>Bytes : STACK </bytesStack>
+        <bufferHeap> HEAP </bufferHeap>
       requires BUFFER_IDX in_keys(HEAP)
-       andBool isBytes(HEAP[BUFFER_IDX])
+       andBool isBytes(HEAP[BUFFER_IDX] orDefault .Bytes)
+    
+    rule [getBuffer-not-found]:
+        <instrs> #getBuffer(BUFFER_IDX) 
+              => #throwException(ExecutionFailed, "no managed buffer under the given handle")
+                 ... 
+        </instrs>
+        <bufferHeap> HEAP </bufferHeap>
+      requires notBool BUFFER_IDX in_keys(HEAP)
+        orBool notBool isBytes(HEAP[BUFFER_IDX] orDefault .Bytes)
 
     syntax InternalInstr ::= #setBufferFromBytesStack ( idx: Int )
                            | #setBuffer ( idx: Int , value: Bytes )

@@ -8,83 +8,23 @@ require "auto-allocate.md"
 require "blockchain-k-plugin/krypto.md"
 require "elrond-node.md"
 require "wasm-text.md"
-require "wasm-coverage.md"
+// require "wasm-coverage.md"
 
 module ELROND-CONFIG
     imports KRYPTO
-    imports WASM-TEXT
-    imports WASM-COVERAGE
+    // imports WASM-COVERAGE
     imports WASM-AUTO-ALLOCATE
     imports ELROND-NODE
 
     configuration
       <elrond>
-        <wasmCoverage/>
+        // <wasmCoverage/>
         <node/>
-        <bigIntHeap> .Map </bigIntHeap>
-        <bufferHeap> .Map </bufferHeap>
-        <bytesStack> .BytesStack </bytesStack>
         <logging> "" </logging>
       </elrond>
 ```
 
 ## Helper Functions
-
-### Bytes Stack
-
-```k
-    syntax BytesStack ::= List{Bytes, ":"}
- // --------------------------------------
-
-    syntax BytesOp ::= #pushBytes ( Bytes )
-                     | "#dropBytes"
- // ---------------------------------------
-    rule <instrs> #pushBytes(BS) => . ... </instrs>
-         <bytesStack> STACK => BS : STACK </bytesStack>
-
-    rule <instrs> #dropBytes => . ... </instrs>
-         <bytesStack> _ : STACK => STACK </bytesStack>
-
-    syntax InternalInstr ::= "#returnLength"
- // ----------------------------------------
-    rule <instrs> #returnLength => i32.const lengthBytes(BS) ... </instrs>
-         <bytesStack> BS : _ </bytesStack>
-
-    syntax InternalInstr ::= "#bytesEqual"
- // --------------------------------------
-    rule <instrs> #bytesEqual => i32.const #bool( BS1 ==K BS2 ) ... </instrs>
-         <bytesStack> BS1 : BS2 : _ </bytesStack>
-
-```
-
-### World State
-
-```k
-    syntax Accounts ::= "{" AccountsCellFragment "|" Set "}"
- // --------------------------------------------------------
-
-    syntax InternalCmd ::= "pushWorldState"
- // ---------------------------------------
-    rule <commands> pushWorldState => . ... </commands>
-         <interimStates> (.List => ListItem({ ACCTDATA | ACCTS })) ... </interimStates>
-         <activeAccounts> ACCTS    </activeAccounts>
-         <accounts>       ACCTDATA </accounts>
-      [priority(60)]
-
-    syntax InternalCmd ::= "popWorldState"
- // --------------------------------------
-    rule <commands> popWorldState => . ... </commands>
-         <interimStates> (ListItem({ ACCTDATA | ACCTS }) => .List) ... </interimStates>
-         <activeAccounts> _ => ACCTS    </activeAccounts>
-         <accounts>       _ => ACCTDATA </accounts>
-      [priority(60)]
-
-    syntax InternalCmd ::= "dropWorldState"
- // ---------------------------------------
-    rule <commands> dropWorldState => . ... </commands>
-         <interimStates> (ListItem(_) => .List) ... </interimStates>
-      [priority(60)]
-```
 
 ### Misc
 
@@ -117,12 +57,7 @@ module ELROND-CONFIG
     rule <instrs> #memStore(OFFSET, BS) 
                => #throwException(ExecutionFailed, "bad bounds (upper)") ... 
          </instrs>
-         <callee> CALLEE </callee>
-         <account>
-           <address> CALLEE </address>
-           <codeIdx> MODIDX:Int </codeIdx>
-           ...
-         </account>
+         <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
            <memAddrs> 0 |-> MEMADDR </memAddrs>
@@ -137,12 +72,7 @@ module ELROND-CONFIG
        andBool #signed(i32 , OFFSET) +Int lengthBytes(BS) >Int (SIZE *Int #pageSize())
 
     rule <instrs> #memStore(OFFSET, BS) => . ... </instrs>
-         <callee> CALLEE </callee>
-         <account>
-           <address> CALLEE </address>
-           <codeIdx> MODIDX:Int </codeIdx>
-           ...
-         </account>
+         <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
            <memAddrs> 0 |-> MEMADDR </memAddrs>
@@ -164,12 +94,7 @@ module ELROND-CONFIG
       requires #signed(i32 , LENGTH) <Int 0
 
     rule <instrs> #memLoad(OFFSET, LENGTH) => #throwException(ExecutionFailed, "mem load: bad bounds") ... </instrs>
-         <callee> CALLEE </callee>
-         <account>
-           <address> CALLEE </address>
-           <codeIdx> MODIDX:Int </codeIdx>
-           ...
-         </account>
+         <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
            <memAddrs> 0 |-> MEMADDR </memAddrs>
@@ -186,12 +111,7 @@ module ELROND-CONFIG
 
     rule <instrs> #memLoad(OFFSET, LENGTH) => . ... </instrs>
          <bytesStack> STACK => #getBytesRange(DATA, OFFSET, LENGTH) : STACK </bytesStack>
-         <callee> CALLEE </callee>
-         <account>
-           <address> CALLEE </address>
-           <codeIdx> MODIDX:Int </codeIdx>
-           ...
-         </account>
+         <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
            <memAddrs> 0 |-> MEMADDR </memAddrs>
@@ -401,30 +321,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       requires 2 <=Int lengthString(S)
 ```
 
-### Crypto
 
-```k
-    syntax HashBytesStackInstr ::= "#sha256FromBytesStack"
- // ------------------------------------------------------
-    rule <instrs> #sha256FromBytesStack => . ... </instrs>
-         <bytesStack> (DATA => #parseHexBytes(Sha256(Bytes2String(DATA)))) : _STACK </bytesStack>
-
-    syntax HashBytesStackInstr ::= "#keccakFromBytesStack"
- // ------------------------------------------------------
-    rule <instrs> #keccakFromBytesStack => . ... </instrs>
-         <bytesStack> (DATA => #parseHexBytes(Keccak256(Bytes2String(DATA)))) : _STACK </bytesStack>
-
-    syntax InternalInstr ::= #hashMemory ( Int , Int , Int ,  HashBytesStackInstr )
- // -------------------------------------------------------------------------------
-    rule <instrs> #hashMemory(DATAOFFSET, LENGTH, RESULTOFFSET, HASHINSTR)
-               => #memLoad(DATAOFFSET, LENGTH)
-               ~> HASHINSTR
-               ~> #memStoreFromBytesStack(RESULTOFFSET)
-               ~> #dropBytes
-               ~> i32.const 0
-               ...
-          </instrs>
-```
 
 ### Log
 
@@ -498,12 +395,17 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ## Node And Wasm VM Synchronization
 
 - `#endWasm` waits for the Wasm VM to finish the execution and check the return code.
+- `#waitWasm` waits for the Wasm VM to finish
 
 ```k
     syntax InternalCmd ::= "#endWasm"
+                         | "#waitWasm"
  // ---------------------------------
-    rule <commands> #endWasm => dropWorldState ... </commands>
+    rule <commands> #endWasm => dropWorldState ~> popCallState ... </commands>
          <returnCode> .ReturnCode => OK </returnCode>
+         <instrs> . </instrs>
+      [priority(60)]
+    rule <commands> #waitWasm => . ... </commands>
          <instrs> . </instrs>
       [priority(60)]
 ```
@@ -516,7 +418,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ```k
     syntax InternalCmd ::= #exception ( ExceptionCode )
  // ---------------------------------------------------
-    rule <commands> (#exception(EC) ~> _) => popWorldState </commands>
+    rule <commands> (#exception(EC) ~> _) => popWorldState ~> dropCallState </commands>
          <returnCode> _ => EC </returnCode>
          <instrs> _ => . </instrs>
       [priority(10)]
@@ -558,26 +460,26 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
       [priority(61)]
 
-    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, CodeIndex, Bytes, Map )
-                         | setAccountCodeIndex ( Bytes, CodeIndex )
+    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, Code, Bytes, Map )
+                         | setAccountCode      ( Bytes, Code )
                          | setAccountOwner     ( Bytes, Bytes )
  // ---------------------------------------------------------------
-    rule <commands> setAccountFields(ADDR, NONCE, BALANCE, CODEIDX, OWNER_ADDR, STORAGE) => . ... </commands>
+    rule <commands> setAccountFields(ADDR, NONCE, BALANCE, CODE, OWNER_ADDR, STORAGE) => . ... </commands>
          <account>
            <address> ADDR </address>
            <nonce> _ => NONCE </nonce>
            <balance> _ => BALANCE </balance>
-           <codeIdx> _ => CODEIDX </codeIdx>
+           <code> _ => CODE </code>
            <ownerAddress> _ => OWNER_ADDR </ownerAddress>
            <storage> _ => STORAGE </storage>
            ...
          </account>
       [priority(60)]
 
-    rule <commands> setAccountCodeIndex(ADDR, CODEIDX) => . ... </commands>
+    rule <commands> setAccountCode(ADDR, CODE) => . ... </commands>
          <account>
            <address> ADDR </address>
-           <codeIdx> _ => CODEIDX </codeIdx>
+           <code> _ => CODE </code>
            ...
          </account>
       [priority(60)]
@@ -715,110 +617,95 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </commands>
       [priority(60)]
 
-    // The memory instance linked to the contract's account should be restored to the initial state after the contract call.
-    // TODO Create a new wasm instance to run the contract call. Execute all contract calls on a separate wasm instance.
-    //      This will eliminate the need for #restoreMem
-    //          https://github.com/multiversx/mx-chain-vm-go/blob/255d2b23189cbc8a80312ab89890163800255dba/vmhost/hostCore/execution.go#L779
-    //      Push the current <callState>, <bigIntHeap>, <bufferHeap> and wasm instance to a call stack (add new configuration cell <callStack>)       
-    rule <commands> callContract(FROM, TO, VALUE, ESDT, FUNCNAME:WasmStringToken, ARGS, GASLIMIT, GASPRICE)
-                 => pushWorldState
-                 ~> transferFunds(FROM, TO, VALUE)
-                 ~> transferESDTs(FROM, TO, ESDT)
-                 ~> mkCall(FROM, TO, VALUE, ESDT, FUNCNAME, ARGS, GASLIMIT, GASPRICE)
-                 ~> #endWasm
-                 ~> #restoreMem(MEMADDR, MMAX, SIZE, DATA)
-                    ...
-         </commands>
-         <account>
-           <address> TO </address>
-           <codeIdx> MODIDX:Int </codeIdx>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
-           ...
-         </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <mmax> MMAX </mmax>
-           <msize> SIZE </msize>
-           <mdata> DATA </mdata>
-         </memInst>
+    rule [callContract]:
+        <commands> callContract(FROM, TO, VALUE, ESDT, FUNCNAME:WasmStringToken, ARGS, GASLIMIT, GASPRICE)
+                => pushWorldState
+                ~> pushCallState
+                ~> transferFunds(FROM, TO, VALUE)
+                ~> transferESDTs(FROM, TO, ESDT)
+                ~> newWasmInstance(CODE)
+                ~> mkCall(FROM, TO, VALUE, ESDT, FUNCNAME, ARGS, GASLIMIT, GASPRICE)
+                ~> #endWasm
+                   ...
+        </commands>
+        <account>
+          <address> TO </address>
+          <code> CODE </code>
+          ...
+        </account>
+        // output
+        <out> _ => .List </out>
+        <message> _ => .Bytes </message>
+        <returnCode> _ => .ReturnCode </returnCode>
+        <logs> _ => .List </logs>
+        <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
+
       [priority(60)]
 
-    // The module does not have any memory instances. Nothing to restore.
-    rule <commands> callContract(FROM, TO, VALUE, ESDT, FUNCNAME:WasmStringToken, ARGS, GASLIMIT, GASPRICE)
-                 => pushWorldState
-                 ~> transferFunds(FROM, TO, VALUE)
-                 ~> transferESDTs(FROM, TO, ESDT)
-                 ~> mkCall(FROM, TO, VALUE, ESDT, FUNCNAME, ARGS, GASLIMIT, GASPRICE)
-                 ~> #endWasm
-                    ...
-         </commands>
-         <account>
-           <address> TO </address>
-           <codeIdx> MODIDX:Int </codeIdx>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> MODIDX </modIdx>
-           <memAddrs> .Map </memAddrs>
-           ...
-         </moduleInst>
+```
+
+Every contract call runs in its own Wasm instance initialized with the contract's code.
+
+```k
+    syntax WasmCell
+    syntax InternalCommand ::= newWasmInstance(ModuleDecl)
+                             | "setContractModIdx"
+ // ------------------------------------------------------
+    rule [newWasmInstance]:
+        <commands> newWasmInstance(CODE) => #waitWasm ~> setContractModIdx ...</commands>
+        ( _:WasmCell => <wasm> 
+          <instrs> initContractModule(CODE) </instrs>
+          ...
+        </wasm>)
+    rule [setContractModIdx]:
+        <commands> setContractModIdx => . ... </commands>
+        <contractModIdx> _ => NEXTIDX -Int 1 </contractModIdx>
+        <nextModuleIdx> NEXTIDX </nextModuleIdx>
+
+    syntax K ::= initContractModule(ModuleDecl)   [function]
+ // ------------------------------------------------------------------------
+    rule initContractModule((module _:OptionalId _:Defns):ModuleDecl #as M) 
+      => sequenceStmts(text2abstract(M .Stmts))
+
+    rule initContractModule(M:ModuleDecl) => M              [owise]
+
+    rule [mkCall]:
+        <commands> mkCall(FROM, TO, VALUE, ESDT, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
+        <callState>
+          // call input
+          <caller> _ => FROM </caller>
+          <callee> _ => TO   </callee>
+          <callArgs> _ => ARGS </callArgs>
+          <callValue> _ => VALUE </callValue>
+          <esdtTransfers> _ => ESDT </esdtTransfers>
+          // executional
+          <wasm>
+            <instrs> . => ( invoke FUNCADDR ) </instrs>
+            <moduleInst>
+              <modIdx> MODIDX </modIdx>
+              <exports> ... FUNCNAME |-> FUNCIDX:Int </exports>
+              <funcAddrs> ... FUNCIDX |-> FUNCADDR:Int ... </funcAddrs>
+              ...
+            </moduleInst>
+            ...
+          </wasm>
+          <bigIntHeap> _ => .Map </bigIntHeap>
+          <bufferHeap> _ => .Map </bufferHeap>
+          <bytesStack> _ => .BytesStack </bytesStack>
+          <contractModIdx> MODIDX:Int </contractModIdx>
+        </callState>
       [priority(60)]
 
-    syntax InternalCmd ::= #restoreMem(Int, OptionalInt, Int, Bytes)
- // ---------------------------------------------------------
-    rule <commands> #restoreMem(MEMADDR, MMAX, SIZE, DATA) => . ... </commands>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <mmax> _ => MMAX  </mmax>
-           <msize> _ => SIZE </msize>
-           <mdata> _ => DATA </mdata>
-         </memInst>
-      [priority(60)]
-
-    rule <commands> mkCall(FROM, TO, VALUE, ESDT, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
-         <callArgs> _ => ARGS </callArgs>
-         <caller> _ => FROM </caller>
-         <callee> _ => TO   </callee>
-         <callValue> _ => VALUE </callValue>
-         <esdtTransfers> _ => ESDT </esdtTransfers>
-         <out> _ => .List </out>
-         <message> _ => .Bytes </message>
-         <returnCode> _ => .ReturnCode </returnCode>
-         <logs> _ => .List </logs>
-         <bigIntHeap> _ => .Map </bigIntHeap>
-         <bufferHeap> _ => .Map </bufferHeap>
-         <account>
-           <address> TO </address>
-           <codeIdx> CODE:Int </codeIdx>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> CODE </modIdx>
-           <exports> ... FUNCNAME |-> FUNCIDX:Int </exports>
-           <funcAddrs> ... FUNCIDX |-> FUNCADDR:Int ... </funcAddrs>
-           ...
-         </moduleInst>
-         <instrs> . => ( invoke FUNCADDR ) </instrs>
-         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
-      [priority(60)]
-
-    rule <commands> mkCall(_FROM, TO, _VALUE, _ESDT, FUNCNAME:WasmStringToken, _ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
-         <account>
-           <address> TO </address>
-           <codeIdx> CODE:Int </codeIdx>
-           ...
-         </account>
-         <moduleInst>
-           <modIdx> CODE </modIdx>
-           <exports> EXPORTS </exports>
-           ...
-         </moduleInst>
-         <instrs> . => #throwException(FunctionNotFound, "invalid function (not found)") </instrs>
-         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
+    rule [mkCall-func-not-found]:
+        <commands> mkCall(_FROM, _TO, _VALUE, _ESDT, FUNCNAME:WasmStringToken, _ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
+        <contractModIdx> MODIDX:Int </contractModIdx>
+        <moduleInst>
+          <modIdx> MODIDX </modIdx>
+          <exports> EXPORTS </exports>
+          ...
+        </moduleInst>
+        <instrs> . => #throwException(FunctionNotFound, "invalid function (not found)") </instrs>
+        <logging> S => S +String " -- callContract not found " +String #parseWasmString(FUNCNAME) </logging>
       requires notBool( FUNCNAME in_keys(EXPORTS) )
       [priority(60)]
 

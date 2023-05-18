@@ -37,7 +37,7 @@ module BASEOPS
          <bytesStack> ADDR : STACK => STACK </bytesStack>
          <account>
            <address> ADDR </address>
-           <codeIdx> _:Int </codeIdx>
+           <code> _:ModuleDecl </code>
            ...
          </account>
 
@@ -45,7 +45,7 @@ module BASEOPS
          <bytesStack> ADDR : STACK => STACK </bytesStack>
          <account>
            <address> ADDR </address>
-           <codeIdx> .CodeIndex </codeIdx>
+           <code> .Code </code>
            ...
          </account>
 

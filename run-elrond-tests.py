@@ -253,6 +253,7 @@ def mandos_to_set_account(address, sections, filename, output_dir):
     address_value = mandos_argument_to_kbytes(address)
     nonce_value   = mandos_int_to_kint(sections.get('nonce', '0'))
     balance_value = mandos_int_to_kint(sections.get('balance', '0'))
+    owner_value   = mandos_argument_to_kbytes(sections.get('owner', ''))
     code_value = KApply(".Code", [])
     if 'code' in sections:
         code_path = get_contract_code(sections['code'], filename)
@@ -262,7 +263,7 @@ def mandos_to_set_account(address, sections, filename, output_dir):
     storage_pairs = [ (mandos_argument_to_kbytes(k), mandos_argument_to_kbytes(v)) for (k, v) in sections.get('storage', {}).items() ]
     storage_value = KMap(storage_pairs)
 
-    set_account_steps = [KApply('setAccount', [address_value, nonce_value, balance_value, code_value, storage_value])]
+    set_account_steps = [KApply('setAccount', [address_value, nonce_value, balance_value, code_value, owner_value, storage_value])]
 
     if 'esdt' in sections:
         for k, v in sections['esdt'].items():

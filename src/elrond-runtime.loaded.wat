@@ -9,113 +9,114 @@
     .Set
   </checkedAccounts>
   <elrond>
-    <wasmCoverage>
-      <coveredFuncs>
-        .Set
-      </coveredFuncs>
-      <notCoveredFuncs>
-        .Map
-      </notCoveredFuncs>
-      <coveredBlock>
-        .Map
-      </coveredBlock>
-      <lastVisitedBlock>
-        .Int
-      </lastVisitedBlock>
-      <wasm>
-        <instrs>
-          .
-        </instrs>
-        <valstack>
-          .ValStack
-        </valstack>
-        <curFrame>
-          <locals>
-            .Map
-          </locals>
-          <curModIdx>
-            .Int
-          </curModIdx>
-        </curFrame>
-        <moduleRegistry>
-          .Map
-        </moduleRegistry>
-        <moduleIds>
-          .Map
-        </moduleIds>
-        <moduleInstances>
-          .ModuleInstCellMap
-        </moduleInstances>
-        <nextModuleIdx>
-          0
-        </nextModuleIdx>
-        <mainStore>
-          <funcs>
-            .FuncDefCellMap
-          </funcs>
-          <nextFuncAddr>
-            0
-          </nextFuncAddr>
-          <tabs>
-            .TabInstCellMap
-          </tabs>
-          <nextTabAddr>
-            0
-          </nextTabAddr>
-          <mems>
-            .MemInstCellMap
-          </mems>
-          <nextMemAddr>
-            0
-          </nextMemAddr>
-          <globals>
-            .GlobalInstCellMap
-          </globals>
-          <nextGlobAddr>
-            0
-          </nextGlobAddr>
-        </mainStore>
-        <deterministicMemoryGrowth>
-          true
-        </deterministicMemoryGrowth>
-      </wasm>
-    </wasmCoverage>
     <node>
       <commands>
         .
       </commands>
       <callState>
-        <callArgs>
-          .List
-        </callArgs>
         <caller>
           b""
         </caller>
         <callee>
           b""
         </callee>
+        <callArgs>
+          .List
+        </callArgs>
         <callValue>
           0
         </callValue>
         <esdtTransfers>
           .List
         </esdtTransfers>
-        <out>
-          .List
-        </out>
-        <message>
-          b""
-        </message>
-        <returnCode>
-          .ReturnCode
-        </returnCode>
-        <interimStates>
-          .List
-        </interimStates>
-        <logs>
-          .List
-        </logs>
+        <wasm>
+          <instrs>
+            .
+          </instrs>
+          <valstack>
+            .ValStack
+          </valstack>
+          <curFrame>
+            <locals>
+              .Map
+            </locals>
+            <curModIdx>
+              .Int
+            </curModIdx>
+          </curFrame>
+          <moduleRegistry>
+            .Map
+          </moduleRegistry>
+          <moduleIds>
+            .Map
+          </moduleIds>
+          <moduleInstances>
+            .ModuleInstCellMap
+          </moduleInstances>
+          <nextModuleIdx>
+            0
+          </nextModuleIdx>
+          <mainStore>
+            <funcs>
+              .FuncDefCellMap
+            </funcs>
+            <nextFuncAddr>
+              0
+            </nextFuncAddr>
+            <tabs>
+              .TabInstCellMap
+            </tabs>
+            <nextTabAddr>
+              0
+            </nextTabAddr>
+            <mems>
+              .MemInstCellMap
+            </mems>
+            <nextMemAddr>
+              0
+            </nextMemAddr>
+            <globals>
+              .GlobalInstCellMap
+            </globals>
+            <nextGlobAddr>
+              0
+            </nextGlobAddr>
+          </mainStore>
+          <deterministicMemoryGrowth>
+            true
+          </deterministicMemoryGrowth>
+        </wasm>
+        <bigIntHeap>
+          .Map
+        </bigIntHeap>
+        <bufferHeap>
+          .Map
+        </bufferHeap>
+        <bytesStack>
+          .BytesStack
+        </bytesStack>
+        <contractModIdx>
+          .Int
+        </contractModIdx>
       </callState>
+      <out>
+        .List
+      </out>
+      <message>
+        b""
+      </message>
+      <returnCode>
+        .ReturnCode
+      </returnCode>
+      <logs>
+        .List
+      </logs>
+      <callStack>
+        .List
+      </callStack>
+      <interimStates>
+        .List
+      </interimStates>
       <activeAccounts>
         .Set
       </activeAccounts>
@@ -157,15 +158,6 @@
         </curBlockRandomSeed>
       </currentBlockInfo>
     </node>
-    <bigIntHeap>
-      .Map
-    </bigIntHeap>
-    <bufferHeap>
-      .Map
-    </bufferHeap>
-    <bytesStack>
-      .BytesStack
-    </bytesStack>
     <logging>
       ""
     </logging>

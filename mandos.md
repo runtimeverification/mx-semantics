@@ -90,30 +90,20 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### Step type: setState
 
 ```k
-    syntax Step ::= setAccount    ( address: Address, nonce: Int, balance: Int, code: Code, storage: Map )  [klabel(setAccount), symbol]
-                  | setAccountAux ( address: Bytes, nonce: Int, balance: Int, code: Code, storage: Map )    [klabel(setAccountAux), symbol]
+    syntax Step ::= setAccount    ( address: Address, nonce: Int, balance: Int, code: Code, owner: Address, storage: Map )  [klabel(setAccount), symbol]
+                  | setAccountAux ( address: Bytes, nonce: Int, balance: Int, code: Code, owner: Bytes, storage: Map )      [klabel(setAccountAux), symbol]
                   | createAndSetAccountWithEmptyCode       ( Bytes, Int, Int, Map )
                   | createAndSetAccountAfterInitCodeModule ( Bytes, Int, Int, Map )
  // -------------------------------------------------------------------------------
-    rule <k> setAccount(ADDRESS, NONCE, BALANCE, CODE, STORAGE)
-          => setAccountAux(#address2Bytes(ADDRESS), NONCE, BALANCE, CODE, STORAGE) ... </k>
+    rule <k> setAccount(ADDRESS, NONCE, BALANCE, CODE, OWNER, STORAGE)
+          => setAccountAux(#address2Bytes(ADDRESS), NONCE, BALANCE, CODE, #address2Bytes(OWNER), STORAGE) ... </k>
       [priority(60)]
 
-    rule <k> setAccountAux(ADDRESS, NONCE, BALANCE, .Code, STORAGE)
-          => createAndSetAccountWithEmptyCode(ADDRESS, NONCE, BALANCE, STORAGE) ... </k>
-      [priority(60)]
-
-    rule <k> setAccountAux(ADDRESS, NONCE, BALANCE, MODULE:ModuleDecl, STORAGE)
-          => MODULE ~> createAndSetAccountAfterInitCodeModule(ADDRESS, NONCE, BALANCE, STORAGE) ... </k>
-      [priority(60)]
-
-    rule <k> createAndSetAccountWithEmptyCode(ADDRESS, NONCE, BALANCE, STORAGE) => #wait ... </k>
-         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, .CodeIndex, .Bytes, STORAGE) </commands>
-      [priority(60)]
-
-    rule <k> createAndSetAccountAfterInitCodeModule(ADDRESS, NONCE, BALANCE, STORAGE) => #wait ... </k>
-         <commands> . => createAccount(ADDRESS) ~> setAccountFields(ADDRESS, NONCE, BALANCE, NEXTIDX -Int 1, .Bytes, STORAGE) </commands>
-         <nextModuleIdx> NEXTIDX </nextModuleIdx>
+    rule <k> setAccountAux(ADDRESS, NONCE, BALANCE, CODE, OWNER, STORAGE) => #wait ... </k>
+         <commands> . 
+                 => createAccount(ADDRESS)
+                 ~> setAccountFields(ADDRESS, NONCE, BALANCE, CODE, OWNER, STORAGE) 
+         </commands>
       [priority(60)]
 
     syntax Step ::= setEsdtBalance( Bytes , Bytes, Int )     [klabel(setEsdtBalance), symbol]
@@ -264,29 +254,28 @@ Only take the next step once both the Elrond node and Wasm are done executing.
              => checkAccountCodeAux(#address2Bytes(ADDRESS), CODEPATH) ... </k>
       [priority(60)]
 
+    // TODO implement #getModuleCodePath
+    syntax OptionalString ::= #getModuleCodePath(ModuleDecl)    [function, total]
+ // ----------------------------------------------------------------------
+    rule #getModuleCodePath(#module (... metadata: #meta (... filename: PATH ) ) ) => PATH
+    rule #getModuleCodePath((module OID:OptionalId DS:Defns) => structureModule(DS, OID))
+    rule #getModuleCodePath(_) => .String                                                   [owise]
+
     rule <k> checkAccountCodeAux(ADDR, "") => . ... </k>
          <account>
            <address> ADDR </address>
-           <codeIdx> .CodeIndex </codeIdx>
+           <code> .Code </code>
            ...
          </account>
       [priority(60)]
-
+      
     rule <k> checkAccountCodeAux(ADDR, CODEPATH) => . ... </k>
          <account>
            <address> ADDR </address>
-           <codeIdx> CODEINDEX </codeIdx>
+           <code> CODE:ModuleDecl </code>
            ...
          </account>
-         <moduleInst>
-           <modIdx> CODEINDEX </modIdx>
-           <moduleMetadata>
-             <moduleFileName> CODEPATH </moduleFileName>
-             ...
-           </moduleMetadata>
-           ...
-         </moduleInst>
-      requires CODEPATH =/=String ""
+      requires CODEPATH ==K #getModuleCodePath(CODE)
       [priority(60)]
 
     syntax Step ::= checkedAccount    ( Address ) [klabel(checkedAccount), symbol]
@@ -388,30 +377,25 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
                   | deployTxAux ( Bytes, Int, ModuleDecl, List, Int, Int )   [klabel(deployTxAux), symbol]
  // ------------------------------------------------------------------------------------------------------
     rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE)
-          => deployTxAux(#address2Bytes(FROM), VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) ... </k>
+          => deployTxAux(#address2Bytes(FROM), VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) ... 
+         </k>
       [priority(60)]
 
-    rule <k> deployTxAux(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE)
-          => MODULE ~> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) ... </k>
-      [priority(60)]
-
-    syntax Deployment ::= deployLastModule( Bytes, Int, List, Int, Int )
- // --------------------------------------------------------------------
-    rule <k> deployLastModule(FROM, VALUE, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
-         <commands> . => createAccount(NEWADDR)
-                 ~> setAccountOwner(NEWADDR, FROM)
-                 ~> setAccountCodeIndex(NEWADDR, NEXTIDX -Int 1)
-                 ~> callContract(FROM, NEWADDR, VALUE, .List, "init", ARGS, GASLIMIT, GASPRICE)
-         </commands>
-         <account>
-            <address> FROM </address>
-            <nonce> NONCE => NONCE +Int 1 </nonce>
-            <balance> BALANCE => BALANCE -Int GASLIMIT *Int GASPRICE </balance>
-            ...
-         </account>
-         <nextModuleIdx> NEXTIDX </nextModuleIdx>
-         <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
-         <logging> S => S +String " -- deployLastModule: " +String Int2String(NEXTIDX -Int 1) </logging>
+    rule [deployTxAux]:
+        <k> deployTxAux(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
+        <commands> . 
+                => createAccount(NEWADDR)
+                ~> setAccountOwner(NEWADDR, FROM)
+                ~> setAccountCode(NEWADDR, MODULE)
+                ~> callContract(FROM, NEWADDR, VALUE, .List, "init", ARGS, GASLIMIT, GASPRICE)
+        </commands>
+        <account>
+           <address> FROM </address>
+           <nonce> NONCE => NONCE +Int 1 </nonce>
+           <balance> BALANCE => BALANCE -Int GASLIMIT *Int GASPRICE </balance>
+           ...
+        </account>
+        <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
       [priority(60)]
 ```
 

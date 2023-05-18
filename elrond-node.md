@@ -2,27 +2,37 @@ Elrond Node
 ===========
 
 ```k
-require "wasm-text.md"
+require "wasm.md"
 
 module ELROND-NODE
     imports DOMAINS
-    imports WASM-TEXT
+    imports WASM
 
     configuration
       <node>
         <commands> .K </commands>
         <callState>
-          <callArgs> .List </callArgs>
+          // input
           <caller> .Bytes </caller>
           <callee> .Bytes </callee>
+          <callArgs> .List </callArgs>
           <callValue> 0 </callValue>
           <esdtTransfers> .List </esdtTransfers>
-          <out> .List </out>
-          <message> .Bytes </message>
-          <returnCode> .ReturnCode </returnCode>
-          <interimStates> .List </interimStates>
-          <logs> .List </logs>
+          // executional
+          // every contract call use its own wasm module instance, managed data heaps, and bytesStack.
+          <wasm/>
+          <bigIntHeap> .Map </bigIntHeap>
+          <bufferHeap> .Map </bufferHeap>
+          <bytesStack> .BytesStack </bytesStack>
+          <contractModIdx> .Int </contractModIdx>
         </callState>
+        // output
+        <out> .List </out>
+        <message> .Bytes </message>
+        <returnCode> .ReturnCode </returnCode>
+        <logs> .List </logs>
+        <callStack> .List </callStack>
+        <interimStates> .List </interimStates>
         <activeAccounts> .Set </activeAccounts>
         <accounts>
           <account multiplicity="*" type="Map">
@@ -38,12 +48,12 @@ module ELROND-NODE
             </esdtDatas>
 ```
 
-If the codeIdx is ".CodeIndex", it means the account is not a contract.
-If the codeIdx is an integer, it is the exact module index from the Wasm store which specifies the contract.
-If the account is not a contract, ownerAddress is .Bytes
+If the `code` is `.Code`, it means the account is not a contract.
+If the `code` is a `ModuleDecl`, it is the Wasm module which specifies the contract.
+If the account is not a contract, `ownerAddress` is `.Bytes`.
 
 ```k
-             <codeIdx> .CodeIndex </codeIdx>
+             <code> .Code </code>
              <ownerAddress> .Bytes </ownerAddress>
 ```
 Storage maps byte arrays to byte arrays.
@@ -96,8 +106,8 @@ Storage maps byte arrays to byte arrays.
     rule #address2Bytes(ADDR:WasmStringToken) => String2Bytes(#parseWasmString(ADDR))
     rule #address2Bytes(ADDR:Bytes) => ADDR
 
-    syntax CodeIndex ::= ".CodeIndex" [klabel(.CodeIndex), symbol]
-                       | Int
+    // syntax CodeIndex ::= ".CodeIndex" [klabel(.CodeIndex), symbol]
+    //                    | Int
  // ----------------------------------------------------------
 
     syntax Code ::= ".Code" [klabel(.Code), symbol]
@@ -106,5 +116,92 @@ Storage maps byte arrays to byte arrays.
 
     syntax ESDTTransfer ::= esdtTransfer( tokenName : Bytes , tokenValue : Int , tokenNonce : Int )    [klabel(esdtTransfer), symbol]
 
+```
+
+### Bytes Stack
+
+```k
+    syntax BytesStack ::= List{Bytes, ":"}
+ // --------------------------------------
+
+    syntax BytesOp ::= #pushBytes ( Bytes )
+                     | "#dropBytes"
+ // ---------------------------------------
+    rule <instrs> #pushBytes(BS) => . ... </instrs>
+         <bytesStack> STACK => BS : STACK </bytesStack>
+
+    rule <instrs> #dropBytes => . ... </instrs>
+         <bytesStack> _ : STACK => STACK </bytesStack>
+
+    syntax InternalInstr ::= "#returnLength"
+ // ----------------------------------------
+    rule <instrs> #returnLength => i32.const lengthBytes(BS) ... </instrs>
+         <bytesStack> BS : _ </bytesStack>
+
+    syntax InternalInstr ::= "#bytesEqual"
+ // --------------------------------------
+    rule <instrs> #bytesEqual => i32.const #bool( BS1 ==K BS2 ) ... </instrs>
+         <bytesStack> BS1 : BS2 : _ </bytesStack>
+
+```
+
+## Call State
+
+The `<callStack>` cell stores a list of previous contract execution states. These internal commands manages the callstack when calling and returning from a contract.
+
+```k
+    syntax InternalCmd ::= "pushCallState"
+ // ---------------------------------------
+    rule <commands> pushCallState => . ... </commands>
+         <callStack> (.List => ListItem(CALLSTATE)) ... </callStack>
+         <callState> CALLSTATE </callState>
+      [priority(60)]
+
+    syntax InternalCmd ::= "popCallState"
+ // --------------------------------------
+    rule <commands> popCallState => . ... </commands>
+         <callStack> (ListItem(CALLSTATE) => .List) ... </callStack>
+         <callState> _ => CALLSTATE </callState>
+      [priority(60)]
+
+    syntax InternalCmd ::= "dropCallState"
+ // ---------------------------------------
+    rule <commands> dropCallState => . ... </commands>
+         <callStack> (ListItem(_) => .List) ... </callStack>
+      [priority(60)]
+```
+
+## World State
+
+```k
+    syntax AccountsCellFragment
+
+    syntax Accounts ::= "{" AccountsCellFragment "|" Set "}"
+ // --------------------------------------------------------
+
+    syntax InternalCmd ::= "pushWorldState"
+ // ---------------------------------------
+    rule <commands> pushWorldState => . ... </commands>
+         <interimStates> (.List => ListItem({ ACCTDATA | ACCTS })) ... </interimStates>
+         <activeAccounts> ACCTS    </activeAccounts>
+         <accounts>       ACCTDATA </accounts>
+      [priority(60)]
+
+    syntax InternalCmd ::= "popWorldState"
+ // --------------------------------------
+    rule <commands> popWorldState => . ... </commands>
+         <interimStates> (ListItem({ ACCTDATA | ACCTS }) => .List) ... </interimStates>
+         <activeAccounts> _ => ACCTS    </activeAccounts>
+         <accounts>       _ => ACCTDATA </accounts>
+      [priority(60)]
+
+    syntax InternalCmd ::= "dropWorldState"
+ // ---------------------------------------
+    rule <commands> dropWorldState => . ... </commands>
+         <interimStates> (ListItem(_) => .List) ... </interimStates>
+      [priority(60)]
+```
+
+```k
 endmodule
 ```

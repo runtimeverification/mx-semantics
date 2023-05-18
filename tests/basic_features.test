@@ -14,6 +14,7 @@ deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/crypto_sha256_le
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/crypto_sha256.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_array_u8.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_arrayvec.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_big_int_nested.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_big_int_top.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_big_uint.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_i32.scen.json
@@ -21,8 +22,10 @@ deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_i64.scen.js
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_ignore.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_managed_async_result_empty.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_managed_bytes.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_managed_vec.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_multi_value_tuples.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_nothing.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_tuple_into_multiresult.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_u64.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_usize.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_varargs_managed_eager.scen.json
@@ -58,8 +61,10 @@ deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_m
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_queue.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_set.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_single_value.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_token_attributes.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_unique_id.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_vec.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_whitelist.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_opt_managed_addr.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_raw_api_features.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_reserved.scen.json
@@ -67,3 +72,4 @@ deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_u64_bad.
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_u64.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_usize_bad.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_usize.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/struct_eq.scen.json

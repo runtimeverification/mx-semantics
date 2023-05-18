@@ -223,7 +223,7 @@ MANDOS_COV_DIR := tests/coverage
 mandos_cov_tests=$(sort $(wildcard $(MANDOS_COV_DIR)/*.scen.json))
 
 mandos-coverage: $(llvm_kompiled)
-	$(TEST_MANDOS) $(mandos_cov_tests) > $(MANDOS_COV_DIR)/coverage.out
+	$(TEST_MANDOS) $(mandos_cov_tests) --coverage > $(MANDOS_COV_DIR)/coverage.out
 	$(CHECK) $(MANDOS_COV_DIR)/coverage.out $(MANDOS_COV_DIR)/coverage-expected.out
 	rm $(MANDOS_COV_DIR)/coverage.out
 
@@ -234,7 +234,7 @@ elrond_adder_tests=$(shell find $(ELROND_ADDER_DIR) -name "*.scen.json")
 
 test-elrond-adder: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_ADDER_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_adder_tests)
+	$(TEST_MANDOS) $(elrond_adder_tests) --coverage
 
 ## Crowdfunding Test
 
@@ -243,7 +243,7 @@ elrond_crowdfunding_tests=$(shell find $(ELROND_CROWDFUNDING_DIR) -name "*.scen.
 
 test-elrond-crowdfunding-esdt: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_CROWDFUNDING_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_crowdfunding_tests)
+	$(TEST_MANDOS) $(elrond_crowdfunding_tests) --coverage
 
 ## Multisg Test
 
@@ -252,7 +252,7 @@ elrond_multisig_tests=$(shell cat tests/multisig.test)
 
 test-elrond-multisig: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_MULTISIG_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_multisig_tests)
+	$(TEST_MANDOS) $(elrond_multisig_tests) --coverage
 
 ## Basic Feature Test
 
@@ -267,7 +267,7 @@ $(ELROND_BASIC_FEATURES_WASM):
 test-elrond-basic-features: $(elrond_basic_features_tests:=.mandos)
 
 $(ELROND_BASIC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_BASIC_FEATURES_WASM)
-	$(TEST_MANDOS) $(ELROND_BASIC_FEATURES_DIR)/scenarios/$*.scen.json
+	$(TEST_MANDOS) $(ELROND_BASIC_FEATURES_DIR)/scenarios/$*.scen.json --log-level none
 
 # Unit Tests
 # ----------

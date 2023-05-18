@@ -8,17 +8,17 @@ require "auto-allocate.md"
 require "blockchain-k-plugin/krypto.md"
 require "elrond-node.md"
 require "wasm-text.md"
-// require "wasm-coverage.md"
+require "wasm-coverage.md"
 
 module ELROND-CONFIG
     imports KRYPTO
-    // imports WASM-COVERAGE
+    imports WASM-COVERAGE
     imports WASM-AUTO-ALLOCATE
     imports ELROND-NODE
 
     configuration
       <elrond>
-        // <wasmCoverage/>
+        <wasmCoverage/>
         <node/>
         <logging> "" </logging>
       </elrond>

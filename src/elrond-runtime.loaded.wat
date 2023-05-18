@@ -9,6 +9,20 @@
     .Set
   </checkedAccounts>
   <elrond>
+    <wasmCoverage>
+      <coveredFuncs>
+        .Set
+      </coveredFuncs>
+      <notCoveredFuncs>
+        .Set
+      </notCoveredFuncs>
+      <coveredBlock>
+        .Map
+      </coveredBlock>
+      <lastVisitedBlock>
+        .Int
+      </lastVisitedBlock>
+    </wasmCoverage>
     <node>
       <commands>
         .

@@ -723,7 +723,7 @@ def run_tests():
         if args.coverage:
             end_config = result_wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))
 
-            collect_data_func = lambda entry: (int(entry.args[0].token), int(entry.args[1].token))
+            collect_data_func = lambda entry: (entry.args[0], int(entry.args[1].token))
 
             func_cov_filter_func = lambda term: hasattr(term, 'label') and term.label.name == 'fcd'
             func_cov = cov.get_coverage_data(end_config, 'COVEREDFUNCS_CELL', func_cov_filter_func, collect_data_func)
@@ -731,9 +731,7 @@ def run_tests():
             block_cov_filter_func = lambda term: hasattr(term, 'label') and term.label.name == 'blockUid'
             block_cov = cov.get_coverage_data(end_config, 'COVEREDBLOCK_CELL', block_cov_filter_func, collect_data_func)
 
-            mods = cov.get_module_filename_map(result_wasm_config)
-
-            cov_data = { 'func_cov': func_cov, 'block_cov': block_cov, 'idx2file': mods }
+            cov_data = { 'func_cov': func_cov, 'block_cov': block_cov }
 
             coverage.add_coverage(cov_data, unnamed='import')
 

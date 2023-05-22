@@ -397,14 +397,19 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 - `#endWasm` waits for the Wasm VM to finish the execution and check the return code.
 - `#waitWasm` waits for the Wasm VM to finish
 
+TODO should VMOutputs be merged to the callstate after #endWasm? Contract A writes to <out>, then calls B. B writes to <out> as well. What should be the final output in VMOutputs? Also consider the failure case.
+
 ```k
     syntax InternalCmd ::= "#endWasm"
                          | "#waitWasm"
  // ---------------------------------
-    rule <commands> #endWasm => dropWorldState ~> popCallState ... </commands>
-         <returnCode> .ReturnCode => OK </returnCode>
+    rule <commands> #endWasm => popCallState ~> dropWorldState ... </commands>
          <instrs> . </instrs>
+         <out> OUT </out>
+         <logs> LOGS </logs>
+         <vmOutput> .VMOutput => VMOutput( OK , .Bytes , OUT , LOGS) </vmOutput>
       [priority(60)]
+
     rule <commands> #waitWasm => . ... </commands>
          <instrs> . </instrs>
       [priority(60)]
@@ -415,19 +420,34 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 
 - `#exception` drops the rest of the computation in the `commands` and `instrs` cells and reverts the state.
 
+TODO confirm the error propagation mechanism. For example, A calls B, B calls C. Should A and B fail, too? What should be the resulting VMOutput? 
+
 ```k
     syntax InternalCmd ::= #exception ( ExceptionCode )
  // ---------------------------------------------------
-    rule <commands> (#exception(EC) ~> _) => popWorldState ~> dropCallState </commands>
-         <returnCode> _ => EC </returnCode>
-         <instrs> _ => . </instrs>
+    rule [exception-revert]:
+        <commands> (#exception(_EC) ~> #endWasm) => dropCallState ~> popWorldState ... </commands>
+      [priority(10)]
+    
+    rule [exception-skip]:
+        <commands> #exception(_EC) ~> (CMD:InternalCmd => . ) ... </commands>
+      requires CMD =/=K #endWasm
       [priority(10)]
 
     syntax InternalInstr ::= #throwException( ExceptionCode , String )
+                           | #throwExceptionBs( ExceptionCode , Bytes )
  // ------------------------------------------------------------------
-    rule <instrs> #throwException( EC , MSG ) => . ... </instrs>
-         <commands> (. => #exception(EC)) ... </commands>
-         <message> _ => String2Bytes(MSG) </message>
+    rule [throwException]:
+        <instrs> #throwException( EC , MSG )
+              => #throwExceptionBs( EC , String2Bytes(MSG) ) ...
+        </instrs>
+
+    rule [throwExceptionBs]:
+        <instrs> (#throwExceptionBs( EC , MSG ) ~> _ ) => . </instrs>
+        <commands> (. => #exception(EC)) ... </commands>
+        <out> OUT </out>
+        <logs> LOGS </logs>
+        <vmOutput> .VMOutput => VMOutput( EC , MSG , OUT , LOGS) </vmOutput>
 
 ```
 
@@ -617,6 +637,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </commands>
       [priority(60)]
 
+    // TODO compare with the EVM contract call implementation
     rule [callContract]:
         <commands> callContract(FROM, TO, VALUE, ESDT, FUNCNAME:WasmStringToken, ARGS, GASLIMIT, GASPRICE)
                 => pushWorldState
@@ -633,11 +654,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           <code> CODE </code>
           ...
         </account>
-        // output
-        <out> _ => .List </out>
-        <message> _ => .Bytes </message>
-        <returnCode> _ => .ReturnCode </returnCode>
-        <logs> _ => .List </logs>
+        <vmOutput> _ => .VMOutput </vmOutput>
         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
 
       [priority(60)]
@@ -693,6 +710,9 @@ Every contract call runs in its own Wasm instance initialized with the contract'
           <bufferHeap> _ => .Map </bufferHeap>
           <bytesStack> _ => .BytesStack </bytesStack>
           <contractModIdx> MODIDX:Int </contractModIdx>
+          // output
+          <out> _ => .List </out>
+          <logs> _ => .List </logs>
         </callState>
       [priority(60)]
 

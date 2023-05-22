@@ -25,14 +25,13 @@ module ELROND-NODE
           <bufferHeap> .Map </bufferHeap>
           <bytesStack> .BytesStack </bytesStack>
           <contractModIdx> .Int </contractModIdx>
+          // output
+          <out> .List </out>
+          <logs> .List </logs>
         </callState>
-        // output
-        <out> .List </out>
-        <message> .Bytes </message>
-        <returnCode> .ReturnCode </returnCode>
-        <logs> .List </logs>
         <callStack> .List </callStack>
         <interimStates> .List </interimStates>
+        <vmOutput> .VMOutput </vmOutput>
         <activeAccounts> .Set </activeAccounts>
         <accounts>
           <account multiplicity="*" type="Map">
@@ -94,6 +93,9 @@ Storage maps byte arrays to byte arrays.
                            | "UpgradeFailed"            [klabel(UpgradeFailed), symbol]
                            | "SimulateFailed"           [klabel(SimulateFailed), symbol]
 
+    syntax VMOutput ::= ".VMOutput"
+                      | VMOutput( returnCode: ReturnCode , returnMessage: Bytes , out: List, logs: List )
+
  // ------------------------------------------------------------------
 
     syntax Address ::= Bytes
@@ -105,10 +107,6 @@ Storage maps byte arrays to byte arrays.
  // ------------------------------------------------------------------
     rule #address2Bytes(ADDR:WasmStringToken) => String2Bytes(#parseWasmString(ADDR))
     rule #address2Bytes(ADDR:Bytes) => ADDR
-
-    // syntax CodeIndex ::= ".CodeIndex" [klabel(.CodeIndex), symbol]
-    //                    | Int
- // ----------------------------------------------------------
 
     syntax Code ::= ".Code" [klabel(.Code), symbol]
                   | ModuleDecl

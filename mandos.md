@@ -327,25 +327,25 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     syntax Step ::= checkExpectOut ( List ) [klabel(checkExpectOut), symbol]
  // --------------------------------------------------------------------------
     rule <k> checkExpectOut(OUT) => . ... </k>
-         <out> OUT </out>
+         <vmOutput> VMOutput(... out: OUT) </vmOutput>
       [priority(60)]
 
     syntax Step ::= checkExpectStatus ( ReturnCode ) [klabel(checkExpectStatus), symbol]
  // ------------------------------------------------------------------------------------
     rule <k> checkExpectStatus(RETURNCODE) => . ... </k>
-         <returnCode> RETURNCODE </returnCode>
+         <vmOutput> VMOutput(... returnCode: RETURNCODE) </vmOutput>
       [priority(60)]
 
     syntax Step ::= checkExpectMessage ( Bytes ) [klabel(checkExpectMessage), symbol]
  // ---------------------------------------------------------------------------------
     rule <k> checkExpectMessage(MSG) => . ... </k>
-         <message> MSG </message>
+         <vmOutput> VMOutput(... returnMessage: MSG) </vmOutput>
       [priority(60)]
 
     syntax Step ::= checkExpectLogs ( List ) [klabel(checkExpectLogs), symbol]
  // --------------------------------------------------------------------------
     rule <k> checkExpectLogs(LOGS) => . ... </k>
-         <logs> LOGS </logs>
+         <vmOutput> VMOutput(... logs: LOGS) </vmOutput>
       [priority(60)]
     // TODO implement event logs (some host functions like ESDT transfer should emit event logs. see crowdfunding-claim-successful.json)
     rule <k> checkExpectLogs(_LOGS) => . ... </k>

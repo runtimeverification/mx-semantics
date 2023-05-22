@@ -112,25 +112,22 @@
         <contractModIdx>
           .Int
         </contractModIdx>
+        <out>
+          .List
+        </out>
+        <logs>
+          .List
+        </logs>
       </callState>
-      <out>
-        .List
-      </out>
-      <message>
-        b""
-      </message>
-      <returnCode>
-        .ReturnCode
-      </returnCode>
-      <logs>
-        .List
-      </logs>
       <callStack>
         .List
       </callStack>
       <interimStates>
         .List
       </interimStates>
+      <vmOutput>
+        .VMOutput
+      </vmOutput>
       <activeAccounts>
         .Set
       </activeAccounts>

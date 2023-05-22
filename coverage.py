@@ -1,19 +1,12 @@
 import unittest
-from pyk.kast.manip import split_config_from, bottom_up
-from pyk.kast.inner import KApply, KLabel, KToken, KSort
+from pyk.kast.manip import split_config_from
+from pyk.kast.inner import KApply, KToken, KSort
+from pyk.prelude.string import stringToken, pretty_string
 import subprocess
 
 
 
 #### SHOULD BE UPSTREAMED ####
-
-def fromKString(ks):
-    assert isinstance(ks, KToken) and ks.sort == KSort('String'), ks
-    s = ks.token
-    assert s[0] == s[-1] == '"'
-    return s[1:-1]
-
-
 def fromKInt(ki):
     assert isinstance(ki, KToken) and ki.sort == KSort('Int'), ki
     i = ki.token
@@ -31,27 +24,30 @@ class Coverage:
         return sorted(list(self.module_files))
 
     def add_coverage(self, cov_data, unnamed=None):
-        m2f = cov_data['idx2file']
+        
+        mod_paths = set()
 
-        def lookup_filename(mod_idx):
-            if (mod_idx in m2f) and (m2f[mod_idx] is not None):
-                return m2f[mod_idx]
-            else:
+        def lookup_filename(mod_path):
+            if not mod_path or mod_path == KApply('.String', []):
                 return unnamed
+            else:
+                pretty_path = pretty_string(mod_path)
+                mod_paths.add(pretty_path)
+                return pretty_path
 
         def aggregate_coverage(summarized_data, new_cov_data):
-            for (mod_name, cov_idx) in new_cov_data:
-                if mod_name not in summarized_data:
-                    summarized_data[mod_name] = set()
-                summarized_data[mod_name].add(cov_idx)
+            for (mod_path, cov_idx) in new_cov_data:
+                if mod_path not in summarized_data:
+                    summarized_data[mod_path] = set()
+                summarized_data[mod_path].add(cov_idx)
 
-        new_func_cov = [ (lookup_filename(mod_idx), func_idx) for (mod_idx, func_idx) in cov_data['func_cov'] ]
+        new_func_cov = [ (lookup_filename(mod_path), func_idx) for (mod_path, func_idx) in cov_data['func_cov'] ]
         aggregate_coverage(self.func_covered, new_func_cov)
 
-        new_block_cov = [ (lookup_filename(mod_idx), block_id) for (mod_idx, block_id) in cov_data['block_cov'] ]
+        new_block_cov = [ (lookup_filename(mod_path), block_id) for (mod_path, block_id) in cov_data['block_cov'] ]
         aggregate_coverage(self.block_covered, new_block_cov)
 
-        self.module_files = self.module_files.union(set(filter(None, cov_data['idx2file'].values())))
+        self.module_files = self.module_files.union(mod_paths)
 
     def is_func_covered(self, mod_name, func_idx):
         if mod_name in self.func_covered:
@@ -64,35 +60,6 @@ class Coverage:
             return block_idx in self.block_covered[mod_name]
         else:
             return False
-
-def get_module_filename_map(wasm_config):
-    def mod_to_idx_and_filename(mod):
-        res = {}
-
-        def callback(kast):
-            if isinstance(kast, KApply):
-                if kast.label == KLabel('<modIdx>'):
-                    res['idx'] = fromKInt(kast.args[0])
-                if kast.label == KLabel('<moduleFileName>'):
-                    a = kast.args[0]
-                    if isinstance(a, KApply):
-                        res['name'] = None
-                    else:
-                        res['name'] = fromKString(a)
-            return kast
-
-        bottom_up(callback, mod)
-        return (res['idx'], res['name'])
-
-    mods = []
-
-    def callback(kast):
-        if isinstance(kast, KApply) and kast.label == KLabel('<moduleInst>'):
-            mods.append(kast)
-        return kast
-
-    bottom_up(callback, wasm_config)
-    return dict(map(mod_to_idx_and_filename, mods))
 
 def get_coverage_data(term, cell_name, filter_func, collect_data_func):
 
@@ -181,7 +148,7 @@ def insert_coverage_on_text_module(coverage, imports_mod_name=None):
 class TestCoverage(unittest.TestCase):
 
     def dummy_coverage(_self, func_cov, block_cov):
-        coverage = { 'func_cov': func_cov, 'block_cov': block_cov, 'idx2file' : {0: 'foo', 1: 'bar'} }
+        coverage = { 'func_cov': func_cov, 'block_cov': block_cov }
         return coverage
 
     def test_coverage_empty(self):
@@ -190,21 +157,23 @@ class TestCoverage(unittest.TestCase):
         coverage.add_coverage(cov1)
         self.assertEqual(coverage.func_covered, {})
         self.assertEqual(coverage.block_covered, {})
-        self.assertEqual(coverage.module_files, {'foo', 'bar'})
+        self.assertEqual(coverage.module_files, set())
 
     def test_coverage_aggregate(self):
+        mod1 = stringToken("file1.wasm")
+        mod2 = stringToken("file2.wasm")
         func_cov1 = [
-            (0, 0), (0, 1), (0, 2),
-            (1, 0), (1, 1)
+            (mod1, 0), (mod1, 1), (mod1, 2),
+            (mod2, 0), (mod2, 1)
         ]
-        func_cov2 = [ (0, 0), (1, 2) ]
-        block_cov1 = [ (0, 0), (0, 1), (1, 0) ]
-        block_cov2 = [ (1, 1) ]
+        func_cov2 = [ (mod1, 0), (mod2, 2) ]
+        block_cov1 = [ (mod1, 0), (mod1, 1), (mod2, 0) ]
+        block_cov2 = [ (mod2, 1) ]
         coverage = Coverage()
         coverage.add_coverage(self.dummy_coverage(func_cov1, block_cov1))
         coverage.add_coverage(self.dummy_coverage(func_cov2, block_cov2))
-        self.assertEqual(coverage.func_covered, { 'foo': {0, 1, 2}, 'bar': {0, 1, 2} })
-        self.assertEqual(coverage.block_covered, { 'foo': {0, 1}, 'bar': {0, 1} })
+        self.assertEqual(coverage.func_covered, { 'file1.wasm': {0, 1, 2}, 'file2.wasm': {0, 1, 2} })
+        self.assertEqual(coverage.block_covered, { 'file1.wasm': {0, 1}, 'file2.wasm': {0, 1} })
 
 if __name__ == '__main__':
     unittest.main()

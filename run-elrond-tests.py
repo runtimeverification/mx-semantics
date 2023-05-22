@@ -253,6 +253,7 @@ def mandos_to_set_account(address, sections, filename, output_dir):
     address_value = mandos_argument_to_kbytes(address)
     nonce_value   = mandos_int_to_kint(sections.get('nonce', '0'))
     balance_value = mandos_int_to_kint(sections.get('balance', '0'))
+    owner_value   = mandos_argument_to_kbytes(sections.get('owner', ''))
     code_value = KApply(".Code", [])
     if 'code' in sections:
         code_path = get_contract_code(sections['code'], filename)
@@ -262,7 +263,7 @@ def mandos_to_set_account(address, sections, filename, output_dir):
     storage_pairs = [ (mandos_argument_to_kbytes(k), mandos_argument_to_kbytes(v)) for (k, v) in sections.get('storage', {}).items() ]
     storage_value = KMap(storage_pairs)
 
-    set_account_steps = [KApply('setAccount', [address_value, nonce_value, balance_value, code_value, storage_value])]
+    set_account_steps = [KApply('setAccount', [address_value, nonce_value, balance_value, code_value, owner_value, storage_value])]
 
     if 'esdt' in sections:
         for k, v in sections['esdt'].items():
@@ -722,7 +723,7 @@ def run_tests():
         if args.coverage:
             end_config = result_wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))
 
-            collect_data_func = lambda entry: (int(entry.args[0].token), int(entry.args[1].token))
+            collect_data_func = lambda entry: (entry.args[0], int(entry.args[1].token))
 
             func_cov_filter_func = lambda term: hasattr(term, 'label') and term.label.name == 'fcd'
             func_cov = cov.get_coverage_data(end_config, 'COVEREDFUNCS_CELL', func_cov_filter_func, collect_data_func)
@@ -730,9 +731,7 @@ def run_tests():
             block_cov_filter_func = lambda term: hasattr(term, 'label') and term.label.name == 'blockUid'
             block_cov = cov.get_coverage_data(end_config, 'COVEREDBLOCK_CELL', block_cov_filter_func, collect_data_func)
 
-            mods = cov.get_module_filename_map(result_wasm_config)
-
-            cov_data = { 'func_cov': func_cov, 'block_cov': block_cov, 'idx2file': mods }
+            cov_data = { 'func_cov': func_cov, 'block_cov': block_cov }
 
             coverage.add_coverage(cov_data, unnamed='import')
 

@@ -76,6 +76,7 @@ module CRYPTOEI
         </instrs>
         <locals> 0 |-> <i32> DATA 1 |-> <i32> DEST </locals>
 
+
     // extern int32_t keccak256(void *context, int32_t dataOffset, int32_t length, int32_t resultOffset);
     rule <instrs> hostCall("env", "keccak256", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #hashMemory(DATAOFFSET, LENGTH, RESULTOFFSET, #keccakFromBytesStack)

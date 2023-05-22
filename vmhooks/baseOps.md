@@ -37,7 +37,7 @@ module BASEOPS
          <bytesStack> ADDR : STACK => STACK </bytesStack>
          <account>
            <address> ADDR </address>
-           <codeIdx> _:Int </codeIdx>
+           <code> _:ModuleDecl </code>
            ...
          </account>
 
@@ -45,7 +45,7 @@ module BASEOPS
          <bytesStack> ADDR : STACK => STACK </bytesStack>
          <account>
            <address> ADDR </address>
-           <codeIdx> .CodeIndex </codeIdx>
+           <code> .Code </code>
            ...
          </account>
 
@@ -274,10 +274,8 @@ module BASEOPS
  
     syntax InternalInstr ::= "#signalError"
  // ---------------------------------------
-    rule <commands> (. => #exception(UserError)) ... </commands>
-         <instrs> (#signalError ~> _) => . </instrs>
+    rule <instrs> #signalError => #throwExceptionBs(UserError, DATA) ... </instrs>
          <bytesStack> DATA : STACK => STACK </bytesStack>
-         <message> MSG => MSG +Bytes DATA </message>
 
     // extern long long getBlockTimestamp(void *context);
     rule <instrs> hostCall("env", "getBlockTimestamp", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const TIMESTAMP ... </instrs>

@@ -1,6 +1,6 @@
 setExitCode 1
 
-setAccount("testDeployer", 0, 2 ^Int 256, .Code, .Map)
+setAccount("testDeployer", 0, 2 ^Int 256, .Code, .Bytes, .Map)
 newAddress("testDeployer", 0, "testContract")
 
 deployTx(
@@ -308,7 +308,7 @@ checkExpectStatus(OK)
 checkExpectOut(ListItem(Int2Bytes(777, BE, Signed)))
 checkAccountBalance("testDeployer", 0)
 
-setAccount("testCaller", 0, 0, .Code, .Map)
+setAccount("testCaller", 0, 0, .Code, .Bytes, .Map)
 
 callTx( "testCaller" , "testContract" , 0 , .List
       , "argsTest_getArgumentLength_invalidArg_neg", .List

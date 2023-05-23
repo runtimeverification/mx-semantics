@@ -269,6 +269,21 @@ test-elrond-basic-features: $(elrond_basic_features_tests:=.mandos)
 $(ELROND_BASIC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_BASIC_FEATURES_WASM)
 	$(TEST_MANDOS) $(ELROND_BASIC_FEATURES_DIR)/scenarios/$*.scen.json --log-level none
 
+## Alloc Features Test
+
+ELROND_ALLOC_FEATURES_DIR=$(ELROND_CONTRACT)/feature-tests/alloc-features
+ELROND_ALLOC_FEATURES_WASM=$(ELROND_ALLOC_FEATURES_DIR)/output/alloc-features.wasm
+elrond_alloc_features_tests=$(shell cat tests/alloc_features.test)
+
+$(ELROND_ALLOC_FEATURES_WASM):
+	mxpy contract build "$(ELROND_ALLOC_FEATURES_DIR)" --wasm-symbols
+
+# TODO optimize test runner and enable coverage and logging
+test-elrond-alloc-features: $(elrond_alloc_features_tests:=.mandos)
+
+$(ELROND_ALLOC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_ALLOC_FEATURES_WASM)
+	$(TEST_MANDOS) $(ELROND_ALLOC_FEATURES_DIR)/scenarios/$*.scen.json --log-level none
+
 # Unit Tests
 # ----------
 PYTHON_UNITTEST_FILES = coverage.py

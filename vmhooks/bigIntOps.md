@@ -22,6 +22,19 @@ module BIGINT-HELPERS
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool #validIntId(BIGINT_IDX, HEAP)
 
+    syntax InternalInstr ::= #getBigIntOrCreate ( idx : Int ,  Signedness )
+ // ---------------------------------------------------------------
+    rule [getBigIntOrCreate-get]:
+        <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => . ... </instrs>
+        <bytesStack> STACK => Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN) : STACK </bytesStack>
+        <bigIntHeap> HEAP </bigIntHeap>
+      requires #validIntId(BIGINT_IDX, HEAP)
+
+    rule [getBigIntOrCreate-create]:
+        <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => #setBigIntValue(BIGINT_IDX, 0) ... </instrs>
+        <bytesStack> STACK => Int2Bytes(0, BE, SIGN) : STACK </bytesStack>
+        <bigIntHeap> HEAP </bigIntHeap>
+      requires notBool #validIntId(BIGINT_IDX, HEAP)
 
     syntax InternalInstr ::= #setBigIntFromBytesStack ( idx: Int , Signedness )
                            | #setBigInt ( idx: Int , value: Bytes , Signedness )
@@ -96,10 +109,23 @@ module BIGINTOPS
         </instrs>
         <locals> 0 |-> <i32> IDX </locals>
         <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
+      requires V <=Int maxSInt64
+       andBool minSInt64 <=Int V
+
+    rule [bigIntGetInt64-not-int64]:
+        <instrs> hostCall ("env", "bigIntGetInt64", [i32 .ValTypes ] -> [i64  .ValTypes ] )
+              => #throwException(ExecutionFailed, "big int cannot be represented as int64") ...
+        </instrs>
+        <locals> 0 |-> <i32> IDX </locals>
+        <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
+      requires V >Int maxSInt64
+        orBool minSInt64 >Int V
 
     rule [bigIntGetInt64-invalid-handle]:
         <instrs> hostCall ("env", "bigIntGetInt64", [i32 .ValTypes ] -> [i64  .ValTypes ] )
-              => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
+              => #setBigIntValue(IDX, 0)
+              ~> i64 . const 0
+                 ...
         </instrs>
         <locals> 0 |-> <i32> IDX </locals>
         <bigIntHeap> HEAP </bigIntHeap>
@@ -267,7 +293,7 @@ module BIGINTOPS
     // extern int32_t bigIntStorageStoreUnsigned(void *context, int32_t keyOffset, int32_t keyLength, int32_t source);
     rule <instrs> hostCall("env", "bigIntStorageStoreUnsigned", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #memLoad(KEYOFFSET, KEYLENGTH)
-               ~> #getBigInt(BIGINTIDX, Unsigned)
+               ~> #getBigIntOrCreate(BIGINTIDX, Unsigned)
                ~> #storageStore
                   ...
          </instrs>

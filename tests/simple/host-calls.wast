@@ -16,6 +16,7 @@ deployTx(
       (import "env" "bigIntGetSignedBytes"    (func $bigIntGetSignedBytes    (param i32 i32)     (result i32)))
       (import "env" "bigIntNew"               (func $bigIntNew               (param i64)         (result i32)))
       (import "env" "bigIntSetInt64"          (func $bigIntSetInt64          (param i32 i64)                 ))
+      (import "env" "bigIntGetInt64"          (func $bigIntGetInt64          (param i32)         (result i64)))
       (import "env" "bigIntSetSignedBytes"    (func $bigIntSetSignedBytes    (param i32 i32 i32)             ))
       (import "env" "bigIntSignedByteLength"  (func $bigIntSignedByteLength  (param i32)         (result i32)))
       (import "env" "bigIntSqrt"              (func $bigIntSqrt              (param i32 i32)                 ))
@@ -177,6 +178,24 @@ deployTx(
         (call $bigIntCmp (local.get 2) (local.get 1))
         i32.const 0
         call $i32.assertEqual
+
+        ;; bigIntGetInt64 - zero
+        (call $bigIntSetInt64 (local.get 0) (i64.const 0))
+        (call $bigIntGetInt64 (local.get 0))
+        i64.const 0
+        call $i64.assertEqual
+
+        ;; bigIntGetInt64 - pos
+        (call $bigIntSetInt64 (local.get 0) (i64.const 9999999999))
+        (call $bigIntGetInt64 (local.get 0))
+        i64.const 9999999999
+        call $i64.assertEqual
+
+        ;; bigIntGetInt64 - neg
+        (call $bigIntSetInt64 (local.get 0) (i64.const -9999999999))
+        (call $bigIntGetInt64 (local.get 0))
+        i64.const -9999999999
+        call $i64.assertEqual
       )
 
       (func $argsTest

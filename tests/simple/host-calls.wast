@@ -151,7 +151,31 @@ deployTx(
         (call $bigIntCmp (local.get 2) (local.get 1))
         i32.const 0
         call $i32.assertEqual
-        
+
+        ;; bigIntSqrt - 36
+        (call $bigIntSetInt64 (local.get 0) (i64.const 36))
+        (call $bigIntSqrt (local.get 1) (local.get 0))
+
+        (call $bigIntGetInt64 (local.get 1))
+        i64.const 6
+        call $i64.assertEqual
+
+        ;; bigIntSqrt - 64
+        (call $bigIntSetInt64 (local.get 0) (i64.const 64))
+        (call $bigIntSqrt (local.get 1) (local.get 0))
+
+        (call $bigIntGetInt64 (local.get 1))
+        i64.const 8
+        call $i64.assertEqual
+
+        ;; bigIntSqrt - 255
+        (call $bigIntSetInt64 (local.get 0) (i64.const 255))
+        (call $bigIntSqrt (local.get 1) (local.get 0))
+
+        (call $bigIntGetInt64 (local.get 1))
+        i64.const 15
+        call $i64.assertEqual
+
         ;; bigIntAbs - positive
         (call $bigIntSetInt64 (local.get 0) (i64.const 123456))
         (call $bigIntSetInt64 (local.get 1) (i64.const 123456))

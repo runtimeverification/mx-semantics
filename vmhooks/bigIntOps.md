@@ -60,15 +60,61 @@ module BIGINT-HELPERS
     rule #newKeyAux(I, M) => I                        requires notBool(I in_keys(M))
     rule #newKeyAux(I, M) => #newKeyAux(I +Int 1, M)  requires         I in_keys(M)
 
- // sqrtInt(X) = ⌊√X⌋ 
-    syntax Int ::= sqrtInt(Int)           [function]
-                 | sqrtIntAux(Int, Int)   [function]
+ // sqrtInt(X) = ⌊√X⌋   if X is non-negative
+ // sqrtInt(X) = -1     if X is negative
+    syntax Int ::= sqrtInt(Int)           [function, total]
  // ------------------------------------------------
-    rule sqrtInt(X)       => sqrtIntAux(X, 0)
-    rule sqrtIntAux(X, Y) => Y -Int 1     requires 0 <=Int Y
-                                           andBool X <Int Y *Int Y
-    rule sqrtIntAux(X, Y => Y +Int 1)     requires 0 <=Int Y
-                                           andBool Y *Int Y <=Int X  
+    rule sqrtInt(X) => -1                           requires X <Int 0
+    rule sqrtInt(0) => 0
+    rule sqrtInt(X) => #let P = sqrtPow2(X)
+                       #in sqrtBS(X, P, P *Int 2)   requires X >Int 0
+
+  // find the largest power of two smaller than or equal to the sqrt of the given number
+  // sqrtPow2(X) is defined if 0 < X
+    syntax Int ::= sqrtPow2(Int)              [function]
+                 | sqrtPow2Aux(Int, Int)      [function]
+ // -------------------------------------------------------------------
+    rule sqrtPow2(X)       => sqrtPow2Aux(X, 1)
+    
+    // 0 < I < (I*2)^2 <= X   => double I
+    rule sqrtPow2Aux(X, I => I *Int 2)     requires 0 <Int I
+                                            andBool squareInt(I *Int 2) <=Int X 
+    // 0 < I <= X < (I*2)^2   => return I
+    rule sqrtPow2Aux(X, I) => I            requires 0 <Int I
+                                            andBool I <=Int X
+                                            andBool X <Int squareInt(I *Int 2)
+    // reset the second parameter if it is not initialized correctly (to simplify the ceil rule)
+    rule sqrtPow2Aux(X, I => 1)            requires 0 <Int X
+                                            andBool (I <=Int 0
+                                              orBool I >Int X
+                                            )
+
+    rule #Ceil(sqrtPow2(@X:Int)) => {(@X >Int 0) #Equals true} #And #Ceil(@X)   [simplification]
+    rule #Ceil(sqrtPow2Aux(@X:Int, @I:Int)) => {(@X >Int 0) #Equals true} 
+                                          #And #Ceil(@X) #And #Ceil(@I)         [simplification]
+
+ // sqrtBS(X,L,R) tries to find ⌊√X⌋ between L and R using binary search
+ // sqrtBS(X,L,R) = Y
+ //   * Y is defined when L <= R
+ //   * L <= ⌊√X⌋ <= R should hold for a correct result
+    syntax Int ::= sqrtBS(Int, Int, Int)      [function]
+ // ------------------------------------------------------------
+    rule sqrtBS(_, L, R) => L                                      requires L ==Int R
+    rule sqrtBS(X, L, R) => sqrtBS(X, L, bsMid(L,R) -Int 1)        requires L <Int R
+                                                                    andBool squareInt(bsMid(L,R)) >Int X
+    rule sqrtBS(X, L, R) => sqrtBS(X, bsMid(L,R), R)               requires L <Int R
+                                                                    andBool squareInt(bsMid(L,R)) <=Int X
+
+    // L and R gets closer at each iteration, eventuallly L == R holds
+    rule #Ceil(sqrtBS(@X:Int, @L:Int, @R:Int)) => #Ceil(@X) #And #Ceil(@L) #And #Ceil(@R)
+                                             #And {(@L <=Int @R) #Equals true}   [simplification]
+    
+    // value in the middle for binary search
+    syntax Int ::= bsMid(Int, Int)         [function, total]
+    rule bsMid(X,Y) => (X +Int Y +Int 1) /Int 2
+
+    syntax Int ::= squareInt(Int)           [function, total]
+    rule squareInt(I) => I *Int I
 
 endmodule
 

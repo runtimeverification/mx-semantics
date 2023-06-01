@@ -68,16 +68,14 @@ module CRYPTOEI
            2 |-> <i32> RESULTOFFSET
          </locals>
 
-    // // extern int32_t managedSha256(void* context, int32_t inputHandle, int32_t outputHandle);
-    // rule [managedSha256]:
-    //     <instrs> hostCall("env", "managedSha256", [ i32 i32  .ValTypes ] -> [ i32  .ValTypes ] )
-    //           => #hashManBuffer(DATA_HANDLE, DEST_HANDLE, #sha256FromBytesStack)
-    //              ...
-    //     </instrs>
-    //     <locals>
-    //       0 |-> <i32> DATA_HANDLE
-    //       1 |-> <i32> DEST_HANDLE
-    //     </locals>
+    // extern int32_t managedSha256(void* context, int32_t inputHandle, int32_t outputHandle);
+    rule [managedSha256]:
+        <instrs> hostCall("env", "managedSha256", [ i32 i32  .ValTypes ] -> [ i32  .ValTypes ] )
+              => #hashManBuffer(DATA, DEST, #sha256FromBytesStack)
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> DATA 1 |-> <i32> DEST </locals>
+
 
     // extern int32_t keccak256(void *context, int32_t dataOffset, int32_t length, int32_t resultOffset);
     rule <instrs> hostCall("env", "keccak256", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -90,16 +88,13 @@ module CRYPTOEI
            2 |-> <i32> RESULTOFFSET
          </locals>
 
-    // // extern int32_t managedKeccak256(void* context, int32_t inputHandle, int32_t outputHandle);
-    // rule [managedKeccak256]:
-    //     <instrs> hostCall("env", "managedKeccak256", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-    //           => #hashManBuffer(DATA_HANDLE, DEST_HANDLE, #keccakFromBytesStack)
-    //              ...
-    //     </instrs>
-    //     <locals>
-    //       0 |-> <i32> DATA_HANDLE
-    //       1 |-> <i32> DEST_HANDLE
-    //     </locals>
+    // extern int32_t managedKeccak256(void* context, int32_t inputHandle, int32_t outputHandle);
+    rule [managedKeccak256]:
+        <instrs> hostCall("env", "managedKeccak256", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
+              => #hashManBuffer(DATA, DEST, #keccakFromBytesStack)
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> DATA 1 |-> <i32> DEST </locals>
 
 endmodule
 ```

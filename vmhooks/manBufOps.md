@@ -17,11 +17,21 @@ module MANBUFOPS
 ```k
     syntax InternalInstr ::= #getBuffer ( idx : Int )
  // ---------------------------------------------------------------
-    rule <instrs> #getBuffer(BUFFER_IDX) => . ... </instrs>
-         <bytesStack> STACK => {HEAP[BUFFER_IDX]}:>Bytes : STACK </bytesStack>
-         <bufferHeap> HEAP </bufferHeap>
+    rule [getBuffer]:
+        <instrs> #getBuffer(BUFFER_IDX) => . ... </instrs>
+        <bytesStack> STACK => {HEAP[BUFFER_IDX]}:>Bytes : STACK </bytesStack>
+        <bufferHeap> HEAP </bufferHeap>
       requires BUFFER_IDX in_keys(HEAP)
-       andBool isBytes(HEAP[BUFFER_IDX])
+       andBool isBytes(HEAP[BUFFER_IDX] orDefault .Bytes)
+    
+    rule [getBuffer-not-found]:
+        <instrs> #getBuffer(BUFFER_IDX) 
+              => #throwException(ExecutionFailed, "no managed buffer under the given handle")
+                 ... 
+        </instrs>
+        <bufferHeap> HEAP </bufferHeap>
+      requires notBool BUFFER_IDX in_keys(HEAP)
+        orBool notBool isBytes(HEAP[BUFFER_IDX] orDefault .Bytes)
 
     syntax InternalInstr ::= #setBufferFromBytesStack ( idx: Int )
                            | #setBuffer ( idx: Int , value: Bytes )
@@ -91,6 +101,16 @@ module MANBUFOPS
          </instrs>
          <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> BIG_IDX </locals>
 
+ // extern int32_t   mBufferFromBigIntSigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
+    rule <instrs> hostCall("env", "mBufferFromBigIntSigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+               => #getBigInt(BIG_IDX, Signed) 
+               ~> #setBufferFromBytesStack ( BUFF_IDX ) 
+               ~> #dropBytes
+               ~> i32 . const 0
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> BIG_IDX </locals>
+
  // extern int32_t   mBufferStorageStore(void* context, int32_t keyHandle, int32_t sourceHandle);
     rule <instrs> hostCall("env", "mBufferStorageStore", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBuffer(KEY_IDX) 
@@ -115,6 +135,16 @@ module MANBUFOPS
     rule <instrs> hostCall("env", "mBufferToBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBuffer(KEY_IDX)
                ~> #setBigIntFromBytesStack(DEST_IDX, Unsigned)
+               ~> #dropBytes
+               ~> i32 . const 0
+                  ... 
+         </instrs>
+         <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> DEST_IDX </locals>
+
+ // extern int32_t   mBufferToBigIntSigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
+    rule <instrs> hostCall("env", "mBufferToBigIntSigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+               => #getBuffer(KEY_IDX)
+               ~> #setBigIntFromBytesStack(DEST_IDX, Signed)
                ~> #dropBytes
                ~> i32 . const 0
                   ... 

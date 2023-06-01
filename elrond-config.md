@@ -321,8 +321,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       requires 2 <=Int lengthString(S)
 ```
 
-
-
 ### Log
 
 ```k

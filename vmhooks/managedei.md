@@ -116,5 +116,23 @@ module MANAGEDEI
           ... VALUE_IDX |-> Value ...
          </bigIntHeap>
 
+
+ // extern void managedGetBlockRandomSeed(void *context, int32_t resultHandle);
+    rule <instrs> hostCall("env", "managedGetBlockRandomSeed", [i32  .ValTypes] -> [ .ValTypes ] )
+               => #setBuffer(BUF_IDX, SEED)
+                  ...
+         </instrs>
+         <locals> 0 |-> <i32> BUF_IDX </locals>
+         <curBlockRandomSeed> SEED </curBlockRandomSeed>
+
+ // extern void managedGetPrevBlockRandomSeed(void* context, int32_t resultHandle);
+    rule [managedGetPrevBlockRandomSeed]:
+        <instrs> hostCall("env", "managedGetPrevBlockRandomSeed", [i32 .ValTypes] -> [ .ValTypes ] )
+              => #setBuffer(BUF_IDX, SEED)
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> BUF_IDX </locals>
+        <prevBlockRandomSeed> SEED </prevBlockRandomSeed>
+
 endmodule
 ```

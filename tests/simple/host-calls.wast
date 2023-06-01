@@ -15,8 +15,13 @@ deployTx(
       (import "env" "bigIntGetSignedArgument" (func $bigIntGetSignedArgument (param i32 i32)                 ))
       (import "env" "bigIntGetSignedBytes"    (func $bigIntGetSignedBytes    (param i32 i32)     (result i32)))
       (import "env" "bigIntNew"               (func $bigIntNew               (param i64)         (result i32)))
+      (import "env" "bigIntSetInt64"          (func $bigIntSetInt64          (param i32 i64)                 ))
+      (import "env" "bigIntGetInt64"          (func $bigIntGetInt64          (param i32)         (result i64)))
       (import "env" "bigIntSetSignedBytes"    (func $bigIntSetSignedBytes    (param i32 i32 i32)             ))
       (import "env" "bigIntSignedByteLength"  (func $bigIntSignedByteLength  (param i32)         (result i32)))
+      (import "env" "bigIntSqrt"              (func $bigIntSqrt              (param i32 i32)                 ))
+      (import "env" "bigIntNeg"               (func $bigIntNeg               (param i32 i32)                 ))
+      (import "env" "bigIntAbs"               (func $bigIntAbs               (param i32 i32)                 ))
 
       (import "env" "getArgument"       (func $getArgument       (param i32 i32) (result i32)))
       (import "env" "getArgumentLength" (func $getArgumentLength (param i32)     (result i32)))
@@ -129,6 +134,59 @@ deployTx(
         i32.const 33
         call $i32.assertEqual
 
+        ;; bigIntNeg
+        (call $i64.testNeg (local.get 0) (i64.const 123456)  (i64.const -123456))
+        (call $i64.testNeg (local.get 0) (i64.const -123456) (i64.const 123456))
+        (call $i64.testNeg (local.get 0) (i64.const 0)       (i64.const 0))
+
+        ;; bigIntSqrt
+        (call $i64.testSqrt (local.get 0) (i64.const 123456) (i64.const 351))
+        (call $i64.testSqrt (local.get 0) (i64.const 36)     (i64.const 6))
+        (call $i64.testSqrt (local.get 0) (i64.const 1)      (i64.const 1))
+        (call $i64.testSqrt (local.get 0) (i64.const 64)     (i64.const 8))
+        (call $i64.testSqrt (local.get 0) (i64.const 255)    (i64.const 15))
+
+        ;; bigIntAbs
+        (call $i64.testAbs (local.get 0) (i64.const 123456)  (i64.const 123456))
+        (call $i64.testAbs (local.get 0) (i64.const -123456) (i64.const 123456))
+        (call $i64.testAbs (local.get 0) (i64.const 0)       (i64.const 0))
+
+        ;; bigIntSetInt64 / bigIntGetInt64
+        (call $i64.testSetGet (local.get 0) (i64.const 123456))        
+        (call $i64.testSetGet (local.get 0) (i64.const -123456))
+        (call $i64.testSetGet (local.get 0) (i64.const 0))
+        (call $i64.testSetGet (local.get 0) (i64.const -9223372036854775808))
+        (call $i64.testSetGet (local.get 0) (i64.const 9223372036854775807))
+      )
+      ;; test bigIntGetInt64 and bigIntSetInt64 host functions using given big int handle
+      ;; (call $i64.testSetGet (handle) (given))
+      (func $i64.testSetGet (param i32 i64)
+        (call $bigIntSetInt64 (local.get 0) (local.get 1))
+        (call $bigIntGetInt64 (local.get 0) (local.get 0))
+        (call $i64.assertEqual (local.get 1) (call $bigIntGetInt64 (local.get 0)))
+      )
+
+      ;; test bigIntSqrt host function using given big int handle
+      ;; (call $i64.testSqrt (handle) (given) (expected))
+      (func $i64.testSqrt (param i32 i64 i64)
+        (call $bigIntSetInt64 (local.get 0) (local.get 1))
+        (call $bigIntSqrt (local.get 0) (local.get 0))
+        (call $i64.assertEqual (local.get 2) (call $bigIntGetInt64 (local.get 0)))
+      )
+
+      ;; test bigIntAbs host function using given big int handle
+      ;; (call $i64.testAbs (handle) (given) (expected))
+      (func $i64.testAbs (param i32 i64 i64)
+        (call $bigIntSetInt64 (local.get 0) (local.get 1))
+        (call $bigIntAbs (local.get 0) (local.get 0))
+        (call $i64.assertEqual (local.get 2) (call $bigIntGetInt64 (local.get 0)))
+      )
+      ;; test bigIntNeg host function using given big int handle
+      ;; (call $i64.testNeg (handle) (given) (expected))
+      (func $i64.testNeg (param i32 i64 i64)
+        (call $bigIntSetInt64 (local.get 0) (local.get 1))
+        (call $bigIntNeg (local.get 0) (local.get 0))
+        (call $i64.assertEqual (local.get 2) (call $bigIntGetInt64 (local.get 0)))
       )
 
       (func $argsTest

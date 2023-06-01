@@ -135,91 +135,58 @@ deployTx(
         call $i32.assertEqual
 
         ;; bigIntNeg
-        (call $bigIntSetInt64 (local.get 0) (i64.const 123456))
-        (call $bigIntSetInt64 (local.get 1) (i64.const -123456))
-        (call $bigIntNeg (local.get 2) (local.get 0))
-
-        (call $bigIntCmp (local.get 2) (local.get 1))
-        i32.const 0
-        call $i32.assertEqual
+        (call $i64.testNeg (local.get 0) (i64.const 123456)  (i64.const -123456))
+        (call $i64.testNeg (local.get 0) (i64.const -123456) (i64.const 123456))
+        (call $i64.testNeg (local.get 0) (i64.const 0)       (i64.const 0))
 
         ;; bigIntSqrt
-        (call $bigIntSetInt64 (local.get 0) (i64.const 123456))
-        (call $bigIntSetInt64 (local.get 1) (i64.const 351))
-        (call $bigIntSqrt (local.get 2) (local.get 0))
+        (call $i64.testSqrt (local.get 0) (i64.const 123456) (i64.const 351))
+        (call $i64.testSqrt (local.get 0) (i64.const 36)     (i64.const 6))
+        (call $i64.testSqrt (local.get 0) (i64.const 1)      (i64.const 1))
+        (call $i64.testSqrt (local.get 0) (i64.const 64)     (i64.const 8))
+        (call $i64.testSqrt (local.get 0) (i64.const 255)    (i64.const 15))
 
-        (call $bigIntCmp (local.get 2) (local.get 1))
-        i32.const 0
-        call $i32.assertEqual
+        ;; bigIntAbs
+        (call $i64.testAbs (local.get 0) (i64.const 123456)  (i64.const 123456))
+        (call $i64.testAbs (local.get 0) (i64.const -123456) (i64.const 123456))
+        (call $i64.testAbs (local.get 0) (i64.const 0)       (i64.const 0))
 
-        ;; bigIntSqrt - 36
-        (call $bigIntSetInt64 (local.get 0) (i64.const 36))
-        (call $bigIntSqrt (local.get 1) (local.get 0))
+        ;; bigIntSetInt64 / bigIntGetInt64
+        (call $i64.testSetGet (local.get 0) (i64.const 123456))        
+        (call $i64.testSetGet (local.get 0) (i64.const -123456))
+        (call $i64.testSetGet (local.get 0) (i64.const 0))
+        (call $i64.testSetGet (local.get 0) (i64.const -9223372036854775808))
+        (call $i64.testSetGet (local.get 0) (i64.const 9223372036854775807))
+      )
+      ;; test bigIntGetInt64 and bigIntSetInt64 host functions using given big int handle
+      ;; (call $i64.testSetGet (handle) (given))
+      (func $i64.testSetGet (param i32 i64)
+        (call $bigIntSetInt64 (local.get 0) (local.get 1))
+        (call $bigIntGetInt64 (local.get 0) (local.get 0))
+        (call $i64.assertEqual (local.get 1) (call $bigIntGetInt64 (local.get 0)))
+      )
 
-        (call $bigIntGetInt64 (local.get 1))
-        i64.const 6
-        call $i64.assertEqual
+      ;; test bigIntSqrt host function using given big int handle
+      ;; (call $i64.testSqrt (handle) (given) (expected))
+      (func $i64.testSqrt (param i32 i64 i64)
+        (call $bigIntSetInt64 (local.get 0) (local.get 1))
+        (call $bigIntSqrt (local.get 0) (local.get 0))
+        (call $i64.assertEqual (local.get 2) (call $bigIntGetInt64 (local.get 0)))
+      )
 
-        ;; bigIntSqrt - 64
-        (call $bigIntSetInt64 (local.get 0) (i64.const 64))
-        (call $bigIntSqrt (local.get 1) (local.get 0))
-
-        (call $bigIntGetInt64 (local.get 1))
-        i64.const 8
-        call $i64.assertEqual
-
-        ;; bigIntSqrt - 255
-        (call $bigIntSetInt64 (local.get 0) (i64.const 255))
-        (call $bigIntSqrt (local.get 1) (local.get 0))
-
-        (call $bigIntGetInt64 (local.get 1))
-        i64.const 15
-        call $i64.assertEqual
-
-        ;; bigIntAbs - positive
-        (call $bigIntSetInt64 (local.get 0) (i64.const 123456))
-        (call $bigIntSetInt64 (local.get 1) (i64.const 123456))
-        (call $bigIntAbs (local.get 2) (local.get 0))
-
-        (call $bigIntCmp (local.get 2) (local.get 1))
-        i32.const 0
-        call $i32.assertEqual
-        
-        ;; bigIntAbs - negative
-        (call $bigIntSetInt64 (local.get 0) (i64.const -123456))
-        (call $bigIntSetInt64 (local.get 1) (i64.const 123456))
-        (call $bigIntAbs (local.get 2) (local.get 0))
-
-        (call $bigIntCmp (local.get 2) (local.get 1))
-        i32.const 0
-        call $i32.assertEqual
-        
-        ;; bigIntAbs - zero
-        (call $bigIntSetInt64 (local.get 0) (i64.const 0))
-        (call $bigIntSetInt64 (local.get 1) (i64.const 0))
-        (call $bigIntAbs (local.get 2) (local.get 0))
-
-        (call $bigIntCmp (local.get 2) (local.get 1))
-        i32.const 0
-        call $i32.assertEqual
-
-        ;; bigIntGetInt64 - zero
-        (call $bigIntSetInt64 (local.get 0) (i64.const 0))
-        (call $bigIntGetInt64 (local.get 0))
-        i64.const 0
-        call $i64.assertEqual
-
-        ;; bigIntGetInt64 - pos
-        (call $bigIntSetInt64 (local.get 0) (i64.const 9999999999))
-        (call $bigIntGetInt64 (local.get 0))
-        i64.const 9999999999
-        call $i64.assertEqual
-
-        ;; bigIntGetInt64 - neg
-        (call $bigIntSetInt64 (local.get 0) (i64.const -9999999999))
-        (call $bigIntGetInt64 (local.get 0))
-        i64.const -9999999999
-        call $i64.assertEqual
+      ;; test bigIntAbs host function using given big int handle
+      ;; (call $i64.testAbs (handle) (given) (expected))
+      (func $i64.testAbs (param i32 i64 i64)
+        (call $bigIntSetInt64 (local.get 0) (local.get 1))
+        (call $bigIntAbs (local.get 0) (local.get 0))
+        (call $i64.assertEqual (local.get 2) (call $bigIntGetInt64 (local.get 0)))
+      )
+      ;; test bigIntNeg host function using given big int handle
+      ;; (call $i64.testNeg (handle) (given) (expected))
+      (func $i64.testNeg (param i32 i64 i64)
+        (call $bigIntSetInt64 (local.get 0) (local.get 1))
+        (call $bigIntNeg (local.get 0) (local.get 0))
+        (call $i64.assertEqual (local.get 2) (call $bigIntGetInt64 (local.get 0)))
       )
 
       (func $argsTest

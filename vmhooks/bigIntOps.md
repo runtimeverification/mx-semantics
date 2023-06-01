@@ -66,32 +66,8 @@ module BIGINT-HELPERS
  // ------------------------------------------------
     rule sqrtInt(X) => -1                           requires X <Int 0
     rule sqrtInt(0) => 0
-    rule sqrtInt(X) => #let P = sqrtPow2(X)
+    rule sqrtInt(X) => #let P = 2 ^Int (log2Int(X) /Int 2) // the largest power if 2 <= X
                        #in sqrtBS(X, P, P *Int 2)   requires X >Int 0
-
-  // find the largest power of two smaller than or equal to the sqrt of the given number
-  // sqrtPow2(X) is defined if 0 < X
-    syntax Int ::= sqrtPow2(Int)              [function]
-                 | sqrtPow2Aux(Int, Int)      [function]
- // -------------------------------------------------------------------
-    rule sqrtPow2(X)       => sqrtPow2Aux(X, 1)
-    
-    // 0 < I < (I*2)^2 <= X   => double I
-    rule sqrtPow2Aux(X, I => I *Int 2)     requires 0 <Int I
-                                            andBool squareInt(I *Int 2) <=Int X 
-    // 0 < I <= X < (I*2)^2   => return I
-    rule sqrtPow2Aux(X, I) => I            requires 0 <Int I
-                                            andBool I <=Int X
-                                            andBool X <Int squareInt(I *Int 2)
-    // reset the second parameter if it is not initialized correctly (to simplify the ceil rule)
-    rule sqrtPow2Aux(X, I => 1)            requires 0 <Int X
-                                            andBool (I <=Int 0
-                                              orBool I >Int X
-                                            )
-
-    rule #Ceil(sqrtPow2(@X:Int)) => {(@X >Int 0) #Equals true} #And #Ceil(@X)   [simplification]
-    rule #Ceil(sqrtPow2Aux(@X:Int, @I:Int)) => {(@X >Int 0) #Equals true} 
-                                          #And #Ceil(@X) #And #Ceil(@I)         [simplification]
 
  // sqrtBS(X,L,R) tries to find ⌊√X⌋ between L and R using binary search
  // sqrtBS(X,L,R) = Y

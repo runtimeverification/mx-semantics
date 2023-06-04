@@ -22,6 +22,19 @@ module BIGINT-HELPERS
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool #validIntId(BIGINT_IDX, HEAP)
 
+    syntax InternalInstr ::= #getBigIntOrCreate ( idx : Int ,  Signedness )
+ // ---------------------------------------------------------------
+    rule [getBigIntOrCreate-get]:
+        <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => . ... </instrs>
+        <bytesStack> STACK => Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN) : STACK </bytesStack>
+        <bigIntHeap> HEAP </bigIntHeap>
+      requires #validIntId(BIGINT_IDX, HEAP)
+
+    rule [getBigIntOrCreate-create]:
+        <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => #setBigIntValue(BIGINT_IDX, 0) ... </instrs>
+        <bytesStack> STACK => Int2Bytes(0, BE, SIGN) : STACK </bytesStack>
+        <bigIntHeap> HEAP </bigIntHeap>
+      requires notBool #validIntId(BIGINT_IDX, HEAP)
 
     syntax InternalInstr ::= #setBigIntFromBytesStack ( idx: Int , Signedness )
                            | #setBigInt ( idx: Int , value: Bytes , Signedness )
@@ -46,6 +59,38 @@ module BIGINT-HELPERS
     rule #newKey(M)       => #newKeyAux(size(M), M)
     rule #newKeyAux(I, M) => I                        requires notBool(I in_keys(M))
     rule #newKeyAux(I, M) => #newKeyAux(I +Int 1, M)  requires         I in_keys(M)
+
+ // sqrtInt(X) = ⌊√X⌋   if X is non-negative
+ // sqrtInt(X) = -1     if X is negative
+    syntax Int ::= sqrtInt(Int)           [function, total]
+ // ------------------------------------------------
+    rule sqrtInt(X) => -1                           requires X <Int 0
+    rule sqrtInt(0) => 0
+    rule sqrtInt(X) => #let P = 2 ^Int (log2Int(X) /Int 2) // the largest power if 2 <= X
+                       #in sqrtBS(X, P, P *Int 2)   requires X >Int 0
+
+ // sqrtBS(X,L,R) tries to find ⌊√X⌋ between L and R using binary search
+ // sqrtBS(X,L,R) = Y
+ //   * Y is defined when L <= R
+ //   * L <= ⌊√X⌋ <= R should hold for a correct result
+    syntax Int ::= sqrtBS(Int, Int, Int)      [function]
+ // ------------------------------------------------------------
+    rule sqrtBS(_, L, R) => L                                      requires L ==Int R
+    rule sqrtBS(X, L, R) => sqrtBS(X, L, bsMid(L,R) -Int 1)        requires L <Int R
+                                                                    andBool squareInt(bsMid(L,R)) >Int X
+    rule sqrtBS(X, L, R) => sqrtBS(X, bsMid(L,R), R)               requires L <Int R
+                                                                    andBool squareInt(bsMid(L,R)) <=Int X
+
+    // L and R gets closer at each iteration, eventuallly L == R holds
+    rule #Ceil(sqrtBS(@X:Int, @L:Int, @R:Int)) => #Ceil(@X) #And #Ceil(@L) #And #Ceil(@R)
+                                             #And {(@L <=Int @R) #Equals true}   [simplification]
+    
+    // value in the middle for binary search
+    syntax Int ::= bsMid(Int, Int)         [function, total]
+    rule bsMid(X,Y) => (X +Int Y +Int 1) /Int 2
+
+    syntax Int ::= squareInt(Int)           [function, total]
+    rule squareInt(I) => I *Int I
 
 endmodule
 
@@ -77,6 +122,36 @@ module BIGINTOPS
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
+
+ // extern long long bigIntGetInt64(void* context, int32_t destinationHandle);
+    rule [bigIntGetInt64]:
+        <instrs> hostCall ("env", "bigIntGetInt64", [i32 .ValTypes ] -> [i64  .ValTypes ] )
+              => i64 . const V
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> IDX </locals>
+        <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
+      requires V <=Int maxSInt64
+       andBool minSInt64 <=Int V
+
+    rule [bigIntGetInt64-not-int64]:
+        <instrs> hostCall ("env", "bigIntGetInt64", [i32 .ValTypes ] -> [i64  .ValTypes ] )
+              => #throwException(ExecutionFailed, "big int cannot be represented as int64") ...
+        </instrs>
+        <locals> 0 |-> <i32> IDX </locals>
+        <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
+      requires V >Int maxSInt64
+        orBool minSInt64 >Int V
+
+    rule [bigIntGetInt64-invalid-handle]:
+        <instrs> hostCall ("env", "bigIntGetInt64", [i32 .ValTypes ] -> [i64  .ValTypes ] )
+              => #setBigIntValue(IDX, 0)
+              ~> i64 . const 0
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> IDX </locals>
+        <bigIntHeap> HEAP </bigIntHeap>
+      requires notBool #validIntId(IDX, HEAP)
 
     // extern int32_t bigIntGetUnsignedBytes(void* context, int32_t reference, int32_t byteOffset);
     rule <instrs> hostCall("env", "bigIntGetUnsignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -240,7 +315,7 @@ module BIGINTOPS
     // extern int32_t bigIntStorageStoreUnsigned(void *context, int32_t keyOffset, int32_t keyLength, int32_t source);
     rule <instrs> hostCall("env", "bigIntStorageStoreUnsigned", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #memLoad(KEYOFFSET, KEYLENGTH)
-               ~> #getBigInt(BIGINTIDX, Unsigned)
+               ~> #getBigIntOrCreate(BIGINTIDX, Unsigned)
                ~> #storageStore
                   ...
          </instrs>
@@ -355,6 +430,84 @@ module BIGINTOPS
            ...
          </account>
       [priority(61)]
+
+ // extern int32_t   bigIntIsInt64(void* context, int32_t destinationHandle);
+    rule [bigIntIsInt64-invalid-handle]:
+        <instrs> hostCall ( "env" , "bigIntIsInt64" , [ i32  .ValTypes ] -> [ i32  .ValTypes ] )
+              => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
+        </instrs>
+        <locals> 0 |-> <i32> IDX </locals>
+        <bigIntHeap> HEAP </bigIntHeap>
+      requires notBool (#validIntId(IDX, HEAP))
+
+    rule [bigIntIsInt64]:
+        <instrs> hostCall ( "env" , "bigIntIsInt64" , [ i32  .ValTypes ] -> [ i32  .ValTypes ] )
+              => i32.const #bool( minSInt64 <=Int V andBool V <=Int maxSInt64 )
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> IDX </locals>
+        <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
+
+ // extern void      bigIntSqrt(void* context, int32_t destinationHandle, int32_t opHandle);
+    rule [bigIntSqrt-invalid-handle]:
+        <instrs> hostCall ( "env" , "bigIntSqrt" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
+              => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
+        </instrs>
+        <locals> 0 |-> <i32> _DEST  1 |-> <i32> IDX </locals>
+        <bigIntHeap> HEAP </bigIntHeap>
+      requires notBool #validIntId(IDX, HEAP)
+
+    rule [bigIntSqrt-neg]:
+        <instrs> hostCall ( "env" , "bigIntSqrt" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
+              => #throwException(ExecutionFailed, "bad bounds (lower)")
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> _DEST  1 |-> <i32> IDX </locals>
+        <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
+      requires V <Int 0
+
+    rule [bigIntSqrt]:
+        <instrs> hostCall ( "env" , "bigIntSqrt" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
+              => #setBigIntValue(DEST, sqrtInt(V))
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> DEST  1 |-> <i32> IDX </locals>
+        <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
+
+ // extern void bigIntAbs(void* context, int32_t destinationHandle, int32_t opHandle);
+    rule [bigIntAbs-invalid-handle]:
+        <instrs> hostCall ( "env" , "bigIntAbs" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
+              => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
+        </instrs>
+        <locals> 0 |-> <i32> _DEST  1 |-> <i32> IDX </locals>
+        <bigIntHeap> HEAP </bigIntHeap>
+      requires notBool (#validIntId(IDX, HEAP))
+
+    rule [bigIntAbs]:
+        <instrs> hostCall ( "env" , "bigIntAbs" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
+              => #setBigIntValue(DEST, absInt(V))
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> DEST  1 |-> <i32> IDX </locals>
+        <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
+
+
+ // extern void bigIntNeg(void* context, int32_t destinationHandle, int32_t opHandle);
+    rule [bigIntNeg-invalid-handle]:
+        <instrs> hostCall ( "env" , "bigIntNeg" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
+              => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
+        </instrs>
+        <locals> 0 |-> <i32> _DEST  1 |-> <i32> IDX </locals>
+        <bigIntHeap> HEAP </bigIntHeap>
+      requires notBool (#validIntId(IDX, HEAP))
+
+    rule [bigIntNeg]:
+        <instrs> hostCall ( "env" , "bigIntNeg" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
+              => #setBigIntValue(DEST, 0 -Int V)
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> DEST  1 |-> <i32> IDX </locals>
+        <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
 
 
 endmodule

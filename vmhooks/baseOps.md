@@ -424,14 +424,6 @@ module BASEOPS
     rule <commands> (#transferSuccess => .) ... </commands>
          <instrs> #finishExecuteOnDestContext ... </instrs>
 
-
-
-
-
-    // rule [skip-transferSuccess-handleContractCallOutput]:
-    //     <commands> #transferSuccess => . ... </commands>
-    //     <instrs> #handleContractCallOutput ... </instrs>
-
 ```
 
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.

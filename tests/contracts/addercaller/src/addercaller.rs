@@ -1,3 +1,9 @@
+// A smart contract to test transfer & execute functions
+// Initialize the contract with the address of the adder
+// The endpoints `call_adder` and `call_adder_esdt` accepts 
+// tokens in EGLD and ESDT and performs transfer & execute
+// to the adder's `add` endpoint.
+
 #![no_std]
 
 multiversx_sc::imports!();

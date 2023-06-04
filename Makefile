@@ -5,6 +5,7 @@
         test unittest-python mandos-test mandos-coverage test-elrond-contracts   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
         test-elrond-multisig test-elrond-basic-features                          \
+        test-elrond-addercaller                                                  \
         rule-coverage clean-coverage                                             \
 
 # Settings
@@ -161,6 +162,7 @@ KRUN_OPTS :=
 
 # TODO add test-elrond-lottery-esdt
 elrond-contract-deps := test-elrond-adder             \
+                        test-elrond-addercaller       \
                         test-elrond-crowdfunding-esdt \
                         test-elrond-multisig          \
                         test-elrond-basic-features
@@ -235,6 +237,17 @@ elrond_adder_tests=$(shell find $(ELROND_ADDER_DIR) -name "*.scen.json")
 test-elrond-adder: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_ADDER_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_adder_tests) --coverage
+
+## Adder Caller Test
+
+ELROND_ADDERCALLER_DIR := tests/contracts/addercaller
+elrond_addercaller_tests=$(shell find $(ELROND_ADDERCALLER_DIR) -name "*.scen.json")
+ELROND_MYADDER_DIR := tests/contracts/myadder
+
+test-elrond-addercaller: $(llvm_kompiled)
+	mxpy contract build "$(ELROND_MYADDER_DIR)" --wasm-symbols
+	mxpy contract build "$(ELROND_ADDERCALLER_DIR)" --wasm-symbols
+	$(TEST_MANDOS) $(elrond_addercaller_tests) --coverage
 
 ## Crowdfunding Test
 

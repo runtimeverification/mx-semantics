@@ -13,13 +13,18 @@ module ELROND-NODE
         <commands> .K </commands>
         <callState>
           // input
-          <caller> .Bytes </caller>
           <callee> .Bytes </callee>
-          <callArgs> .List </callArgs>
-          <callValue> 0 </callValue>
-          <esdtTransfers> .List </esdtTransfers>
+          <vmInput>
+            <caller> .Bytes </caller>
+            <callArgs> .List </callArgs>
+            <callValue> 0 </callValue>
+            <esdtTransfers> .List </esdtTransfers>
+            // gas
+            <gasProvided> 0 </gasProvided>
+            <gasPrice> 0 </gasPrice>
+          </vmInput>
           // executional
-          // every contract call use its own wasm module instance, managed data heaps, and bytesStack.
+          // every contract call uses its own wasm module instance, managed data heaps, and bytesStack.
           <wasm/>
           <bigIntHeap> .Map </bigIntHeap>
           <bufferHeap> .Map </bufferHeap>
@@ -76,6 +81,8 @@ Storage maps byte arrays to byte arrays.
            <curBlockRandomSeed> padRightBytes(.Bytes, 48, 0) </curBlockRandomSeed>
          </currentBlockInfo>
        </node>
+
+    syntax VmInputCell
 
     syntax ReturnCode    ::= ".ReturnCode"
                            | "OK"          [klabel(OK), symbol]

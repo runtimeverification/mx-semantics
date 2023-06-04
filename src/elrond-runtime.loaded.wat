@@ -28,21 +28,29 @@
         .
       </commands>
       <callState>
-        <caller>
-          b""
-        </caller>
         <callee>
           b""
         </callee>
-        <callArgs>
-          .List
-        </callArgs>
-        <callValue>
-          0
-        </callValue>
-        <esdtTransfers>
-          .List
-        </esdtTransfers>
+        <vmInput>
+          <caller>
+            b""
+          </caller>
+          <callArgs>
+            .List
+          </callArgs>
+          <callValue>
+            0
+          </callValue>
+          <esdtTransfers>
+            .List
+          </esdtTransfers>
+          <gasProvided>
+            0
+          </gasProvided>
+          <gasPrice>
+            0
+          </gasPrice>
+        </vmInput>
         <wasm>
           <instrs>
             .

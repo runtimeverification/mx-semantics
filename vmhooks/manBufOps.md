@@ -15,23 +15,32 @@ module MANBUFOPS
 ## Managed Buffer Internal Instructions
 
 ```k
+    syntax Bool ::= #validBufferId( Int , Map )     [function, total]
+ // -------------------------------------------------------------------
+    rule #validBufferId(IDX, HEAP) => IDX in_keys(HEAP) andBool isBytes(HEAP[IDX] orDefault .Bytes)
+
+    syntax BytesResult ::= getBuffer(Int)                                   [function, total]
+ // ---------------------------------------------------------------------------------------------
+    rule [[ getBuffer(BUFFER_IDX) => {Bs}:>BytesResult ]]
+      <bufferHeap> ... BUFFER_IDX |-> Bs:Bytes ... </bufferHeap>
+
+    rule getBuffer(_) => {Err("no managed buffer under the given handle")}:>BytesResult [owise]
+
     syntax InternalInstr ::= #getBuffer ( idx : Int )
  // ---------------------------------------------------------------
     rule [getBuffer]:
         <instrs> #getBuffer(BUFFER_IDX) => . ... </instrs>
         <bytesStack> STACK => {HEAP[BUFFER_IDX]}:>Bytes : STACK </bytesStack>
         <bufferHeap> HEAP </bufferHeap>
-      requires BUFFER_IDX in_keys(HEAP)
-       andBool isBytes(HEAP[BUFFER_IDX] orDefault .Bytes)
+      requires #validBufferId(BUFFER_IDX, HEAP)
     
     rule [getBuffer-not-found]:
-        <instrs> #getBuffer(BUFFER_IDX) 
+        <instrs> #getBuffer(BUFFER_IDX)
               => #throwException(ExecutionFailed, "no managed buffer under the given handle")
-                 ... 
+                 ...
         </instrs>
         <bufferHeap> HEAP </bufferHeap>
-      requires notBool BUFFER_IDX in_keys(HEAP)
-        orBool notBool isBytes(HEAP[BUFFER_IDX] orDefault .Bytes)
+      requires notBool #validBufferId(BUFFER_IDX, HEAP)
 
     syntax InternalInstr ::= #setBufferFromBytesStack ( idx: Int )
                            | #setBuffer ( idx: Int , value: Bytes )

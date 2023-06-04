@@ -11,6 +11,12 @@ module BIGINT-HELPERS
      imports ELROND-CONFIG
      imports BASEOPS
 
+    syntax IntResult ::= getBigInt(Int)      [function, total]
+ // -------------------------------------------------------
+    rule [[ getBigInt(IDX) => I ]]
+      <bigIntHeap> ... IDX |-> I:Int ... </bigIntHeap>
+    rule getBigInt(_) => Err("no bigInt under the given handle") [owise]
+
     syntax InternalInstr ::= #getBigInt ( idx : Int ,  Signedness )
  // ---------------------------------------------------------------
     rule <instrs> #getBigInt(BIGINT_IDX, SIGN) => . ... </instrs>
@@ -66,7 +72,7 @@ module BIGINT-HELPERS
  // ------------------------------------------------
     rule sqrtInt(X) => -1                           requires X <Int 0
     rule sqrtInt(0) => 0
-    rule sqrtInt(X) => #let P = 2 ^Int (log2Int(X) /Int 2) // the largest power if 2 <= X
+    rule sqrtInt(X) => #let P = 2 ^Int (log2Int(X) /Int 2) // the largest power of 2 less than or eq. to X
                        #in sqrtBS(X, P, P *Int 2)   requires X >Int 0
 
  // sqrtBS(X,L,R) tries to find ⌊√X⌋ between L and R using binary search

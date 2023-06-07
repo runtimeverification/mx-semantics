@@ -84,8 +84,7 @@ Storage maps byte arrays to byte arrays.
 
     syntax VmInputCell
 
-    syntax ReturnCode    ::= ".ReturnCode"
-                           | "OK"          [klabel(OK), symbol]
+    syntax ReturnCode    ::= "OK"          [klabel(OK), symbol]
                            | ExceptionCode
     syntax ExceptionCode ::= "FunctionNotFound"         [klabel(FunctionNotFound), symbol]         
                            | "FunctionWrongSignature"   [klabel(FunctionWrongSignature), symbol]

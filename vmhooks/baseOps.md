@@ -405,6 +405,11 @@ module BASEOPS
             <gasPrice> 0 </gasPrice>
           </vmInput>
 
+```
+
+`#finishExecuteOnDestContext` takes the VM output returned from the callee, and applies to the caller's context.
+
+```k
     syntax InternalInstr ::= "#finishExecuteOnDestContext"
  // ------------------------------------------------------
     rule [finishExecuteOnDestContext-ok]:
@@ -419,6 +424,17 @@ module BASEOPS
         <out> ... (.List => OUTPUT) </out>
         <logs> ... (.List => LOGS) </logs>
         
+    // TODO should this throw the same (EC, MSG) or transform it?
+    rule [finishExecuteOnDestContext-exception]:
+        <instrs> #finishExecuteOnDestContext
+              => #throwExceptionBs(EC, MSG) 
+                 ...
+        </instrs>
+        <vmOutput>
+          VMOutput ( EC:ExceptionCode , MSG , _ , LOGS ) => .VMOutput
+        </vmOutput>
+        // merge logs
+        <logs> ... (.List => LOGS) </logs>
 
     // keep running other commands after transfers
     rule <commands> (#transferSuccess => .) ... </commands>

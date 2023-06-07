@@ -418,17 +418,16 @@ TODO should VMOutputs be merged to the callstate after #endWasm? Contract A writ
 
 - `#exception` drops the rest of the computation in the `commands` and `instrs` cells and reverts the state.
 
-TODO confirm the error propagation mechanism. For example, A calls B, B calls C. Should A and B fail, too? What should be the resulting VMOutput? 
 
 ```k
-    syntax InternalCmd ::= #exception ( ExceptionCode )
+    syntax InternalCmd ::= "#exception"
  // ---------------------------------------------------
     rule [exception-revert]:
-        <commands> (#exception(_EC) ~> #endWasm) => popCallState ~> popWorldState ... </commands>
+        <commands> (#exception ~> #endWasm) => popCallState ~> popWorldState ... </commands>
       [priority(10)]
     
     rule [exception-skip]:
-        <commands> #exception(_EC) ~> (CMD:InternalCmd => . ) ... </commands>
+        <commands> #exception ~> (CMD:InternalCmd => . ) ... </commands>
       requires CMD =/=K #endWasm
       [priority(10)]
 
@@ -442,7 +441,7 @@ TODO confirm the error propagation mechanism. For example, A calls B, B calls C.
 
     rule [throwExceptionBs]:
         <instrs> (#throwExceptionBs( EC , MSG ) ~> _ ) => . </instrs>
-        <commands> (. => #exception(EC)) ... </commands>
+        <commands> (. => #exception) ... </commands>
         <out> OUT </out>
         <logs> LOGS </logs>
         <vmOutput> .VMOutput => VMOutput( EC , MSG , OUT , LOGS) </vmOutput>

@@ -7,6 +7,7 @@ module UTILS
     imports INT
     imports LIST
     imports BYTES
+    imports UTILS-CEILS
 
     syntax Error ::= Err(String)
     syntax ListResult  ::= List | Error
@@ -29,5 +30,74 @@ module UTILS
     rule IntResult2ListResult(BS:Int) => ListItem(BS)
     rule IntResult2ListResult(Err(E)) => Err(E)
 
+endmodule
+
+module UTILS-CEILS
+    imports BOOL
+    imports INT
+    imports LIST
+    imports WASM-DATA
+
+    syntax Bool ::= definedListLookup(List, index: Int) [function, total]
+ // ---------------------------------------------------------------------------------
+    rule definedListLookup (L:List, Idx:Int)
+        => (Idx >=Int 0 -Int size(L)) andBool (Idx <Int size(L))
+    rule #Ceil(@Arg0:List[@Index:Int])
+        =>  ( ( {true #Equals definedListLookup(@Arg0, @Index)} // TODO: This is wrong, use #Ceil(true #And definedListLookup(@Arg0, @Index))
+              #And #Ceil(@Arg0)
+              )
+            #And #Ceil(@Index)
+            )
+        [simplification]
+
+    syntax KItem ::= List "{" Int "}"
+        [function, total, klabel(listLookupTotal), symbol, no-evaluators]
+ // ---------------------------------------------------------------------------------
+    rule L:List{Index:Int}
+        => L[Index]
+        requires definedListLookup(L, Index)
+        [concrete, simplification]
+    rule L:List{Index:Int} => 0
+        requires notBool definedListLookup(L, Index)
+        [simplification]
+
+    rule L:List[Index:Int]
+        => L{Index}
+        requires definedListLookup(L, Index)
+        [symbolic(L), simplification]
+
+    rule L:List[Index:Int]
+        => L{Index}
+        requires definedListLookup(L, Index)
+        [symbolic(Index), simplification]
+
+
+    syntax Bool ::= definedSigned(IValType, Int)  [function, total]
+ // ---------------------------------------------------------------------------------
+    rule definedSigned(T:IValType, N:Int) => 0 <=Int N andBool N <Int #pow(T)
+
+    rule #Ceil(#signed(@Arg0:IValType, @Arg1:Int))
+        =>  (({ definedSigned(@Arg0, @Arg1)  #Equals true }
+          #And #Ceil(@Arg0))
+          #And #Ceil(@Arg1))
+        [simplification]
+
+    syntax Int ::= #signedTotal(IValType, Int)
+        [function, total, klabel(#signedTotal), symbol, no-evaluators]
+ // ---------------------------------------------------------------------------------
+    rule #signedTotal(Arg0:IValType, Arg1:Int)
+        => #signed(Arg0, Arg1)
+        requires definedSigned(Arg0, Arg1)
+        [concrete, simplification]
+
+    rule #signed(Arg0:IValType, Arg1:Int)
+        => #signedTotal(Arg0, Arg1)
+        requires definedSigned(Arg0, Arg1)
+        [symbolic(Arg0), simplification]
+
+    rule #signed(Arg0:IValType, Arg1:Int)
+        => #signedTotal(Arg0, Arg1)
+        requires definedSigned(Arg0, Arg1)
+        [symbolic(Arg1), simplification]
 endmodule
 ```

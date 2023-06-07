@@ -241,7 +241,16 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     syntax Bool ::= #lookupStorageDefined( Map , Bytes )       [function, total]
  // -----------------------------------------------------------------------------------
     rule #lookupStorageDefined(STORAGE, KEY) => notBool( KEY in_keys(STORAGE) )
-                                         orBool isBytes(STORAGE[KEY] orDefault .Bytes) 
+                                         orBool isBytes(STORAGE[KEY] orDefault .Bytes)
+
+    // This is not the full ceil definition, but the full one either is wrong
+    // ({true #Equals #lookupStorageDefined(@M, @B)} #And ...)
+    // or does not work
+    // (#Ceil(true #And #lookupStorageDefined(@M, @B)) #And ...)
+    // and the form below should apply to most cases.
+    rule #Ceil(#lookupStorage(M:Map, B:Bytes))
+        => {true #Equals #lookupStorageDefined(M, B)}
+        [simplification]
 
     syntax Int ::= #storageStatus ( Map , key : Bytes , val : Bytes ) [function, total]
                  | #StorageUnmodified () [function, total]

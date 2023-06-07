@@ -6,10 +6,12 @@ Go implementation: [mx-chain-vm-go/vmhost/vmhooks/baseOps.go](https://github.com
 ```k
 require "../elrond-config.md"
 require "eei-helpers.md"
+require "utils.md"
 
 module BASEOPS
      imports ELROND-CONFIG
      imports EEI-HELPERS
+     imports UTILS
 
     // extern void getSCAddress(void *context, int32_t resultOffset);
     rule <instrs> hostCall("env", "getSCAddress", [ i32  .ValTypes ] -> [ .ValTypes ])
@@ -21,6 +23,7 @@ module BASEOPS
          </locals>
          <callee> CALLEE </callee>
 
+    // TODO refactor this with #isSmartContract boolean function
     // extern int32_t isSmartContract(void *context, int32_t addressOffset);
     rule <instrs> hostCall("env", "isSmartContract", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #memLoad(ADDROFFSET, 32)
@@ -100,7 +103,8 @@ module BASEOPS
          <callee> CALLEE </callee>
          <bytesStack> _DATA : VALUE : DEST : STACK => STACK </bytesStack>
 
-    rule <commands> #transferSuccess => . ... </commands>
+    // switch to wasm execution after the transfer
+    rule <commands> (#transferSuccess => .) ~> #endWasm ... </commands>
          <instrs> #waitForTransfer => . ... </instrs>
 
     syntax Bool ::= #validArgIdx( Int , List )        [function, total]
@@ -333,10 +337,10 @@ module BASEOPS
         <locals> 0 |-> <i32> ID_IDX </locals>
         <bufferHeap> ... ID_IDX |-> TokId ... </bufferHeap>
 
-  // TODO implement contract call after ESDT transfer
-    syntax InternalInstr ::= #transferESDTNFTExecuteWithTypedArgs(Bytes, List, Int, Bytes, List)
+  // TODO check arguments and handle errors if any
+    syntax InternalInstr ::= #transferESDTNFTExecuteWithTypedArgs(BytesResult, ListResult, Int, BytesResult, ListResult)
  // -------------------------------------------------------------------------------------------
-    rule <instrs> #transferESDTNFTExecuteWithTypedArgs(Dest, Transfers, _GasLimit, b"", _Data)
+    rule <instrs> #transferESDTNFTExecuteWithTypedArgs(Dest, Transfers, _GasLimit, b"", _Args)
                => #waitForTransfer
                ~> i32.const 0
                   ...
@@ -344,17 +348,97 @@ module BASEOPS
          <callee> Callee </callee>
          <commands> (. => transferESDTs(Callee, Dest, Transfers)) ... </commands>
 
+    rule [transfer-esdt-and-execute]:
+        <instrs> #transferESDTNFTExecuteWithTypedArgs(Dest, Transfers, GasLimit, Func, Args)
+              => #executeOnDestContext(Dest, 0, Transfers, GasLimit, Func, Args)
+                 ...
+        </instrs>
+        <callee> Callee </callee>
+      requires 0 <Int lengthBytes(Func)
+       andBool #isSmartContract(Callee)
 
-  // TODO implement contract call after transfer
-    syntax InternalInstr ::= #transferValueExecuteWithTypedArgs(Bytes, Int, Int, Bytes, List)
+  // TODO check arguments and handle errors if any
+    syntax InternalInstr ::= #transferValueExecuteWithTypedArgs(BytesResult, IntResult, Int, BytesResult, ListResult)
  // -------------------------------------------------------------------------------------------
-    rule <instrs> #transferValueExecuteWithTypedArgs(Dest, Value, _GasLimit, b"", _Data)
+    rule <instrs> #transferValueExecuteWithTypedArgs(Dest, Value, _GasLimit, b"", _Args)
                => #waitForTransfer
                ~> i32.const 0
                   ...
          </instrs>
          <callee> Callee </callee>
          <commands> (. => transferFunds(Callee, Dest, Value)) ... </commands>
+
+    rule [transfer-and-execute]:
+        <instrs> #transferValueExecuteWithTypedArgs(Dest, Value, GasLimit, Func, Args)
+              => #executeOnDestContext(Dest, Value, .List, GasLimit, Func, Args)
+                 ...
+        </instrs>
+        <callee> Callee </callee>
+      requires 0 <Int lengthBytes(Func)
+       andBool #isSmartContract(Callee)
+
+    syntax InternalInstr ::= #executeOnDestContext(Bytes, Int, List, Int, Bytes, List)
+ // -----------------------------------------------------------------------------------------
+    rule [executeOnDestContext]:
+        <instrs> #executeOnDestContext(Dest, Value, Esdt, GasLimit, Func, Args)
+              => #finishExecuteOnDestContext
+                 ...
+        </instrs>
+        <callee> Callee </callee>
+        <commands> 
+          (. => callContract( Dest, Bytes2String(Func), prepareIndirectContractCallInput(Callee, Value, Esdt, GasLimit, Args))) ... 
+        </commands>
+        // TODO requires not IsOutOfVMFunctionExecution
+        // TODO requires not IsBuiltinFunctionName
+        
+
+    syntax VmInputCell ::= prepareIndirectContractCallInput(Bytes, Int, List, Int, List)    [function, total]
+ // -----------------------------------------------------------------------------------
+    rule prepareIndirectContractCallInput(SENDER, VALUE, ESDT, GASLIMIT, ARGS)
+      => <vmInput>
+            <caller> SENDER </caller>
+            <callArgs> ARGS </callArgs>
+            <callValue> VALUE </callValue>
+            <esdtTransfers> ESDT </esdtTransfers>
+            // gas
+            <gasProvided> GASLIMIT </gasProvided>
+            <gasPrice> 0 </gasPrice>
+          </vmInput>
+
+```
+
+`#finishExecuteOnDestContext` takes the VM output returned from the callee, and applies to the caller's context.
+
+```k
+    syntax InternalInstr ::= "#finishExecuteOnDestContext"
+ // ------------------------------------------------------
+    rule [finishExecuteOnDestContext-ok]:
+        <instrs> #finishExecuteOnDestContext
+              => i32.const 0
+                 ...
+        </instrs>
+        <vmOutput>
+          VMOutput ( OK , _ , OUTPUT , LOGS ) => .VMOutput
+        </vmOutput>
+        // merge outputs
+        <out> ... (.List => OUTPUT) </out>
+        <logs> ... (.List => LOGS) </logs>
+        
+    // TODO should this throw the same (EC, MSG) or transform it?
+    rule [finishExecuteOnDestContext-exception]:
+        <instrs> #finishExecuteOnDestContext
+              => #throwExceptionBs(EC, MSG) 
+                 ...
+        </instrs>
+        <vmOutput>
+          VMOutput ( EC:ExceptionCode , MSG , _ , LOGS ) => .VMOutput
+        </vmOutput>
+        // merge logs
+        <logs> ... (.List => LOGS) </logs>
+
+    // keep running other commands after transfers
+    rule <commands> (#transferSuccess => .) ... </commands>
+         <instrs> #finishExecuteOnDestContext ... </instrs>
 
 ```
 

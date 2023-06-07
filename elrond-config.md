@@ -418,17 +418,16 @@ TODO should VMOutputs be merged to the callstate after #endWasm? Contract A writ
 
 - `#exception` drops the rest of the computation in the `commands` and `instrs` cells and reverts the state.
 
-TODO confirm the error propagation mechanism. For example, A calls B, B calls C. Should A and B fail, too? What should be the resulting VMOutput? 
 
 ```k
-    syntax InternalCmd ::= #exception ( ExceptionCode )
+    syntax InternalCmd ::= "#exception"
  // ---------------------------------------------------
     rule [exception-revert]:
-        <commands> (#exception(_EC) ~> #endWasm) => dropCallState ~> popWorldState ... </commands>
+        <commands> (#exception ~> #endWasm) => popCallState ~> popWorldState ... </commands>
       [priority(10)]
     
     rule [exception-skip]:
-        <commands> #exception(_EC) ~> (CMD:InternalCmd => . ) ... </commands>
+        <commands> #exception ~> (CMD:InternalCmd => . ) ... </commands>
       requires CMD =/=K #endWasm
       [priority(10)]
 
@@ -442,7 +441,7 @@ TODO confirm the error propagation mechanism. For example, A calls B, B calls C.
 
     rule [throwExceptionBs]:
         <instrs> (#throwExceptionBs( EC , MSG ) ~> _ ) => . </instrs>
-        <commands> (. => #exception(EC)) ... </commands>
+        <commands> (. => #exception) ... </commands>
         <out> OUT </out>
         <logs> LOGS </logs>
         <vmOutput> .VMOutput => VMOutput( EC , MSG , OUT , LOGS) </vmOutput>
@@ -452,6 +451,17 @@ TODO confirm the error propagation mechanism. For example, A calls B, B calls C.
 ## Managing Accounts
 
 ```k
+    syntax Bool ::= #isSmartContract(Bytes)      [function, total]
+ // -------------------------------------------------------------
+    rule [[ #isSmartContract(ADDR) => true ]]
+        <account>
+          <address> ADDR </address>
+          <code> _:ModuleDecl </code>
+          ...
+        </account>
+
+    rule #isSmartContract(_) => false              [owise]
+
     syntax InternalCmd ::= createAccount ( Bytes ) [klabel(createAccount), symbol]
  // ------------------------------------------------------------------------------
     // ignore if the account already exists
@@ -625,25 +635,31 @@ TODO confirm the error propagation mechanism. For example, A calls B, B calls C.
 ## Calling Contract
 
 ```k
-    syntax InternalCmd ::= callContract ( Bytes, Bytes, Int, List,     String, List, Int, Int ) [klabel(callContractString)]
-                         | callContract ( Bytes, Bytes, Int, List, WasmString, List, Int, Int ) [klabel(callContractWasmString)]
-                         | mkCall       ( Bytes, Bytes, Int, List, WasmString, List, Int, Int )
+    syntax InternalCmd ::= callContract ( Bytes, String,     VmInputCell ) [klabel(callContractString)]
+                         | callContract ( Bytes, WasmString, VmInputCell ) [klabel(callContractWasmString)]
+                         | mkCall       ( Bytes, WasmString, VmInputCell )
  // -------------------------------------------------------------------------------------
-    rule <commands> callContract(FROM, TO, VALUE, ESDT, FUNCNAME:String, ARGS, GASLIMIT, GASPRICE)
-                 => callContract(FROM, TO, VALUE, ESDT, #unparseWasmString("\"" +String FUNCNAME +String "\""), ARGS, GASLIMIT, GASPRICE)
-                    ...
+    rule <commands> callContract(TO, FUNCNAME:String, VMINPUT)
+                 => callContract(TO, #unparseWasmString("\"" +String FUNCNAME +String "\""), VMINPUT) ...
          </commands>
       [priority(60)]
 
     // TODO compare with the EVM contract call implementation
     rule [callContract]:
-        <commands> callContract(FROM, TO, VALUE, ESDT, FUNCNAME:WasmStringToken, ARGS, GASLIMIT, GASPRICE)
+        <commands> callContract(TO, FUNCNAME:WasmStringToken, 
+                                <vmInput> 
+                                  <caller> FROM </caller>
+                                  <callValue> VALUE </callValue>
+                                  <esdtTransfers> ESDT </esdtTransfers>
+                                  _ 
+                                </vmInput> #as VMINPUT
+                   )
                 => pushWorldState
                 ~> pushCallState
                 ~> transferFunds(FROM, TO, VALUE)
                 ~> transferESDTs(FROM, TO, ESDT)
                 ~> newWasmInstance(CODE)
-                ~> mkCall(FROM, TO, VALUE, ESDT, FUNCNAME, ARGS, GASLIMIT, GASPRICE)
+                ~> mkCall(TO, FUNCNAME, VMINPUT)
                 ~> #endWasm
                    ...
         </commands>
@@ -685,14 +701,10 @@ Every contract call runs in its own Wasm instance initialized with the contract'
     rule initContractModule(M:ModuleDecl) => M              [owise]
 
     rule [mkCall]:
-        <commands> mkCall(FROM, TO, VALUE, ESDT, FUNCNAME:WasmStringToken, ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
+        <commands> mkCall(TO, FUNCNAME:WasmStringToken, VMINPUT) => . ... </commands>
         <callState>
-          // call input
-          <caller> _ => FROM </caller>
           <callee> _ => TO   </callee>
-          <callArgs> _ => ARGS </callArgs>
-          <callValue> _ => VALUE </callValue>
-          <esdtTransfers> _ => ESDT </esdtTransfers>
+          (_:VmInputCell => VMINPUT)
           // executional
           <wasm>
             <instrs> . => ( invoke FUNCADDR ) </instrs>
@@ -715,7 +727,7 @@ Every contract call runs in its own Wasm instance initialized with the contract'
       [priority(60)]
 
     rule [mkCall-func-not-found]:
-        <commands> mkCall(_FROM, _TO, _VALUE, _ESDT, FUNCNAME:WasmStringToken, _ARGS, _GASLIMIT, _GASPRICE) => . ... </commands>
+        <commands> mkCall(_TO, FUNCNAME:WasmStringToken, _VMINPUT) => . ... </commands>
         <contractModIdx> MODIDX:Int </contractModIdx>
         <moduleInst>
           <modIdx> MODIDX </modIdx>

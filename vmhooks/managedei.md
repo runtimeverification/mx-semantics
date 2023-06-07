@@ -53,32 +53,25 @@ module MANAGEDEI
          <esdtTransfers> ESDTS </esdtTransfers>
   
  // extern int32_t   managedMultiTransferESDTNFTExecute(void* context, int32_t dstHandle, int32_t tokenTransfersHandle, long long gasLimit, int32_t functionHandle, int32_t argumentsHandle);
-    rule <instrs> hostCall("env", "managedMultiTransferESDTNFTExecute", [ i32 i32 i64 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
-               => #transferESDTNFTExecuteWithTypedArgs(
-                    Dest, 
-                    #readESDTTransfers(EsdtBytes), 
-                    GAS_LIMIT, 
-                    FuncName, 
-                    #readManagedVecOfManagedBuffers(ArgsBytes)
-                  )
-                  ...
-         </instrs>
-         <locals>
-           0 |-> <i32> DEST_IDX
-           1 |-> <i32> TRANSFERS_IDX
-           2 |-> <i64> GAS_LIMIT
-           3 |-> <i32> FUNC_IDX
-           4 |-> <i32> ARGS_IDX
-         </locals>
-         <bufferHeap>
-            ...
-            DEST_IDX |-> Dest
-            FUNC_IDX |-> FuncName
-            TRANSFERS_IDX |-> EsdtBytes
-            ARGS_IDX |-> ArgsBytes
-            ...
-         </bufferHeap>
-
+    rule [managedMultiTransferESDTNFTExecute]:
+        <instrs> hostCall("env", "managedMultiTransferESDTNFTExecute", [ i32 i32 i64 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
+              => #transferESDTNFTExecuteWithTypedArgs(
+                  getBuffer(DEST_IDX), 
+                  readESDTTransfers(TRANSFERS_IDX), 
+                  GAS_LIMIT, 
+                  getBuffer(FUNC_IDX), 
+                  readManagedVecOfManagedBuffers(ARGS_IDX)
+                 )
+                 ...
+        </instrs>
+        <locals>
+          0 |-> <i32> DEST_IDX
+          1 |-> <i32> TRANSFERS_IDX
+          2 |-> <i64> GAS_LIMIT
+          3 |-> <i32> FUNC_IDX
+          4 |-> <i32> ARGS_IDX
+        </locals>
+        
  // extern void      managedSCAddress(void* context, int32_t destinationHandle);
     rule <instrs> hostCall ( "env" , "managedSCAddress" , [ i32  .ValTypes ] -> [ .ValTypes ] )
                => #setBuffer( DEST_IDX , CALLEE )
@@ -90,11 +83,11 @@ module MANAGEDEI
  // extern int32_t managedTransferValueExecute(void* context, int32_t dstHandle, int32_t valueHandle, long long gasLimit, int32_t functionHandle, int32_t argumentsHandle);
     rule <instrs> hostCall ( "env" , "managedTransferValueExecute" , [ i32  i32  i64  i32  i32  .ValTypes ] -> [ i32  .ValTypes ] )
                => #transferValueExecuteWithTypedArgs(
-                    Dest, 
-                    Value, 
+                    getBuffer(DEST_IDX), 
+                    getBigInt(VALUE_IDX), 
                     GAS_LIMIT, 
-                    FuncName, 
-                    #readManagedVecOfManagedBuffers(ArgsBytes)
+                    getBuffer(FUNC_IDX), 
+                    readManagedVecOfManagedBuffers(ARGS_IDX)
                   )
                   ...
          </instrs>
@@ -105,17 +98,6 @@ module MANAGEDEI
            3 |-> <i32> FUNC_IDX
            4 |-> <i32> ARGS_IDX
          </locals>
-         <bufferHeap>
-            ...
-            DEST_IDX |-> Dest
-            FUNC_IDX |-> FuncName
-            ARGS_IDX |-> ArgsBytes
-            ...
-         </bufferHeap>
-         <bigIntHeap>
-          ... VALUE_IDX |-> Value ...
-         </bigIntHeap>
-
 
  // extern void managedGetBlockRandomSeed(void *context, int32_t resultHandle);
     rule <instrs> hostCall("env", "managedGetBlockRandomSeed", [i32  .ValTypes] -> [ .ValTypes ] )

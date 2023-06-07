@@ -309,20 +309,36 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     syntax Step ::= callTx    (from: Address, to: Address, value: Int, esdtValue: List, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
                   | callTxAux (from: Bytes,   to: Bytes,   value: Int, esdtValue: List, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
  // ----------------------------------------------------------------------------------------------------------------------------------------------------------
-    rule <k> callTx(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE)
-          => callTxAux(#address2Bytes(FROM), #address2Bytes(TO), VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE) ... </k>
+    rule [callTx]:
+        <k> callTx(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE)
+         => callTxAux(#address2Bytes(FROM), #address2Bytes(TO), VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE) ... 
+        </k>
       [priority(60)]
 
-    rule <k> callTxAux(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
-         <commands> . => callContract(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE) </commands>
-         <account>
-            <address> FROM </address>
-            <nonce> NONCE => NONCE +Int 1 </nonce>
-            <balance> BALANCE => BALANCE -Int GASLIMIT *Int GASPRICE </balance>
-            ...
-         </account>
-         <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
+    rule [callTxAux]:
+        <k> callTxAux(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
+        <commands> . => callContract(TO, FUNCTION, mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GASLIMIT, GASPRICE)) </commands>
+        <account>
+          <address> FROM </address>
+          <nonce> NONCE => NONCE +Int 1 </nonce>
+          <balance> BALANCE => BALANCE -Int GASLIMIT *Int GASPRICE </balance>
+          ...
+        </account>
+        <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
       [priority(60)]
+
+    syntax VmInputCell ::= mkVmInputSCCall(Bytes, List, Int, List, Int, Int)    [function, total]
+ // -----------------------------------------------------------------------------------
+    rule mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GAS, GAS_PRICE)
+      => <vmInput>
+            <caller> FROM </caller>
+            <callArgs> ARGS </callArgs>
+            <callValue> VALUE </callValue>
+            <esdtTransfers> ESDT </esdtTransfers>
+            // gas
+            <gasProvided> GAS </gasProvided>
+            <gasPrice> GAS_PRICE </gasPrice>
+          </vmInput>
 
     syntax Step ::= checkExpectOut ( List ) [klabel(checkExpectOut), symbol]
  // --------------------------------------------------------------------------
@@ -365,9 +381,22 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
       [priority(60)]
 
     rule <k> queryTxAux(TO, FUNCTION, ARGS) => #wait ... </k>
-         <commands> . => callContract(TO, TO, 0, .List, FUNCTION, ARGS, maxUInt64, 0) </commands>
+         <commands> . => callContract(TO, FUNCTION, mkVmInputQuery(TO, ARGS)) </commands>
          <logging> S => S +String " -- query contract: " +String #parseWasmString(FUNCTION) </logging>
       [priority(60)]
+
+    syntax VmInputCell ::= mkVmInputQuery(Bytes, List)    [function, total]
+ // -----------------------------------------------------------------------------------
+    rule mkVmInputQuery(TO, ARGS)
+      => <vmInput>
+            <caller> TO </caller>
+            <callArgs> ARGS </callArgs>
+            <callValue> 0 </callValue>
+            <esdtTransfers> .List </esdtTransfers>
+            // gas
+            <gasProvided> maxUInt64 </gasProvided>
+            <gasPrice> 0 </gasPrice>
+          </vmInput>
 ```
 
 ### Step type: scDeploy
@@ -387,7 +416,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
                 => createAccount(NEWADDR)
                 ~> setAccountOwner(NEWADDR, FROM)
                 ~> setAccountCode(NEWADDR, MODULE)
-                ~> callContract(FROM, NEWADDR, VALUE, .List, "init", ARGS, GASLIMIT, GASPRICE)
+                ~> callContract(NEWADDR, "init", mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE))
         </commands>
         <account>
            <address> FROM </address>
@@ -397,6 +426,19 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
         </account>
         <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
       [priority(60)]
+
+    syntax VmInputCell ::= mkVmInputDeploy(Bytes, Int, List, Int, Int)    [function, total]
+ // -----------------------------------------------------------------------------------
+    rule mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE)
+      => <vmInput>
+            <caller> FROM </caller>
+            <callArgs> ARGS </callArgs>
+            <callValue> VALUE </callValue>
+            <esdtTransfers> .List </esdtTransfers>
+            // gas
+            <gasProvided> GASLIMIT </gasProvided>
+            <gasPrice> GASPRICE </gasPrice>
+          </vmInput>
 ```
 
 ### Step type: transfer

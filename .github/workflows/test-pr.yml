@@ -196,6 +196,37 @@ jobs:
         run: |
           docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
 
+  addercaller-test:
+    runs-on: [self-hosted, linux, normal]
+    name: 'Adder Caller Contract Test'
+    needs: [adder-test]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.JENKINS_GITHUB_PAT }}
+      - name: Checkout submodules
+        env: 
+          GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}
+        run: |
+          # https://gist.github.com/taoyuan/bfa3ff87e4b5611b5cbe ; for a repository we don't control the submodules over. 
+          git config --global url."https://github.com/".insteadOf git@github.com:
+          git config --global url."https://".insteadOf git://
+          git submodule update --init --recursive
+      - name: 'Set up Docker'
+        uses: ./.github/actions/with-docker
+        with:
+          container-name: elrond-semantics-ci-${{ github.sha }}
+      - name: 'Build'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true'
+      - name: 'Run Adder Caller Contract Test'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-addercaller'
+      - name: 'Tear down Docker'
+        if: always()
+        run: |
+          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
+
   crowdfunding-test:
     runs-on: [self-hosted, linux, normal]
     name: 'Crowdfunding ESDT Contract Test'

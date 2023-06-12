@@ -423,11 +423,10 @@ module BASEOPS
         // merge outputs
         <out> ... (.List => OUTPUT) </out>
         <logs> ... (.List => LOGS) </logs>
-        
-    // TODO should this throw the same (EC, MSG) or transform it?
+
     rule [finishExecuteOnDestContext-exception]:
         <instrs> #finishExecuteOnDestContext
-              => #throwExceptionBs(EC, MSG) 
+              => resolveErrorFromOutput(EC, MSG)
                  ...
         </instrs>
         <vmOutput>
@@ -440,6 +439,21 @@ module BASEOPS
     rule <commands> (#transferSuccess => .) ... </commands>
          <instrs> #finishExecuteOnDestContext ... </instrs>
 
+    syntax InternalInstr ::= resolveErrorFromOutput(ExceptionCode, Bytes) [function, total]
+ // -----------------------------------------------------------------------
+    rule resolveErrorFromOutput(ExecutionFailed, b"memory limit reached")
+        => #throwExceptionBs(ExecutionFailed, b"execution failed")
+
+    rule resolveErrorFromOutput(FunctionNotFound, MSG)
+        => #throwExceptionBs(ExecutionFailed, MSG)
+
+    rule resolveErrorFromOutput(UserError, _)
+        => #throwExceptionBs(ExecutionFailed, b"error signalled by smartcontract")
+
+    rule resolveErrorFromOutput(EC, MSG)
+        => #throwExceptionBs(EC, MSG)
+        [owise]
+    
 ```
 
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.

@@ -159,20 +159,20 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     rule <commands> pushCallState => . ... </commands>
          <callStack> (.List => ListItem(CALLSTATE)) ... </callStack>
          <callState> CALLSTATE </callState>
-      [priority(60)]
+      [priority(10)]
 
     syntax InternalCmd ::= "popCallState"
  // --------------------------------------
     rule <commands> popCallState => . ... </commands>
          <callStack> (ListItem(CALLSTATE) => .List) ... </callStack>
          <callState> _ => CALLSTATE </callState>
-      [priority(60)]
+      [priority(10)]
 
     syntax InternalCmd ::= "dropCallState"
  // ---------------------------------------
     rule <commands> dropCallState => . ... </commands>
          <callStack> (ListItem(_) => .List) ... </callStack>
-      [priority(60)]
+      [priority(10)]
 ```
 
 ## World State
@@ -189,7 +189,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
          <interimStates> (.List => ListItem({ ACCTDATA | ACCTS })) ... </interimStates>
          <activeAccounts> ACCTS    </activeAccounts>
          <accounts>       ACCTDATA </accounts>
-      [priority(60)]
+      [priority(10)]
 
     syntax InternalCmd ::= "popWorldState"
  // --------------------------------------
@@ -197,13 +197,13 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
          <interimStates> (ListItem({ ACCTDATA | ACCTS }) => .List) ... </interimStates>
          <activeAccounts> _ => ACCTS    </activeAccounts>
          <accounts>       _ => ACCTDATA </accounts>
-      [priority(60)]
+      [priority(10)]
 
     syntax InternalCmd ::= "dropWorldState"
  // ---------------------------------------
     rule <commands> dropWorldState => . ... </commands>
          <interimStates> (ListItem(_) => .List) ... </interimStates>
-      [priority(60)]
+      [priority(10)]
 ```
 
 ```k

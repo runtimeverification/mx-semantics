@@ -87,13 +87,23 @@ module ELROND-CONFIG
       requires #signed(i32 , OFFSET) +Int lengthBytes(BS) <=Int (SIZE *Int #pageSize())
        andBool 0 <=Int #signed(i32 , OFFSET)
 
+    rule [memStore-owise]:
+        <instrs> #memStore(_, _) => #throwException(ExecutionFailed, "mem store: memory instance not found") ... </instrs>
+      [owise]
+
     syntax InternalInstr ::= #memLoad ( offset: Int , length: Int )
  // ---------------------------------------------------------------
 
-    rule <instrs> #memLoad(_, LENGTH) => #throwException(ExecutionFailed, "mem load: negative length") ... </instrs>
+    rule [memLoad-negative-length]:
+        <instrs> #memLoad(_, LENGTH) => #throwException(ExecutionFailed, "mem load: negative length") ... </instrs>
       requires #signed(i32 , LENGTH) <Int 0
 
-    rule <instrs> #memLoad(OFFSET, LENGTH) => #throwException(ExecutionFailed, "mem load: bad bounds") ... </instrs>
+    rule [memLoad-zero-length]:
+        <instrs> #memLoad(_, 0) => . ... </instrs>
+        <bytesStack> STACK => .Bytes : STACK </bytesStack>
+
+    rule [memLoad-bad-bounds]:
+         <instrs> #memLoad(OFFSET, LENGTH) => #throwException(ExecutionFailed, "mem load: bad bounds") ... </instrs>
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
@@ -105,11 +115,12 @@ module ELROND-CONFIG
            <msize> SIZE </msize>
            ...
          </memInst>
-      requires #signed(i32 , LENGTH) >=Int 0
+      requires #signed(i32 , LENGTH) >Int 0
        andBool (#signed(i32 , OFFSET) <Int 0
          orBool #signed(i32 , OFFSET) +Int #signed(i32 , LENGTH) >Int (SIZE *Int #pageSize()))
 
-    rule <instrs> #memLoad(OFFSET, LENGTH) => . ... </instrs>
+    rule [memLoad]:
+         <instrs> #memLoad(OFFSET, LENGTH) => . ... </instrs>
          <bytesStack> STACK => #getBytesRange(DATA, OFFSET, LENGTH) : STACK </bytesStack>
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
@@ -123,9 +134,13 @@ module ELROND-CONFIG
            <mdata> DATA </mdata>
            ...
          </memInst>
-      requires #signed(i32 , LENGTH) >=Int 0
+      requires #signed(i32 , LENGTH) >Int 0
        andBool #signed(i32 , OFFSET) >=Int 0
        andBool #signed(i32 , OFFSET) +Int #signed(i32 , LENGTH) <=Int (SIZE *Int #pageSize())
+
+    rule [memLoad-owise]:
+        <instrs> #memLoad(_, _) => #throwException(ExecutionFailed, "mem load: memory instance not found") ... </instrs>
+      [owise]
 ```
 
 ### Storage
@@ -158,6 +173,10 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            ...
          </account>
 
+    rule [writeToStorage-unknown-addr]:
+        <instrs> #writeToStorage(_, _) => #throwException(ExecutionFailed, "writeToStorage: unknown account address") ... </instrs>
+      [owise]
+
     syntax InternalInstr ::= #isReservedKey ( String )
  // --------------------------------------------------
     rule <instrs> #isReservedKey(KEY) => . ... </instrs>
@@ -171,24 +190,39 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     syntax InternalInstr ::= "#storageLoad"
                            | "#storageLoadFromAddress"
  // ---------------------------------------
-    rule <instrs> #storageLoad => . ... </instrs>
-         <bytesStack> KEY : STACK => #lookupStorage(STORAGE, KEY) : STACK </bytesStack>
+    rule <instrs> #storageLoad => #storageLoadFromAddress ... </instrs>
+         <bytesStack> STACK => CALLEE : STACK </bytesStack>
          <callee> CALLEE </callee>
-         <account>
-           <address> CALLEE </address>
-           <storage> STORAGE </storage>
-           ...
-         </account>
-         requires #lookupStorageDefined(STORAGE, KEY)
 
-    rule <instrs> #storageLoadFromAddress => . ... </instrs>
-         <bytesStack> ADDR : KEY : STACK => #lookupStorage(STORAGE, KEY) : STACK </bytesStack>
-         <account>
-           <address> ADDR </address>
-           <storage> STORAGE </storage>
-           ...
-         </account>
-         requires #lookupStorageDefined(STORAGE, KEY)
+    rule [storageLoadFromAddress]:
+        <instrs> #storageLoadFromAddress => . ... </instrs>
+        <bytesStack> ADDR : KEY : STACK => #lookupStorage(STORAGE, KEY) : STACK </bytesStack>
+        <account>
+          <address> ADDR </address>
+          <storage> STORAGE </storage>
+          ...
+        </account>
+      requires #lookupStorageDefined(STORAGE, KEY)
+
+    rule [storageLoadFromAddress-undefined]:
+        <instrs> #storageLoadFromAddress 
+              => #throwException(UserError, "storageLoadFromAddress: undefined storage value") ... 
+        </instrs>
+        <bytesStack> ADDR : KEY : _ </bytesStack>
+        <account>
+          <address> ADDR </address>
+          <storage> STORAGE </storage>
+          ...
+        </account>
+      requires notBool #lookupStorageDefined(STORAGE, KEY)
+
+    rule [storageLoadFromAddress-unknown-addr]:
+        <instrs> #storageLoadFromAddress 
+              => #throwException(UserError, "storageLoadFromAddress: unknown account address") ... 
+        </instrs>
+        // ADDR does not match any user
+        // <bytesStack> ADDR : _ : _ </bytesStack>
+      [owise]
 
     syntax Map ::= #updateStorage ( Map , key : Bytes , val : Bytes ) [function, total]
  // ----------------------------------------------------------------------------------------

@@ -173,6 +173,10 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            ...
          </account>
 
+    rule [writeToStorage-unknown-addr]:
+        <instrs> #writeToStorage(_, _) => #throwException(ExecutionFailed, "writeToStorage: unknown account address") ... </instrs>
+      [owise]
+
     syntax InternalInstr ::= #isReservedKey ( String )
  // --------------------------------------------------
     rule <instrs> #isReservedKey(KEY) => . ... </instrs>
@@ -186,24 +190,39 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     syntax InternalInstr ::= "#storageLoad"
                            | "#storageLoadFromAddress"
  // ---------------------------------------
-    rule <instrs> #storageLoad => . ... </instrs>
-         <bytesStack> KEY : STACK => #lookupStorage(STORAGE, KEY) : STACK </bytesStack>
+    rule <instrs> #storageLoad => #storageLoadFromAddress ... </instrs>
+         <bytesStack> STACK => CALLEE : STACK </bytesStack>
          <callee> CALLEE </callee>
-         <account>
-           <address> CALLEE </address>
-           <storage> STORAGE </storage>
-           ...
-         </account>
-         requires #lookupStorageDefined(STORAGE, KEY)
 
-    rule <instrs> #storageLoadFromAddress => . ... </instrs>
-         <bytesStack> ADDR : KEY : STACK => #lookupStorage(STORAGE, KEY) : STACK </bytesStack>
-         <account>
-           <address> ADDR </address>
-           <storage> STORAGE </storage>
-           ...
-         </account>
-         requires #lookupStorageDefined(STORAGE, KEY)
+    rule [storageLoadFromAddress]:
+        <instrs> #storageLoadFromAddress => . ... </instrs>
+        <bytesStack> ADDR : KEY : STACK => #lookupStorage(STORAGE, KEY) : STACK </bytesStack>
+        <account>
+          <address> ADDR </address>
+          <storage> STORAGE </storage>
+          ...
+        </account>
+      requires #lookupStorageDefined(STORAGE, KEY)
+
+    rule [storageLoadFromAddress-undefined]:
+        <instrs> #storageLoadFromAddress 
+              => #throwException(UserError, "storageLoadFromAddress: undefined storage value") ... 
+        </instrs>
+        <bytesStack> ADDR : KEY : _ </bytesStack>
+        <account>
+          <address> ADDR </address>
+          <storage> STORAGE </storage>
+          ...
+        </account>
+      requires notBool #lookupStorageDefined(STORAGE, KEY)
+
+    rule [storageLoadFromAddress-unknown-addr]:
+        <instrs> #storageLoadFromAddress 
+              => #throwException(UserError, "storageLoadFromAddress: unknown account address") ... 
+        </instrs>
+        // ADDR does not match any user
+        // <bytesStack> ADDR : _ : _ </bytesStack>
+      [owise]
 
     syntax Map ::= #updateStorage ( Map , key : Bytes , val : Bytes ) [function, total]
  // ----------------------------------------------------------------------------------------

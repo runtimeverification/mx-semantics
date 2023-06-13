@@ -99,7 +99,7 @@ module ELROND-CONFIG
       requires #signed(i32 , LENGTH) <Int 0
 
     rule [memLoad-zero-length]:
-        <instrs> #memLoad(OFFSET, 0) => . ... </instrs>
+        <instrs> #memLoad(_, 0) => . ... </instrs>
         <bytesStack> STACK => .Bytes : STACK </bytesStack>
 
     rule [memLoad-bad-bounds]:
@@ -139,7 +139,7 @@ module ELROND-CONFIG
        andBool #signed(i32 , OFFSET) +Int #signed(i32 , LENGTH) <=Int (SIZE *Int #pageSize())
 
     rule [memLoad-owise]:
-        <instrs> #memLoad(OFFSET, LENGTH) => #throwException(ExecutionFailed, "mem load: memory instance not found") ... </instrs>
+        <instrs> #memLoad(_, _) => #throwException(ExecutionFailed, "mem load: memory instance not found") ... </instrs>
       [owise]
 ```
 

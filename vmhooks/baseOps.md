@@ -413,6 +413,7 @@ module BASEOPS
     syntax InternalInstr ::= "#finishExecuteOnDestContext"
  // ------------------------------------------------------
     rule [finishExecuteOnDestContext-ok]:
+        <commands> #endWasm ... </commands>
         <instrs> #finishExecuteOnDestContext
               => i32.const 0
                  ...
@@ -425,6 +426,7 @@ module BASEOPS
         <logs> ... (.List => LOGS) </logs>
 
     rule [finishExecuteOnDestContext-exception]:
+        <commands> #endWasm ... </commands>
         <instrs> #finishExecuteOnDestContext
               => resolveErrorFromOutput(EC, MSG)
                  ...

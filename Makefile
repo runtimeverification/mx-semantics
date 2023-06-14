@@ -5,7 +5,7 @@
         test unittest-python mandos-test mandos-coverage test-elrond-contracts   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
         test-elrond-multisig test-elrond-basic-features                          \
-        test-elrond-addercaller                                                  \
+        test-elrond-addercaller test-elrond-callercallee test-custom-contracts   \
         rule-coverage clean-coverage                                             \
 
 # Settings
@@ -162,13 +162,12 @@ KRUN_OPTS :=
 
 # TODO add test-elrond-lottery-esdt
 elrond-contract-deps := test-elrond-adder             \
-                        test-elrond-addercaller       \
                         test-elrond-crowdfunding-esdt \
                         test-elrond-multisig          \
                         test-elrond-basic-features
 test-elrond-contracts: $(elrond-contract-deps)
 
-test: test-simple mandos-test test-elrond-contracts
+test: test-simple mandos-test test-elrond-contracts test-custom-contracts
 
 # Unit Tests
 # ----------
@@ -238,16 +237,6 @@ test-elrond-adder: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_ADDER_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_adder_tests) --coverage
 
-## Adder Caller Test
-
-ELROND_ADDERCALLER_DIR := tests/contracts/addercaller
-elrond_addercaller_tests=$(shell find $(ELROND_ADDERCALLER_DIR) -name "*.scen.json")
-ELROND_MYADDER_DIR := tests/contracts/myadder
-
-test-elrond-addercaller: $(llvm_kompiled)
-	mxpy contract build "$(ELROND_MYADDER_DIR)" --wasm-symbols
-	mxpy contract build "$(ELROND_ADDERCALLER_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_addercaller_tests) --coverage
 
 ## Crowdfunding Test
 
@@ -296,6 +285,34 @@ test-elrond-alloc-features: $(elrond_alloc_features_tests:=.mandos)
 
 $(ELROND_ALLOC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_ALLOC_FEATURES_WASM)
 	$(TEST_MANDOS) $(ELROND_ALLOC_FEATURES_DIR)/scenarios/$*.scen.json --log-level none
+
+# Custom contract tests
+
+custom-contracts := test-elrond-addercaller       \
+                    test-elrond-callercallee
+test-custom-contracts: $(custom-contracts)
+
+## Adder Caller Test
+
+ELROND_ADDERCALLER_DIR := tests/contracts/addercaller
+elrond_addercaller_tests=$(shell find $(ELROND_ADDERCALLER_DIR) -name "*.scen.json")
+ELROND_MYADDER_DIR := tests/contracts/myadder
+
+test-elrond-addercaller: $(llvm_kompiled)
+	mxpy contract build "$(ELROND_MYADDER_DIR)" --wasm-symbols
+	mxpy contract build "$(ELROND_ADDERCALLER_DIR)" --wasm-symbols
+	$(TEST_MANDOS) $(elrond_addercaller_tests) --coverage
+
+## Caller Callee Test
+
+ELROND_CALLER_DIR := tests/contracts/caller
+ELROND_CALLEE_DIR := tests/contracts/callee
+elrond_callercallee_tests=$(shell find $(ELROND_CALLER_DIR) -name "*.scen.json")
+
+test-elrond-callercallee: $(llvm_kompiled)
+	mxpy contract build "$(ELROND_CALLER_DIR)" --wasm-symbols
+	mxpy contract build "$(ELROND_CALLEE_DIR)" --wasm-symbols
+	$(TEST_MANDOS) $(elrond_callercallee_tests) --coverage
 
 # Unit Tests
 # ----------

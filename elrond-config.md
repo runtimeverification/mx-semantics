@@ -231,7 +231,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 
     syntax Bytes ::= #lookupStorage ( Map , key: Bytes ) [function]
  // ---------------------------------------------------------------
-    rule #lookupStorage(STORAGE, KEY) => {STORAGE[KEY]}:>Bytes
+    rule #lookupStorage(STORAGE, KEY) => {STORAGE[KEY] orDefault .Bytes}:>Bytes
       requires         KEY in_keys(STORAGE)
        andBool isBytes(STORAGE[KEY])
 

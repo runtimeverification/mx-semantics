@@ -365,7 +365,7 @@ module BASEOPS
                  ...
         </instrs>
         <locals> 0 |-> <i32> ID_IDX </locals>
-        <bufferHeap> ... ID_IDX |-> TokId ... </bufferHeap>
+        <bufferHeap> ... wrap(ID_IDX) Int2Bytes|-> wrap(TokId) ... </bufferHeap>
 
   // TODO check arguments and handle errors if any
     syntax InternalInstr ::= #transferESDTNFTExecuteWithTypedArgs(BytesResult, ListResult, Int, BytesResult, ListResult)

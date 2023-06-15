@@ -760,7 +760,7 @@ Every contract call runs in its own Wasm instance initialized with the contract'
             ...
           </wasm>
           <bigIntHeap> _ => .Map </bigIntHeap>
-          <bufferHeap> _ => .Map </bufferHeap>
+          <bufferHeap> _ => .MapIntToBytes </bufferHeap>
           <bytesStack> _ => .BytesStack </bytesStack>
           <contractModIdx> MODIDX:Int </contractModIdx>
           // output

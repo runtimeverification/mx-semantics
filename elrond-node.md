@@ -2,11 +2,13 @@ Elrond Node
 ===========
 
 ```k
+require "data/map-int-to-bytes.k"
 require "wasm.md"
 
 module ELROND-NODE
     imports DOMAINS
     imports WASM
+    imports MAP-INT-TO-BYTES
 
     configuration
       <node>
@@ -27,7 +29,7 @@ module ELROND-NODE
           // every contract call uses its own wasm module instance, managed data heaps, and bytesStack.
           <wasm/>
           <bigIntHeap> .Map </bigIntHeap>
-          <bufferHeap> .Map </bufferHeap>
+          <bufferHeap> .MapIntToBytes </bufferHeap>
           <bytesStack> .BytesStack </bytesStack>
           <contractModIdx> .Int </contractModIdx>
           // output

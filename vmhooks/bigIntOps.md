@@ -5,11 +5,13 @@ Go implementation: [mx-chain-vm-go/vmhost/vmhooks/bigIntOps.go](https://github.c
 
 ```k
 require "../elrond-config.md"
+require "../data/map-int-to-bytes.k"
 require "baseOps.md"
 
 module BIGINT-HELPERS
      imports ELROND-CONFIG
      imports BASEOPS
+     imports MAP-INT-TO-BYTES-PRIMITIVE
 
     syntax IntResult ::= getBigInt(Int)      [function, total]
  // -------------------------------------------------------
@@ -59,12 +61,18 @@ module BIGINT-HELPERS
  // -------------------------------------------------------------
     rule #validIntId( IDX , HEAP ) => IDX in_keys(HEAP) andBool isInt(HEAP[IDX] orDefault 0)
 
-    syntax Int ::= #newKey(Map)          [function, total]
-                 | #newKeyAux(Int, Map)  [function, total]
+    syntax Int ::= #newKey(Map)                    [function, total]
+                 | #newKeyAux(Int, Map)            [function, total]
+                 | #newKey(MapIntToBytes)          [function, total]
+                 | #newKeyAux(Int, MapIntToBytes)  [function, total]
  // -------------------------------------------------------
-    rule #newKey(M)       => #newKeyAux(size(M), M)
-    rule #newKeyAux(I, M) => I                        requires notBool(I in_keys(M))
-    rule #newKeyAux(I, M) => #newKeyAux(I +Int 1, M)  requires         I in_keys(M)
+    rule #newKey(M:Map)       => #newKeyAux(size(M), M)
+    rule #newKeyAux(I, M:Map) => I                        requires notBool(I in_keys(M))
+    rule #newKeyAux(I, M:Map) => #newKeyAux(I +Int 1, M)  requires         I in_keys(M)
+
+    rule #newKey(M:MapIntToBytes)       => #newKeyAux(size(M), M)
+    rule #newKeyAux(I, M:MapIntToBytes) => I                        requires notBool(I in_keys{{M}})
+    rule #newKeyAux(I, M:MapIntToBytes) => #newKeyAux(I +Int 1, M)  requires         I in_keys{{M}}
 
  // sqrtInt(X) = ⌊√X⌋   if X is non-negative
  // sqrtInt(X) = -1     if X is negative

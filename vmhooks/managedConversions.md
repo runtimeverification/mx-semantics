@@ -80,7 +80,7 @@ module MANAGEDCONVERSIONS
     syntax ListResult ::= readManagedVecOfManagedBuffers(Int)                     [function, total]
  // ----------------------------------------------------------------------------------------------------
     rule [[ readManagedVecOfManagedBuffers(BUFFER_IDX) => chunks2buffers(VecBs) ]]
-      <bufferHeap> ... BUFFER_IDX |-> VecBs:Bytes ... </bufferHeap>
+      <bufferHeap> ... wrap(BUFFER_IDX) Int2Bytes|-> wrap(VecBs:Bytes) ... </bufferHeap>
     rule readManagedVecOfManagedBuffers(_) => Err("no managed buffer under the given handle")
       [owise]
 

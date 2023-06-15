@@ -6,23 +6,25 @@ Go implementation: [mx-chain-vm-go/vmhost/vmhooks/manBufOps.go](https://github.c
 ```k
 require "../elrond-config.md"
 require "bigIntOps.md"
+require "../data/map-int-to-bytes.k"
 
 module MANBUFOPS
      imports ELROND-CONFIG
      imports BIGINT-HELPERS
+     imports MAP-INT-TO-BYTES-PRIMITIVE
 ```
 
 ## Managed Buffer Internal Instructions
 
 ```k
-    syntax Bool ::= #validBufferId( Int , Map )     [function, total]
+    syntax Bool ::= #validBufferId( Int , MapIntToBytes )     [function, total]
  // -------------------------------------------------------------------
-    rule #validBufferId(IDX, HEAP) => IDX in_keys(HEAP) andBool isBytes(HEAP[IDX] orDefault .Bytes)
+    rule #validBufferId(IDX, HEAP) => IDX in_keys {{HEAP}}
 
     syntax BytesResult ::= getBuffer(Int)                                   [function, total]
  // ---------------------------------------------------------------------------------------------
     rule [[ getBuffer(BUFFER_IDX) => {Bs}:>BytesResult ]]
-      <bufferHeap> ... BUFFER_IDX |-> Bs:Bytes ... </bufferHeap>
+      <bufferHeap> ... wrap(BUFFER_IDX) Int2Bytes|-> wrap(Bs:Bytes) ... </bufferHeap>
 
     rule getBuffer(_) => {Err("no managed buffer under the given handle")}:>BytesResult [owise]
 
@@ -30,7 +32,7 @@ module MANBUFOPS
  // ---------------------------------------------------------------
     rule [getBuffer]:
         <instrs> #getBuffer(BUFFER_IDX) => . ... </instrs>
-        <bytesStack> STACK => {HEAP[BUFFER_IDX]}:>Bytes : STACK </bytesStack>
+        <bytesStack> STACK => HEAP{{BUFFER_IDX}} orDefault .Bytes : STACK </bytesStack>
         <bufferHeap> HEAP </bufferHeap>
       requires #validBufferId(BUFFER_IDX, HEAP)
     
@@ -49,7 +51,7 @@ module MANBUFOPS
          <bytesStack> BS : _ </bytesStack>
 
     rule <instrs> #setBuffer(BUFFER_IDX, BS) => . ... </instrs>
-         <bufferHeap> HEAP => HEAP [ BUFFER_IDX <- BS ] </bufferHeap>
+         <bufferHeap> HEAP => HEAP {{ BUFFER_IDX <- BS }} </bufferHeap>
 
     syntax InternalInstr ::= #appendBytesToBuffer( Int )
                            | "#appendBytes"
@@ -247,7 +249,7 @@ module MANBUFOPS
                => i32.const #newKey(HEAP) 
                   ... 
          </instrs>
-         <bufferHeap> HEAP => HEAP[#newKey(HEAP) <- .Bytes] </bufferHeap>
+         <bufferHeap> HEAP => HEAP{{#newKey(HEAP) <- .Bytes}} </bufferHeap>
 
  // extern int32_t   mBufferNewFromBytes(void* context, int32_t dataOffset, int32_t dataLength);
     rule <instrs> hostCall ( "env" , "mBufferNewFromBytes" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] )
@@ -258,7 +260,7 @@ module MANBUFOPS
                  ... 
          </instrs>
          <locals> 0 |-> <i32> OFFSET  1 |-> <i32> LENGTH </locals>
-         <bufferHeap> HEAP => HEAP[#newKey(HEAP) <- .Bytes] </bufferHeap>
+         <bufferHeap> HEAP => HEAP{{#newKey(HEAP) <- .Bytes}} </bufferHeap>
 
  // extern void      managedCaller(void* context, int32_t destinationHandle);
     rule <instrs> hostCall("env", "managedCaller", [ i32 .ValTypes ] -> [ .ValTypes ] )

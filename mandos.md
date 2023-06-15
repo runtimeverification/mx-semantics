@@ -76,22 +76,31 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### Helper Functions
 
 ```k
-    syntax Map ::= #removeEmptyBytes ( Map ) [function]
-                 | #removeEmptyBytes ( List , Map ) [function, klabel(#removeEmptyBytesAux)]
+    syntax MapBytesToBytes  ::= #removeEmptyBytes ( MapBytesToBytes ) [function]
+                              | #removeEmptyBytes ( List , MapBytesToBytes )
+                                    [function, klabel(#removeEmptyBytesAux)]
  // ----------------------------------------------------------------------------------------
-    rule #removeEmptyBytes(M)                                    => #removeEmptyBytes(Set2List(keys(M)), M)
-    rule #removeEmptyBytes(.List, .Map)                          => .Map
-    rule #removeEmptyBytes(ListItem(KEY) L, KEY |-> VALUE REST) => #removeEmptyBytes(L, REST)
+    rule #removeEmptyBytes(M)
+         => #removeEmptyBytes(Set2List(keys(M)), M)
+    rule #removeEmptyBytes(.List, .MapBytesToBytes)
+         => .MapBytesToBytes
+    rule #removeEmptyBytes(ListItem(KEY) L, KEY Bytes2Bytes|-> VALUE REST)
+         => #removeEmptyBytes(L, REST)
       requires VALUE ==K .Bytes
-    rule #removeEmptyBytes(ListItem(KEY) L, KEY |-> VALUE REST ) => KEY |-> VALUE #removeEmptyBytes(L, REST)
+    rule #removeEmptyBytes(ListItem(KEY) L, KEY Bytes2Bytes|-> VALUE REST )
+         => KEY Bytes2Bytes|-> VALUE #removeEmptyBytes(L, REST)
       requires VALUE =/=K .Bytes
 ```
 
 ### Step type: setState
 
 ```k
-    syntax Step ::= setAccount    ( address: Address, nonce: Int, balance: Int, code: Code, owner: Address, storage: Map )  [klabel(setAccount), symbol]
-                  | setAccountAux ( address: Bytes, nonce: Int, balance: Int, code: Code, owner: Bytes, storage: Map )      [klabel(setAccountAux), symbol]
+    syntax Step ::= setAccount    (
+                        address: Address, nonce: Int, balance: Int, code: Code,
+                        owner: Address, storage: MapBytesToBytes )  [klabel(setAccount), symbol]
+                  | setAccountAux (
+                        address: Bytes, nonce: Int, balance: Int, code: Code,
+                        owner: Bytes, storage: MapBytesToBytes )      [klabel(setAccountAux), symbol]
                   | createAndSetAccountWithEmptyCode       ( Bytes, Int, Int, Map )
                   | createAndSetAccountAfterInitCodeModule ( Bytes, Int, Int, Map )
  // -------------------------------------------------------------------------------
@@ -231,8 +240,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          </account>
       [priority(60)]
 
-    syntax Step ::= checkAccountStorage    ( Address, Map ) [klabel(checkAccountStorage), symbol]
-                  | checkAccountStorageAux ( Bytes, Map )   [klabel(checkAccountStorageAux), symbol]
+    syntax Step ::= checkAccountStorage    ( Address, MapBytesToBytes ) [klabel(checkAccountStorage), symbol]
+                  | checkAccountStorageAux ( Bytes, MapBytesToBytes )   [klabel(checkAccountStorageAux), symbol]
  // ------------------------------------------------------------------------------------------------
     rule <k> checkAccountStorage(ADDRESS, STORAGE)
              => checkAccountStorageAux(#address2Bytes(ADDRESS), STORAGE) ... </k>
@@ -473,8 +482,8 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
          <account>
            <address> TO </address>
             <storage> STOR
-                   => STOR[String2Bytes("ELRONDreward") 
-                           <- #incBytes(#lookupStorage(STOR, String2Bytes("ELRONDreward")), VAL)]
+                   => STOR{{String2Bytes("ELRONDreward") 
+                           <- #incBytes(#lookupStorage(STOR, String2Bytes("ELRONDreward")), VAL)}}
             </storage>
             <balance> TO_BAL => TO_BAL +Int VAL </balance>
             ...

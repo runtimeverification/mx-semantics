@@ -17,6 +17,7 @@ module ELROND-CONFIG
     imports WASM-AUTO-ALLOCATE
     imports ELROND-NODE
     imports ESDT
+    imports MAP-BYTES-TO-BYTES-PRIMITIVE
 
     configuration
       <elrond>
@@ -204,19 +205,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           <storage> STORAGE </storage>
           ...
         </account>
-      requires #lookupStorageDefined(STORAGE, KEY)
-
-    rule [storageLoadFromAddress-undefined]:
-        <instrs> #storageLoadFromAddress 
-              => #throwException(UserError, "storageLoadFromAddress: undefined storage value") ... 
-        </instrs>
-        <bytesStack> ADDR : KEY : _ </bytesStack>
-        <account>
-          <address> ADDR </address>
-          <storage> STORAGE </storage>
-          ...
-        </account>
-      requires notBool #lookupStorageDefined(STORAGE, KEY)
 
     rule [storageLoadFromAddress-unknown-addr]:
         <instrs> #storageLoadFromAddress 
@@ -226,45 +214,26 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         // <bytesStack> ADDR : _ : _ </bytesStack>
       [owise]
 
-    syntax Map ::= #updateStorage ( Map , key : Bytes , val : Bytes ) [function, total]
+    syntax MapBytesToBytes ::= #updateStorage ( MapBytesToBytes , key : Bytes , val : Bytes ) [function, total]
  // ----------------------------------------------------------------------------------------
-    rule #updateStorage(STOR, KEY, VAL) => STOR [KEY <- undef] requires VAL  ==K .Bytes
-    rule #updateStorage(STOR, KEY, VAL) => STOR [KEY <- VAL  ] requires VAL =/=K .Bytes
+    rule #updateStorage(STOR, KEY, VAL) => STOR {{KEY <- undef}} requires VAL  ==K .Bytes
+    rule #updateStorage(STOR, KEY, VAL) => STOR {{KEY <- VAL  }} requires VAL =/=K .Bytes
 
-    syntax Bytes ::= #lookupStorage ( Map , key: Bytes ) [function]
+    syntax Bytes ::= #lookupStorage ( MapBytesToBytes , key: Bytes ) [function, total]
  // ---------------------------------------------------------------
-    rule #lookupStorage(STORAGE, KEY) => {STORAGE[KEY] orDefault .Bytes}:>Bytes
-      requires         KEY in_keys(STORAGE)
-       andBool isBytes(STORAGE[KEY])
+    rule #lookupStorage(STORAGE, KEY) => STORAGE{{KEY}} orDefault .Bytes
 
-    rule #lookupStorage(STORAGE, KEY) => .Bytes
-      requires notBool KEY in_keys(STORAGE)
-
-    syntax Bool ::= #lookupStorageDefined( Map , Bytes )       [function, total]
- // -----------------------------------------------------------------------------------
-    rule #lookupStorageDefined(STORAGE, KEY) => notBool( KEY in_keys(STORAGE) )
-                                         orBool isBytes(STORAGE[KEY] orDefault .Bytes)
-
-    // This is not the full ceil definition, but the full one either is wrong
-    // ({true #Equals #lookupStorageDefined(@M, @B)} #And ...)
-    // or does not work
-    // (#Ceil(true #And #lookupStorageDefined(@M, @B)) #And ...)
-    // and the form below should apply to most cases.
-    rule #Ceil(#lookupStorage(M:Map, B:Bytes))
-        => {true #Equals #lookupStorageDefined(M, B)}
-        [simplification]
-
-    syntax Int ::= #storageStatus ( Map , key : Bytes , val : Bytes ) [function, total]
+    syntax Int ::= #storageStatus ( MapBytesToBytes , key : Bytes , val : Bytes ) [function, total]
                  | #StorageUnmodified () [function, total]
                  | #StorageModified   () [function, total]
                  | #StorageAdded      () [function, total]
                  | #StorageDeleted    () [function, total]
  // -----------------------------------------------------------
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL  ==K .Bytes andBool notBool KEY in_keys(STOR)
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL =/=K .Bytes andBool         KEY in_keys(STOR) andBool STOR[KEY]  ==K VAL
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageModified  () requires VAL =/=K .Bytes andBool         KEY in_keys(STOR) andBool STOR[KEY] =/=K VAL
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageAdded     () requires VAL =/=K .Bytes andBool notBool KEY in_keys(STOR)
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageDeleted   () requires VAL  ==K .Bytes andBool         KEY in_keys(STOR)
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL  ==K .Bytes andBool notBool KEY in_keys{{STOR}}
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL =/=K .Bytes andBool         KEY in_keys{{STOR}} andBool STOR{{KEY}}  ==K VAL
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageModified  () requires VAL =/=K .Bytes andBool         KEY in_keys{{STOR}} andBool STOR{{KEY}} =/=K VAL
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageAdded     () requires VAL =/=K .Bytes andBool notBool KEY in_keys{{STOR}}
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageDeleted   () requires VAL  ==K .Bytes andBool         KEY in_keys{{STOR}}
 
     rule #StorageUnmodified() => 0
     rule #StorageModified  () => 1
@@ -535,7 +504,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
       [priority(61)]
 
-    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, Code, Bytes, Map )
+    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, Code, Bytes, MapBytesToBytes )
                          | setAccountCode      ( Bytes, Code )
                          | setAccountOwner     ( Bytes, Bytes )
  // ---------------------------------------------------------------

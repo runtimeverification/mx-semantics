@@ -2,13 +2,15 @@ Elrond Node
 ===========
 
 ```k
+require "data/map-bytes-to-bytes.k"
 require "data/map-int-to-bytes.k"
 require "wasm.md"
 
 module ELROND-NODE
     imports DOMAINS
-    imports WASM
+    imports MAP-BYTES-TO-BYTES
     imports MAP-INT-TO-BYTES
+    imports WASM
 
     configuration
       <node>
@@ -65,7 +67,7 @@ If the account is not a contract, `ownerAddress` is `.Bytes`.
 Storage maps byte arrays to byte arrays.
 
 ```k
-             <storage> .Map </storage>
+             <storage> .MapBytesToBytes </storage>
            </account>
          </accounts>
          <previousBlockInfo>

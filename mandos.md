@@ -240,7 +240,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          </account>
       [priority(60)]
 
-    syntax Step ::= checkAccountStorage    ( Address, MapMapBytesToBytes ) [klabel(checkAccountStorage), symbol]
+    syntax Step ::= checkAccountStorage    ( Address, MapBytesToBytes ) [klabel(checkAccountStorage), symbol]
                   | checkAccountStorageAux ( Bytes, MapBytesToBytes )   [klabel(checkAccountStorageAux), symbol]
  // ------------------------------------------------------------------------------------------------
     rule <k> checkAccountStorage(ADDRESS, STORAGE)

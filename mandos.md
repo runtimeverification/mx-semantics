@@ -83,12 +83,12 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule #removeEmptyBytes(M)
          => #removeEmptyBytes(Set2List(keys(M)), M)
     rule #removeEmptyBytes(.List, .MapBytesToBytes)
-         => .Map
+         => .MapBytesToBytes
     rule #removeEmptyBytes(ListItem(KEY) L, KEY Bytes2Bytes|-> VALUE REST)
          => #removeEmptyBytes(L, REST)
       requires VALUE ==K .Bytes
     rule #removeEmptyBytes(ListItem(KEY) L, KEY Bytes2Bytes|-> VALUE REST )
-         => KEY |-> VALUE #removeEmptyBytes(L, REST)
+         => KEY Bytes2Bytes|-> VALUE #removeEmptyBytes(L, REST)
       requires VALUE =/=K .Bytes
 ```
 
@@ -483,8 +483,8 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
          <account>
            <address> TO </address>
             <storage> STOR
-                   => STOR[String2Bytes("ELRONDreward") 
-                           <- #incBytes(#lookupStorage(STOR, String2Bytes("ELRONDreward")), VAL)]
+                   => STOR{{String2Bytes("ELRONDreward") 
+                           <- #incBytes(#lookupStorage(STOR, String2Bytes("ELRONDreward")), VAL)}}
             </storage>
             <balance> TO_BAL => TO_BAL +Int VAL </balance>
             ...

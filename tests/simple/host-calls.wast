@@ -362,7 +362,7 @@ checkExpectStatus(ExecutionFailed)
 checkExpectMessage(b"invalid argument")
 
 callTx( "testCaller" , "testContract" , 0 , .List
-      , "test_getESDTTokenName", .List
+      , "test_getESDTTokenName", .ListBytes
      , 0 , 0
 )
 
@@ -370,7 +370,7 @@ checkExpectStatus(ExecutionFailed)
 checkExpectMessage(b"invalid token index")
 
 callTx( "testCaller" , "testContract" , 0 ,  ListItem(esdtTransfer(b"my-tok", 10, 0)) ListItem(esdtTransfer(b"my-tok-2", 10, 0))
-      , "test_getESDTTokenName", .List
+      , "test_getESDTTokenName", .ListBytes
      , 0 , 0
 )
 

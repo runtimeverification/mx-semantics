@@ -330,7 +330,7 @@ setEsdtBalance(b"\"testCaller\"", b"my-tok", 20)
 setEsdtBalance(b"\"testCaller\"", b"my-tok-2", 20)
 
 callTx( "testCaller" , "testContract" , 0 , .List
-      , "argsTest_getArgumentLength_invalidArg_neg", .List
+      , "argsTest_getArgumentLength_invalidArg_neg", .ListBytes
       , 0 , 0
 )
 
@@ -346,7 +346,7 @@ checkExpectStatus(ExecutionFailed)
 checkExpectMessage(b"invalid argument")
 
 callTx( "testCaller" , "testContract" , 0 , .List
-      , "argsTest_getArgument_invalidArg_neg", .List
+      , "argsTest_getArgument_invalidArg_neg", .ListBytes
       , 0 , 0
 )
 

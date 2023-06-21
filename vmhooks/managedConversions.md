@@ -77,7 +77,7 @@ module MANAGEDCONVERSIONS
     rule mkEsdtTransferFromResults(_:Bytes, Err(E), _)      => Err(E)
     rule mkEsdtTransferFromResults(_:Bytes, _:Int,  Err(E)) => Err(E)
     
-    syntax ListResult ::= readManagedVecOfManagedBuffers(Int)                     [function, total]
+    syntax ListBytesResult ::= readManagedVecOfManagedBuffers(Int)                     [function, total]
  // ----------------------------------------------------------------------------------------------------
     rule [[ readManagedVecOfManagedBuffers(BUFFER_IDX) => chunks2buffers(VecBs) ]]
       <bufferHeap> ... wrap(BUFFER_IDX) Int2Bytes|-> wrap(VecBs:Bytes) ... </bufferHeap>
@@ -85,9 +85,9 @@ module MANAGEDCONVERSIONS
       [owise]
 
     // split bytes into chunks of 4 and use each chunk as a buffer id
-    syntax ListResult ::= chunks2buffers(Bytes)                         [function, total]
+    syntax ListBytesResult ::= chunks2buffers(Bytes)                         [function, total]
  // ------------------------------------------------------------------------------------------
-    rule chunks2buffers(VecBs) => .List
+    rule chunks2buffers(VecBs) => .ListBytes
       requires lengthBytes(VecBs) ==Int 0
 
     rule chunks2buffers(VecBs) => Err("invalid managed vector of managed buffer handles")
@@ -95,11 +95,12 @@ module MANAGEDCONVERSIONS
        andBool lengthBytes(VecBs) <Int 4
 
     rule chunks2buffers(VecBs)  
-      => catListResult( BytesResult2ListResult(
-                          getBuffer(Bytes2Int(substrBytes(VecBs, 0, 4), BE, Unsigned))
-                        )
-                      , chunks2buffers(substrBytes(VecBs, 4, lengthBytes(VecBs)))
-                      ) 
+      => catListBytesResult
+          ( BytesResult2ListResult(
+              getBuffer(Bytes2Int(substrBytes(VecBs, 0, 4), BE, Unsigned))
+            )
+          , chunks2buffers(substrBytes(VecBs, 4, lengthBytes(VecBs)))
+          ) 
       requires lengthBytes(VecBs) >=Int 4
 
 endmodule

@@ -36,7 +36,7 @@
             b""
           </caller>
           <callArgs>
-            .List
+            .ListBytes
           </callArgs>
           <callValue>
             0

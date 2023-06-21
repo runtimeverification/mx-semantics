@@ -2,12 +2,14 @@ Elrond Node
 ===========
 
 ```k
+require "data/list-bytes.k"
 require "data/map-bytes-to-bytes.k"
 require "data/map-int-to-bytes.k"
 require "wasm.md"
 
 module ELROND-NODE
     imports DOMAINS
+    imports LIST-BYTES
     imports MAP-BYTES-TO-BYTES
     imports MAP-INT-TO-BYTES
     imports WASM
@@ -20,7 +22,7 @@ module ELROND-NODE
           <callee> .Bytes </callee>
           <vmInput>
             <caller> .Bytes </caller>
-            <callArgs> .List </callArgs>
+            <callArgs> .ListBytes </callArgs>
             <callValue> 0 </callValue>
             <esdtTransfers> .List </esdtTransfers>
             // gas

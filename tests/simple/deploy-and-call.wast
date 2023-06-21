@@ -10,7 +10,7 @@ deployTx(
       (func (export "init"))
       (func (export "test"))
     )
-  , .List
+  , .ListBytes
   , 0
   , 0
 )
@@ -22,7 +22,7 @@ callTx(
   , 0
   , .List
   , "test"
-  , .List
+  , .ListBytes
   , 0
   , 0
 )

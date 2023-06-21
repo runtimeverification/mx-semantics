@@ -35,15 +35,18 @@ def KMap(kitem_pairs):
         res = KApply("_Map_", [res, new_item])
     return res
 
-def KList(items):
-    list_items = list(map(lambda x: KApply("ListItem", [x]), items))
+def KList(items, list_item="ListItem", empty=".List", concat="_List_"):
+    list_items = list(map(lambda x: KApply(list_item, [x]), items))
     def KList_aux(lis):
         if lis == []:
-            return KApply(".List", [])
+            return KApply(empty, [])
         head = lis[0]
         tail = KList_aux(lis[1:])
-        return KApply("_List_", [head, tail])
+        return KApply(concat, [head, tail])
     return KList_aux(list_items)
+
+def ListBytes(items):
+    return KList(items, empty=".ListBytes", concat="_ListBytes_")
 
 def config_to_kast_term(config):
     return { 'format' : 'KAST', 'version': 2, 'term': config.to_dict() }
@@ -246,7 +249,7 @@ def mandos_argument_to_kbytes(argument: str):
 
 def mandos_arguments_to_klist(arguments: list):
     tokenized = list(map(lambda x: mandos_argument_to_kbytes(x), arguments))
-    return KList(tokenized)
+    return ListBytes(tokenized)
 
 def mandos_to_set_account(address, sections, filename, output_dir):
     """Creates a K account cell from a Mandos account description. """

@@ -315,8 +315,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### Step type: scCall
 
 ```k
-    syntax Step ::= callTx    (from: Address, to: Address, value: Int, esdtValue: List, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
-                  | callTxAux (from: Bytes,   to: Bytes,   value: Int, esdtValue: List, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
+    syntax Step ::= callTx    (from: Address, to: Address, value: Int, esdtValue: List, func: WasmString, args: ListBytes, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
+                  | callTxAux (from: Bytes,   to: Bytes,   value: Int, esdtValue: List, func: WasmString, args: ListBytes, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
  // ----------------------------------------------------------------------------------------------------------------------------------------------------------
     rule [callTx]:
         <k> callTx(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE)
@@ -336,7 +336,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
       [priority(60)]
 
-    syntax VmInputCell ::= mkVmInputSCCall(Bytes, List, Int, List, Int, Int)    [function, total]
+    syntax VmInputCell ::= mkVmInputSCCall(Bytes, ListBytes, Int, List, Int, Int)    [function, total]
  // -----------------------------------------------------------------------------------
     rule mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GAS, GAS_PRICE)
       => <vmInput>
@@ -383,8 +383,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 TODO make sure that none of the state changes are persisted -- [Doc](https://docs.multiversx.com/developers/scenario-reference/structure#step-type-scquery)
 
 ```k
-    syntax Step ::= queryTx    (to: Address, func: WasmString, args: List) [klabel(queryTx), symbol]
-                  | queryTxAux (to: Bytes,   func: WasmString, args: List) [klabel(queryTxAux), symbol]
+    syntax Step ::= queryTx    (to: Address, func: WasmString, args: ListBytes) [klabel(queryTx), symbol]
+                  | queryTxAux (to: Bytes,   func: WasmString, args: ListBytes) [klabel(queryTxAux), symbol]
  // ---------------------------------------------------------------------------------------------------
     rule <k> queryTx(TO, FUNCTION, ARGS) => queryTxAux(#address2Bytes(TO), FUNCTION, ARGS) ... </k>
       [priority(60)]
@@ -394,7 +394,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
          <logging> S => S +String " -- query contract: " +String #parseWasmString(FUNCTION) </logging>
       [priority(60)]
 
-    syntax VmInputCell ::= mkVmInputQuery(Bytes, List)    [function, total]
+    syntax VmInputCell ::= mkVmInputQuery(Bytes, ListBytes)    [function, total]
  // -----------------------------------------------------------------------------------
     rule mkVmInputQuery(TO, ARGS)
       => <vmInput>
@@ -411,8 +411,8 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
 ### Step type: scDeploy
 
 ```k
-    syntax Step ::= deployTx    ( Address, Int, ModuleDecl, List, Int, Int ) [klabel(deployTx), symbol]
-                  | deployTxAux ( Bytes, Int, ModuleDecl, List, Int, Int )   [klabel(deployTxAux), symbol]
+    syntax Step ::= deployTx    ( Address, Int, ModuleDecl, ListBytes, Int, Int ) [klabel(deployTx), symbol]
+                  | deployTxAux (   Bytes, Int, ModuleDecl, ListBytes, Int, Int )   [klabel(deployTxAux), symbol]
  // ------------------------------------------------------------------------------------------------------
     rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE)
           => deployTxAux(#address2Bytes(FROM), VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) ... 
@@ -436,7 +436,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
         <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
       [priority(60)]
 
-    syntax VmInputCell ::= mkVmInputDeploy(Bytes, Int, List, Int, Int)    [function, total]
+    syntax VmInputCell ::= mkVmInputDeploy(Bytes, Int, ListBytes, Int, Int)    [function, total]
  // -----------------------------------------------------------------------------------
     rule mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE)
       => <vmInput>

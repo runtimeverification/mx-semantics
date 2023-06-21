@@ -113,7 +113,7 @@ module BASEOPS
         => 0 <=Int #signed(i32, IDX)
           andBool definedSigned(i32, IDX)
           andBool definedListLookup(ARGS, IDX)
-          andBool isBytes(ARGS{IDX})
+          andBool isBytes(ARGS[IDX])
 
     // extern int32_t getArgumentLength(void *context, int32_t id);
     rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes({ARGS[IDX]}:>Bytes) ... </instrs>

@@ -24,18 +24,25 @@ def flatten(l):
 def KWasmString(value):
     return KToken('"%s"' % value, 'WasmStringToken')
 
-def KMap(kitem_pairs):
+def KMap(kitem_pairs, empty_map:str=".Map", map_item:str="_|->_", map_concat:str="_Map_"):
     """Takes a list of pairs of KItems and produces a Map with them as keys and values."""
     if len(kitem_pairs) == 0:
-        return KApply(".Map", [])
+        return KApply(empty_map, [])
     ((k, v), tail) = (kitem_pairs[0], kitem_pairs[1:])
-    res = KApply("_|->_", [k, v])
+    res = KApply(map_item, [k, v])
     for (k, v) in tail:
-        new_item = KApply("_|->_", [k, v])
-        res = KApply("_Map_", [res, new_item])
+        new_item = KApply(map_item, [k, v])
+        res = KApply(map_concat, [res, new_item])
     return res
 
-def KList(items, list_item="ListItem", empty=".List", concat="_List_"):
+def KMapBytesToBytes(kitem_pairs):
+    return KMap(
+        kitem_pairs,
+        empty_map=".MapBytesToBytes",
+        map_item="_Bytes2Bytes|->_",
+        map_concat="_MapBytesToBytes_")
+
+def KList(items, list_item:str="ListItem", empty:str=".List", concat:str="_List_"):
     list_items = list(map(lambda x: KApply(list_item, [x]), items))
     def KList_aux(lis):
         if lis == []:
@@ -264,7 +271,7 @@ def mandos_to_set_account(address, sections, filename, output_dir):
             code_value = file_to_module_decl(code_path, output_dir)
 
     storage_pairs = [ (mandos_argument_to_kbytes(k), mandos_argument_to_kbytes(v)) for (k, v) in sections.get('storage', {}).items() ]
-    storage_value = KMap(storage_pairs)
+    storage_value = KMapBytesToBytes(storage_pairs)
 
     set_account_steps = [KApply('setAccount', [address_value, nonce_value, balance_value, code_value, owner_value, storage_value])]
 
@@ -300,7 +307,7 @@ def mandos_to_check_account(address, sections, filename):
             k_bytes = mandos_argument_to_kbytes(k)
             v_bytes = mandos_argument_to_kbytes(v)
             storage_pairs.append((k_bytes, v_bytes))
-        storage_value = KMap(storage_pairs)
+        storage_value = KMapBytesToBytes(storage_pairs)
         k_steps.append(KApply('checkAccountStorage', [address_value, storage_value]))
     if ('code' in sections) and (sections['code'] != '*'):
         code_path = get_contract_code(sections['code'], filename)

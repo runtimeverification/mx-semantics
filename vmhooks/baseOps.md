@@ -205,16 +205,27 @@ module BASEOPS
          <caller> CALLER </caller>
 
     // extern void checkNoPayment(void *context);
-    rule <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
-         <callValue> 0 </callValue>
-         <esdtTransfers> .List </esdtTransfers>
+    // Call value is not positive (it can be negative), and the ESDT transfer list is empty
+    rule [checkNoPayment-pass]:
+        <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+        <callValue> VAL </callValue>
+        <esdtTransfers> .List </esdtTransfers>
+      requires VAL <=Int 0
 
-    // TODO check ESDT payment
-    rule <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) 
-               => #throwException(ExecutionFailed, "function does not accept EGLD payment") ... 
-         </instrs>
-         <callValue> VAL </callValue>
+    rule [checkNoPayment-fail-egld]:
+        <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) 
+              => #throwException(ExecutionFailed, "function does not accept EGLD payment") ... 
+        </instrs>
+        <callValue> VAL </callValue>
       requires 0 <Int VAL
+
+    rule [checkNoPayment-fail-esdt]:
+        <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) 
+              => #throwException(ExecutionFailed, "function does not accept ESDT payment") ... 
+        </instrs>
+        <callValue> VAL </callValue>
+        <esdtTransfers> ListItem(_) ... </esdtTransfers>
+      requires VAL <=Int 0
 
     // extern int32_t getESDTTokenName(void *context, int32_t resultOffset);
     rule <instrs> hostCall("env", "getESDTTokenName", [ i32 .ValTypes ] -> [ i32 .ValTypes ])

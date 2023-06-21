@@ -13,7 +13,7 @@ deployTx(
         call $checkNoPayment
       )
     )
-  , .List
+  , .ListBytes
   , 0
   , 0
 )
@@ -25,7 +25,7 @@ callTx(
     "testCaller"
   , "testContract"
   , 10, .List
-  , "payable", .List
+  , "payable", .ListBytes
   , 0
   , 0
 )
@@ -38,7 +38,7 @@ callTx(
     "testCaller"
   , "testContract"
   , 10, .List
-  , "nonPayable", .List
+  , "nonPayable", .ListBytes
   , 0
   , 0
 )
@@ -52,7 +52,7 @@ callTx(
     "testCaller"
   , "testContract"
   , 10, ListItem(esdtTransfer(b"my-tok", 10, 0))
-  , "nonPayable", .List
+  , "nonPayable", .ListBytes
   , 0
   , 0
 )
@@ -66,7 +66,7 @@ callTx(
     "testCaller"
   , "testContract"
   , 0, ListItem(esdtTransfer(b"my-tok", 10, 0))
-  , "nonPayable", .List
+  , "nonPayable", .ListBytes
   , 0
   , 0
 )

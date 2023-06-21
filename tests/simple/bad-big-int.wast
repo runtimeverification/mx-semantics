@@ -25,7 +25,7 @@ deployTx(
       (memory (;0;) 17)
       (export "memory" (memory 0))
     )
-  , .List
+  , .ListBytes
   , 0
   , 0
 )
@@ -36,7 +36,7 @@ callTx(
     "testCaller"
   , "testContract"
   , 0, .List
-  , "invalidHandle", .List
+  , "invalidHandle", .ListBytes
   , 0
   , 0
 )
@@ -48,7 +48,7 @@ callTx(
     "testCaller"
   , "testContract"
   , 0, .List
-  , "invalidHandleAdd", .List
+  , "invalidHandleAdd", .ListBytes
   , 0
   , 0
 )

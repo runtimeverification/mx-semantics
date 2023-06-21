@@ -36,7 +36,7 @@
             b""
           </caller>
           <callArgs>
-            .List
+            .ListBytes
           </callArgs>
           <callValue>
             0
@@ -112,7 +112,7 @@
           .Map
         </bigIntHeap>
         <bufferHeap>
-          .Map
+          .MapIntToBytes
         </bufferHeap>
         <bytesStack>
           .BytesStack

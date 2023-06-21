@@ -164,14 +164,13 @@ module MANBUFOPS
 
  // extern int32_t   mBufferGetArgument(void* context, int32_t id, int32_t destinationHandle);
     rule <instrs> hostCall("env", "mBufferGetArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
-               => #setBuffer(DEST_IDX, {ARGS[ARG_IDX]}:>Bytes)
+               => #setBuffer(DEST_IDX, ARGS[ARG_IDX])
                ~> i32 . const 0
                   ... 
          </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> DEST_IDX </locals>
          <callArgs> ARGS </callArgs>
-      requires ARG_IDX <Int size(ARGS)
-       andBool isBytes(ARGS[ARG_IDX])
+      requires #validArgIdx(ARG_IDX, ARGS)
 
  // extern int32_t   mBufferAppend(void* context, int32_t accumulatorHandle, int32_t dataHandle);
     rule <instrs> hostCall("env", "mBufferAppend", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 

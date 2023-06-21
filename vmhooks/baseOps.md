@@ -209,8 +209,8 @@ module BASEOPS
     rule [checkNoPayment-pass]:
         <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
         <callValue> VAL </callValue>
-        <esdtTransfers> .List </esdtTransfers>
-      requires VAL <=Int 0
+        <esdtTransfers> TRANSFERS </esdtTransfers>
+      requires VAL <=Int 0 andBool size(TRANSFERS) ==K 0
 
     rule [checkNoPayment-fail-egld]:
         <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) 
@@ -224,8 +224,8 @@ module BASEOPS
               => #throwException(ExecutionFailed, "function does not accept ESDT payment") ... 
         </instrs>
         <callValue> VAL </callValue>
-        <esdtTransfers> ListItem(_) ... </esdtTransfers>
-      requires VAL <=Int 0
+        <esdtTransfers> TRANSFERS </esdtTransfers>
+      requires VAL <=Int 0 andBool size(TRANSFERS) =/=K 0
 
     // extern int32_t getESDTTokenName(void *context, int32_t resultOffset);
     rule [getESDTTokenName]:

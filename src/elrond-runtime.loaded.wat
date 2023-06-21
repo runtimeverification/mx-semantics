@@ -112,7 +112,7 @@
           .Map
         </bigIntHeap>
         <bufferHeap>
-          .Map
+          .MapIntToBytes
         </bufferHeap>
         <bytesStack>
           .BytesStack

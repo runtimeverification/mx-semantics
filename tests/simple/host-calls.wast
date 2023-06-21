@@ -31,6 +31,8 @@ deployTx(
       (import "env" "storageLoad"       (func $storageLoad       (param i32 i32 i32)     (result i32)))
       (import "env" "storageStore"      (func $storageStore      (param i32 i32 i32 i32) (result i32)))
 
+      (import "env" "getESDTTokenName"      (func $getESDTTokenName      (param i32) (result i32)))
+
       (memory 1)
 
       (func $i32.assertEqual (param i32 i32)
@@ -299,6 +301,11 @@ deployTx(
         call $i32.assertEqual
       )
 
+      (func (export "test_getESDTTokenName")
+         (call $getESDTTokenName (i32.const 0))
+         drop         
+      )
+
       (func (export "init")
         call $bigIntTest
         call $argsTest
@@ -319,6 +326,8 @@ checkExpectOut(ListItem(Int2Bytes(777, BE, Signed)))
 checkAccountBalance("testDeployer", 0)
 
 setAccount("testCaller", 0, 0, .Code, .Bytes, .Map)
+setEsdtBalance(b"\"testCaller\"", b"my-tok", 20)
+setEsdtBalance(b"\"testCaller\"", b"my-tok-2", 20)
 
 callTx( "testCaller" , "testContract" , 0 , .List
       , "argsTest_getArgumentLength_invalidArg_neg", .List
@@ -351,5 +360,21 @@ callTx( "testCaller" , "testContract" , 0 , .List
 
 checkExpectStatus(ExecutionFailed)
 checkExpectMessage(b"invalid argument")
+
+callTx( "testCaller" , "testContract" , 0 , .List
+      , "test_getESDTTokenName", .List
+     , 0 , 0
+)
+
+checkExpectStatus(ExecutionFailed)
+checkExpectMessage(b"invalid token index")
+
+callTx( "testCaller" , "testContract" , 0 ,  ListItem(esdtTransfer(b"my-tok", 10, 0)) ListItem(esdtTransfer(b"my-tok-2", 10, 0))
+      , "test_getESDTTokenName", .List
+     , 0 , 0
+)
+
+checkExpectStatus(ExecutionFailed)
+checkExpectMessage(b"too many ESDT transfers")
 
 setExitCode 0

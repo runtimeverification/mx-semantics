@@ -205,25 +205,54 @@ module BASEOPS
          <caller> CALLER </caller>
 
     // extern void checkNoPayment(void *context);
-    rule <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
-         <callValue> 0 </callValue>
-         <esdtTransfers> .List </esdtTransfers>
+    // Call value is not positive (it can be negative), and the ESDT transfer list is empty
+    rule [checkNoPayment-pass]:
+        <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+        <callValue> VAL </callValue>
+        <esdtTransfers> .List </esdtTransfers>
+      requires VAL <=Int 0
 
-    // TODO check ESDT payment
-    rule <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) 
-               => #throwException(ExecutionFailed, "function does not accept EGLD payment") ... 
-         </instrs>
-         <callValue> VAL </callValue>
+    rule [checkNoPayment-fail-egld]:
+        <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) 
+              => #throwException(ExecutionFailed, "function does not accept EGLD payment") ... 
+        </instrs>
+        <callValue> VAL </callValue>
       requires 0 <Int VAL
 
+    rule [checkNoPayment-fail-esdt]:
+        <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) 
+              => #throwException(ExecutionFailed, "function does not accept ESDT payment") ... 
+        </instrs>
+        <callValue> VAL </callValue>
+        <esdtTransfers> ListItem(_) ... </esdtTransfers>
+      requires VAL <=Int 0
+
     // extern int32_t getESDTTokenName(void *context, int32_t resultOffset);
-    rule <instrs> hostCall("env", "getESDTTokenName", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #memStore(OFFSET, TOKENNAME)
-               ~> i32.const lengthBytes(TOKENNAME)
-                  ...
-         </instrs>
-         <locals> 0 |-> <i32> OFFSET </locals>
-         <esdtTransfers> ListItem( esdtTransfer( TOKENNAME , _VALUE , _NONCE ) ) </esdtTransfers>
+    rule [getESDTTokenName]:
+        <instrs> hostCall("env", "getESDTTokenName", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
+              => #memStore(OFFSET, TOKENNAME)
+              ~> i32.const lengthBytes(TOKENNAME)
+                ...
+        </instrs>
+        <locals> 0 |-> <i32> OFFSET </locals>
+        <esdtTransfers> ListItem( esdtTransfer( TOKENNAME , _VALUE , _NONCE ) ) </esdtTransfers>
+
+    rule [getESDTTokenName-too-many]:
+        <instrs> hostCall("env", "getESDTTokenName", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
+              => #throwException(ExecutionFailed, "too many ESDT transfers")
+                ...
+        </instrs>
+        <locals> 0 |-> <i32> _ </locals>
+        <esdtTransfers> ESDTs </esdtTransfers>
+      requires size(ESDTs) >Int 1
+
+    rule [getESDTTokenName-none]:
+        <instrs> hostCall("env", "getESDTTokenName", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
+              => #throwException(ExecutionFailed, "invalid token index")
+                ...
+        </instrs>
+        <locals> 0 |-> <i32> _ </locals>
+        <esdtTransfers> .List </esdtTransfers>
 
     // extern int32_t   getNumESDTTransfers(void* context);
     rule <instrs> hostCall ( "env" , "getNumESDTTransfers" , [ .ValTypes ] -> [ i32  .ValTypes ] )

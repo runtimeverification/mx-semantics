@@ -713,8 +713,8 @@ Every contract call runs in its own Wasm instance initialized with the contract'
 
 ```k
     syntax WasmCell
-    syntax InternalCommand ::= newWasmInstance(ModuleDecl)
-                             | "setContractModIdx"
+    syntax InternalCmd ::= newWasmInstance(ModuleDecl)
+                         | "setContractModIdx"
  // ------------------------------------------------------
     rule [newWasmInstance]:
         <commands> newWasmInstance(CODE) => #waitWasm ~> setContractModIdx ...</commands>

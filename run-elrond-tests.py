@@ -53,7 +53,7 @@ def KList(items, list_item:str="ListItem", empty:str=".List", concat:str="_List_
     return KList_aux(list_items)
 
 def ListBytes(items):
-    return KList(items, empty=".ListBytes", concat="_ListBytes_")
+    return KList(items, empty=".ListBytes", list_item="ListBytesItem", concat="_ListBytes_")
 
 def config_to_kast_term(config):
     return { 'format' : 'KAST', 'version': 2, 'term': config.to_dict() }

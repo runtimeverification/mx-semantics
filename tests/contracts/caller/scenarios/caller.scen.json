@@ -17,7 +17,8 @@
                 "arguments": [
                     "sc:callee",
                     "str:fail_if_neg",
-                    "3"
+                    "3",
+                    "500"
                 ],
                 "gasLimit": "5,000,000",
                 "gasPrice": "0"
@@ -29,7 +30,7 @@
         },
         {
             "step": "externalSteps",
-            "path": "steps/check_init.steps.json"
+            "path": "steps/check_1.steps.json"
         },
         {
             "step": "scCall",
@@ -43,7 +44,8 @@
                 "arguments": [
                     "sc:callee",
                     "str:fail_if_negative",
-                    "-1"
+                    "-1",
+                    "250"
                 ],
                 "gasLimit": "5,000,000",
                 "gasPrice": "0"
@@ -56,7 +58,7 @@
         },
         {
             "step": "externalSteps",
-            "path": "steps/check_init.steps.json"
+            "path": "steps/check_1.steps.json"
         },
         {
             "step": "scCall",
@@ -70,7 +72,8 @@
                 "arguments": [
                     "sc:callee",
                     "str:fail_if_neg",
-                    "-1"
+                    "-1",
+                    "250"
                 ],
                 "gasLimit": "5,000,000",
                 "gasPrice": "0"
@@ -83,7 +86,7 @@
         },
         {
             "step": "externalSteps",
-            "path": "steps/check_init.steps.json"
+            "path": "steps/check_1.steps.json"
         },
         {
             "step": "scCall",
@@ -97,7 +100,8 @@
                 "arguments": [
                     "sc:callee",
                     "str:fail_if_neg",
-                    "3"
+                    "3",
+                    "0"
                 ],
                 "gasLimit": "5,000,000",
                 "gasPrice": "0"
@@ -142,7 +146,8 @@
                 "arguments": [
                     "sc:callee",
                     "str:fail_if_neg",
-                    "3"
+                    "3",
+                    "0"
                 ],
                 "gasLimit": "5,000,000",
                 "gasPrice": "0"

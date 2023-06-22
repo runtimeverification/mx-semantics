@@ -7,19 +7,19 @@
             "accounts": {
                 "address:owner": {
                     "nonce": "*",
-                    "balance": "100000",
+                    "balance": "99000",
                     "storage": {},
                     "code": ""
                 },
                 "sc:caller": {
                     "nonce": "0",
-                    "balance": "0",
+                    "balance": "500",
                     "storage": {},
                     "code": "file:../../output/caller.wasm"
                 },
                 "sc:callee": {
                     "nonce": "0",
-                    "balance": "0",
+                    "balance": "500",
                     "storage": {},
                     "code": "file:../../../callee/output/callee.wasm"
                 }

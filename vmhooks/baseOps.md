@@ -454,7 +454,7 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
           VMOutput ( OK , _ , OUTPUT , LOGS ) => .VMOutput
         </vmOutput>
         // merge outputs
-        <out> ... (.List => OUTPUT) </out>
+        <out> ... (.ListBytes => OUTPUT) </out>
         <logs> ... (.List => LOGS) </logs>
 
     rule [finishExecuteOnDestContext-exception]:

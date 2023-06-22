@@ -87,6 +87,40 @@ module MAP-INT-TO-BYTES
 endmodule
 
 module MAP-INT-TO-BYTES-PRIMITIVE
+  imports MAP-INT-TO-BYTES-PRIMITIVE-CONCRETE
+  imports MAP-INT-TO-BYTES-PRIMITIVE-SYMBOLIC
+endmodule
+
+module MAP-INT-TO-BYTES-PRIMITIVE-CONCRETE [concrete]
+  imports public  BOOL
+  imports private K-EQUAL
+  imports public  MAP-INT-TO-BYTES
+
+  syntax Bytes ::= MapIntToBytes "{{" Int "}}"
+                 [function, klabel(MapIntToBytes:primitiveLookup)]
+  syntax Bytes ::= MapIntToBytes "{{" Int "}}" "orDefault" Bytes
+                 [ function, total, klabel(MapIntToBytes:primitiveLookupOrDefault) ]
+  syntax MapIntToBytes ::= MapIntToBytes "{{" key: Int "<-" value: Bytes "}}"
+                 [ function, total, klabel(MapIntToBytes:primitiveUpdate), symbol,
+                   prefer
+                 ]
+  syntax MapIntToBytes ::= MapIntToBytes "{{" Int "<-" "undef" "}}"
+                 [ function, total, klabel(MapIntToBytes:primitiveRemove), symbol ]
+  syntax Bool ::= Int "in_keys" "{{" MapIntToBytes "}}"
+                 [function, total, klabel(MapIntToBytes:primitiveInKeys)]
+
+  rule M:MapIntToBytes {{ Key:Int }}
+      => (unwrap(M[wrap(Key)]))
+  rule M:MapIntToBytes {{ Key:Int }} orDefault Value:Bytes
+      => unwrap(M[wrap(Key)] orDefault wrap(Value))
+  rule M:MapIntToBytes {{ Key:Int <- Value:Bytes }}
+      => M[wrap(Key) <- wrap(Value)]
+  rule M:MapIntToBytes {{ Key:Int <- undef }}
+      => M[wrap(Key) <- undef]
+  rule Key:Int in_keys {{ M:MapIntToBytes}} => wrap(Key) in_keys(M)
+endmodule
+
+module MAP-INT-TO-BYTES-PRIMITIVE-SYMBOLIC  [symbolic]
   imports public  BOOL
   imports private K-EQUAL
   imports public  MAP-INT-TO-BYTES
@@ -258,7 +292,7 @@ module MAP-INT-TO-BYTES-PRIMITIVE
       => K1 ==K unwrap(K2) orBool K1 in_keys {{ M }}
     requires definedMapElementConcat(K2, V, M)
     [simplification(100)]
-      
+
 
   rule {false #Equals @Key in_keys{{ Key' Int2Bytes|-> Val @M:MapIntToBytes }}}
       =>  #Ceil(@Key) #And #Ceil(Key' Int2Bytes|-> Val @M)
@@ -356,7 +390,7 @@ module MAP-INT-TO-BYTES-KORE-SYMBOLIC
       => K1 ==K K2 orBool K1 in_keys(M)
     requires definedMapElementConcat(K2, V, M)
     [simplification(100)]
-      
+
 
   rule {false #Equals @Key in_keys(.MapIntToBytes)} => #Ceil(@Key) [simplification]
   rule {@Key in_keys(.MapIntToBytes) #Equals false} => #Ceil(@Key) [simplification]
@@ -421,5 +455,5 @@ module MAP-INT-TO-BYTES-CURLY-BRACE
   rule K1 in_keys(M:MapIntToBytes { K2 <- _ })
       => K1 ==K K2 orBool K1 in_keys(M)
     [simplification(100)]
-      
+
 endmodule

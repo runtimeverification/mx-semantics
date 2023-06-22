@@ -77,19 +77,21 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 
 ```k
     syntax MapBytesToBytes  ::= #removeEmptyBytes ( MapBytesToBytes ) [function]
-                              | #removeEmptyBytes ( List , MapBytesToBytes )
-                                    [function, klabel(#removeEmptyBytesAux)]
  // ----------------------------------------------------------------------------------------
-    rule #removeEmptyBytes(M)
-         => #removeEmptyBytes(Set2List(keys(M)), M)
-    rule #removeEmptyBytes(.List, .MapBytesToBytes)
-         => .MapBytesToBytes
-    rule #removeEmptyBytes(ListItem(KEY) L, KEY Bytes2Bytes|-> VALUE REST)
-         => #removeEmptyBytes(L, REST)
-      requires VALUE ==K .Bytes
-    rule #removeEmptyBytes(ListItem(KEY) L, KEY Bytes2Bytes|-> VALUE REST )
-         => KEY Bytes2Bytes|-> VALUE #removeEmptyBytes(L, REST)
-      requires VALUE =/=K .Bytes
+    rule #removeEmptyBytes(.MapBytesToBytes)
+        => .MapBytesToBytes
+    rule #removeEmptyBytes(Key Bytes2Bytes|-> Value M)
+        =>  #if Value ==K wrap(.Bytes)
+            #then #removeEmptyBytes(M)
+            #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
+            #fi
+    rule #removeEmptyBytes(Key Bytes2Bytes|-> Value M)
+        =>  #if Value ==K wrap(.Bytes)
+            #then #removeEmptyBytes(M)
+            #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
+            #fi
+        [simplification]
+
 ```
 
 ### Step type: setState
@@ -348,7 +350,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             <gasPrice> GAS_PRICE </gasPrice>
           </vmInput>
 
-    syntax Step ::= checkExpectOut ( List ) [klabel(checkExpectOut), symbol]
+    syntax Step ::= checkExpectOut ( ListBytes ) [klabel(checkExpectOut), symbol]
  // --------------------------------------------------------------------------
     rule <k> checkExpectOut(OUT) => . ... </k>
          <vmOutput> VMOutput(... out: OUT) </vmOutput>

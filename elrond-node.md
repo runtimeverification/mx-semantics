@@ -37,7 +37,7 @@ module ELROND-NODE
           <bytesStack> .BytesStack </bytesStack>
           <contractModIdx> .Int </contractModIdx>
           // output
-          <out> .List </out>
+          <out> .ListBytes </out>
           <logs> .List </logs>
         </callState>
         <callStack> .List </callStack>
@@ -106,7 +106,7 @@ Storage maps byte arrays to byte arrays.
                            | "SimulateFailed"           [klabel(SimulateFailed), symbol]
 
     syntax VMOutput ::= ".VMOutput"
-                      | VMOutput( returnCode: ReturnCode , returnMessage: Bytes , out: List, logs: List )
+                      | VMOutput( returnCode: ReturnCode , returnMessage: Bytes , out: ListBytes, logs: List )
 
  // ------------------------------------------------------------------
 

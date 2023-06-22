@@ -15,6 +15,7 @@ module ELROND-CONFIG
     imports WASM-COVERAGE
     imports WASM-AUTO-ALLOCATE
     imports ELROND-NODE
+    imports LIST-BYTES
     imports MAP-BYTES-TO-BYTES-PRIMITIVE
 
     configuration
@@ -310,10 +311,10 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
  // -----------------------------------------------
     rule <instrs> #appendToOutFromBytesStack => . ... </instrs>
          <bytesStack> OUT : STACK => STACK </bytesStack>
-         <out> ... (.List => ListItem(OUT)) </out>
+         <out> ... (.ListBytes => ListItem(OUT)) </out>
 
     rule <instrs> #appendToOut(OUT) => . ... </instrs>
-         <out> ... (.List => ListItem(OUT)) </out>
+         <out> ... (.ListBytes => ListItem(OUT)) </out>
 ```
 
 ### Parsing
@@ -336,7 +337,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ### Log
 
 ```k
-    syntax LogEntry ::= logEntry ( Bytes , Bytes , List , Bytes ) [klabel(logEntry), symbol]
+    syntax LogEntry ::= logEntry ( Bytes , Bytes , ListBytes , Bytes ) [klabel(logEntry), symbol]
  // ----------------------------------------------------------------------------------------
 
     syntax InternalInstr ::= #getArgsFromMemory    ( Int , Int , Int )
@@ -383,9 +384,9 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </instrs>
 
     syntax InternalInstr ::= "#writeLog"
-                           | #writeLogAux ( Int , List , Bytes )
+                           | #writeLogAux ( Int , ListBytes , Bytes )
  // ------------------------------------------------------------
-    rule <instrs> #writeLog => #writeLogAux(NUMTOPICS, .List, DATA) ... </instrs>
+    rule <instrs> #writeLog => #writeLogAux(NUMTOPICS, .ListBytes, DATA) ... </instrs>
          <bytesStack> DATA : STACK => STACK </bytesStack>
          <valstack> <i32> NUMTOPICS : <i32> _ : VALSTACK => VALSTACK </valstack>
 
@@ -733,7 +734,7 @@ Every contract call runs in its own Wasm instance initialized with the contract'
           <bytesStack> _ => .BytesStack </bytesStack>
           <contractModIdx> MODIDX:Int </contractModIdx>
           // output
-          <out> _ => .List </out>
+          <out> _ => .ListBytes </out>
           <logs> _ => .List </logs>
         </callState>
       [priority(60)]

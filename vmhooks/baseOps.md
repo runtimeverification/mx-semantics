@@ -451,7 +451,7 @@ module BASEOPS
           VMOutput ( OK , _ , OUTPUT , LOGS ) => .VMOutput
         </vmOutput>
         // merge outputs
-        <out> ... (.List => OUTPUT) </out>
+        <out> ... (.ListBytes => OUTPUT) </out>
         <logs> ... (.List => LOGS) </logs>
 
     rule [finishExecuteOnDestContext-exception]:

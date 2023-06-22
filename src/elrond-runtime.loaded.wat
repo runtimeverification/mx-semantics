@@ -121,7 +121,7 @@
           .Int
         </contractModIdx>
         <out>
-          .List
+          .ListBytes
         </out>
         <logs>
           .List

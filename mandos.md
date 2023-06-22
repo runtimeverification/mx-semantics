@@ -349,7 +349,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             <gasPrice> GAS_PRICE </gasPrice>
           </vmInput>
 
-    syntax Step ::= checkExpectOut ( List ) [klabel(checkExpectOut), symbol]
+    syntax Step ::= checkExpectOut ( ListBytes ) [klabel(checkExpectOut), symbol]
  // --------------------------------------------------------------------------
     rule <k> checkExpectOut(OUT) => . ... </k>
          <vmOutput> VMOutput(... out: OUT) </vmOutput>

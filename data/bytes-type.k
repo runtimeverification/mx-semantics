@@ -5,7 +5,7 @@ module BYTES-TYPE
   syntax WrappedBytes
   syntax Bytes
 
-  syntax WrappedBytes ::= wrap(Bytes)
-  syntax Bytes ::= unwrap(WrappedBytes)  [function, total, injective]
+  syntax WrappedBytes ::= wrap(Bytes)  [symbol, klabel(wrapBytes)]
+  syntax Bytes ::= unwrap(WrappedBytes)  [function, total, injective, symbol, klabel(unwrapBytes)]
   rule unwrap(wrap(A:Bytes)) => A
 endmodule

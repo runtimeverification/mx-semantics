@@ -254,7 +254,6 @@ Only take the next step once both the Elrond node and Wasm are done executing.
              => checkAccountCodeAux(#address2Bytes(ADDRESS), CODEPATH) ... </k>
       [priority(60)]
 
-    // TODO implement #getModuleCodePath
     syntax OptionalString ::= #getModuleCodePath(ModuleDecl)    [function, total]
  // ----------------------------------------------------------------------
     rule #getModuleCodePath(#module (... metadata: #meta (... filename: PATH ) ) ) => PATH

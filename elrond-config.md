@@ -7,6 +7,7 @@ Combine Elrond node with Wasm.
 require "auto-allocate.md"
 require "blockchain-k-plugin/krypto.md"
 require "elrond-node.md"
+require "esdt.md"
 require "wasm-text.md"
 require "wasm-coverage.md"
 
@@ -15,6 +16,7 @@ module ELROND-CONFIG
     imports WASM-COVERAGE
     imports WASM-AUTO-ALLOCATE
     imports ELROND-NODE
+    imports ESDT
 
     configuration
       <elrond>
@@ -426,14 +428,11 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 
 ## Node And Wasm VM Synchronization
 
-- `#endWasm` waits for the Wasm VM to finish the execution and check the return code.
+- `#endWasm` waits for the Wasm VM to finish the execution and creates the VM output.
 - `#waitWasm` waits for the Wasm VM to finish
-
-TODO should VMOutputs be merged to the callstate after #endWasm? Contract A writes to <out>, then calls B. B writes to <out> as well. What should be the final output in VMOutputs? Also consider the failure case.
 
 ```k
     syntax InternalCmd ::= "#endWasm"
-                         | "#waitWasm"
  // ---------------------------------
     rule <commands> #endWasm => popCallState ~> dropWorldState ... </commands>
          <instrs> . </instrs>
@@ -442,6 +441,8 @@ TODO should VMOutputs be merged to the callstate after #endWasm? Contract A writ
          <vmOutput> .VMOutput => VMOutput( OK , .Bytes , OUT , LOGS) </vmOutput>
       [priority(60)]
 
+    syntax InternalCmd ::= "#waitWasm"
+ // ----------------------------------
     rule <commands> #waitWasm => . ... </commands>
          <instrs> . </instrs>
       [priority(60)]
@@ -450,21 +451,27 @@ TODO should VMOutputs be merged to the callstate after #endWasm? Contract A writ
 
 ## Exception Handling
 
-- `#exception` drops the rest of the computation in the `commands` and `instrs` cells and reverts the state.
+### `#exception`
 
+`#exception` drops the rest of the commands until `#endWasm` and reverts the state using `popWorldState`.
 
 ```k
-    syntax InternalCmd ::= "#exception"
- // ---------------------------------------------------
     rule [exception-revert]:
-        <commands> (#exception ~> #endWasm) => popCallState ~> popWorldState ... </commands>
+        <commands> (#exception(EC, MSG) ~> #endWasm) => popCallState ~> popWorldState ... </commands>
+        <vmOutput> .VMOutput => VMOutput( EC , MSG , .List , .List) </vmOutput>
       [priority(10)]
     
     rule [exception-skip]:
-        <commands> #exception ~> (CMD:InternalCmd => . ) ... </commands>
+        <commands> #exception(_,_) ~> (CMD:InternalCmd => . ) ... </commands>
       requires CMD =/=K #endWasm
       [priority(10)]
+```
 
+### `#throwException*`
+
+`#throwException*` clears the `<instrs>` cell and creates an `#exception(_,_)` command with the given error code and message.
+
+```k
     syntax InternalInstr ::= #throwException( ExceptionCode , String )
                            | #throwExceptionBs( ExceptionCode , Bytes )
  // ------------------------------------------------------------------
@@ -475,10 +482,7 @@ TODO should VMOutputs be merged to the callstate after #endWasm? Contract A writ
 
     rule [throwExceptionBs]:
         <instrs> (#throwExceptionBs( EC , MSG ) ~> _ ) => . </instrs>
-        <commands> (. => #exception) ... </commands>
-        <out> OUT </out>
-        <logs> LOGS </logs>
-        <vmOutput> .VMOutput => VMOutput( EC , MSG , OUT , LOGS) </vmOutput>
+        <commands> (. => #exception(EC,MSG)) ... </commands>
 
 ```
 
@@ -557,110 +561,57 @@ TODO should VMOutputs be merged to the callstate after #endWasm? Contract A writ
 
 ## Transfer Funds
 
+### EGLD
+
+- `transferFunds` first checks that the sender and receiver exist. Then, executes the transfer.
+- `transferFundsH` assumes that the accounts exist.
+
 ```k
     syntax InternalCmd ::= transferFunds ( Bytes, Bytes, Int )
-                         | transferESDT ( Bytes , Bytes , ESDTTransfer )
-                         | transferESDTs ( Bytes , Bytes , List )
-                         | "#transferSuccess"
+                         | transferFundsH ( Bytes, Bytes, Int )
  // -----------------------------------------
-    rule <commands> transferFunds(ACCT, ACCT, VALUE) => #transferSuccess ... </commands>
-         <account>
-           <address> ACCT </address>
-           <balance> ORIGFROM </balance>
-           ...
-         </account>
-      requires VALUE <=Int ORIGFROM
-      [priority(60)]
-
-    rule <commands> transferFunds(ACCTFROM, ACCTTO, VALUE) => #transferSuccess ... </commands>
-         <account>
-           <address> ACCTFROM </address>
-           <balance> ORIGFROM => ORIGFROM -Int VALUE </balance>
-           ...
-         </account>
-         <account>
-           <address> ACCTTO </address>
-           <balance> ORIGTO => ORIGTO +Int VALUE </balance>
-           ...
-         </account>
-      requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
-      [priority(60)]
-
-    // transferESDTs performs multiple ESDT transfers and finally returns #transferSuccess
-    // TODO handle failure if one of the transfers fails
-    rule <commands> transferESDTs(_, _, .List) => #transferSuccess ... </commands>
-    rule <commands> transferESDTs(FROM, TO, ListItem(T:ESDTTransfer) Ls) 
-                 => transferESDT(FROM, TO, T) 
-                 ~> transferESDTs(FROM, TO, Ls)
+    rule <commands> transferFunds(A, B, V) 
+                 => checkAccountExists(A)
+                 ~> checkAccountExists(B)
+                 ~> transferFundsH(A, B, V)
                     ... 
          </commands>
-  
-    // TODO handle failure cases
-    // - insufficient balance
-    // - frozen / paused / non-payable / limited transfer...
-    // TODO implement NFT/SFT transfers
-    rule <commands> transferESDT(ACCT, ACCT, esdtTransfer(TOKEN, VALUE, 0)) 
-                 => . ... 
-         </commands>
-         <account>
-           <address> ACCT </address>
-           <esdtData>
-             <esdtId> TOKEN </esdtId>
-             <esdtBalance> ORIGFROM </esdtBalance>
-             <frozen> false </frozen>
-           </esdtData>
-           ...
-         </account>
+      [priority(60)]
+
+    rule [transferFundsH-self]:
+        <commands> transferFundsH(ACCT, ACCT, VALUE) => #transferSuccess ... </commands>
+        <account>
+          <address> ACCT </address>
+          <balance> ORIGFROM </balance>
+          ...
+        </account>
       requires VALUE <=Int ORIGFROM
       [priority(60)]
 
-    rule <commands> transferESDT(ACCTFROM, ACCTTO, esdtTransfer(TOKEN, VALUE, 0)) 
-                 => . ... 
-         </commands>
-         <account>
-           <address> ACCTFROM </address>
-           <esdtData>
-             <esdtId> TOKEN </esdtId>
-             <esdtBalance> ORIGFROM => ORIGFROM -Int VALUE </esdtBalance>
-             <frozen> false </frozen>
-           </esdtData>
-           ...
-         </account>
-         <account>
-           <address> ACCTTO </address>
-           <esdtData>
-             <esdtId> TOKEN </esdtId>
-             <esdtBalance> ORIGTO => ORIGTO +Int VALUE </esdtBalance>
-             <frozen> false </frozen>
-           </esdtData>
-           ...
-         </account>
+    rule [transferFundsH]:
+        <commands> transferFundsH(ACCTFROM, ACCTTO, VALUE) => #transferSuccess ... </commands>
+        <account>
+          <address> ACCTFROM </address>
+          <balance> ORIGFROM => ORIGFROM -Int VALUE </balance>
+          ...
+        </account>
+        <account>
+          <address> ACCTTO </address>
+          <balance> ORIGTO => ORIGTO +Int VALUE </balance>
+          ...
+        </account>
       requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
       [priority(60)]
 
-    rule <commands> transferESDT(ACCTFROM, ACCTTO, esdtTransfer(TOKEN, VALUE, 0)) 
-                 => . ... 
-         </commands>
-         <account>
-           <address> ACCTFROM </address>
-           <esdtData>
-             <esdtId> TOKEN </esdtId>
-             <esdtBalance> ORIGFROM => ORIGFROM -Int VALUE </esdtBalance>
-             <frozen> false </frozen>
-           </esdtData>
-           ...
-         </account>
-         <account>
-           <address> ACCTTO </address>
-           (.Bag => <esdtData>
-             <esdtId> TOKEN </esdtId>
-             <esdtBalance> VALUE </esdtBalance>
-             <frozen> false </frozen>
-           </esdtData>)
-           ...
-         </account>
-      requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
-      [priority(61)]
+    rule [transferFundsH-oofunds]:
+        <commands> transferFundsH(ACCT, _, VALUE) => #exception(OutOfFunds, b"") ... </commands>
+        <account>
+          <address> ACCT </address>
+          <balance> ORIGFROM </balance>
+          ...
+        </account>
+      requires VALUE >Int ORIGFROM
+      [priority(60)]
 
     rule <commands> #transferSuccess => . ... </commands>
          <instrs> . </instrs>
@@ -704,9 +655,24 @@ TODO should VMOutputs be merged to the callstate after #endWasm? Contract A writ
         </account>
         <vmOutput> _ => .VMOutput </vmOutput>
         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
-
       [priority(60)]
 
+    rule [callContract-not-contract]:
+        <commands> callContract(TO, _:WasmString, _)
+                => #exception(ContractNotFound, b"not a contract: " +Bytes TO) ...
+        </commands>
+        <account>
+          <address> TO </address>
+          <code> .Code </code>
+          ...
+        </account>
+      [priority(60)]
+
+    rule [callContract-not-found]:
+        <commands> callContract(TO, _:WasmString, _)
+                => #exception(ExecutionFailed, b"account not found: " +Bytes TO) ...
+        </commands>
+      [priority(61)]
 ```
 
 Every contract call runs in its own Wasm instance initialized with the contract's code.
@@ -733,7 +699,11 @@ Every contract call runs in its own Wasm instance initialized with the contract'
       => sequenceStmts(text2abstract(M .Stmts))
 
     rule initContractModule(M:ModuleDecl) => M              [owise]
+```
 
+Initialize the call state and invoke the endpoint function:
+
+```k
     rule [mkCall]:
         <commands> mkCall(TO, FUNCNAME:WasmStringToken, VMINPUT) => . ... </commands>
         <callState>

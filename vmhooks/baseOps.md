@@ -367,6 +367,7 @@ module BASEOPS
         <bufferHeap> ... ID_IDX |-> TokId ... </bufferHeap>
 
   // TODO check arguments and handle errors if any
+  // TODO handle Callee is not a contract
     syntax InternalInstr ::= #transferESDTNFTExecuteWithTypedArgs(BytesResult, ListResult, Int, BytesResult, ListResult)
  // -------------------------------------------------------------------------------------------
     rule <instrs> #transferESDTNFTExecuteWithTypedArgs(Dest, Transfers, _GasLimit, b"", _Args)
@@ -437,6 +438,8 @@ module BASEOPS
 ```
 
 `#finishExecuteOnDestContext` takes the VM output returned from the callee, and applies to the caller's context.
+If the call is successful; outputs and logs in the VM output are merged to the caller's output and logs.
+If the result is a failure; `resolveErrorFromOutput` throws a new exception.
 
 ```k
     syntax InternalInstr ::= "#finishExecuteOnDestContext"
@@ -461,10 +464,8 @@ module BASEOPS
                  ...
         </instrs>
         <vmOutput>
-          VMOutput ( EC:ExceptionCode , MSG , _ , LOGS ) => .VMOutput
+          VMOutput ( EC:ExceptionCode , MSG , _ , _ ) => .VMOutput
         </vmOutput>
-        // merge logs
-        <logs> ... (.List => LOGS) </logs>
 
     // keep running other commands after transfers
     rule <commands> (#transferSuccess => .) ... </commands>
@@ -480,6 +481,9 @@ module BASEOPS
 
     rule resolveErrorFromOutput(UserError, _)
         => #throwExceptionBs(ExecutionFailed, b"error signalled by smartcontract")
+
+    rule resolveErrorFromOutput(OutOfFunds, _)
+        => #throwExceptionBs(ExecutionFailed, b"failed transfer (insufficient funds)")
 
     rule resolveErrorFromOutput(EC, MSG)
         => #throwExceptionBs(EC, MSG)

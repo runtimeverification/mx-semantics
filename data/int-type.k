@@ -1,6 +1,6 @@
 
 module INT-TYPE
-  import BYTES-SYNTAX
+  import INT
 
   syntax WrappedInt
   syntax Int

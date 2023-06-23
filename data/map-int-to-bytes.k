@@ -87,6 +87,41 @@ module MAP-INT-TO-BYTES
 endmodule
 
 module MAP-INT-TO-BYTES-PRIMITIVE
+  imports MAP-INT-TO-BYTES-PRIMITIVE-CONCRETE
+  imports MAP-INT-TO-BYTES-PRIMITIVE-SYMBOLIC
+endmodule
+
+module MAP-INT-TO-BYTES-PRIMITIVE-CONCRETE [concrete]
+  imports public  BOOL
+  imports private K-EQUAL
+  imports public  MAP-INT-TO-BYTES
+  imports private MAP-INT-TO-BYTES-KORE-SYMBOLIC
+
+  syntax Bytes ::= MapIntToBytes "{{" Int "}}"
+                 [function, klabel(MapIntToBytes:primitiveLookup)]
+  syntax Bytes ::= MapIntToBytes "{{" Int "}}" "orDefault" Bytes
+                 [ function, total, klabel(MapIntToBytes:primitiveLookupOrDefault) ]
+  syntax MapIntToBytes ::= MapIntToBytes "{{" key: Int "<-" value: Bytes "}}"
+                 [ function, total, klabel(MapIntToBytes:primitiveUpdate), symbol,
+                   prefer
+                 ]
+  syntax MapIntToBytes ::= MapIntToBytes "{{" Int "<-" "undef" "}}"
+                 [ function, total, klabel(MapIntToBytes:primitiveRemove), symbol ]
+  syntax Bool ::= Int "in_keys" "{{" MapIntToBytes "}}"
+                 [function, total, klabel(MapIntToBytes:primitiveInKeys)]
+
+  rule M:MapIntToBytes {{ Key:Int }}
+      => unwrap(M[wrap(Key)])
+  rule M:MapIntToBytes {{ Key:Int }} orDefault Value:Bytes
+      => unwrap(M[wrap(Key)] orDefault wrap(Value))
+  rule M:MapIntToBytes {{ Key:Int <- Value:Bytes }}
+      => M[wrap(Key) <- wrap(Value)]
+  rule M:MapIntToBytes {{ Key:Int <- undef }}
+      => M[wrap(Key) <- undef]
+  rule Key:Int in_keys {{ M:MapIntToBytes}} => wrap(Key) in_keys(M)
+endmodule
+
+module MAP-INT-TO-BYTES-PRIMITIVE-SYMBOLIC  [symbolic]
   imports public  BOOL
   imports private K-EQUAL
   imports public  MAP-INT-TO-BYTES

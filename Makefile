@@ -114,6 +114,7 @@ MAIN_DEFN_FILE     := mandos
 ELROND_FILE_NAMES      := elrond.md                   \
                           elrond-config.md            \
                           elrond-node.md              \
+                          esdt.md                     \
                           auto-allocate.md            \
                           mandos.md                   \
                           wasm-coverage.md            \

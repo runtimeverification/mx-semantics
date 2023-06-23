@@ -206,6 +206,29 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
       [priority(60)]
 ```
 
+## Misc
+
 ```k
+    syntax InternalCmd ::= "#transferSuccess"
+
+    syntax InternalCmd ::= checkAccountExists( Bytes )
+ // ------------------------------------------------------
+    rule [checkAccountExists-pass]:
+        <commands> checkAccountExists(ADDR) => . ... </commands>
+        <account>
+          <address> ADDR </address>
+          ...
+        </account>
+      [priority(60)]
+
+    rule [checkAccountExists-fail]:
+        <commands> checkAccountExists(ADDR) 
+                => #exception(ExecutionFailed, b"account not found: " +Bytes ADDR) ... 
+        </commands>
+      [priority(61)]
+
+    syntax InternalCmd ::= #exception( ExceptionCode , Bytes )
+ // ---------------------------------------------------
+
 endmodule
 ```

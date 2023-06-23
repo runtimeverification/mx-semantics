@@ -86,10 +86,10 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          => .MapBytesToBytes
     rule #removeEmptyBytes(ListItem(KEY) L, KEY Bytes2Bytes|-> VALUE REST)
          => #removeEmptyBytes(L, REST)
-      requires VALUE ==K wrap(.Bytes)
+      requires VALUE ==K .Bytes
     rule #removeEmptyBytes(ListItem(KEY) L, KEY Bytes2Bytes|-> VALUE REST )
          => KEY Bytes2Bytes|-> VALUE #removeEmptyBytes(L, REST)
-      requires VALUE =/=K wrap(.Bytes)
+      requires VALUE =/=K .Bytes
 ```
 
 ### Step type: setState

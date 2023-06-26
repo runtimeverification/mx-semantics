@@ -35,12 +35,9 @@ def KMap(kitem_pairs, empty_map:str=".Map", map_item:str="_|->_", map_concat:str
         res = KApply(map_concat, [res, new_item])
     return res
 
-def wrap_bytes(b:KInner) -> KInner:
-    return KApply('wrapBytes', [b])
-
 def KMapBytesToBytes(kitem_pairs):
     return KMap(
-        [(wrap_bytes(k), wrap_bytes(v)) for k, v in kitem_pairs],
+        kitem_pairs,
         empty_map=".MapBytesToBytes",
         map_item="_Bytes2Bytes|->_",
         map_concat="_MapBytesToBytes_")

@@ -81,12 +81,12 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule #removeEmptyBytes(.MapBytesToBytes)
         => .MapBytesToBytes
     rule #removeEmptyBytes(Key Bytes2Bytes|-> Value M)
-        =>  #if Value ==K wrap(.Bytes)
+        =>  #if Value ==K .Bytes
             #then #removeEmptyBytes(M)
             #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
             #fi
     rule #removeEmptyBytes(Key Bytes2Bytes|-> Value M)
-        =>  #if Value ==K wrap(.Bytes)
+        =>  #if Value ==K .Bytes
             #then #removeEmptyBytes(M)
             #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
             #fi

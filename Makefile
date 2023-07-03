@@ -94,7 +94,7 @@ wasm-deps:
 # -------------------
 
 HOOK_NAMESPACES    := KRYPTO
-KOMPILE_OPTS       := --hook-namespaces \"$(HOOK_NAMESPACES)\" --emit-json
+KOMPILE_OPTS       := --hook-namespaces \"$(HOOK_NAMESPACES)\" --emit-json  -I $(CURDIR)
 
 ifneq (,$(K_COVERAGE))
     KOMPILE_OPTS += --coverage
@@ -118,6 +118,7 @@ ELROND_FILE_NAMES      := elrond.md                   \
                           auto-allocate.md            \
                           mandos.md                   \
                           wasm-coverage.md            \
+                          $(wildcard data/*.k)        \
                           $(wildcard vmhooks/*.md)
 
 PLUGIN_FILE_NAMES      := blockchain-k-plugin/krypto.md
@@ -153,6 +154,10 @@ $(KWASM_SUBMODULE)/blockchain-k-plugin/%.md: $(PLUGIN_SUBMODULE)/plugin/%.md
 	cp $< $@
 
 $(KWASM_SUBMODULE)/vmhooks/%.md: vmhooks/%.md
+	@mkdir -p $(dir $@)
+	cp $< $@
+
+$(KWASM_SUBMODULE)/data/%.k: data/%.k
 	@mkdir -p $(dir $@)
 	cp $< $@
 

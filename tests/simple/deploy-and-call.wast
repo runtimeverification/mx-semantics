@@ -1,6 +1,6 @@
 setExitCode 1
 
-setAccount("testDeployer", 0, 0, .Code, .Bytes, .Map)
+setAccount("testDeployer", 0, 0, .Code, .Bytes, .MapBytesToBytes)
 newAddress("testDeployer", 0, "testContract")
 
 deployTx(
@@ -10,19 +10,19 @@ deployTx(
       (func (export "init"))
       (func (export "test"))
     )
-  , .List
+  , .ListBytes
   , 0
   , 0
 )
 
-setAccount("testCaller", 0, 0, .Code, .Bytes, .Map)
+setAccount("testCaller", 0, 0, .Code, .Bytes, .MapBytesToBytes)
 callTx(
     "testCaller"
   , "testContract"
   , 0
   , .List
   , "test"
-  , .List
+  , .ListBytes
   , 0
   , 0
 )

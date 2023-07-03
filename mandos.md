@@ -76,22 +76,33 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### Helper Functions
 
 ```k
-    syntax Map ::= #removeEmptyBytes ( Map ) [function]
-                 | #removeEmptyBytes ( List , Map ) [function, klabel(#removeEmptyBytesAux)]
+    syntax MapBytesToBytes  ::= #removeEmptyBytes ( MapBytesToBytes ) [function]
  // ----------------------------------------------------------------------------------------
-    rule #removeEmptyBytes(M)                                    => #removeEmptyBytes(Set2List(keys(M)), M)
-    rule #removeEmptyBytes(.List, .Map)                          => .Map
-    rule #removeEmptyBytes(ListItem(KEY) L, KEY |-> VALUE REST) => #removeEmptyBytes(L, REST)
-      requires VALUE ==K .Bytes
-    rule #removeEmptyBytes(ListItem(KEY) L, KEY |-> VALUE REST ) => KEY |-> VALUE #removeEmptyBytes(L, REST)
-      requires VALUE =/=K .Bytes
+    rule #removeEmptyBytes(.MapBytesToBytes)
+        => .MapBytesToBytes
+    rule #removeEmptyBytes(Key Bytes2Bytes|-> Value M)
+        =>  #if Value ==K .Bytes
+            #then #removeEmptyBytes(M)
+            #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
+            #fi
+    rule #removeEmptyBytes(Key Bytes2Bytes|-> Value M)
+        =>  #if Value ==K .Bytes
+            #then #removeEmptyBytes(M)
+            #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
+            #fi
+        [simplification]
+
 ```
 
 ### Step type: setState
 
 ```k
-    syntax Step ::= setAccount    ( address: Address, nonce: Int, balance: Int, code: Code, owner: Address, storage: Map )  [klabel(setAccount), symbol]
-                  | setAccountAux ( address: Bytes, nonce: Int, balance: Int, code: Code, owner: Bytes, storage: Map )      [klabel(setAccountAux), symbol]
+    syntax Step ::= setAccount    (
+                        address: Address, nonce: Int, balance: Int, code: Code,
+                        owner: Address, storage: MapBytesToBytes )  [klabel(setAccount), symbol]
+                  | setAccountAux (
+                        address: Bytes, nonce: Int, balance: Int, code: Code,
+                        owner: Bytes, storage: MapBytesToBytes )      [klabel(setAccountAux), symbol]
                   | createAndSetAccountWithEmptyCode       ( Bytes, Int, Int, Map )
                   | createAndSetAccountAfterInitCodeModule ( Bytes, Int, Int, Map )
  // -------------------------------------------------------------------------------
@@ -231,8 +242,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          </account>
       [priority(60)]
 
-    syntax Step ::= checkAccountStorage    ( Address, Map ) [klabel(checkAccountStorage), symbol]
-                  | checkAccountStorageAux ( Bytes, Map )   [klabel(checkAccountStorageAux), symbol]
+    syntax Step ::= checkAccountStorage    ( Address, MapBytesToBytes ) [klabel(checkAccountStorage), symbol]
+                  | checkAccountStorageAux ( Bytes, MapBytesToBytes )   [klabel(checkAccountStorageAux), symbol]
  // ------------------------------------------------------------------------------------------------
     rule <k> checkAccountStorage(ADDRESS, STORAGE)
              => checkAccountStorageAux(#address2Bytes(ADDRESS), STORAGE) ... </k>
@@ -305,8 +316,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### Step type: scCall
 
 ```k
-    syntax Step ::= callTx    (from: Address, to: Address, value: Int, esdtValue: List, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
-                  | callTxAux (from: Bytes,   to: Bytes,   value: Int, esdtValue: List, func: WasmString, args: List, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
+    syntax Step ::= callTx    (from: Address, to: Address, value: Int, esdtValue: List, func: WasmString, args: ListBytes, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
+                  | callTxAux (from: Bytes,   to: Bytes,   value: Int, esdtValue: List, func: WasmString, args: ListBytes, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
  // ----------------------------------------------------------------------------------------------------------------------------------------------------------
     rule [callTx]:
         <k> callTx(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE)
@@ -326,7 +337,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
       [priority(60)]
 
-    syntax VmInputCell ::= mkVmInputSCCall(Bytes, List, Int, List, Int, Int)    [function, total]
+    syntax VmInputCell ::= mkVmInputSCCall(Bytes, ListBytes, Int, List, Int, Int)    [function, total]
  // -----------------------------------------------------------------------------------
     rule mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GAS, GAS_PRICE)
       => <vmInput>
@@ -339,7 +350,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             <gasPrice> GAS_PRICE </gasPrice>
           </vmInput>
 
-    syntax Step ::= checkExpectOut ( List ) [klabel(checkExpectOut), symbol]
+    syntax Step ::= checkExpectOut ( ListBytes ) [klabel(checkExpectOut), symbol]
  // --------------------------------------------------------------------------
     rule <k> checkExpectOut(OUT) => . ... </k>
          <vmOutput> VMOutput(... out: OUT) </vmOutput>
@@ -373,8 +384,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 TODO make sure that none of the state changes are persisted -- [Doc](https://docs.multiversx.com/developers/scenario-reference/structure#step-type-scquery)
 
 ```k
-    syntax Step ::= queryTx    (to: Address, func: WasmString, args: List) [klabel(queryTx), symbol]
-                  | queryTxAux (to: Bytes,   func: WasmString, args: List) [klabel(queryTxAux), symbol]
+    syntax Step ::= queryTx    (to: Address, func: WasmString, args: ListBytes) [klabel(queryTx), symbol]
+                  | queryTxAux (to: Bytes,   func: WasmString, args: ListBytes) [klabel(queryTxAux), symbol]
  // ---------------------------------------------------------------------------------------------------
     rule <k> queryTx(TO, FUNCTION, ARGS) => queryTxAux(#address2Bytes(TO), FUNCTION, ARGS) ... </k>
       [priority(60)]
@@ -384,7 +395,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
          <logging> S => S +String " -- query contract: " +String #parseWasmString(FUNCTION) </logging>
       [priority(60)]
 
-    syntax VmInputCell ::= mkVmInputQuery(Bytes, List)    [function, total]
+    syntax VmInputCell ::= mkVmInputQuery(Bytes, ListBytes)    [function, total]
  // -----------------------------------------------------------------------------------
     rule mkVmInputQuery(TO, ARGS)
       => <vmInput>
@@ -401,8 +412,8 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
 ### Step type: scDeploy
 
 ```k
-    syntax Step ::= deployTx    ( Address, Int, ModuleDecl, List, Int, Int ) [klabel(deployTx), symbol]
-                  | deployTxAux ( Bytes, Int, ModuleDecl, List, Int, Int )   [klabel(deployTxAux), symbol]
+    syntax Step ::= deployTx    ( Address, Int, ModuleDecl, ListBytes, Int, Int ) [klabel(deployTx), symbol]
+                  | deployTxAux (   Bytes, Int, ModuleDecl, ListBytes, Int, Int )   [klabel(deployTxAux), symbol]
  // ------------------------------------------------------------------------------------------------------
     rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE)
           => deployTxAux(#address2Bytes(FROM), VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) ... 
@@ -426,7 +437,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
         <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
       [priority(60)]
 
-    syntax VmInputCell ::= mkVmInputDeploy(Bytes, Int, List, Int, Int)    [function, total]
+    syntax VmInputCell ::= mkVmInputDeploy(Bytes, Int, ListBytes, Int, Int)    [function, total]
  // -----------------------------------------------------------------------------------
     rule mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE)
       => <vmInput>
@@ -473,8 +484,8 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
          <account>
            <address> TO </address>
             <storage> STOR
-                   => STOR[String2Bytes("ELRONDreward") 
-                           <- #incBytes(#lookupStorage(STOR, String2Bytes("ELRONDreward")), VAL)]
+                   => STOR{{String2Bytes("ELRONDreward") 
+                           <- #incBytes(#lookupStorage(STOR, String2Bytes("ELRONDreward")), VAL)}}
             </storage>
             <balance> TO_BAL => TO_BAL +Int VAL </balance>
             ...

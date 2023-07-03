@@ -17,6 +17,8 @@ module ELROND-CONFIG
     imports WASM-AUTO-ALLOCATE
     imports ELROND-NODE
     imports ESDT
+    imports LIST-BYTES
+    imports MAP-BYTES-TO-BYTES-PRIMITIVE
 
     configuration
       <elrond>
@@ -204,19 +206,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           <storage> STORAGE </storage>
           ...
         </account>
-      requires #lookupStorageDefined(STORAGE, KEY)
-
-    rule [storageLoadFromAddress-undefined]:
-        <instrs> #storageLoadFromAddress 
-              => #throwException(UserError, "storageLoadFromAddress: undefined storage value") ... 
-        </instrs>
-        <bytesStack> ADDR : KEY : _ </bytesStack>
-        <account>
-          <address> ADDR </address>
-          <storage> STORAGE </storage>
-          ...
-        </account>
-      requires notBool #lookupStorageDefined(STORAGE, KEY)
 
     rule [storageLoadFromAddress-unknown-addr]:
         <instrs> #storageLoadFromAddress 
@@ -226,36 +215,26 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         // <bytesStack> ADDR : _ : _ </bytesStack>
       [owise]
 
-    syntax Map ::= #updateStorage ( Map , key : Bytes , val : Bytes ) [function, total]
+    syntax MapBytesToBytes ::= #updateStorage ( MapBytesToBytes , key : Bytes , val : Bytes ) [function, total]
  // ----------------------------------------------------------------------------------------
-    rule #updateStorage(STOR, KEY, VAL) => STOR [KEY <- undef] requires VAL  ==K .Bytes
-    rule #updateStorage(STOR, KEY, VAL) => STOR [KEY <- VAL  ] requires VAL =/=K .Bytes
+    rule #updateStorage(STOR, KEY, VAL) => STOR {{KEY <- undef}} requires VAL  ==K .Bytes
+    rule #updateStorage(STOR, KEY, VAL) => STOR {{KEY <- VAL  }} requires VAL =/=K .Bytes
 
-    syntax Bytes ::= #lookupStorage ( Map , key: Bytes ) [function]
+    syntax Bytes ::= #lookupStorage ( MapBytesToBytes , key: Bytes ) [function, total]
  // ---------------------------------------------------------------
-    rule #lookupStorage(STORAGE, KEY) => {STORAGE[KEY]}:>Bytes
-      requires         KEY in_keys(STORAGE)
-       andBool isBytes(STORAGE[KEY])
+    rule #lookupStorage(STORAGE, KEY) => STORAGE{{KEY}} orDefault .Bytes
 
-    rule #lookupStorage(STORAGE, KEY) => .Bytes
-      requires notBool KEY in_keys(STORAGE)
-
-    syntax Bool ::= #lookupStorageDefined( Map , Bytes )       [function, total]
- // -----------------------------------------------------------------------------------
-    rule #lookupStorageDefined(STORAGE, KEY) => notBool( KEY in_keys(STORAGE) )
-                                         orBool isBytes(STORAGE[KEY] orDefault .Bytes) 
-
-    syntax Int ::= #storageStatus ( Map , key : Bytes , val : Bytes ) [function, total]
+    syntax Int ::= #storageStatus ( MapBytesToBytes , key : Bytes , val : Bytes ) [function, total]
                  | #StorageUnmodified () [function, total]
                  | #StorageModified   () [function, total]
                  | #StorageAdded      () [function, total]
                  | #StorageDeleted    () [function, total]
  // -----------------------------------------------------------
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL  ==K .Bytes andBool notBool KEY in_keys(STOR)
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL =/=K .Bytes andBool         KEY in_keys(STOR) andBool STOR[KEY]  ==K VAL
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageModified  () requires VAL =/=K .Bytes andBool         KEY in_keys(STOR) andBool STOR[KEY] =/=K VAL
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageAdded     () requires VAL =/=K .Bytes andBool notBool KEY in_keys(STOR)
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageDeleted   () requires VAL  ==K .Bytes andBool         KEY in_keys(STOR)
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL  ==K .Bytes andBool notBool KEY in_keys{{STOR}}
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL =/=K .Bytes andBool         KEY in_keys{{STOR}} andBool STOR{{KEY}}  ==K VAL
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageModified  () requires VAL =/=K .Bytes andBool         KEY in_keys{{STOR}} andBool STOR{{KEY}} =/=K VAL
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageAdded     () requires VAL =/=K .Bytes andBool notBool KEY in_keys{{STOR}}
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageDeleted   () requires VAL  ==K .Bytes andBool         KEY in_keys{{STOR}}
 
     rule #StorageUnmodified() => 0
     rule #StorageModified  () => 1
@@ -334,10 +313,10 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
  // -----------------------------------------------
     rule <instrs> #appendToOutFromBytesStack => . ... </instrs>
          <bytesStack> OUT : STACK => STACK </bytesStack>
-         <out> ... (.List => ListItem(OUT)) </out>
+         <out> ... (.ListBytes => ListItem(OUT)) </out>
 
     rule <instrs> #appendToOut(OUT) => . ... </instrs>
-         <out> ... (.List => ListItem(OUT)) </out>
+         <out> ... (.ListBytes => ListItem(OUT)) </out>
 ```
 
 ### Parsing
@@ -360,7 +339,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ### Log
 
 ```k
-    syntax LogEntry ::= logEntry ( Bytes , Bytes , List , Bytes ) [klabel(logEntry), symbol]
+    syntax LogEntry ::= logEntry ( Bytes , Bytes , ListBytes , Bytes ) [klabel(logEntry), symbol]
  // ----------------------------------------------------------------------------------------
 
     syntax InternalInstr ::= #getArgsFromMemory    ( Int , Int , Int )
@@ -407,9 +386,9 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </instrs>
 
     syntax InternalInstr ::= "#writeLog"
-                           | #writeLogAux ( Int , List , Bytes )
+                           | #writeLogAux ( Int , ListBytes , Bytes )
  // ------------------------------------------------------------
-    rule <instrs> #writeLog => #writeLogAux(NUMTOPICS, .List, DATA) ... </instrs>
+    rule <instrs> #writeLog => #writeLogAux(NUMTOPICS, .ListBytes, DATA) ... </instrs>
          <bytesStack> DATA : STACK => STACK </bytesStack>
          <valstack> <i32> NUMTOPICS : <i32> _ : VALSTACK => VALSTACK </valstack>
 
@@ -458,7 +437,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ```k
     rule [exception-revert]:
         <commands> (#exception(EC, MSG) ~> #endWasm) => popCallState ~> popWorldState ... </commands>
-        <vmOutput> .VMOutput => VMOutput( EC , MSG , .List , .List) </vmOutput>
+        <vmOutput> .VMOutput => VMOutput( EC , MSG , .ListBytes , .List) </vmOutput>
       [priority(10)]
     
     rule [exception-skip]:
@@ -526,7 +505,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
       [priority(61)]
 
-    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, Code, Bytes, Map )
+    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, Code, Bytes, MapBytesToBytes )
                          | setAccountCode      ( Bytes, Code )
                          | setAccountOwner     ( Bytes, Bytes )
  // ---------------------------------------------------------------
@@ -721,11 +700,11 @@ Initialize the call state and invoke the endpoint function:
             ...
           </wasm>
           <bigIntHeap> _ => .Map </bigIntHeap>
-          <bufferHeap> _ => .Map </bufferHeap>
+          <bufferHeap> _ => .MapIntToBytes </bufferHeap>
           <bytesStack> _ => .BytesStack </bytesStack>
           <contractModIdx> MODIDX:Int </contractModIdx>
           // output
-          <out> _ => .List </out>
+          <out> _ => .ListBytes </out>
           <logs> _ => .List </logs>
         </callState>
       [priority(60)]

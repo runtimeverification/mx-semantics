@@ -2,10 +2,16 @@ Elrond Node
 ===========
 
 ```k
+require "data/list-bytes.k"
+require "data/map-bytes-to-bytes.k"
+require "data/map-int-to-bytes.k"
 require "wasm.md"
 
 module ELROND-NODE
     imports DOMAINS
+    imports LIST-BYTES
+    imports MAP-BYTES-TO-BYTES
+    imports MAP-INT-TO-BYTES
     imports WASM
 
     configuration
@@ -16,7 +22,7 @@ module ELROND-NODE
           <callee> .Bytes </callee>
           <vmInput>
             <caller> .Bytes </caller>
-            <callArgs> .List </callArgs>
+            <callArgs> .ListBytes </callArgs>
             <callValue> 0 </callValue>
             <esdtTransfers> .List </esdtTransfers>
             // gas
@@ -27,11 +33,11 @@ module ELROND-NODE
           // every contract call uses its own wasm module instance, managed data heaps, and bytesStack.
           <wasm/>
           <bigIntHeap> .Map </bigIntHeap>
-          <bufferHeap> .Map </bufferHeap>
+          <bufferHeap> .MapIntToBytes </bufferHeap>
           <bytesStack> .BytesStack </bytesStack>
           <contractModIdx> .Int </contractModIdx>
           // output
-          <out> .List </out>
+          <out> .ListBytes </out>
           <logs> .List </logs>
         </callState>
         <callStack> .List </callStack>
@@ -63,7 +69,7 @@ If the account is not a contract, `ownerAddress` is `.Bytes`.
 Storage maps byte arrays to byte arrays.
 
 ```k
-             <storage> .Map </storage>
+             <storage> .MapBytesToBytes </storage>
            </account>
          </accounts>
          <previousBlockInfo>
@@ -100,7 +106,7 @@ Storage maps byte arrays to byte arrays.
                            | "SimulateFailed"           [klabel(SimulateFailed), symbol]
 
     syntax VMOutput ::= ".VMOutput"
-                      | VMOutput( returnCode: ReturnCode , returnMessage: Bytes , out: List, logs: List )
+                      | VMOutput( returnCode: ReturnCode , returnMessage: Bytes , out: ListBytes, logs: List )
 
  // ------------------------------------------------------------------
 

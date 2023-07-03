@@ -107,15 +107,15 @@ module BASEOPS
     rule <commands> (#transferSuccess => .) ~> #endWasm ... </commands>
          <instrs> #waitForTransfer => . ... </instrs>
 
-    syntax Bool ::= #validArgIdx( Int , List )        [function, total]
+    syntax Bool ::= #validArgIdx( Int , ListBytes )        [function, total]
  // -------------------------------------------------------------------
-    rule #validArgIdx(IDX, ARGS) => isBytes(ARGS[IDX]) 
-      requires 0 <=Int #signed(i32, IDX) 
-       andBool IDX <Int size(ARGS)
-    rule #validArgIdx(_, _) => false  [owise]
+    rule #validArgIdx(IDX, ARGS)
+        => 0 <=Int #signed(i32, IDX)
+          andBool definedSigned(i32, IDX)
+          andBool definedBytesListLookup(ARGS, IDX)
 
     // extern int32_t getArgumentLength(void *context, int32_t id);
-    rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes({ARGS[IDX]}:>Bytes) ... </instrs>
+    rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes(ARGS[IDX]) ... </instrs>
          <locals> 0 |-> <i32> IDX </locals>
          <callArgs> ARGS </callArgs>
       requires #validArgIdx(IDX, ARGS)
@@ -129,8 +129,8 @@ module BASEOPS
 
     // extern int32_t getArgument(void *context, int32_t id, int32_t argOffset);
     rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #memStore(OFFSET, {ARGS[IDX]}:>Bytes)
-               ~> i32.const lengthBytes({ARGS[IDX]}:>Bytes)
+               => #memStore(OFFSET, ARGS[IDX])
+               ~> i32.const lengthBytes(ARGS[IDX])
                   ...
          </instrs>
          <locals>
@@ -364,11 +364,11 @@ module BASEOPS
                  ...
         </instrs>
         <locals> 0 |-> <i32> ID_IDX </locals>
-        <bufferHeap> ... ID_IDX |-> TokId ... </bufferHeap>
+        <bufferHeap> ... wrap(ID_IDX) Int2Bytes|-> TokId ... </bufferHeap>
 
   // TODO check arguments and handle errors if any
   // TODO handle Callee is not a contract
-    syntax InternalInstr ::= #transferESDTNFTExecuteWithTypedArgs(BytesResult, ListResult, Int, BytesResult, ListResult)
+    syntax InternalInstr ::= #transferESDTNFTExecuteWithTypedArgs(BytesResult, ListResult, Int, BytesResult, ListBytesResult)
  // -------------------------------------------------------------------------------------------
     rule <instrs> #transferESDTNFTExecuteWithTypedArgs(Dest, Transfers, _GasLimit, b"", _Args)
                => #waitForTransfer
@@ -388,7 +388,7 @@ module BASEOPS
        andBool #isSmartContract(Callee)
 
   // TODO check arguments and handle errors if any
-    syntax InternalInstr ::= #transferValueExecuteWithTypedArgs(BytesResult, IntResult, Int, BytesResult, ListResult)
+    syntax InternalInstr ::= #transferValueExecuteWithTypedArgs(BytesResult, IntResult, Int, BytesResult, ListBytesResult)
  // -------------------------------------------------------------------------------------------
     rule <instrs> #transferValueExecuteWithTypedArgs(Dest, Value, _GasLimit, b"", _Args)
                => #waitForTransfer
@@ -407,7 +407,7 @@ module BASEOPS
       requires 0 <Int lengthBytes(Func)
        andBool #isSmartContract(Callee)
 
-    syntax InternalInstr ::= #executeOnDestContext(Bytes, Int, List, Int, Bytes, List)
+    syntax InternalInstr ::= #executeOnDestContext(Bytes, Int, List, Int, Bytes, ListBytes)
  // -----------------------------------------------------------------------------------------
     rule [executeOnDestContext]:
         <instrs> #executeOnDestContext(Dest, Value, Esdt, GasLimit, Func, Args)
@@ -422,7 +422,7 @@ module BASEOPS
         // TODO requires not IsBuiltinFunctionName
         
 
-    syntax VmInputCell ::= prepareIndirectContractCallInput(Bytes, Int, List, Int, List)    [function, total]
+    syntax VmInputCell ::= prepareIndirectContractCallInput(Bytes, Int, List, Int, ListBytes)    [function, total]
  // -----------------------------------------------------------------------------------
     rule prepareIndirectContractCallInput(SENDER, VALUE, ESDT, GASLIMIT, ARGS)
       => <vmInput>
@@ -454,7 +454,7 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
           VMOutput ( OK , _ , OUTPUT , LOGS ) => .VMOutput
         </vmOutput>
         // merge outputs
-        <out> ... (.List => OUTPUT) </out>
+        <out> ... (.ListBytes => OUTPUT) </out>
         <logs> ... (.List => LOGS) </logs>
 
     rule [finishExecuteOnDestContext-exception]:

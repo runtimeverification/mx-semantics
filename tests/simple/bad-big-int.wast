@@ -1,6 +1,6 @@
 setExitCode 1
 
-setAccount("testDeployer", 0, 0, .Code, .Bytes, .Map)
+setAccount("testDeployer", 0, 0, .Code, .Bytes, .MapBytesToBytes)
 newAddress("testDeployer", 0, "testContract")
 
 deployTx(
@@ -25,18 +25,18 @@ deployTx(
       (memory (;0;) 17)
       (export "memory" (memory 0))
     )
-  , .List
+  , .ListBytes
   , 0
   , 0
 )
 
-setAccount("testCaller", 0, 0, .Code, .Bytes, .Map)
+setAccount("testCaller", 0, 0, .Code, .Bytes, .MapBytesToBytes)
 
 callTx(
     "testCaller"
   , "testContract"
   , 0, .List
-  , "invalidHandle", .List
+  , "invalidHandle", .ListBytes
   , 0
   , 0
 )
@@ -48,7 +48,7 @@ callTx(
     "testCaller"
   , "testContract"
   , 0, .List
-  , "invalidHandleAdd", .List
+  , "invalidHandleAdd", .ListBytes
   , 0
   , 0
 )

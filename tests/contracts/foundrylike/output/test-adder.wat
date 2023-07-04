@@ -9,9 +9,8 @@
   (type (;7;) (func (param i32)))
   (type (;8;) (func))
   (type (;9;) (func (param i32 i64 i32)))
-  (type (;10;) (func (result i64)))
-  (type (;11;) (func (param i64 i32 i32 i32 i32 i32 i32) (result i32)))
-  (type (;12;) (func (param i32 i32 i64 i32 i32) (result i32)))
+  (type (;10;) (func (param i32 i64 i32 i32 i32 i32)))
+  (type (;11;) (func (param i32 i32 i64 i32 i32) (result i32)))
   (import "env" "getStorage" (func (;0;) (type 0)))
   (import "env" "bigIntGetUnsignedArgument" (func (;1;) (type 1)))
   (import "env" "mBufferGetArgument" (func (;2;) (type 2)))
@@ -28,71 +27,58 @@
   (import "env" "bigIntCmp" (func (;13;) (type 2)))
   (import "env" "checkNoPayment" (func (;14;) (type 8)))
   (import "env" "createAccount" (func (;15;) (type 9)))
-  (import "env" "startPrank" (func (;16;) (type 7)))
-  (import "env" "getGasLeft" (func (;17;) (type 10)))
-  (import "env" "mBufferNewFromBytes" (func (;18;) (type 2)))
-  (import "env" "managedCreateContract" (func (;19;) (type 11)))
-  (import "env" "stopPrank" (func (;20;) (type 8)))
-  (import "env" "assertBool" (func (;21;) (type 7)))
-  (import "env" "assumeBool" (func (;22;) (type 7)))
-  (import "env" "mBufferFromBigIntUnsigned" (func (;23;) (type 2)))
-  (import "env" "managedTransferValueExecute" (func (;24;) (type 12)))
-  (import "env" "bigIntAdd" (func (;25;) (type 0)))
-  (func (;26;) (type 2) (param i32 i32) (result i32)
+  (import "env" "registerNewAddress" (func (;16;) (type 9)))
+  (import "env" "deployContract" (func (;17;) (type 10)))
+  (import "env" "assertBool" (func (;18;) (type 7)))
+  (import "env" "assumeBool" (func (;19;) (type 7)))
+  (import "env" "mBufferFromBigIntUnsigned" (func (;20;) (type 2)))
+  (import "env" "startPrank" (func (;21;) (type 7)))
+  (import "env" "managedTransferValueExecute" (func (;22;) (type 11)))
+  (import "env" "stopPrank" (func (;23;) (type 8)))
+  (import "env" "bigIntAdd" (func (;24;) (type 0)))
+  (func (;25;) (type 2) (param i32 i32) (result i32)
     (local i32)
     local.get 0
     local.get 1
-    call 27
+    call 26
     local.tee 2
     call 0
     local.get 2)
-  (func (;27;) (type 3) (result i32)
+  (func (;26;) (type 3) (result i32)
     (local i32)
-    call 29
+    call 28
     local.tee 0
-    i32.const 131200
+    i32.const 131264
     i32.const 0
     call 7
     drop
     local.get 0)
-  (func (;28;) (type 6) (param i32) (result i32)
-    (local i32)
-    call 29
-    local.tee 1
-    local.get 0
-    call 30
-    local.get 1)
-  (func (;29;) (type 3) (result i32)
+  (func (;27;) (type 3) (result i32)
     (local i32)
     i32.const 0
-    i32.const 0
-    i32.load offset=131216
-    i32.const -1
-    i32.add
-    local.tee 0
-    i32.store offset=131216
-    local.get 0)
-  (func (;30;) (type 1) (param i32 i32)
-    local.get 0
-    local.get 1
-    i64.extend_i32_u
-    call 6)
-  (func (;31;) (type 3) (result i32)
-    (local i32)
-    i32.const 0
-    call 29
+    call 28
     local.tee 0
     call 1
     local.get 0)
-  (func (;32;) (type 3) (result i32)
+  (func (;28;) (type 3) (result i32)
     (local i32)
     i32.const 0
-    call 29
+    i32.const 0
+    i32.load offset=131280
+    i32.const -1
+    i32.add
+    local.tee 0
+    i32.store offset=131280
+    local.get 0)
+  (func (;29;) (type 3) (result i32)
+    (local i32)
+    i32.const 0
+    call 28
     local.tee 0
     call 2
     drop
     local.get 0)
-  (func (;33;) (type 8)
+  (func (;30;) (type 8)
     block  ;; label = @1
       call 3
       i32.const 1
@@ -100,11 +86,11 @@
       br_if 0 (;@1;)
       return
     end
-    i32.const 131110
+    i32.const 131142
     i32.const 25
     call 4
     unreachable)
-  (func (;34;) (type 1) (param i32 i32)
+  (func (;31;) (type 1) (param i32 i32)
     (local i32)
     global.get 0
     i32.const 16
@@ -143,15 +129,15 @@
     i32.const 16
     i32.add
     global.set 0)
-  (func (;35;) (type 2) (param i32 i32) (result i32)
+  (func (;32;) (type 2) (param i32 i32) (result i32)
     i32.const -14
     local.get 1
     i64.extend_i32_u
     call 6
     local.get 0
     i32.const -14
-    call 36)
-  (func (;36;) (type 2) (param i32 i32) (result i32)
+    call 33)
+  (func (;33;) (type 2) (param i32 i32) (result i32)
     i32.const -1
     local.get 0
     local.get 1
@@ -163,19 +149,23 @@
     i32.const 0
     i32.lt_s
     select)
-  (func (;37;) (type 2) (param i32 i32) (result i32)
+  (func (;34;) (type 2) (param i32 i32) (result i32)
     (local i32)
-    call 29
+    call 28
     local.tee 2
     local.get 0
     local.get 1
     call 7
     drop
     local.get 2)
-  (func (;38;) (type 6) (param i32) (result i32)
+  (func (;35;) (type 6) (param i32) (result i32)
+    local.get 0
+    i32.const 32
+    call 34)
+  (func (;36;) (type 6) (param i32) (result i32)
     (local i32)
     local.get 0
-    call 29
+    call 28
     local.tee 1
     call 8
     drop
@@ -185,249 +175,239 @@
       i32.const 32
       i32.eq
       br_if 0 (;@1;)
-      call 39
+      call 37
       unreachable
     end
     local.get 1)
-  (func (;39;) (type 8)
+  (func (;37;) (type 8)
     (local i32)
-    i32.const 131135
+    i32.const 131199
     i32.const 22
-    call 37
+    call 34
     local.tee 0
-    i32.const 131157
+    i32.const 131221
     i32.const 16
     call 5
     drop
     local.get 0
     call 11
     unreachable)
-  (func (;40;) (type 1) (param i32 i32)
+  (func (;38;) (type 1) (param i32 i32)
     local.get 0
     local.get 1
     call 10
     drop)
-  (func (;41;) (type 6) (param i32) (result i32)
+  (func (;39;) (type 6) (param i32) (result i32)
     local.get 0
     i32.const 3
-    call 37)
-  (func (;42;) (type 6) (param i32) (result i32)
+    call 34)
+  (func (;40;) (type 6) (param i32) (result i32)
     (local i32)
     local.get 0
-    call 29
+    call 28
     local.tee 1
     call 12
     drop
     local.get 1)
-  (func (;43;) (type 3) (result i32)
-    i32.const 131173
+  (func (;41;) (type 3) (result i32)
+    i32.const 131237
     i32.const 12
-    call 37)
-  (func (;44;) (type 3) (result i32)
-    i32.const 131185
+    call 34)
+  (func (;42;) (type 3) (result i32)
+    i32.const 131249
     i32.const 12
-    call 37)
-  (func (;45;) (type 8)
-    call 46
+    call 34)
+  (func (;43;) (type 8)
+    call 44
     unreachable)
-  (func (;46;) (type 8)
-    i32.const 131200
+  (func (;44;) (type 8)
+    i32.const 131264
     i32.const 14
     call 4
     unreachable)
-  (func (;47;) (type 8)
-    (local i32 i32 i32 i32 i32 i32 i32 i64)
+  (func (;45;) (type 8)
+    (local i32 i32 i32 i32 i32 i32 i32)
     global.get 0
     i32.const 16
     i32.sub
     local.tee 0
     global.set 0
     call 14
-    call 33
-    call 32
+    call 30
+    call 29
     local.set 1
     i32.const 131078
-    i32.const 32
-    call 37
+    call 35
     local.set 2
-    call 44
+    call 42
     local.get 2
-    call 40
+    call 38
+    call 28
+    local.tee 3
+    i64.const 0
+    call 6
     local.get 2
     i64.const 1
-    i32.const 5
-    call 28
+    local.get 3
     call 15
-    call 27
-    local.set 3
-    call 27
+    local.get 2
+    i64.const 1
+    i32.const 131110
+    call 35
+    call 16
+    call 26
     local.set 4
+    call 26
+    local.set 5
     local.get 0
     i64.const 360287970189639680
-    i64.store
+    i64.store offset=8
     i32.const 0
-    local.set 5
+    local.set 3
     block  ;; label = @1
       loop  ;; label = @2
-        local.get 5
+        local.get 3
         i32.const 8
         i32.eq
         br_if 1 (;@1;)
         block  ;; label = @3
           block  ;; label = @4
             local.get 0
-            local.get 5
+            i32.const 8
             i32.add
-            i32.load8_u
+            local.get 3
+            i32.add
             local.tee 6
+            i32.load8_u
             i32.eqz
             br_if 0 (;@4;)
-            local.get 6
-            i32.const 24
-            i32.shl
-            i32.const 31
-            i32.shr_s
-            local.get 5
-            i32.add
-            local.tee 5
+            local.get 3
             i32.const 9
             i32.lt_u
             br_if 1 (;@3;)
-            local.get 5
-            call 48
+            local.get 3
+            call 46
             unreachable
           end
-          local.get 5
+          local.get 3
           i32.const 1
           i32.add
-          local.set 5
+          local.set 3
           br 1 (;@2;)
         end
       end
-      local.get 4
       local.get 5
-      local.get 0
-      i32.add
+      local.get 6
       i32.const 8
-      local.get 5
+      local.get 3
       i32.sub
       call 7
       drop
-      local.get 3
       local.get 4
-      call 34
-      local.get 2
-      call 16
-      call 17
-      local.set 7
-      call 29
+      local.get 5
+      call 31
+      call 28
       local.tee 6
       i64.const 0
       call 6
-      local.get 0
-      i32.const 0
-      i32.store16 offset=14
-      local.get 7
+      local.get 2
+      i64.const 5000000000000
       local.get 6
       local.get 1
-      local.get 0
-      i32.const 14
-      i32.add
-      i32.const 2
-      call 18
-      local.get 3
-      call 29
-      local.tee 5
-      call 29
-      call 19
-      drop
-      call 20
-      call 43
-      local.get 5
-      call 40
-      local.get 5
-      i32.const 131075
-      call 41
-      call 26
-      call 42
-      i32.const 5
+      local.get 4
+      i32.const 131167
       call 35
+      local.tee 3
+      call 17
+      call 41
+      local.get 3
+      call 38
+      local.get 3
+      i32.const 131075
+      call 39
+      call 25
+      call 40
+      i32.const 5
+      call 32
       i32.const 255
       i32.and
       i32.eqz
-      call 21
+      call 18
       local.get 0
       i32.const 16
       i32.add
       global.set 0
       return
     end
-    call 49
+    call 47
     unreachable)
-  (func (;48;) (type 7) (param i32)
+  (func (;46;) (type 7) (param i32)
     local.get 0
-    call 53
+    call 51
     unreachable)
-  (func (;49;) (type 8)
-    call 52
+  (func (;47;) (type 8)
+    call 50
     unreachable)
-  (func (;50;) (type 8)
+  (func (;48;) (type 8)
     (local i32 i32 i32 i32 i32)
     call 14
-    call 33
-    call 31
+    call 30
+    call 27
     local.tee 0
     i32.const 100
-    call 35
+    call 32
     i32.const 1
     i32.add
     i32.const 255
     i32.and
     i32.const 2
     i32.lt_u
-    call 22
-    call 44
-    call 38
+    call 19
+    call 42
+    call 36
     local.set 1
-    call 43
-    call 38
+    call 41
+    call 36
     local.set 2
-    call 27
+    call 26
     local.set 3
-    call 27
+    call 26
     drop
-    call 29
+    call 28
     local.tee 4
     local.get 0
-    call 23
+    call 20
     drop
     local.get 3
     local.get 4
-    call 34
+    call 31
     local.get 1
-    call 16
-    local.get 2
-    i32.const 0
+    call 21
     call 28
+    local.tee 1
+    i64.const 0
+    call 6
+    local.get 2
+    local.get 1
     i64.const 5000000
     i32.const 131072
-    call 41
+    call 39
     local.get 3
-    call 24
+    call 22
     local.set 3
-    call 20
+    call 23
     block  ;; label = @1
       local.get 3
       i32.eqz
       br_if 0 (;@1;)
-      call 49
+      call 47
       unreachable
     end
     local.get 2
     i32.const 131075
-    call 41
-    call 26
-    call 42
+    call 39
+    call 25
+    call 40
     local.set 3
     i32.const -14
     i64.const 5
@@ -435,31 +415,31 @@
     local.get 0
     local.get 0
     i32.const -14
-    call 25
+    call 24
     local.get 3
     local.get 0
-    call 36
+    call 33
     i32.const 255
     i32.and
     i32.eqz
-    call 21)
-  (func (;51;) (type 8))
-  (func (;52;) (type 8)
-    call 45
+    call 18)
+  (func (;49;) (type 8))
+  (func (;50;) (type 8)
+    call 43
     unreachable)
-  (func (;53;) (type 7) (param i32)
-    call 52
+  (func (;51;) (type 7) (param i32)
+    call 50
     unreachable)
   (table (;0;) 1 1 funcref)
   (memory (;0;) 3)
   (global (;0;) (mut i32) (i32.const 131072))
-  (global (;1;) i32 (i32.const 131220))
-  (global (;2;) i32 (i32.const 131232))
+  (global (;1;) i32 (i32.const 131284))
+  (global (;2;) i32 (i32.const 131296))
   (export "memory" (memory 0))
-  (export "init" (func 47))
-  (export "test_call_add" (func 50))
-  (export "callBack" (func 51))
+  (export "init" (func 45))
+  (export "test_call_add" (func 48))
+  (export "callBack" (func 49))
   (export "__data_end" (global 1))
   (export "__heap_base" (global 2))
-  (data (;0;) (i32.const 131072) "addsumowner___________________________wrong number of argumentsstorage decode error: bad array lengthadderAddressownerAddress\00\00\00panic occurred")
-  (data (;1;) (i32.const 131216) "\9c\ff\ff\ff"))
+  (data (;0;) (i32.const 131072) "addsumowner___________________________adder___________________________wrong number of arguments\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00storage decode error: bad array lengthadderAddressownerAddress\00\00\00panic occurred")
+  (data (;1;) (i32.const 131280) "\9c\ff\ff\ff"))

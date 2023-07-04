@@ -20,14 +20,18 @@
             ]
         },
         {
+            "step": "fetchWasmSource",
+            "wasmPath": "file:../../../../deps/mx-sdk-rs/contracts/examples/adder/output/adder.wasm" 
+        },
+        {
             "step": "scDeploy",
             "id": "deploy test",
             "comment": "deploy the test contract",
             "tx": {
-                "from": "address:owner",
+                "from": "address:k",
                 "contractCode": "file:../output/test-adder.wasm",
                 "arguments": [
-                    "<wasm bytecode for the test_adder contract>"
+                    "file:../../../../deps/mx-sdk-rs/contracts/examples/adder/output/adder.wasm"
                 ],
                 "gasLimit": "5,000,000,000,000",
                 "gasPrice": "0"

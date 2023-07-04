@@ -10,6 +10,21 @@ extern "C" {
         balanceHandle: i32,
     );
     
+    fn registerNewAddress(
+        ownerHandle: i32,
+        nonce: i64,
+        newAddressHandle: i32,
+    );
+
+    fn deployContract(
+        ownerHandle: i32,
+        gasLimit: i64,
+        valueHandle: i32,
+        codeHandle: i32,
+        argumentsHandle: i32,
+        resultAddressHandle: i32,
+    );
+
     fn setStorage(
         addressHandle: i32,
         keyHandle: i32,
@@ -46,6 +61,46 @@ pub fn create_account<M: ManagedTypeApi>(
     }
 }
 
+#[allow(unused)]
+pub fn register_new_address<M: ManagedTypeApi>(
+    owner: &ManagedAddress<M>,
+    nonce: u64,
+    new_address: &ManagedAddress<M>,
+) {
+    unsafe {
+        registerNewAddress(
+            owner.get_raw_handle(),
+            nonce as i64,
+            new_address.get_raw_handle(),
+        );
+    }
+}
+
+// Deploy a contract whose code was previously fetched using "fetchWasmSource" in Mandos.
+#[allow(unused)]
+pub fn deploy_contract<M: ManagedTypeApi>(
+    owner: &ManagedAddress<M>,
+    gas_limit: u64,
+    value: &BigUint<M>,
+    code_path: &ManagedBuffer<M>,
+    arguments: &ManagedArgBuffer<M>,
+) -> ManagedAddress<M> {
+    unsafe {
+        let mut dest = ManagedAddress::zero();
+        
+        deployContract(
+            owner.get_raw_handle(),
+            gas_limit as i64,
+            value.get_raw_handle(),
+            code_path.get_raw_handle(),
+            arguments.get_raw_handle(),
+            dest.get_raw_handle(),
+        );
+
+        dest
+    }
+
+}
 
 // Set storage of any account
 #[allow(unused)]

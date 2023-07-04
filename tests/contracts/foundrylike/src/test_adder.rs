@@ -16,31 +16,30 @@ pub trait TestAdder {
 
     /// Create the owner account and deploy adder
     #[init]
-    fn init(&self, code: ManagedBuffer) {
+    fn init(&self, code_path: ManagedBuffer) {
         
         // create the owner account
         let owner = ManagedAddress::from(b"owner___________________________");
         self.owner_address().set(&owner);
         
-        testapi::create_account(&owner, 1, &BigUint::from(INIT_SUM));
+        testapi::create_account(&owner, 1, &BigUint::from(0u64));
         
+        // register an address for the contract to be deployed
+        let adder = ManagedAddress::from(b"adder___________________________");
+        testapi::register_new_address(&owner, 1, &adder, );
+
         // deploy the adder contract
         let mut adder_init_args = ManagedArgBuffer::new();
-        adder_init_args.push_arg(5); // initial sum
+        adder_init_args.push_arg(INIT_SUM); // initial sum
 
-        // set the caller address for contract calls until stop_prank
-        testapi::start_prank(&owner);
-        // deploy a contract as `owner`
-        let (adder, _) = self.send_raw()
-            .deploy_contract(
-                self.blockchain().get_gas_left(),
+        // deploy a contract from `owner`
+        let adder = testapi::deploy_contract(
+                &owner,
+                5000000000000,
                 &BigUint::zero(),
-                &code,
-                CodeMetadata::DEFAULT,
+                &code_path,
                 &adder_init_args,
             );
-        // reset the caller address
-        testapi::stop_prank();
 
         // save the deployed contract's address
         self.adder_address().set(&adder);

@@ -104,7 +104,7 @@ LLVM_KOMPILE_OPTS  := -L$(LOCAL_LIB)                               \
                       $(PLUGIN_SUBMODULE)/plugin-c/plugin_util.cpp \
                       $(PLUGIN_SUBMODULE)/plugin-c/crypto.cpp      \
                       $(PLUGIN_SUBMODULE)/plugin-c/blake2.cpp      \
-                      -g -std=c++14 -lff -lcryptopp -lsecp256k1    \
+                      -g -std=c++17 -lff -lcryptopp -lsecp256k1    \
                       -lssl -lcrypto -lprocps
 
 MAIN_MODULE        := MANDOS

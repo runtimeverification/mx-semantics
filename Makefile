@@ -1,6 +1,7 @@
 
 .PHONY: all clean deps wasm-deps                                                 \
         build build-llvm build-haskell                                           \
+				plugin-deps libff libcryptopp libsecp256k1                               \
         elrond-clean-sources elrond-loaded                                       \
         test unittest-python mandos-test mandos-coverage test-elrond-contracts   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
@@ -18,6 +19,7 @@ DEPS_DIR  := deps
 DEFN_DIR  := $(BUILD_DIR)/defn
 BUILD_LOCAL   := $(abspath $(BUILD_DIR)/local)
 LOCAL_LIB     := $(BUILD_LOCAL)/lib
+LOCAL_INCLUDE := $(BUILD_LOCAL)/include
 
 LIBRARY_PATH       := $(LOCAL_LIB)
 C_INCLUDE_PATH     += :$(BUILD_LOCAL)/include
@@ -63,6 +65,9 @@ clean:
 # Non-K Dependencies
 # ------------------
 
+# libff
+# =====
+
 libff_out := $(LOCAL_LIB)/libff.a
 
 libff: $(libff_out)
@@ -79,6 +84,33 @@ $(libff_out): $(PLUGIN_SUBMODULE)/deps/libff/CMakeLists.txt
 	    && cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(BUILD_LOCAL) $(LIBFF_CMAKE_FLAGS) \
 	    && make -s -j4                                                                                    \
 	    && make install
+
+# libcryptopp
+# ===========
+
+libcryptopp_out := $(LOCAL_LIB)/libcryptopp.a
+
+libcryptopp : $(libcryptopp_out)
+
+$(libcryptopp_out): $(PLUGIN_SUBMODULE)/deps/cryptopp/GNUmakefile
+	cd $(PLUGIN_SUBMODULE)/deps/cryptopp                            \
+	    && $(MAKE) install DESTDIR=$(BUILD_LOCAL) PREFIX=/
+
+# libsecp256k1
+# ============
+
+libsecp256k1_out := $(LOCAL_LIB)/libsecp256k1.a
+
+libsecp256k1 : $(libsecp256k1_out)
+
+$(libsecp256k1_out): $(PLUGIN_SUBMODULE)/deps/secp256k1/autogen.sh
+	cd $(PLUGIN_SUBMODULE)/deps/secp256k1                                 \
+	    && ./autogen.sh                                                   \
+	    && ./configure --enable-module-recovery --prefix="$(BUILD_LOCAL)" \
+	    && $(MAKE)                                                        \
+	    && $(MAKE) install
+
+plugin-deps: libff libcryptopp libsecp256k1
 
 # Build Dependencies (K Submodule)
 # --------------------------------
@@ -101,7 +133,9 @@ ifneq (,$(K_COVERAGE))
 endif
 
 LLVM_KOMPILE_OPTS  := -L$(LOCAL_LIB)                               \
-                      $(PLUGIN_SUBMODULE)/plugin-c/plugin_util.cpp \
+                      -I$(LOCAL_INCLUDE)                           \
+                      -I/usr/include                               \
+											$(PLUGIN_SUBMODULE)/plugin-c/plugin_util.cpp \
                       $(PLUGIN_SUBMODULE)/plugin-c/crypto.cpp      \
                       $(PLUGIN_SUBMODULE)/plugin-c/blake2.cpp      \
                       -g -std=c++17 -lff -lcryptopp -lsecp256k1    \
@@ -136,7 +170,7 @@ llvm_kompiled := $(llvm_dir)/mandos-kompiled/interpreter
 
 build-llvm: $(llvm_kompiled)
 
-$(llvm_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(libff_out)
+$(llvm_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) plugin-deps
 	$(KWASM_MAKE) build-llvm                             \
 	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)            \
 	    llvm_main_module=$(MAIN_MODULE)                  \

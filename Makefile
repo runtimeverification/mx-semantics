@@ -3,7 +3,7 @@
         build build-llvm build-haskell                                           \
 				plugin-deps libff libcryptopp libsecp256k1                               \
         elrond-clean-sources elrond-loaded                                       \
-        test unittest-python mandos-test mandos-coverage test-elrond-contracts   \
+        test unittest-python mandos-test test-elrond-contracts                   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
         test-elrond-multisig test-elrond-basic-features                          \
         test-elrond-addercaller test-elrond-callercallee test-custom-contracts   \
@@ -47,7 +47,7 @@ else
 endif
 K_BIN := $(K_RELEASE)/bin
 K_LIB := $(K_RELEASE)/lib/kframework
-export K_OPTS ?= -Xmx16G -Xss512m
+export K_OPTS ?= -Xmx20G -Xss512m
 export K_RELEASE
 
 PYTHONPATH := $(K_LIB):$(KWASM_BINARY_PARSER):$(PYTHONPATH)
@@ -151,7 +151,6 @@ ELROND_FILE_NAMES      := elrond.md                   \
                           esdt.md                     \
                           auto-allocate.md            \
                           mandos.md                   \
-                          wasm-coverage.md            \
                           $(wildcard data/*.k)        \
                           $(wildcard vmhooks/*.md)
 
@@ -252,15 +251,6 @@ mandos_tests=$(sort $(wildcard $(MANDOS_TESTS_DIR)/*.scen.json))
 mandos-test: $(llvm_kompiled)
 	$(TEST_MANDOS) $(mandos_tests)
 
-## Mandos Coverage
-MANDOS_COV_DIR := tests/coverage
-mandos_cov_tests=$(sort $(wildcard $(MANDOS_COV_DIR)/*.scen.json))
-
-mandos-coverage: $(llvm_kompiled)
-	$(TEST_MANDOS) $(mandos_cov_tests) --coverage > $(MANDOS_COV_DIR)/coverage.out
-	$(CHECK) $(MANDOS_COV_DIR)/coverage.out $(MANDOS_COV_DIR)/coverage-expected.out
-	rm $(MANDOS_COV_DIR)/coverage.out
-
 ## Adder Test
 
 ELROND_ADDER_DIR := $(ELROND_CONTRACT_EXAMPLES)/adder
@@ -268,7 +258,7 @@ elrond_adder_tests=$(shell find $(ELROND_ADDER_DIR) -name "*.scen.json")
 
 test-elrond-adder: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_ADDER_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_adder_tests) --coverage
+	$(TEST_MANDOS) $(elrond_adder_tests)
 
 
 ## Crowdfunding Test
@@ -278,7 +268,7 @@ elrond_crowdfunding_tests=$(shell find $(ELROND_CROWDFUNDING_DIR) -name "*.scen.
 
 test-elrond-crowdfunding-esdt: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_CROWDFUNDING_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_crowdfunding_tests) --coverage
+	$(TEST_MANDOS) $(elrond_crowdfunding_tests)
 
 ## Multisg Test
 
@@ -287,7 +277,7 @@ elrond_multisig_tests=$(shell cat tests/multisig.test)
 
 test-elrond-multisig: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_MULTISIG_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_multisig_tests) --coverage
+	$(TEST_MANDOS) $(elrond_multisig_tests)
 
 ## Basic Feature Test
 
@@ -298,7 +288,7 @@ elrond_basic_features_tests=$(shell cat tests/basic_features.test)
 $(ELROND_BASIC_FEATURES_WASM):
 	mxpy contract build "$(ELROND_BASIC_FEATURES_DIR)" --wasm-symbols
 
-# TODO optimize test runner and enable coverage and logging
+# TODO optimize test runner and enable logging
 test-elrond-basic-features: $(elrond_basic_features_tests:=.mandos)
 
 $(ELROND_BASIC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_BASIC_FEATURES_WASM)
@@ -313,7 +303,7 @@ elrond_alloc_features_tests=$(shell cat tests/alloc_features.test)
 $(ELROND_ALLOC_FEATURES_WASM):
 	mxpy contract build "$(ELROND_ALLOC_FEATURES_DIR)" --wasm-symbols
 
-# TODO optimize test runner and enable coverage and logging
+# TODO optimize test runner and enable logging
 test-elrond-alloc-features: $(elrond_alloc_features_tests:=.mandos)
 
 $(ELROND_ALLOC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_ALLOC_FEATURES_WASM)
@@ -334,7 +324,7 @@ ELROND_MYADDER_DIR := tests/contracts/myadder
 test-elrond-addercaller: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_MYADDER_DIR)" --wasm-symbols
 	mxpy contract build "$(ELROND_ADDERCALLER_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_addercaller_tests) --coverage
+	$(TEST_MANDOS) $(elrond_addercaller_tests)
 
 ## Caller Callee Test
 
@@ -345,11 +335,11 @@ elrond_callercallee_tests=$(shell find $(ELROND_CALLER_DIR) -name "*.scen.json")
 test-elrond-callercallee: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_CALLER_DIR)" --wasm-symbols
 	mxpy contract build "$(ELROND_CALLEE_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_callercallee_tests) --coverage
+	$(TEST_MANDOS) $(elrond_callercallee_tests)
 
 # Unit Tests
 # ----------
-PYTHON_UNITTEST_FILES = coverage.py
+PYTHON_UNITTEST_FILES =
 unittest-python: $(PYTHON_UNITTEST_FILES:=.unit)
 
 %.unit: %

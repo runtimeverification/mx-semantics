@@ -7,9 +7,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  unit-test:
+  simple-tests:
     runs-on: [self-hosted, linux, normal]
-    name: 'Unit Test'
+    name: 'Simple Tests'
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -30,52 +30,21 @@ jobs:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build RELEASE=true -j4'
-      - name: 'Run Simple Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-simple -j6'
       - name: 'Run Python Unit Tests'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm unittest-python'
-      - name: 'Tear down Docker'
-        if: always()
-        run: |
-          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
-
-  mandos-test:
-    runs-on: [self-hosted, linux, normal]
-    name: 'Mandos Tests'
-    needs: [unit-test]
-    timeout-minutes: 30
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.JENKINS_GITHUB_PAT }}
-      - name: Checkout submodules
-        env: 
-          GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}
-        run: |
-          # https://gist.github.com/taoyuan/bfa3ff87e4b5611b5cbe ; for a repository we don't control the submodules over. 
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          git config --global url."https://".insteadOf git://
-          git submodule update --init --recursive
-      - name: 'Set up Docker'
-        uses: ./.github/actions/with-docker
-        with:
-          container-name: elrond-semantics-ci-${{ github.sha }}
-      - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
-      - name: 'Run Mandos Coverage'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm mandos-coverage'
-      - name: 'Run Mandos Test'
+      - name: 'Run Simple Test'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-simple -j6'
+      - name: 'Run Mandos Tests'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm mandos-test -j6'
       - name: 'Tear down Docker'
         if: always()
         run: |
           docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
 
-  basic-feature-test:
+  feature-tests:
     runs-on: [self-hosted, linux, normal]
-    name: 'Basic Feature Test'
-    needs: [unit-test, mandos-test]
+    name: 'Feature Tests'
+    needs: [simple-tests]
     timeout-minutes: 120
     steps:
       - name: Checkout
@@ -98,35 +67,6 @@ jobs:
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
       - name: 'Run Basic Feature Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features -j6'
-      - name: 'Tear down Docker'
-        if: always()
-        run: |
-          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
-
-  alloc-feature-test:
-    runs-on: [self-hosted, linux, normal]
-    name: 'Alloc Feature Test'
-    needs: [unit-test, mandos-test]
-    timeout-minutes: 120
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.JENKINS_GITHUB_PAT }}
-      - name: Checkout submodules
-        env: 
-          GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}
-        run: |
-          # https://gist.github.com/taoyuan/bfa3ff87e4b5611b5cbe ; for a repository we don't control the submodules over. 
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          git config --global url."https://".insteadOf git://
-          git submodule update --init --recursive
-      - name: 'Set up Docker'
-        uses: ./.github/actions/with-docker
-        with:
-          container-name: elrond-semantics-ci-${{ github.sha }}
-      - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
       - name: 'Run Alloc Feature Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-alloc-features -j6'
       - name: 'Tear down Docker'
@@ -134,42 +74,11 @@ jobs:
         run: |
           docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
 
-  multisig-contract-test:
+  example-contract-tests:
     runs-on: [self-hosted, linux, normal]
-    name: 'Multisig Contract Test'
-    needs: [unit-test, mandos-test]
-    timeout-minutes: 40
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.JENKINS_GITHUB_PAT }}
-      - name: Checkout submodules
-        env: 
-          GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}
-        run: |
-          # https://gist.github.com/taoyuan/bfa3ff87e4b5611b5cbe ; for a repository we don't control the submodules over. 
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          git config --global url."https://".insteadOf git://
-          git submodule update --init --recursive
-      - name: 'Set up Docker'
-        uses: ./.github/actions/with-docker
-        with:
-          container-name: elrond-semantics-ci-${{ github.sha }}
-      - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
-      - name: 'Run Multisig Contract Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-multisig'
-      - name: 'Tear down Docker'
-        if: always()
-        run: |
-          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
-
-  adder-test:
-    runs-on: [self-hosted, linux, normal]
-    name: 'Adder Contract Test'
-    needs: [unit-test, mandos-test]
-    timeout-minutes: 30
+    name: 'Example Contract Tests'
+    needs: [feature-tests]
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -191,15 +100,19 @@ jobs:
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
       - name: 'Run Adder Contract Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-adder'
+      - name: 'Run Crowdfunding ESDT Contract Test'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-crowdfunding-esdt'
+      - name: 'Run Multisig Contract Test'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-multisig'
       - name: 'Tear down Docker'
         if: always()
         run: |
           docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
 
-  custom-contract-test:
+  custom-contract-tests:
     runs-on: [self-hosted, linux, normal]
     name: 'Custom Contract Tests'
-    needs: [adder-test]
+    needs: [feature-tests]
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -222,37 +135,6 @@ jobs:
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
       - name: 'Run Custom Contract Tests'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-custom-contracts'
-      - name: 'Tear down Docker'
-        if: always()
-        run: |
-          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
-
-  crowdfunding-test:
-    runs-on: [self-hosted, linux, normal]
-    name: 'Crowdfunding ESDT Contract Test'
-    needs: [unit-test, mandos-test]
-    timeout-minutes: 90
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.JENKINS_GITHUB_PAT }}
-      - name: Checkout submodules
-        env: 
-          GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}
-        run: |
-          # https://gist.github.com/taoyuan/bfa3ff87e4b5611b5cbe ; for a repository we don't control the submodules over. 
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          git config --global url."https://".insteadOf git://
-          git submodule update --init --recursive
-      - name: 'Set up Docker'
-        uses: ./.github/actions/with-docker
-        with:
-          container-name: elrond-semantics-ci-${{ github.sha }}
-      - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
-      - name: 'Run Crowdfunding ESDT Contract Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-crowdfunding-esdt'
       - name: 'Tear down Docker'
         if: always()
         run: |

@@ -9,11 +9,9 @@ require "blockchain-k-plugin/krypto.md"
 require "elrond-node.md"
 require "esdt.md"
 require "wasm-text.md"
-require "wasm-coverage.md"
 
 module ELROND-CONFIG
     imports KRYPTO
-    imports WASM-COVERAGE
     imports WASM-AUTO-ALLOCATE
     imports ELROND-NODE
     imports ESDT
@@ -22,7 +20,6 @@ module ELROND-CONFIG
 
     configuration
       <elrond>
-        <wasmCoverage/>
         <node/>
         <logging> "" </logging>
       </elrond>

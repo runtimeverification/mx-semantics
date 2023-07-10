@@ -63,8 +63,6 @@ jobs:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
-      - name: 'Run Mandos Coverage'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm mandos-coverage'
       - name: 'Run Mandos Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm mandos-test -j6'
       - name: 'Tear down Docker'

@@ -72,15 +72,6 @@ INFO:projects.core:WASM file generated: /path/to/multisig/output/multisig.wasm
 $ python3 run-elrond-tests.py deps/mx-sdk-rs/contracts/examples/multisig/scenarios/changeBoard.scen.json
 ```
 
-Pass `--coverage` flag (and possibly multiple scenario files) for coverage analysis:
-
-```shell
-$ python3 run-elrond-tests.py --coverage \
-    deps/mx-sdk-rs/contracts/examples/multisig/scenarios/changeBoard.scen.json          \
-    deps/mx-sdk-rs/contracts/examples/multisig/scenarios/changeQuorum.scen.json         \
-    deps/mx-sdk-rs/contracts/examples/multisig/scenarios/changeQuorum_tooBig.scen.json  \
-```
-
 ## Rule Coverage
 
 Compile the semantics with `K_COVERAGE=true` to enable the coverage analysis. This will make `krun` generate coverage data after every execution:

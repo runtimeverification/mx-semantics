@@ -228,23 +228,16 @@ test-simple: $(simple_tests:=.run)
 # Elrond Wasm Definitions
 # -----------------------
 
-ELROND_LOADED       := src/elrond-runtime.loaded.wat
 ELROND_LOADED_JSON  := src/elrond-runtime.loaded.json
-ELROND_RUNTIME_JSON := src/elrond-runtime.wat.json
+ELROND_RUNTIME      := src/elrond-runtime.wat
 
-elrond-loaded: $(ELROND_LOADED_JSON) $(ELROND_LOADED)
+elrond-loaded: $(ELROND_LOADED_JSON)
 
 elrond-clean-sources:
-	rm $(ELROND_RUNTIME_JSON) $(ELROND_LOADED_JSON)
+	rm $(ELROND_LOADED_JSON)
 
-$(ELROND_LOADED): $(ELROND_RUNTIME_JSON)
-	$(TEST) run-legacy --backend $(TEST_CONCRETE_BACKEND) $< --parser cat > $(ELROND_LOADED)
-
-$(ELROND_LOADED_JSON): $(ELROND_RUNTIME_JSON)
-	$(TEST) run-legacy --backend $(TEST_CONCRETE_BACKEND) $< --parser cat --output json > $@
-
-$(ELROND_RUNTIME_JSON):
-	echo "setExitCode 0" | $(TEST) kast - json > $@
+$(ELROND_LOADED_JSON): $(ELROND_RUNTIME)
+	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< --output json > $@
 
 # Elrond Tests
 # ------------

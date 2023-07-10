@@ -29,7 +29,7 @@ jobs:
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build RELEASE=true'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build RELEASE=true -j4'
       - name: 'Run Simple Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-simple -j6'
       - name: 'Run Python Unit Tests'
@@ -62,7 +62,7 @@ jobs:
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
       - name: 'Run Mandos Coverage'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm mandos-coverage'
       - name: 'Run Mandos Test'
@@ -95,7 +95,7 @@ jobs:
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
       - name: 'Run Basic Feature Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features -j6'
       - name: 'Tear down Docker'
@@ -126,7 +126,7 @@ jobs:
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
       - name: 'Run Alloc Feature Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-alloc-features -j6'
       - name: 'Tear down Docker'
@@ -157,7 +157,7 @@ jobs:
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
       - name: 'Run Multisig Contract Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-multisig'
       - name: 'Tear down Docker'
@@ -188,7 +188,7 @@ jobs:
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
       - name: 'Run Adder Contract Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-adder'
       - name: 'Tear down Docker'
@@ -219,7 +219,7 @@ jobs:
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
       - name: 'Run Custom Contract Tests'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-custom-contracts'
       - name: 'Tear down Docker'
@@ -250,7 +250,7 @@ jobs:
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
       - name: 'Run Crowdfunding ESDT Contract Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-crowdfunding-esdt'
       - name: 'Tear down Docker'

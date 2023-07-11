@@ -10,7 +10,7 @@ from pyk.kast.manip import split_config_from
 import resource
 import subprocess
 import sys
-import sha3
+from Cryptodome.Hash import keccak
 import tempfile
 import os
 import wasm2kast
@@ -146,7 +146,7 @@ def mandos_string_to_bytes(raw_str: str):
     # keccak256
     if raw_str.startswith(keccak_prefix):
         input_bytes = mandos_string_to_bytes(raw_str[len(keccak_prefix):])
-        k = sha3.keccak_256()
+        k = keccak.new(digest_bits=256)
         k.update(input_bytes)
         return bytes.fromhex(k.hexdigest())
 

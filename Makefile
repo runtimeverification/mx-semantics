@@ -1,8 +1,9 @@
 
 .PHONY: all clean deps wasm-deps                                                 \
         build build-llvm build-haskell                                           \
+				plugin-deps libff libcryptopp libsecp256k1                               \
         elrond-clean-sources elrond-loaded                                       \
-        test unittest-python mandos-test mandos-coverage test-elrond-contracts   \
+        test unittest-python mandos-test test-elrond-contracts                   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
         test-elrond-multisig test-elrond-basic-features                          \
         test-elrond-addercaller test-elrond-callercallee test-custom-contracts   \
@@ -18,6 +19,7 @@ DEPS_DIR  := deps
 DEFN_DIR  := $(BUILD_DIR)/defn
 BUILD_LOCAL   := $(abspath $(BUILD_DIR)/local)
 LOCAL_LIB     := $(BUILD_LOCAL)/lib
+LOCAL_INCLUDE := $(BUILD_LOCAL)/include
 
 LIBRARY_PATH       := $(LOCAL_LIB)
 C_INCLUDE_PATH     += :$(BUILD_LOCAL)/include
@@ -45,7 +47,7 @@ else
 endif
 K_BIN := $(K_RELEASE)/bin
 K_LIB := $(K_RELEASE)/lib/kframework
-export K_OPTS ?= -Xmx16G -Xss512m
+export K_OPTS ?= -Xmx20G -Xss512m
 export K_RELEASE
 
 PYTHONPATH := $(K_LIB):$(KWASM_BINARY_PARSER):$(PYTHONPATH)
@@ -62,6 +64,9 @@ clean:
 
 # Non-K Dependencies
 # ------------------
+
+# libff
+# =====
 
 libff_out := $(LOCAL_LIB)/libff.a
 
@@ -80,6 +85,33 @@ $(libff_out): $(PLUGIN_SUBMODULE)/deps/libff/CMakeLists.txt
 	    && make -s -j4                                                                                    \
 	    && make install
 
+# libcryptopp
+# ===========
+
+libcryptopp_out := $(LOCAL_LIB)/libcryptopp.a
+
+libcryptopp : $(libcryptopp_out)
+
+$(libcryptopp_out): $(PLUGIN_SUBMODULE)/deps/cryptopp/GNUmakefile
+	cd $(PLUGIN_SUBMODULE)/deps/cryptopp                            \
+	    && $(MAKE) install DESTDIR=$(BUILD_LOCAL) PREFIX=/
+
+# libsecp256k1
+# ============
+
+libsecp256k1_out := $(LOCAL_LIB)/libsecp256k1.a
+
+libsecp256k1 : $(libsecp256k1_out)
+
+$(libsecp256k1_out): $(PLUGIN_SUBMODULE)/deps/secp256k1/autogen.sh
+	cd $(PLUGIN_SUBMODULE)/deps/secp256k1                                 \
+	    && ./autogen.sh                                                   \
+	    && ./configure --enable-module-recovery --prefix="$(BUILD_LOCAL)" \
+	    && $(MAKE)                                                        \
+	    && $(MAKE) install
+
+plugin-deps: libff libcryptopp libsecp256k1
+
 # Build Dependencies (K Submodule)
 # --------------------------------
 
@@ -94,17 +126,19 @@ wasm-deps:
 # -------------------
 
 HOOK_NAMESPACES    := KRYPTO
-KOMPILE_OPTS       := --hook-namespaces \"$(HOOK_NAMESPACES)\" --emit-json  -I $(CURDIR)
+KOMPILE_OPTS       := --hook-namespaces \"$(HOOK_NAMESPACES)\" -I $(CURDIR)
 
 ifneq (,$(K_COVERAGE))
     KOMPILE_OPTS += --coverage
 endif
 
 LLVM_KOMPILE_OPTS  := -L$(LOCAL_LIB)                               \
-                      $(PLUGIN_SUBMODULE)/plugin-c/plugin_util.cpp \
+                      -I$(LOCAL_INCLUDE)                           \
+                      -I/usr/include                               \
+											$(PLUGIN_SUBMODULE)/plugin-c/plugin_util.cpp \
                       $(PLUGIN_SUBMODULE)/plugin-c/crypto.cpp      \
                       $(PLUGIN_SUBMODULE)/plugin-c/blake2.cpp      \
-                      -g -std=c++14 -lff -lcryptopp -lsecp256k1    \
+                      -g -std=c++17 -lff -lcryptopp -lsecp256k1    \
                       -lssl -lcrypto -lprocps
 
 MAIN_MODULE        := MANDOS
@@ -117,7 +151,6 @@ ELROND_FILE_NAMES      := elrond.md                   \
                           esdt.md                     \
                           auto-allocate.md            \
                           mandos.md                   \
-                          wasm-coverage.md            \
                           $(wildcard data/*.k)        \
                           $(wildcard vmhooks/*.md)
 
@@ -136,7 +169,7 @@ llvm_kompiled := $(llvm_dir)/mandos-kompiled/interpreter
 
 build-llvm: $(llvm_kompiled)
 
-$(llvm_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(libff_out)
+$(llvm_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) plugin-deps
 	$(KWASM_MAKE) build-llvm                             \
 	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)            \
 	    llvm_main_module=$(MAIN_MODULE)                  \
@@ -194,23 +227,16 @@ test-simple: $(simple_tests:=.run)
 # Elrond Wasm Definitions
 # -----------------------
 
-ELROND_LOADED       := src/elrond-runtime.loaded.wat
 ELROND_LOADED_JSON  := src/elrond-runtime.loaded.json
-ELROND_RUNTIME_JSON := src/elrond-runtime.wat.json
+ELROND_RUNTIME      := src/elrond-runtime.wat
 
-elrond-loaded: $(ELROND_LOADED_JSON) $(ELROND_LOADED)
+elrond-loaded: $(ELROND_LOADED_JSON)
 
 elrond-clean-sources:
-	rm $(ELROND_RUNTIME_JSON) $(ELROND_LOADED_JSON)
+	rm $(ELROND_LOADED_JSON)
 
-$(ELROND_LOADED): $(ELROND_RUNTIME_JSON)
-	$(TEST) run-legacy --backend $(TEST_CONCRETE_BACKEND) $< --parser cat > $(ELROND_LOADED)
-
-$(ELROND_LOADED_JSON): $(ELROND_RUNTIME_JSON)
-	$(TEST) run-legacy --backend $(TEST_CONCRETE_BACKEND) $< --parser cat --output json > $@
-
-$(ELROND_RUNTIME_JSON):
-	echo "setExitCode 0" | $(TEST) kast - json > $@
+$(ELROND_LOADED_JSON): $(ELROND_RUNTIME)
+	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< --output json > $@
 
 # Elrond Tests
 # ------------
@@ -225,15 +251,6 @@ mandos_tests=$(sort $(wildcard $(MANDOS_TESTS_DIR)/*.scen.json))
 mandos-test: $(llvm_kompiled)
 	$(TEST_MANDOS) $(mandos_tests)
 
-## Mandos Coverage
-MANDOS_COV_DIR := tests/coverage
-mandos_cov_tests=$(sort $(wildcard $(MANDOS_COV_DIR)/*.scen.json))
-
-mandos-coverage: $(llvm_kompiled)
-	$(TEST_MANDOS) $(mandos_cov_tests) --coverage > $(MANDOS_COV_DIR)/coverage.out
-	$(CHECK) $(MANDOS_COV_DIR)/coverage.out $(MANDOS_COV_DIR)/coverage-expected.out
-	rm $(MANDOS_COV_DIR)/coverage.out
-
 ## Adder Test
 
 ELROND_ADDER_DIR := $(ELROND_CONTRACT_EXAMPLES)/adder
@@ -241,7 +258,7 @@ elrond_adder_tests=$(shell find $(ELROND_ADDER_DIR) -name "*.scen.json")
 
 test-elrond-adder: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_ADDER_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_adder_tests) --coverage
+	$(TEST_MANDOS) $(elrond_adder_tests)
 
 
 ## Crowdfunding Test
@@ -251,7 +268,7 @@ elrond_crowdfunding_tests=$(shell find $(ELROND_CROWDFUNDING_DIR) -name "*.scen.
 
 test-elrond-crowdfunding-esdt: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_CROWDFUNDING_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_crowdfunding_tests) --coverage
+	$(TEST_MANDOS) $(elrond_crowdfunding_tests)
 
 ## Multisg Test
 
@@ -260,7 +277,7 @@ elrond_multisig_tests=$(shell cat tests/multisig.test)
 
 test-elrond-multisig: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_MULTISIG_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_multisig_tests) --coverage
+	$(TEST_MANDOS) $(elrond_multisig_tests)
 
 ## Basic Feature Test
 
@@ -271,7 +288,7 @@ elrond_basic_features_tests=$(shell cat tests/basic_features.test)
 $(ELROND_BASIC_FEATURES_WASM):
 	mxpy contract build "$(ELROND_BASIC_FEATURES_DIR)" --wasm-symbols
 
-# TODO optimize test runner and enable coverage and logging
+# TODO optimize test runner and enable logging
 test-elrond-basic-features: $(elrond_basic_features_tests:=.mandos)
 
 $(ELROND_BASIC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_BASIC_FEATURES_WASM)
@@ -286,7 +303,7 @@ elrond_alloc_features_tests=$(shell cat tests/alloc_features.test)
 $(ELROND_ALLOC_FEATURES_WASM):
 	mxpy contract build "$(ELROND_ALLOC_FEATURES_DIR)" --wasm-symbols
 
-# TODO optimize test runner and enable coverage and logging
+# TODO optimize test runner and enable logging
 test-elrond-alloc-features: $(elrond_alloc_features_tests:=.mandos)
 
 $(ELROND_ALLOC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_ALLOC_FEATURES_WASM)
@@ -307,7 +324,7 @@ ELROND_MYADDER_DIR := tests/contracts/myadder
 test-elrond-addercaller: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_MYADDER_DIR)" --wasm-symbols
 	mxpy contract build "$(ELROND_ADDERCALLER_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_addercaller_tests) --coverage
+	$(TEST_MANDOS) $(elrond_addercaller_tests)
 
 ## Caller Callee Test
 
@@ -318,11 +335,11 @@ elrond_callercallee_tests=$(shell find $(ELROND_CALLER_DIR) -name "*.scen.json")
 test-elrond-callercallee: $(llvm_kompiled)
 	mxpy contract build "$(ELROND_CALLER_DIR)" --wasm-symbols
 	mxpy contract build "$(ELROND_CALLEE_DIR)" --wasm-symbols
-	$(TEST_MANDOS) $(elrond_callercallee_tests) --coverage
+	$(TEST_MANDOS) $(elrond_callercallee_tests)
 
 # Unit Tests
 # ----------
-PYTHON_UNITTEST_FILES = coverage.py
+PYTHON_UNITTEST_FILES =
 unittest-python: $(PYTHON_UNITTEST_FILES:=.unit)
 
 %.unit: %

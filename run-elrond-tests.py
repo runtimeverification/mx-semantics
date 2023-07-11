@@ -16,7 +16,6 @@ import os
 import wasm2kast
 from kwasm_ast import KString, KInt, KBytes
 from tempfile import NamedTemporaryFile
-import coverage as cov
 
 def flatten(l):
     return [item for sublist in l for item in sublist]
@@ -61,9 +60,9 @@ def config_to_kast_term(config):
 ###############################
 
 WASM_definition_main_file = 'mandos'
-WASM_definition_llvm_no_coverage_dir = Path('.build/defn/llvm')
-WASM_definition_llvm_no_coverage_kompiled_dir = WASM_definition_llvm_no_coverage_dir / (WASM_definition_main_file + '-kompiled')
-KRunner = KRun(WASM_definition_llvm_no_coverage_kompiled_dir)
+WASM_definition_llvm_dir = Path('.build/defn/llvm')
+WASM_definition_llvm_kompiled_dir = WASM_definition_llvm_dir / (WASM_definition_main_file + '-kompiled')
+KRunner = KRun(WASM_definition_llvm_kompiled_dir)
 
 addr_prefix   = "address:"
 sc_prefix     = "sc:"
@@ -605,7 +604,7 @@ def get_steps_as_kseq(filename, output_dir):
             raise Exception('Step %s not implemented yet' % step['step'])
     return k_steps
 
-def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args, return_final_config = True):
+def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
     global args
     test_name = os.path.basename(test_file_path)
     k_steps = get_steps_as_kseq(test_file_path, output_dir)
@@ -662,7 +661,7 @@ def krun_config(init_config: KInner, output_dir: str):
         
         kast_res = _kast(
                 Path(f.name),
-                definition_dir=WASM_definition_llvm_no_coverage_kompiled_dir,
+                definition_dir=WASM_definition_llvm_kompiled_dir,
                 input=KAstInput.JSON,
                 output=KAstOutput.KORE,
                 sort='GeneratedTopCell',
@@ -673,7 +672,7 @@ def krun_config(init_config: KInner, output_dir: str):
             conf_kore.flush()
             proc_res = _krun( 
                 input_file=Path(conf_kore.name),
-                definition_dir=WASM_definition_llvm_no_coverage_kompiled_dir,
+                definition_dir=WASM_definition_llvm_kompiled_dir,
                 term=True,
                 check=False,
                 output=KRunOutput.JSON,
@@ -702,13 +701,10 @@ def run_tests():
     global args
     testArgs = argparse.ArgumentParser(description='')
     testArgs.add_argument('files', metavar='N', type=str, nargs='+', help='')
-    testArgs.add_argument('--coverage', action='store_true', help='Display test coverage data.')
     testArgs.add_argument('--log-level', choices=['none', 'per-file', 'per-step'], default='per-file')
     testArgs.add_argument('--verbose', action='store_true', help='')
     args = testArgs.parse_args()
     tests = args.files
-
-    per_test_coverage = []
 
     with open('src/elrond-runtime.loaded.json', 'r') as f:
         runtime_json = json.load(f)
@@ -716,7 +712,7 @@ def run_tests():
     
     _, cells = split_config_from(template_wasm_config)
     assert cells['K_CELL'].arity == 0
-    coverage = cov.Coverage()
+
     for test in tests:
         if args.verbose:
             print("Running test %s" % test)
@@ -728,33 +724,11 @@ def run_tests():
         with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
             f.write(json.dumps(config_to_kast_term(template_wasm_config)))
 
-        result_wasm_config = run_test_file(template_wasm_config, test, tmpdir, args, return_final_config=args.coverage)
-
-        if args.coverage:
-            end_config = result_wasm_config #pyk.readKastTerm(os.path.join(tmpdir, test_name))
-
-            collect_data_func = lambda entry: (entry.args[0], int(entry.args[1].token))
-
-            func_cov_filter_func = lambda term: hasattr(term, 'label') and term.label.name == 'fcd'
-            func_cov = cov.get_coverage_data(end_config, 'COVEREDFUNCS_CELL', func_cov_filter_func, collect_data_func)
-
-            block_cov_filter_func = lambda term: hasattr(term, 'label') and term.label.name == 'blockUid'
-            block_cov = cov.get_coverage_data(end_config, 'COVEREDBLOCK_CELL', block_cov_filter_func, collect_data_func)
-
-            cov_data = { 'func_cov': func_cov, 'block_cov': block_cov }
-
-            coverage.add_coverage(cov_data, unnamed='import')
+        run_test_file(template_wasm_config, test, tmpdir, args)
 
         if args.verbose:
             print('See %s' % tmpdir)
             print()
-
-    if args.coverage:
-        text_modules = cov.insert_coverage_on_text_module(coverage, imports_mod_name='import')
-        for module in text_modules:
-            for line in module.splitlines():
-                print(line.decode('utf8'))
-
 
 if __name__ == "__main__":
     run_tests()

@@ -299,11 +299,11 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <checkedAccounts> ... (.Set => SetItem(ADDR)) ... </checkedAccounts>
       [priority(60)]
 
-    syntax Step ::= "checkNoAdditionalAccounts" [klabel(checkNoAdditionalAccounts), symbol]
+    syntax Step ::= checkNoAdditionalAccounts( Set ) [klabel(checkNoAdditionalAccounts), symbol]
  // ---------------------------------------------------------------------------------------
-    rule <k> checkNoAdditionalAccounts => . ... </k>
+    rule <k> checkNoAdditionalAccounts(EXPECTED) => . ... </k>
          <checkedAccounts> CHECKEDACCTS </checkedAccounts>
-         <activeAccounts> CHECKEDACCTS </activeAccounts>
+      requires EXPECTED ==K CHECKEDACCTS
       [priority(60)]
 
     syntax Step ::= "clearCheckedAccounts" [klabel(clearCheckedAccounts), symbol]

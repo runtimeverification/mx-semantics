@@ -480,7 +480,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
  // ------------------------------------------------------------------------------
     // ignore if the account already exists
     rule <commands> createAccount(ADDR) => . ... </commands>
-         <activeAccounts> ADDRs => ADDRs |Set SetItem(ADDR) </activeAccounts>
          <account>
            <address> ADDR </address>
            ...
@@ -489,7 +488,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       [priority(60)]
 
     rule <commands> createAccount(ADDR) => . ... </commands>
-         <activeAccounts> ADDRs => ADDRs |Set SetItem(ADDR) </activeAccounts>
          <accounts>
            ( .Bag
           => <account>

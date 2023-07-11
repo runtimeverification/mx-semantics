@@ -565,7 +565,9 @@ def get_steps_check_state(step, filename):
             if address != '+':
                 k_steps += mandos_to_check_account(address, sections, filename)
         if not '+' in step['accounts'].keys():
-            k_steps.append(KApply('checkNoAdditionalAccounts', []))
+            address_bytes = [mandos_argument_to_kbytes(a) for a in step['accounts'].keys()]
+            all_addresses = set_of(address_bytes)
+            k_steps.append(KApply('checkNoAdditionalAccounts', [all_addresses]))
         k_steps.append(KApply('clearCheckedAccounts', []))
     return k_steps
 

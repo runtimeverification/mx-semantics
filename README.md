@@ -3,7 +3,7 @@ Semantics of Elrond and Mandos
 
 This repository is work-in-progress, and currently a fork of [KWasm](https://github.com/kframework/wasm-semantics).
 
-Elrond-specific code is in `elrond.md` and `run-elrond-tests.py`.
+Elrond-specific code is in `elrond.md` and `run_elrond_tests.py`.
 
 ## Installation
 
@@ -53,10 +53,10 @@ $ mxpy contract build "<path-to-contract-directory>" --wasm-symbols
 Then run Mandos scenarios with:
 
 ```shell
-$ python3 run-elrond-tests.py <path-to-mandos-file>
+$ python3 run_elrond_tests.py <path-to-mandos-file>
 ```
 
-__Important__: `run-elrond-tests.py` makes use of Python modules implemented in the `wasm-semantics` submodule. For the time being, it requires setting the `PYTHONPATH` environment variable.
+__Important__: `run_elrond_tests.py` makes use of Python modules implemented in the `wasm-semantics` submodule. For the time being, it requires setting the `PYTHONPATH` environment variable.
 
 ```shell
 $ export PYTHONPATH=$(pwd)/deps/wasm-semantics/binary-parser:$PYTHONPATH
@@ -69,7 +69,7 @@ $ mxpy contract build "deps/mx-sdk-rs/contracts/examples/multisig" --wasm-symbol
 ...
 INFO:projects.core:Build ran.
 INFO:projects.core:WASM file generated: /path/to/multisig/output/multisig.wasm
-$ python3 run-elrond-tests.py deps/mx-sdk-rs/contracts/examples/multisig/scenarios/changeBoard.scen.json
+$ python3 run_elrond_tests.py deps/mx-sdk-rs/contracts/examples/multisig/scenarios/changeBoard.scen.json
 ```
 
 ## Rule Coverage

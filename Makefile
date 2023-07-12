@@ -257,7 +257,7 @@ $(ELROND_LOADED_JSON): $(ELROND_RUNTIME)
 # Elrond Tests
 # ------------
 
-TEST_MANDOS := python3 run-elrond-tests.py
+TEST_MANDOS := python3 run_elrond_tests.py
 
 
 ## Mandos Test

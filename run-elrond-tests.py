@@ -3,19 +3,18 @@
 import argparse
 import json
 from pathlib import Path
-from pyk.kast.inner import KSequence, KInner, KToken, KApply, Subst
-from pyk.ktool.kprint import _kast, KAstInput, KAstOutput
-from pyk.ktool.krun import KRun, _krun, KRunOutput
+from pyk.kast.inner import KSequence, KInner, KToken, KApply, Subst, KSort
+from pyk.ktool.krun import KRun
 from pyk.kast.manip import split_config_from
+from pyk.prelude.collections import set_of
 import resource
 import subprocess
 import sys
-import sha3
+from Cryptodome.Hash import keccak
 import tempfile
 import os
 import wasm2kast
 from kwasm_ast import KString, KInt, KBytes
-from tempfile import NamedTemporaryFile
 
 def flatten(l):
     return [item for sublist in l for item in sublist]
@@ -109,7 +108,7 @@ def mandos_argument_to_bytes(arg):
             barr += bytearray(mandos_argument_to_bytes(arg[key]))
         return bytes(barr)
 
-    raise ValueError("Argument type not yet supported: %s" % arg)
+    raise ValueError(f'Argument type not yet supported: {arg}')
 
 def mandos_string_to_bytes(raw_str: str):
     if raw_str == "":
@@ -146,7 +145,7 @@ def mandos_string_to_bytes(raw_str: str):
     # keccak256
     if raw_str.startswith(keccak_prefix):
         input_bytes = mandos_string_to_bytes(raw_str[len(keccak_prefix):])
-        k = sha3.keccak_256()
+        k = keccak.new(digest_bits=256)
         k.update(input_bytes)
         return bytes.fromhex(k.hexdigest())
 
@@ -565,7 +564,9 @@ def get_steps_check_state(step, filename):
             if address != '+':
                 k_steps += mandos_to_check_account(address, sections, filename)
         if not '+' in step['accounts'].keys():
-            k_steps.append(KApply('checkNoAdditionalAccounts', []))
+            address_bytes = [mandos_argument_to_kbytes(a) for a in step['accounts'].keys()]
+            all_addresses = set_of(address_bytes)
+            k_steps.append(KApply('checkNoAdditionalAccounts', [all_addresses]))
         k_steps.append(KApply('clearCheckedAccounts', []))
     return k_steps
 
@@ -628,10 +629,7 @@ def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
         if cmd_args.log_level != 'none':
             log_intermediate_state("%s_%d_%s.pre" % (test_name, i, step_name), init_config, output_dir)
 
-        krun_result = krun_config(init_config=init_config, output_dir=output_dir)
-        
-        config_json = json.loads(krun_result)
-        new_config = KInner.from_dict(config_json['term'])    
+        new_config = krun_config(init_config=init_config)
         final_config = new_config
 
         if cmd_args.log_level != 'none':
@@ -646,44 +644,10 @@ def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
 
     return final_config
 
-def krun_config(init_config: KInner, output_dir: str):
-    """
-    call krun with initial configuration
-
-    1- dump config as json
-    2- kast -i json -o kore > config.kore
-    3- krun config.kore --term --parser cat
-    """
-    with NamedTemporaryFile('w', dir=output_dir) as f:
-        conf_dict = {"format":"KAST","version":2,"term":init_config.to_dict()}
-        f.write(json.dumps(conf_dict, sort_keys=True))
-        f.flush()
-        
-        kast_res = _kast(
-                Path(f.name),
-                definition_dir=WASM_definition_llvm_kompiled_dir,
-                input=KAstInput.JSON,
-                output=KAstOutput.KORE,
-                sort='GeneratedTopCell',
-        )
-        
-        with NamedTemporaryFile('w', dir=output_dir) as conf_kore:
-            conf_kore.write(kast_res.stdout)
-            conf_kore.flush()
-            proc_res = _krun( 
-                input_file=Path(conf_kore.name),
-                definition_dir=WASM_definition_llvm_kompiled_dir,
-                term=True,
-                check=False,
-                output=KRunOutput.JSON,
-                pipe_stderr=True,
-                parser='cat',
-            )
-            
-            if proc_res.returncode != 0:
-                raise Exception("Received error while running: " + str(proc_res.stderr) )
-            
-            return proc_res.stdout
+def krun_config(init_config: KInner) -> KInner:
+    kore_config = KRunner.kast_to_kore(init_config, sort=KSort('GeneratedTopCell'))
+    kore_config = KRunner.run_kore_term(kore_config)
+    return KRunner.kore_to_kast(kore_config)
 
 # ... Setup Elrond Wasm
 

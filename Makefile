@@ -1,6 +1,6 @@
 
 .PHONY: all clean deps wasm-deps                                                 \
-        build build-llvm build-haskell                                           \
+        build build-llvm build-haskell build-foundry                             \
 				plugin-deps libff libcryptopp libsecp256k1                               \
         elrond-clean-sources elrond-loaded                                       \
         test unittest-python mandos-test test-elrond-contracts                   \
@@ -151,6 +151,7 @@ ELROND_FILE_NAMES      := elrond.md                   \
                           esdt.md                     \
                           auto-allocate.md            \
                           mandos.md                   \
+													foundry.md                  \
                           $(wildcard data/*.k)        \
                           $(wildcard vmhooks/*.md)
 
@@ -193,6 +194,21 @@ $(KWASM_SUBMODULE)/vmhooks/%.md: vmhooks/%.md
 $(KWASM_SUBMODULE)/data/%.k: data/%.k
 	@mkdir -p $(dir $@)
 	cp $< $@
+
+# Foundry Build
+foundry_kompiled := $(llvm_dir)/foundry-kompiled/interpreter
+
+build-foundry: $(foundry_kompiled)
+
+$(foundry_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(libff_out)
+	$(KWASM_MAKE) build-llvm                             \
+	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)            \
+	    llvm_main_module=FOUNDRY                         \
+	    llvm_syntax_module=FOUNDRY-SYNTAX                \
+	    llvm_main_file=foundry                           \
+	    EXTRA_SOURCE_FILES="$(EXTRA_SOURCES)"            \
+	    KOMPILE_OPTS="$(KOMPILE_OPTS)"                   \
+	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"
 
 # Testing
 # -------

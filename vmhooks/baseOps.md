@@ -383,9 +383,7 @@ module BASEOPS
               => #executeOnDestContext(Dest, 0, Transfers, GasLimit, Func, Args)
                  ...
         </instrs>
-        <callee> Callee </callee>
       requires 0 <Int lengthBytes(Func)
-       andBool #isSmartContract(Callee)
 
   // TODO check arguments and handle errors if any
     syntax InternalInstr ::= #transferValueExecuteWithTypedArgs(BytesResult, IntResult, Int, BytesResult, ListBytesResult)
@@ -403,9 +401,7 @@ module BASEOPS
               => #executeOnDestContext(Dest, Value, .List, GasLimit, Func, Args)
                  ...
         </instrs>
-        <callee> Callee </callee>
       requires 0 <Int lengthBytes(Func)
-       andBool #isSmartContract(Callee)
 
     syntax InternalInstr ::= #executeOnDestContext(Bytes, Int, List, Int, Bytes, ListBytes)
  // -----------------------------------------------------------------------------------------

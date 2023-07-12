@@ -414,7 +414,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <instrs> . </instrs>
          <out> OUT </out>
          <logs> LOGS </logs>
-         <vmOutput> .VMOutput => VMOutput( OK , .Bytes , OUT , LOGS) </vmOutput>
+         <vmOutput> _ => VMOutput( OK , .Bytes , OUT , LOGS) </vmOutput>
       [priority(60)]
 
     syntax InternalCmd ::= "#waitWasm"

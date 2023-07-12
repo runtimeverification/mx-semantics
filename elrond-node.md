@@ -43,7 +43,6 @@ module ELROND-NODE
         <callStack> .List </callStack>
         <interimStates> .List </interimStates>
         <vmOutput> .VMOutput </vmOutput>
-        <activeAccounts> .Set </activeAccounts>
         <accounts>
           <account multiplicity="*" type="Map">
             <address> .Bytes </address>
@@ -186,22 +185,20 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
 ```k
     syntax AccountsCellFragment
 
-    syntax Accounts ::= "{" AccountsCellFragment "|" Set "}"
+    syntax Accounts ::= "{" AccountsCellFragment "}"
  // --------------------------------------------------------
 
     syntax InternalCmd ::= "pushWorldState"
  // ---------------------------------------
     rule <commands> pushWorldState => . ... </commands>
-         <interimStates> (.List => ListItem({ ACCTDATA | ACCTS })) ... </interimStates>
-         <activeAccounts> ACCTS    </activeAccounts>
+         <interimStates> (.List => ListItem({ ACCTDATA })) ... </interimStates>
          <accounts>       ACCTDATA </accounts>
       [priority(60)]
 
     syntax InternalCmd ::= "popWorldState"
  // --------------------------------------
     rule <commands> popWorldState => . ... </commands>
-         <interimStates> (ListItem({ ACCTDATA | ACCTS }) => .List) ... </interimStates>
-         <activeAccounts> _ => ACCTS    </activeAccounts>
+         <interimStates> (ListItem({ ACCTDATA }) => .List) ... </interimStates>
          <accounts>       _ => ACCTDATA </accounts>
       [priority(60)]
 

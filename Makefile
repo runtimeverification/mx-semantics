@@ -47,7 +47,7 @@ else
 endif
 K_BIN := $(K_RELEASE)/bin
 K_LIB := $(K_RELEASE)/lib/kframework
-export K_OPTS ?= -Xmx20G -Xss512m
+export K_OPTS ?= -Xmx24G -Xss512m
 export K_RELEASE
 
 PYTHONPATH := $(K_LIB):$(KWASM_BINARY_PARSER):$(PYTHONPATH)
@@ -200,7 +200,7 @@ foundry_kompiled := $(llvm_dir)/foundry-kompiled/interpreter
 
 build-foundry: $(foundry_kompiled)
 
-$(foundry_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(libff_out)
+$(foundry_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) plugin-deps
 	$(KWASM_MAKE) build-llvm                             \
 	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)            \
 	    llvm_main_module=FOUNDRY                         \

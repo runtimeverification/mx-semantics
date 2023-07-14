@@ -115,7 +115,7 @@ module BASEOPS
           andBool definedBytesListLookup(ARGS, IDX)
 
     // extern int32_t getArgumentLength(void *context, int32_t id);
-    rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes(ARGS[IDX]) ... </instrs>
+    rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes(unwrap(ARGS[IDX])) ... </instrs>
          <locals> 0 |-> <i32> IDX </locals>
          <callArgs> ARGS </callArgs>
       requires #validArgIdx(IDX, ARGS)
@@ -129,8 +129,8 @@ module BASEOPS
 
     // extern int32_t getArgument(void *context, int32_t id, int32_t argOffset);
     rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #memStore(OFFSET, ARGS[IDX])
-               ~> i32.const lengthBytes(ARGS[IDX])
+               => #memStore(OFFSET, unwrap(ARGS[IDX]))
+               ~> i32.const lengthBytes(unwrap(ARGS[IDX]))
                   ...
          </instrs>
          <locals>

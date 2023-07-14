@@ -358,7 +358,7 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
          <callArgs> ARGS </callArgs>
-         <bigIntHeap> HEAP => HEAP [BIG_IDX <- Bytes2Int(ARGS[ARG_IDX], BE, Unsigned)] </bigIntHeap>
+         <bigIntHeap> HEAP => HEAP [BIG_IDX <- Bytes2Int(unwrap(ARGS[ARG_IDX]), BE, Unsigned)] </bigIntHeap>
       requires #validArgIdx(ARG_IDX, ARGS)
 
     // If ARG_IDX is invalid (out of bounds) just ignore
@@ -372,7 +372,7 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
          <callArgs> ARGS </callArgs>
-         <bigIntHeap> HEAP => HEAP [BIG_IDX <- Bytes2Int(ARGS[ARG_IDX], BE, Signed)] </bigIntHeap>
+         <bigIntHeap> HEAP => HEAP [BIG_IDX <- Bytes2Int(unwrap(ARGS[ARG_IDX]), BE, Signed)] </bigIntHeap>
       requires #validArgIdx(ARG_IDX, ARGS)
 
     rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>

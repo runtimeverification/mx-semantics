@@ -1,8 +1,11 @@
+requires "bytes-type.k"
 
 module LIST-BYTES
   imports private INT-SYNTAX
   imports private BASIC-K
-
+  
+  imports private BYTES-TYPE
+  
   syntax Bytes
 
   syntax ListBytes [hook(LIST.List)]
@@ -16,23 +19,23 @@ module LIST-BYTES
           [ function, total, hook(LIST.unit), klabel(.ListBytes),
             symbol, smtlib(smt_seq_nil), latex(\dotCt{ListBytes})
           ]
-  syntax ListBytes ::= ListItem(Bytes)
+  syntax ListBytes ::= ListItem(WrappedBytes)
           [ function, total, hook(LIST.element), klabel(ListBytesItem),
             symbol, smtlib(smt_seq_elem)
           ]
-  syntax Bytes ::= ListBytes "[" Int "]"
+  syntax WrappedBytes ::= ListBytes "[" Int "]"
           [ function, hook(LIST.get), klabel(ListBytes:get), symbol ]
-  syntax ListBytes ::= ListBytes "[" index: Int "<-" value: Bytes "]"
+  syntax ListBytes ::= ListBytes "[" index: Int "<-" value: WrappedBytes "]"
           [function, hook(LIST.update), klabel(ListBytes:set)]
-  syntax ListBytes ::= makeListBytes(length: Int, value: Bytes)
+  syntax ListBytes ::= makeListBytes(length: Int, value: WrappedBytes)
           [function, hook(LIST.make)]
   syntax ListBytes ::= updateList(dest: ListBytes, index: Int, src: ListBytes)
           [function, hook(LIST.updateAll)]
-  syntax ListBytes ::= fillList(ListBytes, index: Int, length: Int, value: Bytes)
+  syntax ListBytes ::= fillList(ListBytes, index: Int, length: Int, value: WrappedBytes)
           [function, hook(LIST.fill)]
   syntax ListBytes ::= range(ListBytes, fromFront: Int, fromBack: Int)
           [function, hook(LIST.range), klabel(ListBytes:range), symbol]
-  syntax Bool ::= Bytes "in" ListBytes
+  syntax Bool ::= WrappedBytes "in" ListBytes
           [function, total, hook(LIST.in), klabel(_inListBytes_)]
   syntax Int ::= size(ListBytes)
           [function, total, hook(LIST.size), klabel (sizeListBytes), smtlib(smt_seq_len)]
@@ -43,7 +46,7 @@ module LIST-BYTES-EXTENSIONS
   imports INT
   imports LIST-BYTES
 
-  syntax Bytes ::= ListBytes "[" Int "]" "orDefault" Bytes
+  syntax WrappedBytes ::= ListBytes "[" Int "]" "orDefault" WrappedBytes
           [ function, total, klabel(ListBytes:getOrDefault), symbol ]
 
   rule ListItem(V:Bytes) _:ListBytes [0] orDefault _:Bytes

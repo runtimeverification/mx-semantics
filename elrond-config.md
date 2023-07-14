@@ -310,10 +310,10 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
  // -----------------------------------------------
     rule <instrs> #appendToOutFromBytesStack => . ... </instrs>
          <bytesStack> OUT : STACK => STACK </bytesStack>
-         <out> ... (.ListBytes => ListItem(OUT)) </out>
+         <out> ... (.ListBytes => ListItem(wrap(OUT))) </out>
 
     rule <instrs> #appendToOut(OUT) => . ... </instrs>
-         <out> ... (.ListBytes => ListItem(OUT)) </out>
+         <out> ... (.ListBytes => ListItem(wrap(OUT))) </out>
 ```
 
 ### Parsing
@@ -395,7 +395,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <logs> ... (.List => ListItem(logEntry(CALLEE, IDENTIFIER, TOPICS, DATA))) </logs>
 
     rule <instrs> #writeLogAux(NUMTOPICS, TOPICS, DATA)
-               => #writeLogAux(NUMTOPICS -Int 1, ListItem(TOPIC) TOPICS, DATA)
+               => #writeLogAux(NUMTOPICS -Int 1, ListItem(wrap(TOPIC)) TOPICS, DATA)
                   ...
          </instrs>
          <bytesStack> TOPIC : STACK => STACK </bytesStack>

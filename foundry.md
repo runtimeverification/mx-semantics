@@ -173,7 +173,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         </instrs>
         <account>
           <address> OWNER </address>
-          <storage> ...  KEY Bytes2Bytes|-> VAL ... </storage>
+          <storage> ...  wrap(KEY) Bytes2Bytes|-> wrap(VAL) ... </storage>
           ...
         </account>
 

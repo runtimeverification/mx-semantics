@@ -164,7 +164,7 @@ module MANBUFOPS
 
  // extern int32_t   mBufferGetArgument(void* context, int32_t id, int32_t destinationHandle);
     rule <instrs> hostCall("env", "mBufferGetArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
-               => #setBuffer(DEST_IDX, ARGS[ARG_IDX])
+               => #setBuffer(DEST_IDX, unwrap(ARGS[ARG_IDX]))
                ~> i32 . const 0
                   ... 
          </instrs>

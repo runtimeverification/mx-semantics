@@ -1,0 +1,21 @@
+{
+  "contract_paths": [
+    "../../../deps/mx-sdk-rs/contracts/examples/adder/output/adder.wasm"
+  ],
+  "inputs": [
+    {
+      "comment": "call the test endpoint with a concrete value, use Mandos syntax for arguments",
+      "endpoint": "test_call_add",
+      "arguments": ["3"]
+    },
+    {
+      "endpoint": "test_call_add",
+      "arguments": ["10"]
+    },
+    {
+      "comment": "call the test endpoint with 100 random inputs",
+      "endpoint": "test_call_add",
+      "random": 5
+    }
+  ]
+}

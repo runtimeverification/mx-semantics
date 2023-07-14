@@ -3,6 +3,9 @@ import glob
 import random
 from os.path import join
 
+from hypothesis import given, settings
+from hypothesis.strategies import integers, tuples
+
 from run_elrond_tests import *
 from pyk.prelude.utils import token
 from pyk.prelude.collections import map_of
@@ -152,37 +155,37 @@ def get_test_endpoints(test_dir: str):
 
     return endpoints
 
-# Random input generators
+# Hypothesis strategies
 
-def random_value(input_type: str) -> str:
-    def random_big_uint() -> str:
-        return str(random.randint(0, 1_000_000_000_000_000))
+# All the values generated are in the Mandos format
+
+def big_uint():
+    return integers(min_value=0).map(str)
+
+def type_to_strategy(typ: str):
+    if typ == 'BigUint':
+        return big_uint()
+    else:
+        raise TypeError(f'Cannot create random {typ}')
+
+def arg_types_to_strategy(types):
+    strs = (type_to_strategy(t) for t in types)
+    return tuples(*strs)
+
+def test_with_hypothesis(krun, sym_conf, init_subst, endpoint, arg_types):
     
-    match input_type:
-        case 'BigUint':
-            return random_big_uint()
-        case _:
-            raise TypeError(f'Cannot create random {input_type}')
+    def test(args):
+        print(">>> running:", endpoint, args)
+        run_test(krun, sym_conf, init_subst, endpoint, args)
+        print("<<< done   :", endpoint, args)
 
-def random_input(types: tuple[str]) -> tuple[str]:
-    return [random_value(typ) for typ in types]
-
-def call_data_generator(inputs, endpoints):
-    for inp in inputs:
-        print(f'Generating call data for\n\t{inp}')
-        endpoint_name = inp['endpoint']
-
-        if not endpoint_name.startswith(TEST_PREFIX):
-            raise ValueError(f'Test endpoint names must start with "{TEST_PREFIX}": {endpoint_name}')
-        
-        if 'arguments' in inp:
-            yield endpoint_name, inp['arguments']
-        elif 'random' in inp:
-            for _ in range(inp['random']):
-                args = random_input(endpoints[endpoint_name])
-                yield endpoint_name, args
-        else:
-            raise ValueError(f'Use either "arguments" or "random": {inp}')
+    args_strategy = arg_types_to_strategy(arg_types)
+    given(args_strategy)(
+        settings(
+            deadline=5000,      # set time limit for for individual run
+            max_examples=10     # 20 is enough for demo purposes
+        )(test)
+    )()
 
 # Main Script
 DESCRIPTION = '''
@@ -225,12 +228,9 @@ def main():
 
     test_endpoints = get_test_endpoints(args.directory)
 
-    test_inputs = input_json['inputs']
-    for endpoint, args in call_data_generator(test_inputs, test_endpoints):
-        print('Running test: ', endpoint, args)
-        run_test(krun, sym_conf, init_subst, endpoint, args)
-        print('Done test')
+    for endpoint, arg_types in test_endpoints.items():
+        test_with_hypothesis(krun, sym_conf, init_subst, endpoint, arg_types)
 
-
+    
 if __name__ == "__main__":
     main()

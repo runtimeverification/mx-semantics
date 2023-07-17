@@ -100,7 +100,7 @@ def run_config_and_check_empty(krun, conf):
     sym_conf, subst = split_config_from(final_conf)
     k_cell = subst['K_CELL']
     if not isinstance(k_cell, KSequence) or k_cell.arity != 0:
-        print(krun.pretty_print( final_conf ), file=sys.stderr)
+        print(krun.pretty_print( subst['VMOUTPUT_CELL'] ), file=sys.stderr)
         raise ValueError(f'k cell not empty')
     
     return final_conf, sym_conf, subst
@@ -124,7 +124,6 @@ def run_test(krun, sym_conf, init_subst, endpoint, args):
 
     init_subst['K_CELL'] = tx_steps
     conf_with_steps = Subst(init_subst)(sym_conf)
-
     
     run_config_and_check_empty(krun, conf_with_steps)
     
@@ -212,11 +211,12 @@ def main():
     
     test_dir = args.directory
     
-    # Test contract's wasm module
-    test_wasm = load_wasm(find_test_wasm_path(test_dir))
-    
     # Load test parameters in JSON
     input_json = load_input_json(test_dir)
+    
+    print("Loading WASM files...")
+    # Test contract's wasm module
+    test_wasm = load_wasm(find_test_wasm_path(test_dir))
     
     # Load dependency contracts' wasm modules
     wasm_paths = (join(test_dir, p) for p in input_json['contract_paths'])
@@ -224,11 +224,13 @@ def main():
 
     krun = KRun(Path('.build/defn/llvm/foundry-kompiled'))
 
+    print("Initializing the test...")
     _init_conf, sym_conf, init_subst = deploy_test(krun, test_wasm, contract_wasms)
 
     test_endpoints = get_test_endpoints(args.directory)
 
     for endpoint, arg_types in test_endpoints.items():
+        print(f'Testing "{endpoint}"')
         test_with_hypothesis(krun, sym_conf, init_subst, endpoint, arg_types)
 
     

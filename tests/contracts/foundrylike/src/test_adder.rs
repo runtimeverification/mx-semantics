@@ -83,6 +83,8 @@ pub trait TestAdder {
         let sum_as_bytes = testapi::get_storage(&adder, &ManagedBuffer::from(b"sum")); 
         let sum = BigUint::from(sum_as_bytes);
         testapi::assert( sum == (value + INIT_SUM) );
+        
+        // testapi::assert( sum <= (INIT_SUM + 1234u32) );
 
     }
 

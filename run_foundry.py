@@ -3,7 +3,7 @@ import glob
 import random
 from os.path import join
 
-from hypothesis import given, settings
+from hypothesis import given, settings, Verbosity
 from hypothesis.strategies import integers, tuples
 
 from run_elrond_tests import *
@@ -174,15 +174,16 @@ def arg_types_to_strategy(types):
 def test_with_hypothesis(krun, sym_conf, init_subst, endpoint, arg_types):
     
     def test(args):
-        print(">>> running:", endpoint, args)
         run_test(krun, sym_conf, init_subst, endpoint, args)
-        print("<<< done   :", endpoint, args)
+        
+    test.__name__ = endpoint     # show endpoint name in hypothesis logs
 
     args_strategy = arg_types_to_strategy(arg_types)
     given(args_strategy)(
         settings(
-            deadline=5000,      # set time limit for for individual run
-            max_examples=10     # 20 is enough for demo purposes
+            deadline=5000,       # set time limit for for individual run
+            max_examples=10,     # 20 is enough for demo purposes
+            verbosity=Verbosity.verbose,
         )(test)
     )()
 

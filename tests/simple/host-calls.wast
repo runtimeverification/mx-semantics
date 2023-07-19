@@ -23,6 +23,8 @@ deployTx(
       (import "env" "bigIntNeg"               (func $bigIntNeg               (param i32 i32)                 ))
       (import "env" "bigIntAbs"               (func $bigIntAbs               (param i32 i32)                 ))
 
+      (import "env" "getGasLeft"        (func $getGasLeft        (result i64)))
+
       (import "env" "getArgument"       (func $getArgument       (param i32 i32) (result i32)))
       (import "env" "getArgumentLength" (func $getArgumentLength (param i32)     (result i32)))
       (import "env" "getNumArguments"   (func $getNumArguments                   (result i32)))
@@ -314,6 +316,9 @@ deployTx(
         i64.const 777
         call $bigIntNew
         call $bigIntFinishSigned
+
+        call $getGasLeft
+        drop
       )
     )
     , ListItem(Int2Bytes(0, BE, Unsigned)) ListItem(Int2Bytes(32, 2 ^Int 256 -Int 1, BE))

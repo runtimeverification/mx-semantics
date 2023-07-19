@@ -9,20 +9,37 @@ require "../elrond-config.md"
 module SMALLINTOPS
     imports BASEOPS
     imports ELROND-CONFIG
+    imports private LIST-BYTES-EXTENSIONS
 
     // extern long long smallIntGetUnsignedArgument(void *context, int32_t id);
-    rule <instrs> hostCall("env", "smallIntGetUnsignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
-               => #returnIfUInt64(Bytes2Int(ARGS[ARG_IDX], BE, Unsigned), "argument out of range") ... </instrs>
-         <locals> 0 |-> <i32> ARG_IDX </locals>
-         <callArgs> ARGS </callArgs>
-      requires #validArgIdx(ARG_IDX, ARGS)
+    rule [smallIntGetUnsignedArgument]:
+        <instrs> hostCall("env", "smallIntGetUnsignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
+              => #if #validArgIdx(ARG_IDX, ARGS)
+                 #then #returnIfUInt64(
+                          Bytes2Int(ARGS[ARG_IDX] orDefault b"", BE, Unsigned),
+                          "argument out of range"
+                       )  
+                 #else #throwException(ExecutionFailed, "argument index out of range")
+                 #fi
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> ARG_IDX </locals>
+        <callArgs> ARGS </callArgs>
 
     // extern long long smallIntGetSignedArgument(void *context, int32_t id);
-    rule <instrs> hostCall("env", "smallIntGetSignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
-               => #returnIfSInt64(Bytes2Int(ARGS[ARG_IDX], BE, Signed), "argument out of range") ... </instrs>
-         <locals> 0 |-> <i32> ARG_IDX </locals>
-         <callArgs> ARGS </callArgs>
-      requires ARG_IDX <Int size(ARGS)
+    rule [smallIntGetSignedArgument]:
+        <instrs> hostCall("env", "smallIntGetSignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
+              => #if #validArgIdx(ARG_IDX, ARGS)
+                 #then #returnIfSInt64(
+                          Bytes2Int(ARGS[ARG_IDX] orDefault b"", BE, Signed),
+                          "argument out of range"
+                       )  
+                 #else #throwException(ExecutionFailed, "argument index out of range")
+                 #fi
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> ARG_IDX </locals>
+        <callArgs> ARGS </callArgs>
 
     // extern void smallIntFinishUnsigned(void* context, long long value);
     rule <instrs> hostCall("env", "smallIntFinishUnsigned", [ i64 .ValTypes ] -> [ .ValTypes ])

@@ -5,7 +5,7 @@ Elrond Node
 require "data/list-bytes.k"
 require "data/map-bytes-to-bytes.k"
 require "data/map-int-to-bytes.k"
-require "wasm.md"
+require "wasm-semantics/wasm.md"
 
 module ELROND-NODE
     imports DOMAINS

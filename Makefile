@@ -20,6 +20,7 @@ DEFN_DIR  := $(BUILD_DIR)/defn
 BUILD_LOCAL   := $(abspath $(BUILD_DIR)/local)
 LOCAL_LIB     := $(BUILD_LOCAL)/lib
 LOCAL_INCLUDE := $(BUILD_LOCAL)/include
+K_INCLUDE_DIR := $(abspath $(DEPS_DIR))
 
 LIBRARY_PATH       := $(LOCAL_LIB)
 C_INCLUDE_PATH     += :$(BUILD_LOCAL)/include
@@ -178,7 +179,8 @@ $(llvm_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) plugin-dep
 	    llvm_main_file=$(MAIN_DEFN_FILE)                 \
 	    EXTRA_SOURCE_FILES="$(EXTRA_SOURCES)"            \
 	    KOMPILE_OPTS="$(KOMPILE_OPTS)"                   \
-	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"
+	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"				 \
+			K_INCLUDE_DIR=$(K_INCLUDE_DIR)
 
 $(KWASM_SUBMODULE)/%.md: %.md
 	cp $< $@

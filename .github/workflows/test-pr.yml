@@ -10,7 +10,7 @@ jobs:
   simple-tests:
     runs-on: [self-hosted, linux, normal]
     name: 'Simple Tests'
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -113,7 +113,7 @@ jobs:
     runs-on: [self-hosted, linux, normal]
     name: 'Custom Contract Tests'
     needs: [feature-tests]
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v3

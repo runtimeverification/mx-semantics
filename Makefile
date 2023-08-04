@@ -1,7 +1,7 @@
 
 .PHONY: all clean deps wasm-deps                                                 \
         build build-llvm build-haskell                                           \
-				plugin-deps libff libcryptopp libsecp256k1                               \
+        plugin-deps libff libcryptopp libsecp256k1                               \
         elrond-clean-sources elrond-loaded                                       \
         test unittest-python mandos-test test-elrond-contracts                   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
@@ -62,6 +62,9 @@ all: build
 clean:
 	rm -rf $(BUILD_DIR)
 
+clean-defn:
+	rm -rf $(DEFN_DIR)
+
 # Non-K Dependencies
 # ------------------
 
@@ -110,7 +113,9 @@ $(libsecp256k1_out): $(PLUGIN_SUBMODULE)/deps/secp256k1/autogen.sh
 	    && $(MAKE)                                                        \
 	    && $(MAKE) install
 
-plugin-deps: libff libcryptopp libsecp256k1
+PLUGIN_DEPS := $(libff_out) $(libcryptopp_out) $(libsecp256k1_out)
+
+plugin-deps: $(PLUGIN_DEPS)
 
 # Build Dependencies (K Submodule)
 # --------------------------------
@@ -135,7 +140,7 @@ endif
 LLVM_KOMPILE_OPTS  := -L$(LOCAL_LIB)                               \
                       -I$(LOCAL_INCLUDE)                           \
                       -I/usr/include                               \
-											$(PLUGIN_SUBMODULE)/plugin-c/plugin_util.cpp \
+                      $(PLUGIN_SUBMODULE)/plugin-c/plugin_util.cpp \
                       $(PLUGIN_SUBMODULE)/plugin-c/crypto.cpp      \
                       $(PLUGIN_SUBMODULE)/plugin-c/blake2.cpp      \
                       -g -std=c++17 -lff -lcryptopp -lsecp256k1    \
@@ -169,15 +174,19 @@ llvm_kompiled := $(llvm_dir)/mandos-kompiled/interpreter
 
 build-llvm: $(llvm_kompiled)
 
-$(llvm_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) plugin-deps
+$(llvm_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_DEPS)
 	$(KWASM_MAKE) build-llvm                             \
 	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)            \
 	    llvm_main_module=$(MAIN_MODULE)                  \
 	    llvm_syntax_module=$(MAIN_SYNTAX_MODULE)         \
 	    llvm_main_file=$(MAIN_DEFN_FILE)                 \
 	    EXTRA_SOURCE_FILES="$(EXTRA_SOURCES)"            \
-	    KOMPILE_OPTS="$(KOMPILE_OPTS)"                   \
-	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"
+	    KOMPILE_OPTS="$(KOMPILE_OPTS) --no-llvm-kompile"
+
+	llvm-kompile $(llvm_dir)/mandos-kompiled/definition.kore \
+	    $(llvm_dir)/mandos-kompiled/dt main                  \
+	    -- -o $(llvm_dir)/mandos-kompiled/interpreter        \
+	    $(LLVM_KOMPILE_OPTS)
 
 $(KWASM_SUBMODULE)/%.md: %.md
 	cp $< $@

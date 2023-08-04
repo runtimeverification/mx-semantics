@@ -27,20 +27,6 @@ module FOUNDRY
       => b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00k-test________________"
 ```
 
-## Foundry Mandos Commands
-
-### Fetch Wasm Code 
-
-```k
-    syntax Step ::= fetchWasmSource(Bytes, ModuleDecl)    [klabel(fetchWasmSource), symbol]
- // ---------------------------------------------------------------------------------------
-    rule [fetchWasmSource]:
-        <k> fetchWasmSource(PATH, MOD) => . ... </k>
-        <wasmStore> ST => ST [PATH <- MOD] </wasmStore>
-      [priority(60)]
-
-```
-
 ## Foundry Host Functions
 
 Only the `#foundryRunner` account can execute these commands/host functions.
@@ -72,6 +58,13 @@ Only the `#foundryRunner` account can execute these commands/host functions.
                     ) ... 
         </commands>
 
+    rule [instr-createAccount-err]:
+        <instrs> foundryCreateAccount(_, _, _)
+              => #throwException(ExecutionFailed, "Could not create account")
+                 ...
+        </instrs>
+      [owise]
+
 ```
 
 ### Register new address
@@ -96,6 +89,12 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               => . ...
         </instrs>
         <newAddresses> NEWADDRESSES => NEWADDRESSES [tuple(CREATOR, NONCE) <- NEW] </newAddresses>
+
+    rule [instr-registerNewAddress-err]:
+        <instrs> foundryRegisterNewAddress(_, _, _)
+              => #throwException(ExecutionFailed, "Could not register address") ...
+        </instrs>
+      [owise]
 
 ```
 
@@ -147,6 +146,13 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <newAddresses> ... tuple(OWNER, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
         <wasmStore> ... PATH |-> MODULE </wasmStore>
 
+    rule [instr-deployContract-err]:
+        <instrs> foundryDeployContract(_, _, _, _, _, _)
+              => #throwException(ExecutionFailed, "Could not deploy contract")
+                 ...
+        </instrs>
+      [owise]
+
 ```
 
 ### Get/set storage
@@ -176,6 +182,13 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           <storage> ...  wrap(KEY) Bytes2Bytes|-> wrap(VAL) ... </storage>
           ...
         </account>
+
+    rule [testapi-getStorage-err]:
+        <instrs> foundryGetStorage(_, _, _)
+              => #throwException(ExecutionFailed, "Could not get storage")
+                 ...
+        </instrs>
+      [owise]
 
 ```
 
@@ -230,6 +243,22 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <callee> #foundryRunner => ADDR </callee>
         <prank> false => true </prank>
 
+    rule [startPrank-not-allowed]:
+        <instrs> #startPrank(_:Bytes)
+              => #throwException(ExecutionFailed, "Only the test contract can start a prank") 
+                 ...
+        </instrs>
+        <callee> ADDR </callee>
+        <prank> PRANK </prank>
+      requires ADDR =/=K #foundryRunner
+        orBool PRANK
+
+    rule [startPrank-err]:
+        <instrs> #startPrank(Err(MSG))
+              => #throwException(ExecutionFailed, MSG) 
+                 ...
+        </instrs>
+
     rule [hostCall-stopPrank]:
         <instrs> hostCall ( "env" , "stopPrank" , [ .ValTypes ] -> [ .ValTypes ] )
               => . ...
@@ -237,6 +266,14 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <locals> .Map </locals>
         <callee> _ => #foundryRunner </callee>
         <prank> true => false </prank>
+
+    rule [hostCall-stopPrank-err]:
+        <instrs> hostCall ( "env" , "stopPrank" , [ .ValTypes ] -> [ .ValTypes ] )
+              => #throwException(ExecutionFailed, "Cannot stop prank because already not in a prank") ...
+        </instrs>
+        <locals> .Map </locals>
+        <prank> false </prank>
+      [owise]
 
 ```
 

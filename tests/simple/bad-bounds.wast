@@ -68,6 +68,7 @@ deployTx(
   , .ListBytes
   , 0
   , 0
+  , b""
 )
 
 setAccount("testCaller", 0, 0, .Code, .Bytes, .MapBytesToBytes)
@@ -79,6 +80,7 @@ callTx(
   , "memStoreNegativeOffset", .ListBytes
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(ExecutionFailed)
@@ -91,6 +93,7 @@ callTx(
   , "memStoreTooBigOffset", .ListBytes
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(ExecutionFailed)
@@ -103,6 +106,7 @@ callTx(
   , "memLoadNegativeOffset", .ListBytes
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(ExecutionFailed)
@@ -115,6 +119,7 @@ callTx(
   , "memLoadTooBigOffset", .ListBytes
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(ExecutionFailed)
@@ -127,6 +132,7 @@ callTx(
   , "negativeNumArgs", .ListBytes
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(ExecutionFailed)

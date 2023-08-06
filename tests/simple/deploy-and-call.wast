@@ -13,6 +13,7 @@ deployTx(
   , .ListBytes
   , 0
   , 0
+  , b""
 )
 
 setAccount("testCaller", 0, 0, .Code, .Bytes, .MapBytesToBytes)
@@ -25,6 +26,7 @@ callTx(
   , .ListBytes
   , 0
   , 0
+  , b""
 )
 
 setExitCode 0

@@ -116,5 +116,14 @@ module MANAGEDEI
         <locals> 0 |-> <i32> BUF_IDX </locals>
         <prevBlockRandomSeed> SEED </prevBlockRandomSeed>
 
+ // extern void managedGetOriginalTxHash(void* context, int32_t resultHandle);
+    rule [managedGetOriginalTxHash]:
+        <instrs> hostCall("env", "managedGetOriginalTxHash", [i32 .ValTypes] -> [ .ValTypes ] )
+              => #setBuffer(BUF_IDX, HASH)
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> BUF_IDX </locals>
+        <originalTxHash> HASH </originalTxHash>
+
 endmodule
 ```

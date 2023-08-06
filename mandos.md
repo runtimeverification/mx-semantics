@@ -316,18 +316,18 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### Step type: scCall
 
 ```k
-    syntax Step ::= callTx    (from: Address, to: Address, value: Int, esdtValue: List, func: WasmString, args: ListBytes, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
-                  | callTxAux (from: Bytes,   to: Bytes,   value: Int, esdtValue: List, func: WasmString, args: ListBytes, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
+    syntax Step ::= callTx    (from: Address, to: Address, value: Int, esdtValue: List, func: WasmString, args: ListBytes, gasLimit: Int, gasPrice: Int, hash: Bytes) [klabel(callTx), symbol]
+                  | callTxAux (from: Bytes,   to: Bytes,   value: Int, esdtValue: List, func: WasmString, args: ListBytes, gasLimit: Int, gasPrice: Int, hash: Bytes) [klabel(callTxAux), symbol]
  // ----------------------------------------------------------------------------------------------------------------------------------------------------------
     rule [callTx]:
-        <k> callTx(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE)
-         => callTxAux(#address2Bytes(FROM), #address2Bytes(TO), VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE) ... 
+        <k> callTx(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE, HASH)
+         => callTxAux(#address2Bytes(FROM), #address2Bytes(TO), VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE, HASH) ... 
         </k>
       [priority(60)]
 
     rule [callTxAux]:
-        <k> callTxAux(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
-        <commands> . => callContract(TO, FUNCTION, mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GASLIMIT, GASPRICE)) </commands>
+        <k> callTxAux(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE, HASH) => #wait ... </k>
+        <commands> . => callContract(TO, FUNCTION, mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GASLIMIT, GASPRICE, HASH)) </commands>
         <account>
           <address> FROM </address>
           <nonce> NONCE => NONCE +Int 1 </nonce>
@@ -337,9 +337,9 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
       [priority(60)]
 
-    syntax VmInputCell ::= mkVmInputSCCall(Bytes, ListBytes, Int, List, Int, Int)    [function, total]
+    syntax VmInputCell ::= mkVmInputSCCall(Bytes, ListBytes, Int, List, Int, Int, Bytes)    [function, total]
  // -----------------------------------------------------------------------------------
-    rule mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GAS, GAS_PRICE)
+    rule mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GAS, GAS_PRICE, HASH)
       => <vmInput>
             <caller> FROM </caller>
             <callArgs> ARGS </callArgs>
@@ -348,6 +348,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             // gas
             <gasProvided> GAS </gasProvided>
             <gasPrice> GAS_PRICE </gasPrice>
+            // hash
+            <originalTxHash> HASH </originalTxHash>
           </vmInput>
 
     syntax Step ::= checkExpectOut ( ListBytes ) [klabel(checkExpectOut), symbol]
@@ -384,20 +386,20 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 TODO make sure that none of the state changes are persisted -- [Doc](https://docs.multiversx.com/developers/scenario-reference/structure#step-type-scquery)
 
 ```k
-    syntax Step ::= queryTx    (to: Address, func: WasmString, args: ListBytes) [klabel(queryTx), symbol]
-                  | queryTxAux (to: Bytes,   func: WasmString, args: ListBytes) [klabel(queryTxAux), symbol]
+    syntax Step ::= queryTx    (to: Address, func: WasmString, args: ListBytes, hash: Bytes) [klabel(queryTx), symbol]
+                  | queryTxAux (to: Bytes,   func: WasmString, args: ListBytes, hash: Bytes) [klabel(queryTxAux), symbol]
  // ---------------------------------------------------------------------------------------------------
-    rule <k> queryTx(TO, FUNCTION, ARGS) => queryTxAux(#address2Bytes(TO), FUNCTION, ARGS) ... </k>
+    rule <k> queryTx(TO, FUNCTION, ARGS, HASH) => queryTxAux(#address2Bytes(TO), FUNCTION, ARGS, HASH) ... </k>
       [priority(60)]
 
-    rule <k> queryTxAux(TO, FUNCTION, ARGS) => #wait ... </k>
-         <commands> . => callContract(TO, FUNCTION, mkVmInputQuery(TO, ARGS)) </commands>
+    rule <k> queryTxAux(TO, FUNCTION, ARGS, HASH) => #wait ... </k>
+         <commands> . => callContract(TO, FUNCTION, mkVmInputQuery(TO, ARGS, HASH)) </commands>
          <logging> S => S +String " -- query contract: " +String #parseWasmString(FUNCTION) </logging>
       [priority(60)]
 
-    syntax VmInputCell ::= mkVmInputQuery(Bytes, ListBytes)    [function, total]
+    syntax VmInputCell ::= mkVmInputQuery(Bytes, ListBytes, Bytes)    [function, total]
  // -----------------------------------------------------------------------------------
-    rule mkVmInputQuery(TO, ARGS)
+    rule mkVmInputQuery(TO, ARGS, HASH)
       => <vmInput>
             <caller> TO </caller>
             <callArgs> ARGS </callArgs>
@@ -406,27 +408,29 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
             // gas
             <gasProvided> maxUInt64 </gasProvided>
             <gasPrice> 0 </gasPrice>
+            // hash
+            <originalTxHash> HASH </originalTxHash>
           </vmInput>
 ```
 
 ### Step type: scDeploy
 
 ```k
-    syntax Step ::= deployTx    ( Address, Int, ModuleDecl, ListBytes, Int, Int ) [klabel(deployTx), symbol]
-                  | deployTxAux (   Bytes, Int, ModuleDecl, ListBytes, Int, Int )   [klabel(deployTxAux), symbol]
+    syntax Step ::= deployTx    ( Address, Int, ModuleDecl, ListBytes, Int, Int, Bytes )   [klabel(deployTx), symbol]
+                  | deployTxAux (   Bytes, Int, ModuleDecl, ListBytes, Int, Int, Bytes )   [klabel(deployTxAux), symbol]
  // ------------------------------------------------------------------------------------------------------
-    rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE)
-          => deployTxAux(#address2Bytes(FROM), VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) ... 
+    rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE, HASH)
+          => deployTxAux(#address2Bytes(FROM), VALUE, MODULE, ARGS, GASLIMIT, GASPRICE, HASH) ... 
          </k>
       [priority(60)]
 
     rule [deployTxAux]:
-        <k> deployTxAux(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
+        <k> deployTxAux(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE, HASH) => #wait ... </k>
         <commands> . 
                 => createAccount(NEWADDR)
                 ~> setAccountOwner(NEWADDR, FROM)
                 ~> setAccountCode(NEWADDR, MODULE)
-                ~> callContract(NEWADDR, "init", mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE))
+                ~> callContract(NEWADDR, "init", mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE, HASH))
         </commands>
         <account>
            <address> FROM </address>
@@ -437,9 +441,9 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
         <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
       [priority(60)]
 
-    syntax VmInputCell ::= mkVmInputDeploy(Bytes, Int, ListBytes, Int, Int)    [function, total]
+    syntax VmInputCell ::= mkVmInputDeploy(Bytes, Int, ListBytes, Int, Int, Bytes)    [function, total]
  // -----------------------------------------------------------------------------------
-    rule mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE)
+    rule mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE, HASH)
       => <vmInput>
             <caller> FROM </caller>
             <callArgs> ARGS </callArgs>
@@ -448,6 +452,8 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
             // gas
             <gasProvided> GASLIMIT </gasProvided>
             <gasPrice> GASPRICE </gasPrice>
+            // hash
+            <originalTxHash> HASH </originalTxHash>
           </vmInput>
 ```
 

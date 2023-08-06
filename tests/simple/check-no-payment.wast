@@ -16,6 +16,7 @@ deployTx(
   , .ListBytes
   , 0
   , 0
+  , b""
 )
 
 setAccount("testCaller", 0, 100, .Code, .Bytes, .MapBytesToBytes)
@@ -28,6 +29,7 @@ callTx(
   , "payable", .ListBytes
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(OK)
@@ -41,6 +43,7 @@ callTx(
   , "nonPayable", .ListBytes
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(ExecutionFailed)
@@ -55,6 +58,7 @@ callTx(
   , "nonPayable", .ListBytes
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(ExecutionFailed)
@@ -69,6 +73,7 @@ callTx(
   , "nonPayable", .ListBytes
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(ExecutionFailed)

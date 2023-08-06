@@ -28,6 +28,8 @@ module ELROND-NODE
             // gas
             <gasProvided> 0 </gasProvided>
             <gasPrice> 0 </gasPrice>
+            // Tx Hashes
+            <originalTxHash> .Bytes </originalTxHash>
           </vmInput>
           // executional
           // every contract call uses its own wasm module instance, managed data heaps, and bytesStack.

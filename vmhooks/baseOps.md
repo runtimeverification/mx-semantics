@@ -416,15 +416,16 @@ module BASEOPS
         </instrs>
         <callee> Callee </callee>
         <commands> 
-          (. => callContract( Dest, Bytes2String(Func), prepareIndirectContractCallInput(Callee, Value, Esdt, GasLimit, Args))) ... 
+          (. => callContract( Dest, Bytes2String(Func), prepareIndirectContractCallInput(Callee, Value, Esdt, GasLimit, Args, OH))) ... 
         </commands>
+        <originalTxHash> OH </originalTxHash>
         // TODO requires not IsOutOfVMFunctionExecution
         // TODO requires not IsBuiltinFunctionName
         
 
-    syntax VmInputCell ::= prepareIndirectContractCallInput(Bytes, Int, List, Int, ListBytes)    [function, total]
+    syntax VmInputCell ::= prepareIndirectContractCallInput(Bytes, Int, List, Int, ListBytes, Bytes)    [function, total]
  // -----------------------------------------------------------------------------------
-    rule prepareIndirectContractCallInput(SENDER, VALUE, ESDT, GASLIMIT, ARGS)
+    rule prepareIndirectContractCallInput(SENDER, VALUE, ESDT, GASLIMIT, ARGS, OH)
       => <vmInput>
             <caller> SENDER </caller>
             <callArgs> ARGS </callArgs>
@@ -433,6 +434,8 @@ module BASEOPS
             // gas
             <gasProvided> GASLIMIT </gasProvided>
             <gasPrice> 0 </gasPrice>
+            // hash
+            <originalTxHash> OH </originalTxHash>
           </vmInput>
 
 ```

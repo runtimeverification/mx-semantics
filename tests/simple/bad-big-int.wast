@@ -28,6 +28,7 @@ deployTx(
   , .ListBytes
   , 0
   , 0
+  , b""
 )
 
 setAccount("testCaller", 0, 0, .Code, .Bytes, .MapBytesToBytes)
@@ -39,6 +40,7 @@ callTx(
   , "invalidHandle", .ListBytes
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(ExecutionFailed)
@@ -51,6 +53,7 @@ callTx(
   , "invalidHandleAdd", .ListBytes
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(ExecutionFailed)

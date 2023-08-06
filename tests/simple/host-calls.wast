@@ -319,6 +319,7 @@ deployTx(
     , ListItem(Int2Bytes(0, BE, Unsigned)) ListItem(Int2Bytes(32, 2 ^Int 256 -Int 1, BE))
     , 0
     , 0
+    , b"deploy"
 )
 
 checkExpectStatus(OK)
@@ -332,6 +333,7 @@ setEsdtBalance(b"\"testCaller\"", b"my-tok-2", 20)
 callTx( "testCaller" , "testContract" , 0 , .List
       , "argsTest_getArgumentLength_invalidArg_neg", .ListBytes
       , 0 , 0
+      , b"getArgumentLength_invalidArg_neg"
 )
 
 checkExpectStatus(ExecutionFailed)
@@ -340,6 +342,7 @@ checkExpectMessage(b"invalid argument")
 callTx( "testCaller" , "testContract" , 0 , .List
       , "argsTest_getArgumentLength_invalidArg_oob", ListItem(b"foo") ListItem(b"bar")
      , 0 , 0
+     , b"getArgumentLength_invalidArg_oob"
 )
 
 checkExpectStatus(ExecutionFailed)
@@ -348,6 +351,7 @@ checkExpectMessage(b"invalid argument")
 callTx( "testCaller" , "testContract" , 0 , .List
       , "argsTest_getArgument_invalidArg_neg", .ListBytes
       , 0 , 0
+     , b"getArgumentLength_invalidArg_neg"
 )
 
 checkExpectStatus(ExecutionFailed)
@@ -356,6 +360,7 @@ checkExpectMessage(b"invalid argument")
 callTx( "testCaller" , "testContract" , 0 , .List
       , "argsTest_getArgument_invalidArg_oob", ListItem(b"foo") ListItem(b"bar")
      , 0 , 0
+     , b"getArgument_invalidArg_oob"
 )
 
 checkExpectStatus(ExecutionFailed)
@@ -364,6 +369,7 @@ checkExpectMessage(b"invalid argument")
 callTx( "testCaller" , "testContract" , 0 , .List
       , "test_getESDTTokenName", .ListBytes
      , 0 , 0
+     , b"test_getESDTTokenName"
 )
 
 checkExpectStatus(ExecutionFailed)
@@ -372,6 +378,7 @@ checkExpectMessage(b"invalid token index")
 callTx( "testCaller" , "testContract" , 0 ,  ListItem(esdtTransfer(b"my-tok", 10, 0)) ListItem(esdtTransfer(b"my-tok-2", 10, 0))
       , "test_getESDTTokenName", .ListBytes
      , 0 , 0
+     , b"test_getESDTTokenName-too-many"
 )
 
 checkExpectStatus(ExecutionFailed)

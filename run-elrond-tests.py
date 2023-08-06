@@ -317,7 +317,7 @@ def mandos_to_check_account(address, sections, filename):
     k_steps.append(KApply('checkedAccount', [address_value]))
     return k_steps
 
-def mandos_to_deploy_tx(tx, filename, output_dir):
+def mandos_to_deploy_tx(tx, filename, output_dir, id):
     sender = mandos_argument_to_kbytes(tx['from'])
     value = mandos_int_to_kint(getEgldValue(tx))
     arguments = mandos_arguments_to_klist(tx['arguments'])
@@ -326,11 +326,12 @@ def mandos_to_deploy_tx(tx, filename, output_dir):
 
     code = get_contract_code(tx['contractCode'], filename)
     module = file_to_module_decl(code, output_dir)
-
-    deployTx = KApply('deployTx', [sender, value, module, arguments, gasLimit, gasPrice])
+    txHash = KBytes(generate_tx_hash(id))
+    
+    deployTx = KApply('deployTx', [sender, value, module, arguments, gasLimit, gasPrice, txHash])
     return deployTx
 
-def mandos_to_call_tx(tx):
+def mandos_to_call_tx(tx, id):
     sender = mandos_argument_to_kbytes(tx['from'])
     to = mandos_argument_to_kbytes(tx['to'])
     value = mandos_int_to_kint(getEgldValue(tx))
@@ -339,9 +340,14 @@ def mandos_to_call_tx(tx):
     arguments = mandos_arguments_to_klist(tx['arguments'])
     gasLimit = mandos_int_to_kint(tx['gasLimit'])
     gasPrice = mandos_int_to_kint(tx['gasPrice'])
-
-    callTx = KApply('callTx', [sender, to, value, esdt_value, function, arguments, gasLimit, gasPrice])
+    txHash = KBytes(generate_tx_hash(id))
+    
+    callTx = KApply('callTx', [sender, to, value, esdt_value, function, arguments, gasLimit, gasPrice, txHash])
     return callTx
+
+def generate_tx_hash(id: str) -> bytes:
+    padded = id + '.' * 32
+    return bytes(padded[:32], 'ascii')
 
 def mandos_esdt_to_klist(esdt_values):
     def esdt(esdt_value):
@@ -482,7 +488,7 @@ def get_contract_code(code, filename):
 
 def get_steps_sc_deploy(step, filename, output_dir):
     k_steps = []
-    tx = mandos_to_deploy_tx(step['tx'], filename, output_dir)
+    tx = mandos_to_deploy_tx(step['tx'], filename, output_dir, step.get('id', ''))
     k_steps.append(tx)
     if 'expect' in step:
         expect = mandos_to_expect(step['expect'])
@@ -491,25 +497,26 @@ def get_steps_sc_deploy(step, filename, output_dir):
 
 def get_steps_sc_call(step):
     k_steps = []
-    tx = mandos_to_call_tx(step['tx'])
+    tx = mandos_to_call_tx(step['tx'], step.get('id', ''))
     k_steps.append(tx)
     if 'expect' in step:
         expect = mandos_to_expect(step['expect'])
         k_steps += expect
     return k_steps
 
-def mandos_to_query_tx(tx):
+def mandos_to_query_tx(tx, id):
     to = mandos_argument_to_kbytes(tx['to'])
     function = KWasmString(tx['function'])
     arguments = mandos_arguments_to_klist(tx.get('arguments', []))
-
-    queryTx = KApply('queryTx', [to, function, arguments])
+    txHash = KBytes(generate_tx_hash(id))
+    
+    queryTx = KApply('queryTx', [to, function, arguments, txHash])
     return queryTx
 
 def get_steps_sc_query(step):
     k_steps = []
 
-    tx = mandos_to_query_tx(step['tx'])
+    tx = mandos_to_query_tx(step['tx'], step.get('id', ''))
     k_steps.append(tx)
 
     if 'expect' in step:

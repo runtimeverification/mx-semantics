@@ -1,3 +1,9 @@
 deps/mx-sdk-rs/contracts/examples/multisig/scenarios/changeBoard.scen.json
 deps/mx-sdk-rs/contracts/examples/multisig/scenarios/changeQuorum.scen.json
 deps/mx-sdk-rs/contracts/examples/multisig/scenarios/changeQuorum_tooBig.scen.json
+deps/mx-sdk-rs/contracts/examples/multisig/scenarios/deploy_duplicate_bm.scen.json
+deps/mx-sdk-rs/contracts/examples/multisig/scenarios/deployAdder_err.scen.json 
+deps/mx-sdk-rs/contracts/examples/multisig/scenarios/deployAdder_then_call.scen.json 
+deps/mx-sdk-rs/contracts/examples/multisig/scenarios/deployFactorial.scen.json 
+deps/mx-sdk-rs/contracts/examples/multisig/scenarios/deployOtherMultisig.scen.json
+deps/mx-sdk-rs/contracts/examples/multisig/scenarios/remove_everyone.scen.json

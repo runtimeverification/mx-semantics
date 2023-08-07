@@ -717,5 +717,64 @@ Initialize the call state and invoke the endpoint function:
       requires notBool( FUNCNAME in_keys(EXPORTS) )
       [priority(60)]
 
+```
+
+## Deploying Contract
+
+```k
+    syntax InternalCmd ::= deployContract(Bytes, Bytes, Code, Int, ListBytes, Int, Int, Bytes) [klabel(deployContractAux)]
+                         | deployContract(Bytes,        Code, Int, ListBytes, Int, Int, Bytes) [klabel(deployContract)]
+ // ----------------------------------------------------------------------------------------------------------------------
+    rule [deployContract]:
+        <commands> deployContract(FROM, MODULE, VAL, ARGS, GAS, GASPRICE, HASH)
+                => deployContract(FROM, genNewAddress(FROM, NONCE), MODULE, VAL, ARGS, GAS, GASPRICE, HASH)
+                   ...
+        </commands>
+        <account>
+           <address> FROM </address>
+           <nonce> NONCE </nonce>
+           ...
+        </account>
+      [priority(60)]
+   
+
+    syntax Bytes ::= genNewAddress(Bytes, Int)    [function, total]
+ // ------------------------------------------------------------
+ // default address generation rule
+ // TODO implement the address generation formula from the Go implementation
+    rule genNewAddress(FROM, NONCE) => FROM +Bytes Int2Bytes(NONCE, BE, Signed)   [owise]
+
+    rule [deployContractAux]:
+        <commands> deployContract(FROM, NEWADDR, MODULE, VAL, ARGS, GAS, GASPRICE, HASH) 
+                => createAccount(NEWADDR)
+                ~> setAccountOwner(NEWADDR, FROM)
+                ~> setAccountCode(NEWADDR, MODULE)
+                ~> callContract(NEWADDR, "init", mkVmInputDeploy(FROM, VAL, ARGS, GAS, GASPRICE, HASH))
+                   ...
+        </commands>
+        <account>
+           <address> FROM </address>
+           <nonce> NONCE => NONCE +Int 1 </nonce>
+           <balance> BALANCE => BALANCE -Int GAS *Int GASPRICE </balance>
+           ...
+        </account>
+      [priority(60)]
+
+
+    syntax VmInputCell ::= mkVmInputDeploy(Bytes, Int, ListBytes, Int, Int, Bytes)    [function, total]
+ // -----------------------------------------------------------------------------------
+    rule mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE, HASH)
+      => <vmInput>
+            <caller> FROM </caller>
+            <callArgs> ARGS </callArgs>
+            <callValue> VALUE </callValue>
+            <esdtTransfers> .List </esdtTransfers>
+            // gas
+            <gasProvided> GASLIMIT </gasProvided>
+            <gasPrice> GASPRICE </gasPrice>
+            // hash
+            <originalTxHash> HASH </originalTxHash>
+          </vmInput>
+
 endmodule
 ```

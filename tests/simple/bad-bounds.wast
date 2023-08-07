@@ -147,6 +147,7 @@ callTx(
   , ListItem(Int2Bytes(1, BE, Signed)) ListItem(Int2Bytes(123, BE, Unsigned))
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(OK)
@@ -162,6 +163,7 @@ callTx(
   , ListItem(Int2Bytes(1, BE, Signed))
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(ExecutionFailed)
@@ -177,6 +179,7 @@ callTx(
   , ListItem(Int2Bytes(-1, BE, Signed)) ListItem(Int2Bytes(123, BE, Unsigned))
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(ExecutionFailed)
@@ -193,6 +196,7 @@ callTx(
     ListItem(Int2Bytes(maxUInt64 +Int 5, BE, Unsigned))
   , 0
   , 0
+  , b""
 )
 
 checkExpectStatus(UserError)

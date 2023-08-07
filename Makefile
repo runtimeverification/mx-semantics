@@ -47,7 +47,7 @@ else
 endif
 K_BIN := $(K_RELEASE)/bin
 K_LIB := $(K_RELEASE)/lib/kframework
-export K_OPTS ?= -Xmx20G -Xss512m
+export K_OPTS ?= -Xmx24G -Xss512m
 export K_RELEASE
 
 PYTHONPATH := $(K_LIB):$(KWASM_BINARY_PARSER):$(PYTHONPATH)

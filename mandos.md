@@ -427,34 +427,18 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
     rule [deployTxAux]:
         <k> deployTxAux(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE, HASH) => #wait ... </k>
         <commands> . 
-                => createAccount(NEWADDR)
-                ~> setAccountOwner(NEWADDR, FROM)
-                ~> setAccountCode(NEWADDR, MODULE)
-                ~> callContract(NEWADDR, "init", mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE, HASH))
+                => deployContract(FROM, MODULE, VALUE, ARGS, GASLIMIT, GASPRICE, HASH) 
         </commands>
+      [priority(60)]
+
+    rule [[ genNewAddress(FROM, NONCE) => NEWADDR ]]
         <account>
            <address> FROM </address>
-           <nonce> NONCE => NONCE +Int 1 </nonce>
-           <balance> BALANCE => BALANCE -Int GASLIMIT *Int GASPRICE </balance>
+           <nonce> NONCE</nonce>
            ...
         </account>
         <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
-      [priority(60)]
 
-    syntax VmInputCell ::= mkVmInputDeploy(Bytes, Int, ListBytes, Int, Int, Bytes)    [function, total]
- // -----------------------------------------------------------------------------------
-    rule mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE, HASH)
-      => <vmInput>
-            <caller> FROM </caller>
-            <callArgs> ARGS </callArgs>
-            <callValue> VALUE </callValue>
-            <esdtTransfers> .List </esdtTransfers>
-            // gas
-            <gasProvided> GASLIMIT </gasProvided>
-            <gasPrice> GASPRICE </gasPrice>
-            // hash
-            <originalTxHash> HASH </originalTxHash>
-          </vmInput>
 ```
 
 ### Step type: transfer

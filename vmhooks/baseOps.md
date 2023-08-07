@@ -310,6 +310,10 @@ module BASEOPS
     rule <instrs> #signalError => #throwExceptionBs(UserError, DATA) ... </instrs>
          <bytesStack> DATA : STACK => STACK </bytesStack>
 
+   // extern long long getGasLeft(void *context);
+    rule [getGasLeft]:
+        <instrs> hostCall("env", "getGasLeft", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const maxSInt64 ... </instrs>
+
     // extern long long getBlockTimestamp(void *context);
     rule <instrs> hostCall("env", "getBlockTimestamp", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const TIMESTAMP ... </instrs>
          <curBlockTimestamp> TIMESTAMP </curBlockTimestamp>

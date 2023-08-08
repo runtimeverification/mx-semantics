@@ -85,7 +85,7 @@ sc_addr_num_leading_zeros = 8
 # 10 = 8 zeros for all SC addresses + 2 zeros as placeholder for the VM type.
 sc_addr_reserved_prefix_len = sc_addr_num_leading_zeros + 2
 
-sys.setrecursionlimit(1500000000)
+sys.setrecursionlimit(2100000000)
 resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
 def mandos_int_to_kint(mandos_int: str):

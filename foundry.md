@@ -184,8 +184,8 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         </account>
 
     rule [testapi-getStorage-err]:
-        <instrs> foundryGetStorage(_, _, _)
-              => #throwException(ExecutionFailed, "Could not get storage")
+        <instrs> foundryGetStorage(_, _, DEST_HANDLE)
+              => #setBuffer(DEST_HANDLE, .Bytes)
                  ...
         </instrs>
       [owise]

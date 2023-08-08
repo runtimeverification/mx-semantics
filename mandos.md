@@ -48,8 +48,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> .Steps => . </k> [priority(60)]
     rule <k> S:Step SS:Steps => S ~> SS ... </k> [priority(60)]
 
-    syntax Step ::= "setExitCode" Int
- // ---------------------------------
+    syntax Step ::= "setExitCode" Int     [klabel(setExitCode), symbol]
+ // -------------------------------------------------------------------
     rule <k> setExitCode I => . ... </k>
          <commands> . </commands>
          <instrs> . </instrs>

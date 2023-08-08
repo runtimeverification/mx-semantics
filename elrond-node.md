@@ -130,7 +130,7 @@ Storage maps byte arrays to byte arrays.
 ### Bytes Stack
 
 ```k
-    syntax BytesStack ::= List{Bytes, ":"}
+    syntax BytesStack ::= List{Bytes, ":"}  [klabel('xyzzy'), symbol]
  // --------------------------------------
 
     syntax BytesOp ::= #pushBytes ( Bytes )

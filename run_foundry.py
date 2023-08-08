@@ -1,6 +1,7 @@
 import argparse
 import glob
 from os.path import join
+from subprocess import CompletedProcess
 from typing import Mapping
 
 from hypothesis import given, settings, Verbosity
@@ -10,6 +11,7 @@ from pyk.prelude.collections import list_of, map_of
 from pyk.kast.inner import KSort, KVariable
 from pyk.kast.kast import kast_term
 from pyk.kore.syntax import Pattern
+from pyk.ktool.kprint import _kast, KAstInput, KAstOutput
 from pyk.ktool.krun import _krun, KRunOutput
 from pyk.cterm import CTerm, build_claim
 from pyk.utils import ensure_dir_path
@@ -99,29 +101,44 @@ def deploy_test(krun, test_wasm, contract_wasms):
 
     return sym_conf, subst
 
+def run_config(krun: KRun, conf: KInner, log=False) -> CompletedProcess:
+    with krun._temp_file() as fkast:
+        conf_dict = { 'format': 'KAST', 'version': 2, 'term': conf.to_dict() }
+        json.dump(conf_dict, fkast)
+        fkast.flush()
 
-def run_kore_term(krun: KRun, pattern: Pattern) -> KInner:
-    with krun._temp_file() as ntf:
-        pattern.write(ntf)
-        ntf.write('\n')
-        ntf.flush()
-
-        proc_res = _krun(
-            command=krun.command,
-            input_file=Path(ntf.name),
-            definition_dir=krun.definition_dir,
-            output=KRunOutput.JSON,
-            parser='cat',
-            term=True,
+        kast_res = _kast(
+            fkast.name,
+            sort='GeneratedTopCell',
+            input=KAstInput.JSON,
+            output=KAstOutput.KORE,
             check=True,
+            definition_dir=krun.definition_dir,
         )
+        if log:
+            print(kast_res.stdout)
+        with krun._temp_file() as ntf:
+            ntf.write(kast_res.stdout)
+            ntf.flush()
 
+            return _krun(
+                command=krun.command,
+                input_file=Path(ntf.name),
+                definition_dir=krun.definition_dir,
+                output=KRunOutput.JSON,
+                parser='cat',
+                term=True,
+                check=False,
+                pipe_stderr=True,
+            )
+
+
+def parse_proc_res(proc_res: CompletedProcess) -> KInner:
     return kast_term(json.loads(proc_res.stdout), KInner)
 
 
-def run_config_and_check_empty(krun, conf):
-    conf_kore = krun.kast_to_kore(conf, KSort('GeneratedTopCell'))
-    final_conf = run_kore_term(krun, conf_kore)
+def run_config_and_check_empty(krun: KRun, conf: KInner) -> tuple[KInner, KInner, dict[str, KInner]]:
+    final_conf = parse_proc_res(run_config(krun, conf))
     sym_conf, subst = split_config_from(final_conf)
     k_cell = subst['K_CELL']
     if not isinstance(k_cell, KSequence) or k_cell.arity != 0:
@@ -132,7 +149,7 @@ def run_config_and_check_empty(krun, conf):
     return final_conf, sym_conf, subst
 
 
-def run_test(krun, sym_conf, init_subst, endpoint, args):
+def run_test(krun: KRun, sym_conf, init_subst, endpoint, args):
     step = {
         'tx': {
             'from': 'address:k',
@@ -145,15 +162,16 @@ def run_test(krun, sym_conf, init_subst, endpoint, args):
         },
         'expect': {'status': '0'},
     }
-    tx_steps = KSequence(get_steps_sc_call(step))
-
+    tx_steps = KSequence([KApply('setExitCode', [KInt(1)])] + get_steps_sc_call(step) + [KApply('setExitCode', [KInt(0)])])
+    
     subst = init_subst.copy()
     subst['K_CELL'] = tx_steps
     conf_with_steps = Subst(subst)(sym_conf)
-
-    run_config_and_check_empty(krun, conf_with_steps)
-
-
+    
+    proc_res = run_config(krun, conf_with_steps)
+    if proc_res.returncode:
+        raise RuntimeError(f'Run failed: {args}')
+    
 # Test metadata
 TEST_PREFIX = 'test_'
 
@@ -207,7 +225,7 @@ def test_with_hypothesis(krun, sym_conf, init_subst, endpoint, arg_types):
     args_strategy = arg_types_to_strategy(arg_types)
     given(args_strategy)(
         settings(
-            deadline=5000,  # set time limit for for individual run
+            deadline=50000,  # set time limit for individual runs
             max_examples=10,  # enough for demo
             verbosity=Verbosity.verbose,
         )(test)

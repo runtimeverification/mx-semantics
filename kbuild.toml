@@ -1,0 +1,15 @@
+[project]
+name = "elrond-semantics"
+version = "0.1.0"
+source = "."
+
+[dependencies]
+wasm-semantics={ path = "deps/wasm-semantics" }
+
+[targets.llvm]
+main-file = 'mandos.md'
+backend='llvm'
+
+[targets.haskell]
+main-file = 'mandos.md'
+backend='haskell'

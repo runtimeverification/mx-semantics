@@ -127,7 +127,7 @@ wasm-deps:
 # -------------------
 
 HOOK_NAMESPACES    := KRYPTO
-KOMPILE_OPTS       := --hook-namespaces \"$(HOOK_NAMESPACES)\" -I $(CURDIR) -v
+KOMPILE_OPTS       := --hook-namespaces \"$(HOOK_NAMESPACES)\" -I $(CURDIR)
 
 ifneq (,$(K_COVERAGE))
     KOMPILE_OPTS += --coverage

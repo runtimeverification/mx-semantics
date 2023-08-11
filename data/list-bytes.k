@@ -77,4 +77,8 @@ module LIST-BYTES-EXTENSIONS
   rule L:ListBytes[I:Int] orDefault D:WrappedBytes => D
     requires notBool (0 -Int size(L) <=Int I andBool I <Int size(L))
     [simplification]
+
+  syntax ListBytes ::= ListItemWrap( Bytes )    [function, total, klabel(ListBytesItemWrap)]
+  rule ListItemWrap( B:Bytes ) => ListItem(wrap(B))
+
 endmodule

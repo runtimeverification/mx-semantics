@@ -316,13 +316,13 @@ deployTx(
         call $bigIntFinishSigned
       )
     )
-    , ListItem(wrap(Int2Bytes(0, BE, Unsigned))) ListItem(wrap(Int2Bytes(32, 2 ^Int 256 -Int 1, BE)))
+    , ListItemWrap(Int2Bytes(0, BE, Unsigned)) ListItemWrap(Int2Bytes(32, 2 ^Int 256 -Int 1, BE))
     , 0
     , 0
 )
 
 checkExpectStatus(OK)
-checkExpectOut(ListItem(wrap(Int2Bytes(777, BE, Signed))))
+checkExpectOut(ListItemWrap(Int2Bytes(777, BE, Signed)))
 checkAccountBalance("testDeployer", 0)
 
 setAccount("testCaller", 0, 0, .Code, .Bytes, .MapBytesToBytes)
@@ -338,7 +338,7 @@ checkExpectStatus(ExecutionFailed)
 checkExpectMessage(b"invalid argument")
 
 callTx( "testCaller" , "testContract" , 0 , .List
-      , "argsTest_getArgumentLength_invalidArg_oob", ListItem(wrap(b"foo")) ListItem(wrap(b"bar"))
+      , "argsTest_getArgumentLength_invalidArg_oob", ListItemWrap(b"foo") ListItemWrap(b"bar")
      , 0 , 0
 )
 
@@ -354,7 +354,7 @@ checkExpectStatus(ExecutionFailed)
 checkExpectMessage(b"invalid argument")
 
 callTx( "testCaller" , "testContract" , 0 , .List
-      , "argsTest_getArgument_invalidArg_oob", ListItem(wrap(b"foo")) ListItem(wrap(b"bar"))
+      , "argsTest_getArgument_invalidArg_oob", ListItemWrap(b"foo") ListItemWrap(b"bar")
      , 0 , 0
 )
 

@@ -8,7 +8,7 @@ concurrency:
 
 jobs:
   simple-tests:
-    runs-on: [self-hosted, linux, huge]
+    runs-on: [self-hosted, linux, normal]
     name: 'Simple Tests'
     timeout-minutes: 30
     steps:
@@ -42,7 +42,7 @@ jobs:
           docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
 
   feature-tests:
-    runs-on: [self-hosted, linux, huge]
+    runs-on: [self-hosted, linux, normal]
     name: 'Feature Tests'
     needs: [simple-tests]
     timeout-minutes: 120
@@ -75,7 +75,7 @@ jobs:
           docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
 
   example-contract-tests:
-    runs-on: [self-hosted, linux, huge]
+    runs-on: [self-hosted, linux, normal]
     name: 'Example Contract Tests'
     needs: [feature-tests]
     timeout-minutes: 60
@@ -110,7 +110,7 @@ jobs:
           docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
 
   custom-contract-tests:
-    runs-on: [self-hosted, linux, huge]
+    runs-on: [self-hosted, linux, normal]
     name: 'Custom Contract Tests'
     needs: [feature-tests]
     timeout-minutes: 30

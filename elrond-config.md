@@ -5,10 +5,10 @@ Combine Elrond node with Wasm.
 
 ```k
 require "auto-allocate.md"
-require "blockchain-k-plugin/krypto.md"
+require "deps/plugin/plugin/krypto.md"
 require "elrond-node.md"
 require "esdt.md"
-require "wasm-text.md"
+require "wasm-semantics/wasm-text.md"
 
 module ELROND-CONFIG
     imports KRYPTO
@@ -435,12 +435,11 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule [exception-revert]:
         <commands> (#exception(EC, MSG) ~> #endWasm) => popCallState ~> popWorldState ... </commands>
         <vmOutput> .VMOutput => VMOutput( EC , MSG , .ListBytes , .List) </vmOutput>
-      [priority(10)]
     
     rule [exception-skip]:
         <commands> #exception(_,_) ~> (CMD:InternalCmd => . ) ... </commands>
       requires CMD =/=K #endWasm
-      [priority(10)]
+
 ```
 
 ### `#throwException*`
@@ -662,6 +661,7 @@ Every contract call runs in its own Wasm instance initialized with the contract'
           <instrs> initContractModule(CODE) </instrs>
           ...
         </wasm>)
+
     rule [setContractModIdx]:
         <commands> setContractModIdx => . ... </commands>
         <contractModIdx> _ => NEXTIDX -Int 1 </contractModIdx>

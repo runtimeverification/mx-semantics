@@ -20,6 +20,7 @@ DEFN_DIR  := $(BUILD_DIR)/defn
 BUILD_LOCAL   := $(abspath $(BUILD_DIR)/local)
 LOCAL_LIB     := $(BUILD_LOCAL)/lib
 LOCAL_INCLUDE := $(BUILD_LOCAL)/include
+K_INCLUDE_DIR := $(abspath $(DEPS_DIR))
 
 LIBRARY_PATH       := $(LOCAL_LIB)
 C_INCLUDE_PATH     += :$(BUILD_LOCAL)/include
@@ -47,7 +48,7 @@ else
 endif
 K_BIN := $(K_RELEASE)/bin
 K_LIB := $(K_RELEASE)/lib/kframework
-export K_OPTS ?= -Xmx24G -Xss512m
+export K_OPTS ?= -Xmx14G -Xss512m
 export K_RELEASE
 
 PYTHONPATH := $(K_LIB):$(KWASM_BINARY_PARSER):$(PYTHONPATH)
@@ -180,7 +181,8 @@ $(llvm_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_D
 	    llvm_main_file=$(MAIN_DEFN_FILE)                 \
 	    EXTRA_SOURCE_FILES="$(EXTRA_SOURCES)"            \
 	    KOMPILE_OPTS="$(KOMPILE_OPTS)"                   \
-	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"
+	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"	     \
+	    K_INCLUDE_DIR=$(K_INCLUDE_DIR)
 
 $(KWASM_SUBMODULE)/%.md: %.md
 	cp $< $@
@@ -203,19 +205,16 @@ foundry_kompiled := $(llvm_dir)/foundry-kompiled/interpreter
 build-foundry: $(foundry_kompiled)
 
 # runs llvm-kompile separately to reduce max memory usage
-$(foundry_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) plugin-deps
+$(foundry_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_DEPS)
 	$(KWASM_MAKE) build-llvm                             \
 	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)            \
 	    llvm_main_module=FOUNDRY                         \
 	    llvm_syntax_module=FOUNDRY-SYNTAX                \
 	    llvm_main_file=foundry                           \
 	    EXTRA_SOURCE_FILES="$(EXTRA_SOURCES)"            \
-	    KOMPILE_OPTS="$(KOMPILE_OPTS) --no-llvm-kompile"
-
-	llvm-kompile $(llvm_dir)/foundry-kompiled/definition.kore \
-	    $(llvm_dir)/foundry-kompiled/dt main                  \
-	    -- -o $(llvm_dir)/foundry-kompiled/interpreter        \
-	    $(LLVM_KOMPILE_OPTS)
+	    KOMPILE_OPTS="$(KOMPILE_OPTS)"                   \
+	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"	     \
+	    K_INCLUDE_DIR=$(K_INCLUDE_DIR)
 
 # Testing
 # -------

@@ -9,9 +9,10 @@ require "eei-helpers.md"
 require "utils.md"
 
 module BASEOPS
-     imports ELROND-CONFIG
-     imports EEI-HELPERS
-     imports UTILS
+    imports ELROND-CONFIG
+    imports EEI-HELPERS
+    imports UTILS
+    imports private LIST-BYTES-EXTENSIONS
 
     // extern void getSCAddress(void *context, int32_t resultOffset);
     rule <instrs> hostCall("env", "getSCAddress", [ i32  .ValTypes ] -> [ .ValTypes ])
@@ -115,9 +116,11 @@ module BASEOPS
           andBool definedBytesListLookup(ARGS, IDX)
 
     // extern int32_t getArgumentLength(void *context, int32_t id);
-    rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) => i32.const lengthBytes(unwrap(ARGS[IDX])) ... </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
-         <callArgs> ARGS </callArgs>
+    rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) 
+               => i32.const lengthBytes( ARGS {{ IDX }} ) ...
+         </instrs>
+         <locals> 0 |-> <i32> IDX:Int </locals>
+         <callArgs> ARGS:ListBytes </callArgs>
       requires #validArgIdx(IDX, ARGS)
 
     rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -129,8 +132,8 @@ module BASEOPS
 
     // extern int32_t getArgument(void *context, int32_t id, int32_t argOffset);
     rule <instrs> hostCall("env", "getArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #memStore(OFFSET, unwrap(ARGS[IDX]))
-               ~> i32.const lengthBytes(unwrap(ARGS[IDX]))
+               => #memStore(OFFSET, ARGS {{ IDX }} )
+               ~> i32.const lengthBytes( ARGS {{ IDX }} )
                   ...
          </instrs>
          <locals>
@@ -209,8 +212,8 @@ module BASEOPS
     rule [checkNoPayment-pass]:
         <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
         <callValue> VAL </callValue>
-        <esdtTransfers> .List </esdtTransfers>
-      requires VAL <=Int 0
+        <esdtTransfers> T:List </esdtTransfers>
+      requires VAL <=Int 0 andBool size(T) ==K 0
 
     rule [checkNoPayment-fail-egld]:
         <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) 
@@ -224,8 +227,8 @@ module BASEOPS
               => #throwException(ExecutionFailed, "function does not accept ESDT payment") ... 
         </instrs>
         <callValue> VAL </callValue>
-        <esdtTransfers> ListItem(_) ... </esdtTransfers>
-      requires VAL <=Int 0
+        <esdtTransfers> T:List </esdtTransfers>
+      requires VAL <=Int 0 andBool 0 <Int size(T)
 
     // extern int32_t getESDTTokenName(void *context, int32_t resultOffset);
     rule [getESDTTokenName]:

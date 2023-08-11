@@ -9,20 +9,47 @@ require "../elrond-config.md"
 module SMALLINTOPS
     imports BASEOPS
     imports ELROND-CONFIG
+    imports private LIST-BYTES-EXTENSIONS
 
     // extern long long smallIntGetUnsignedArgument(void *context, int32_t id);
-    rule <instrs> hostCall("env", "smallIntGetUnsignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
-               => #returnIfUInt64(Bytes2Int(unwrap(ARGS[ARG_IDX]), BE, Unsigned), "argument out of range") ... </instrs>
-         <locals> 0 |-> <i32> ARG_IDX </locals>
-         <callArgs> ARGS </callArgs>
+    rule [smallIntGetUnsignedArgument]:
+        <instrs> hostCall("env", "smallIntGetUnsignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
+              => #returnIfUInt64(Bytes2Int(ARGS {{ ARG_IDX }} orDefault b"", BE, Unsigned), "argument out of range")
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> ARG_IDX </locals>
+        <callArgs> ARGS </callArgs>
       requires #validArgIdx(ARG_IDX, ARGS)
 
+    rule [smallIntGetUnsignedArgument-ioor]:
+        <instrs> hostCall("env", "smallIntGetUnsignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
+              => #throwException(ExecutionFailed, "argument index out of range")
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> ARG_IDX </locals>
+        <callArgs> ARGS </callArgs>
+      requires notBool #validArgIdx(ARG_IDX, ARGS)
+
+
     // extern long long smallIntGetSignedArgument(void *context, int32_t id);
-    rule <instrs> hostCall("env", "smallIntGetSignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
-               => #returnIfSInt64(Bytes2Int(unwrap(ARGS[ARG_IDX]), BE, Signed), "argument out of range") ... </instrs>
-         <locals> 0 |-> <i32> ARG_IDX </locals>
-         <callArgs> ARGS </callArgs>
-      requires ARG_IDX <Int size(ARGS)
+    rule [smallIntGetSignedArgument]:
+        <instrs> hostCall("env", "smallIntGetSignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
+              => #returnIfSInt64(Bytes2Int(ARGS {{ ARG_IDX }} orDefault b"", BE, Signed), "argument out of range")
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> ARG_IDX </locals>
+        <callArgs> ARGS </callArgs>
+      requires #validArgIdx(ARG_IDX, ARGS)
+
+    rule [smallIntGetSignedArgument-ioor]:
+        <instrs> hostCall("env", "smallIntGetSignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
+              => #throwException(ExecutionFailed, "argument index out of range")
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> ARG_IDX </locals>
+        <callArgs> ARGS </callArgs>
+      requires notBool #validArgIdx(ARG_IDX, ARGS)
+
 
     // extern void smallIntFinishUnsigned(void* context, long long value);
     rule <instrs> hostCall("env", "smallIntFinishUnsigned", [ i64 .ValTypes ] -> [ .ValTypes ])

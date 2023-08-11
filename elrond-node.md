@@ -5,7 +5,7 @@ Elrond Node
 require "data/list-bytes.k"
 require "data/map-bytes-to-bytes.k"
 require "data/map-int-to-bytes.k"
-require "wasm.md"
+require "wasm-semantics/wasm.md"
 
 module ELROND-NODE
     imports DOMAINS
@@ -104,8 +104,9 @@ Storage maps byte arrays to byte arrays.
                            | "UpgradeFailed"            [klabel(UpgradeFailed), symbol]
                            | "SimulateFailed"           [klabel(SimulateFailed), symbol]
 
-    syntax VMOutput ::= ".VMOutput"
+    syntax VMOutput ::= ".VMOutput"  [klabel(.VMOutput), symbol]
                       | VMOutput( returnCode: ReturnCode , returnMessage: Bytes , out: ListBytes, logs: List )
+                        [klabel(VMOutput), symbol]
 
  // ------------------------------------------------------------------
 
@@ -130,7 +131,7 @@ Storage maps byte arrays to byte arrays.
 ### Bytes Stack
 
 ```k
-    syntax BytesStack ::= List{Bytes, ":"}
+    syntax BytesStack ::= List{Bytes, ":"}  [klabel('bytesStackList'), symbol]
  // --------------------------------------
 
     syntax BytesOp ::= #pushBytes ( Bytes )

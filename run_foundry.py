@@ -2,18 +2,17 @@ import argparse
 import glob
 from os.path import join
 from subprocess import CompletedProcess
-from typing import Mapping
+from typing import Iterable, Mapping
 
 from hypothesis import given, settings, Verbosity
-from hypothesis.strategies import integers, tuples
+from hypothesis.strategies import SearchStrategy, integers, tuples
 from pyk.prelude.utils import token
 from pyk.prelude.collections import list_of, map_of
 from pyk.kast.inner import KSort, KVariable
 from pyk.kast.kast import kast_term
-from pyk.kore.syntax import Pattern
 from pyk.ktool.kprint import _kast, KAstInput, KAstOutput
 from pyk.ktool.krun import _krun, KRunOutput
-from pyk.cterm import CTerm, build_claim
+from pyk.cterm import CTerm, build_claim, KClaim
 from pyk.utils import ensure_dir_path
 from pyk.prelude.kint import leInt
 from pyk.prelude.ml import mlEqualsTrue
@@ -21,8 +20,12 @@ from pyk.prelude.ml import mlEqualsTrue
 from run_elrond_tests import *
 
 INPUT_FILE_NAME = 'foundry.json'
+TEST_PREFIX = 'test_'
 
-def load_input_json(test_dir):
+ROOT_ACCT_ADDR = 'address:k'
+TEST_SC_ADDR = 'sc:k-test'
+
+def load_input_json(test_dir: str) -> dict:
     try:
         with open(join(test_dir, INPUT_FILE_NAME), 'r') as f:
             return json.load(f)
@@ -30,12 +33,12 @@ def load_input_json(test_dir):
         raise FileNotFoundError('"{INPUT_FILE_NAME}" not found in "{test_dir}"')
 
 
-def load_wasm(filename):
+def load_wasm(filename: str) -> KInner:
     with open(filename, 'rb') as f:
         return wasm2kast.wasm2kast(f, filename)
 
 
-def find_test_wasm_path(test_dir):
+def find_test_wasm_path(test_dir: str) -> str:
     test_wasm_path = glob.glob(test_dir + '/output/*.wasm')
     # TODO this loads the first wasm file in the directory. what if there are multiple wasm files?
     if test_wasm_path:
@@ -44,21 +47,22 @@ def find_test_wasm_path(test_dir):
         raise ValueError(f'WASM file not found: {test_dir}/output/?.wasm')
 
 
-def load_contract_wasms(contract_wasm_paths):
+def load_contract_wasms(contract_wasm_paths: Iterable[str]) -> dict[bytes, KInner]:
     contract_wasm_modules = {
         bytes(f, 'ascii'): load_wasm(f) for f in contract_wasm_paths
     }
+    
     return contract_wasm_modules
 
 
-def deploy_test(krun, test_wasm, contract_wasms):
+def deploy_test(krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInner]) -> tuple[KInner, dict[str, KInner]]:
     """
     1. create a main account: 'k'
     2. reserve a new address for the test contract: owner = 'k', contract address = 'k-test'
     3. deploy the test contract from account 'k': 'k-test'
     """
     # create the root account
-    k_addr = mandos_argument_to_kbytes('address:k')
+    k_addr = mandos_argument_to_kbytes(ROOT_ACCT_ADDR)
     init_main_acct = KApply(
         'setAccount',
         [
@@ -72,7 +76,7 @@ def deploy_test(krun, test_wasm, contract_wasms):
     )
 
     # the test contract's address will be 'k-test'
-    k_test_addr = mandos_argument_to_kbytes('sc:k-test')
+    k_test_addr = mandos_argument_to_kbytes(TEST_SC_ADDR)
     new_address = KApply('newAddress', [k_addr, token(1), k_test_addr])
 
     # deploy the test contract
@@ -101,7 +105,8 @@ def deploy_test(krun, test_wasm, contract_wasms):
 
     return sym_conf, subst
 
-def run_config(krun: KRun, conf: KInner, log=False) -> CompletedProcess:
+
+def run_config(krun: KRun, conf: KInner) -> CompletedProcess:
     with krun._temp_file() as fkast:
         conf_dict = { 'format': 'KAST', 'version': 2, 'term': conf.to_dict() }
         json.dump(conf_dict, fkast)
@@ -115,8 +120,7 @@ def run_config(krun: KRun, conf: KInner, log=False) -> CompletedProcess:
             check=True,
             definition_dir=krun.definition_dir,
         )
-        if log:
-            print(kast_res.stdout)
+
         with krun._temp_file() as ntf:
             ntf.write(kast_res.stdout)
             ntf.flush()
@@ -149,7 +153,7 @@ def run_config_and_check_empty(krun: KRun, conf: KInner) -> tuple[KInner, KInner
     return final_conf, sym_conf, subst
 
 
-def run_test(krun: KRun, sym_conf, init_subst, endpoint, args):
+def run_test(krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoint: str, args):
     step = {
         'tx': {
             'from': 'address:k',
@@ -171,10 +175,9 @@ def run_test(krun: KRun, sym_conf, init_subst, endpoint, args):
     proc_res = run_config(krun, conf_with_steps)
     if proc_res.returncode:
         raise RuntimeError(f'Run failed: {args}')
-    
-# Test metadata
-TEST_PREFIX = 'test_'
 
+
+# Test metadata
 
 def get_test_endpoints(test_dir: str) -> Mapping[str, tuple[str, ...]]:
     abi_path = glob.glob(test_dir + '/output/*.abi.json')
@@ -203,7 +206,7 @@ def get_test_endpoints(test_dir: str) -> Mapping[str, tuple[str, ...]]:
 # Hypothesis strategies
 
 
-def type_to_strategy(typ: str):
+def type_to_strategy(typ: str) -> SearchStrategy[str]:
     if typ == 'BigUint':
         return integers(min_value=0).map(str)
     if typ == 'u32':
@@ -211,13 +214,22 @@ def type_to_strategy(typ: str):
     raise TypeError(f'Cannot create random {typ}')
 
 
-def arg_types_to_strategy(types):
+def arg_types_to_strategy(types: Iterable[str]) -> SearchStrategy[tuple[str, ...]]:
     strs = (type_to_strategy(t) for t in types)
     return tuples(*strs)
 
 
-def test_with_hypothesis(krun, sym_conf, init_subst, endpoint, arg_types):
-    def test(args):
+# Hypothesis test runner
+
+def test_with_hypothesis(
+    krun: KRun,
+    sym_conf: KInner,
+    init_subst: dict[str, KInner],
+    endpoint: str,
+    arg_types: Iterable[str]
+) -> None:
+    
+    def test(args: tuple[str,...]):
         run_test(krun, sym_conf, init_subst, endpoint, args)
 
     test.__name__ = endpoint  # show endpoint name in hypothesis logs
@@ -232,6 +244,18 @@ def test_with_hypothesis(krun, sym_conf, init_subst, endpoint, arg_types):
     )()
 
 
+def run_concrete(
+    krun: KRun,
+    test_endpoints: Mapping[str, tuple[str, ...]],
+    sym_conf: KInner,
+    init_subst: KInner,
+) -> None:
+
+    for endpoint, arg_types in test_endpoints.items():
+        print(f'Testing "{endpoint}"')
+        test_with_hypothesis(krun, sym_conf, init_subst, endpoint, arg_types)
+
+
 # Claim generation
 
 def generate_claims(
@@ -240,7 +264,7 @@ def generate_claims(
     sym_conf: KInner,
     init_subst: KInner,
     output_dir: Path,
-):
+) -> None:
     output_dir = ensure_dir_path(output_dir)
 
     for endpoint, arg_types in test_endpoints.items():
@@ -255,9 +279,15 @@ def generate_claims(
             output_file.write(txt)
 
 
-def generate_claim(func: str, arg_types: tuple[str, ...], sym_conf, init_subst):
-    root_acc = mandos_argument_to_kbytes('address:k')
-    test_sc = mandos_argument_to_kbytes('sc:test')
+def generate_claim(
+    func: str,
+    arg_types: tuple[str, ...],
+    sym_conf: KInner,
+    init_subst: dict[str, KInner]
+) -> KClaim:
+    
+    root_acc = mandos_argument_to_kbytes(ROOT_ACCT_ADDR)
+    test_sc = mandos_argument_to_kbytes(TEST_SC_ADDR)
     vars, ctrs = make_vars_and_constraints(arg_types)
     args = vars_to_bytes_list(vars)
     steps = KSequence(
@@ -294,7 +324,7 @@ def generate_claim(func: str, arg_types: tuple[str, ...], sym_conf, init_subst):
     return claim
 
 
-def lhs_subst(init_subst, steps):
+def lhs_subst(init_subst: dict[str, KInner], steps: KInner) -> dict[str, KInner]:
     
     subst = {
         'K_CELL': steps,
@@ -328,7 +358,7 @@ def lhs_subst(init_subst, steps):
     return subst
 
 
-def rhs_subst(init_subst):
+def rhs_subst(init_subst: dict[str, KInner]) -> dict[str, KInner]:
     
     subst = {
         'K_CELL': KSequence(),
@@ -344,10 +374,10 @@ def rhs_subst(init_subst):
 
 
 def vars_to_bytes_list(vars: tuple[KVariable, ...]) -> tuple[KInner, ...]:
-    return ListBytes(var_to_byte(var) for var in vars)
+    return ListBytes(var_to_bytes(var) for var in vars)
 
 
-def var_to_byte(var: KVariable):
+def var_to_bytes(var: KVariable) -> KInner:
     sort = var.sort
 
     if sort == KSort('Int'):
@@ -366,6 +396,7 @@ def var_to_byte(var: KVariable):
 def make_vars_and_constraints(
     types: tuple[str, ...]
 ) -> tuple[tuple[KVariable, ...], tuple[KInner, ...]]:
+
     vars: tuple[KVariable, ...] = ()
     ctrs: tuple[KInner, ...] = ()
     for i, typ in enumerate(types):
@@ -380,6 +411,7 @@ def make_var_and_constraints(id: str, typ: str) -> tuple[KVariable, tuple[KInner
     '''
     Create a K variable and constraints from a type
     '''
+
     sort = type_to_sort(typ)
     var = KVariable(id, sort)
     ctrs = type_to_constraint(typ, var)
@@ -387,7 +419,7 @@ def make_var_and_constraints(id: str, typ: str) -> tuple[KVariable, tuple[KInner
     return var, ctrs
 
 
-def type_to_sort(typ: str):
+def type_to_sort(typ: str) -> KSort:
     if typ == 'BigUint':
         return KSort('Int')
     if typ == 'u32':
@@ -463,16 +495,6 @@ def main():
     else:
         run_concrete(krun, test_endpoints, sym_conf, init_subst)
 
-
-def run_concrete(
-    krun: KRun,
-    test_endpoints: Mapping[str, tuple[str, ...]],
-    sym_conf: KInner,
-    init_subst: KInner,
-):
-    for endpoint, arg_types in test_endpoints.items():
-        print(f'Testing "{endpoint}"')
-        test_with_hypothesis(krun, sym_conf, init_subst, endpoint, arg_types)
 
 if __name__ == '__main__':
     main()

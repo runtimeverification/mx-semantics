@@ -1,6 +1,6 @@
 #![no_std]
 
-pub mod testapi;
+use testapi;
 
 multiversx_sc::imports!();
 

@@ -196,6 +196,7 @@ name = "test_multisig"
 version = "0.0.0"
 dependencies = [
  "multiversx-sc",
+ "testapi",
 ]
 
 [[package]]
@@ -204,6 +205,13 @@ version = "0.0.0"
 dependencies = [
  "multiversx-sc-wasm-adapter",
  "test_multisig",
+]
+
+[[package]]
+name = "testapi"
+version = "0.1.0"
+dependencies = [
+ "multiversx-sc",
 ]
 
 [[package]]

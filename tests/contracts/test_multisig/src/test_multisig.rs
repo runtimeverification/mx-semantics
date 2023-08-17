@@ -1,6 +1,6 @@
 #![no_std]
 
-pub mod testapi;
+use testapi;
 
 multiversx_sc::imports!();
 
@@ -107,7 +107,7 @@ pub trait TestMultisigContract {
         let mut args = ManagedArgBuffer::new();
         args.push_arg(1u32);
 
-        testapi::start_prank(&signer);
+        testapi::start_prank(signer);
         let _ = self.send_raw().direct_egld_execute(
             &multisig, 
             &BigUint::from(0u32), 
@@ -123,7 +123,7 @@ pub trait TestMultisigContract {
         let mut args = ManagedArgBuffer::new();
         args.push_arg(1u32);
 
-        testapi::start_prank(&performer);
+        testapi::start_prank(performer);
         let _ = self.send_raw().direct_egld_execute(
             &multisig,
             &BigUint::from(0u32), 

@@ -6,7 +6,7 @@ module MAP-INT-TO-BYTES
   imports private BOOL-SYNTAX
   imports private INT-SYNTAX
   // imports private LIST-INT
-  // imports private LIST-BYTES
+  imports private LIST-BYTES
   imports private LIST
   // imports private SET-INT
   imports private SET
@@ -38,7 +38,7 @@ module MAP-INT-TO-BYTES
                  [function, hook(MAP.lookup), klabel(MapIntToBytes:lookup), symbol]
   syntax Bytes ::= MapIntToBytes "[" WrappedInt "]" "orDefault" Bytes
                  [ function, total, hook(MAP.lookupOrDefault),
-                   klabel(MapIntToBytes:lookupOrDefault)
+                   klabel(MapIntToBytes:lookupOrDefault), symbol
                  ]
   syntax MapIntToBytes ::= MapIntToBytes "[" key: WrappedInt "<-" value: Bytes "]"
                  [ function, total, klabel(MapIntToBytes:update), symbol,
@@ -73,17 +73,17 @@ module MAP-INT-TO-BYTES
   syntax Bool ::= WrappedInt "in_keys" "(" MapIntToBytes ")"
                  [function, total, hook(MAP.in_keys)]
 
-  syntax List ::= values(MapIntToBytes)
-                 [function, hook(MAP.values)]
-  // syntax ListBytes ::= values(MapIntToBytes)
+  // syntax List ::= values(MapIntToBytes)
   //                [function, hook(MAP.values)]
+  syntax ListBytes ::= values(MapIntToBytes)
+                 [function, hook(MAP.values)]
 
   syntax Int ::= size(MapIntToBytes)
-                 [function, total, hook(MAP.size), klabel(MapIntToBytes.sizeMap)]
+                 [function, total, hook(MAP.size), klabel(MapIntToBytes.sizeMap), symbol]
   syntax Bool ::= MapIntToBytes "<=Map" MapIntToBytes
                  [function, total, hook(MAP.inclusion)]
   syntax WrappedInt ::= choice(MapIntToBytes)
-                 [function, hook(MAP.choice), klabel(MapIntToBytes:choice)]
+                 [function, hook(MAP.choice), klabel(MapIntToBytes:choice), symbol]
 endmodule
 
 module MAP-INT-TO-BYTES-PRIMITIVE
@@ -97,9 +97,9 @@ module MAP-INT-TO-BYTES-PRIMITIVE-CONCRETE [concrete]
   imports public  MAP-INT-TO-BYTES
 
   syntax Bytes ::= MapIntToBytes "{{" Int "}}"
-                 [function, klabel(MapIntToBytes:primitiveLookup)]
+                 [function, klabel(MapIntToBytes:primitiveLookup), symbol]
   syntax Bytes ::= MapIntToBytes "{{" Int "}}" "orDefault" Bytes
-                 [ function, total, klabel(MapIntToBytes:primitiveLookupOrDefault) ]
+                 [ function, total, klabel(MapIntToBytes:primitiveLookupOrDefault), symbol ]
   syntax MapIntToBytes ::= MapIntToBytes "{{" key: Int "<-" value: Bytes "}}"
                  [ function, total, klabel(MapIntToBytes:primitiveUpdate), symbol,
                    prefer
@@ -107,9 +107,9 @@ module MAP-INT-TO-BYTES-PRIMITIVE-CONCRETE [concrete]
   syntax MapIntToBytes ::= MapIntToBytes "{{" Int "<-" "undef" "}}"
                  [ function, total, klabel(MapIntToBytes:primitiveRemove), symbol ]
   syntax Bool ::= Int "in_keys" "{{" MapIntToBytes "}}"
-                 [function, total, klabel(MapIntToBytes:primitiveInKeys)]
+                 [function, total, klabel(MapIntToBytes:primitiveInKeys), symbol]
 
-  rule M:MapIntToBytes {{ Key:Int }}
+  rule (M:MapIntToBytes {{ Key:Int }})
       => (M[wrap(Key)])
   rule M:MapIntToBytes {{ Key:Int }} orDefault Value:Bytes
       => M[wrap(Key)] orDefault Value
@@ -117,7 +117,7 @@ module MAP-INT-TO-BYTES-PRIMITIVE-CONCRETE [concrete]
       => M[wrap(Key) <- Value]
   rule M:MapIntToBytes {{ Key:Int <- undef }}
       => M[wrap(Key) <- undef]
-  rule Key:Int in_keys {{ M:MapIntToBytes}} => wrap(Key) in_keys(M)
+  rule Key:Int in_keys {{ M:MapIntToBytes }} => wrap(Key) in_keys(M)
 endmodule
 
 module MAP-INT-TO-BYTES-PRIMITIVE-SYMBOLIC  [symbolic]
@@ -127,17 +127,17 @@ module MAP-INT-TO-BYTES-PRIMITIVE-SYMBOLIC  [symbolic]
   imports private MAP-INT-TO-BYTES-KORE-SYMBOLIC
 
   syntax Bytes ::= MapIntToBytes "{{" Int "}}"
-                 [function, klabel(MapIntToBytes:primitiveLookup)]
+                 [function, symbol, klabel(MapIntToBytes:primitiveLookup)]
   syntax Bytes ::= MapIntToBytes "{{" Int "}}" "orDefault" Bytes
-                 [ function, total, klabel(MapIntToBytes:primitiveLookupOrDefault) ]
+                 [ function, total, symbol, klabel(MapIntToBytes:primitiveLookupOrDefault) ]
   syntax MapIntToBytes ::= MapIntToBytes "{{" key: Int "<-" value: Bytes "}}"
                  [ function, total, klabel(MapIntToBytes:primitiveUpdate), symbol,
                    prefer
                  ]
   syntax MapIntToBytes ::= MapIntToBytes "{{" Int "<-" "undef" "}}"
-                 [ function, total, klabel(MapIntToBytes:primitiveRemove), symbol ]
+                 [ function, total, symbol, klabel(MapIntToBytes:primitiveRemove) ]
   syntax Bool ::= Int "in_keys" "{{" MapIntToBytes "}}"
-                 [function, total, klabel(MapIntToBytes:primitiveInKeys)]
+                 [function, total, symbol, klabel(MapIntToBytes:primitiveInKeys)]
 
   // Definitions
   // -----------
@@ -176,63 +176,67 @@ module MAP-INT-TO-BYTES-PRIMITIVE-SYMBOLIC  [symbolic]
       ensures notBool Key in_keys {{ M }}
   rule _Key:Int in_keys {{ .MapIntToBytes }}
       => false
+  // TODO: This may create an exponential evaluation tree, depending on how
+  // caching works in the backend. It should be rewritten to finish in
+  // O(n^2) or something like that, where n is the number of explicit keys
+  // in the map.
   rule Key:Int in_keys
           {{Key2:WrappedInt Int2Bytes|-> _:Bytes M:MapIntToBytes}}
-      => true
-      requires Key =/=K unwrap(Key2)
+      => Key in_keys {{ M }}
+      requires Key =/=K unwrap( Key2 )
       ensures notBool Key2 in_keys (M)
       [simplification]
 
   // Translation rules
   rule M:MapIntToBytes[Key:WrappedInt]
-      => M{{unwrap(Key)}}
+      => M{{unwrap( Key )}}
       [simplification, symbolic(M)]
   rule M:MapIntToBytes[Key:WrappedInt]
-      => M{{unwrap(Key)}}
+      => M{{unwrap( Key )}}
       [simplification, symbolic(Key)]
   rule M:MapIntToBytes{{Key}}
       => M[wrap(Key)]
       [simplification, concrete]
 
   rule M:MapIntToBytes [ Key:WrappedInt ] orDefault Value:Bytes
-      => M {{ unwrap(Key) }} orDefault Value
+      => M {{ unwrap( Key ) }} orDefault Value
       [simplification, symbolic(M)]
   rule M:MapIntToBytes [ Key:WrappedInt ] orDefault Value:Bytes
-      => M {{ unwrap(Key) }} orDefault Value
+      => M {{ unwrap( Key ) }} orDefault Value
       [simplification, symbolic(Key)]
   rule M:MapIntToBytes [ Key:WrappedInt ] orDefault Value:Bytes
-      => M {{ unwrap(Key) }} orDefault Value
+      => M {{ unwrap( Key ) }} orDefault Value
       [simplification, symbolic(Value)]
   rule M:MapIntToBytes{{Key}} orDefault Value
       => M[wrap(Key)] orDefault Value
       [simplification, concrete]
 
   rule M:MapIntToBytes[Key:WrappedInt <- Value:Bytes]
-      => M {{ unwrap(Key) <- Value }}
+      => M {{ unwrap( Key ) <- Value }}
       [simplification, symbolic(M)]
   rule M:MapIntToBytes[Key:WrappedInt <- Value:Bytes]
-      => M {{ unwrap(Key) <- Value }}
+      => M {{ unwrap( Key ) <- Value }}
       [simplification, symbolic(Key)]
   rule M:MapIntToBytes[Key:WrappedInt <- Value:Bytes]
-      => M {{ unwrap(Key) <- Value }}
+      => M {{ unwrap( Key ) <- Value }}
       [simplification, symbolic(Value)]
   rule M:MapIntToBytes{{Key <- Value}} => M[wrap(Key) <- Value ]
       [simplification, concrete]
 
   rule M:MapIntToBytes[Key:WrappedInt <- undef]
-      => M {{ unwrap(Key) <- undef }}
+      => M {{ unwrap( Key ) <- undef }}
       [simplification, symbolic(M)]
   rule M:MapIntToBytes[Key:WrappedInt <- undef]
-      => M {{ unwrap(Key) <- undef }}
+      => M {{ unwrap( Key ) <- undef }}
       [simplification, symbolic(Key)]
   rule M:MapIntToBytes{{Key <- undef}} => M[wrap(Key) <- undef]
       [simplification, concrete]
 
   rule Key:WrappedInt in_keys (M:MapIntToBytes)
-      => unwrap(Key) in_keys {{M}}
+      => unwrap( Key ) in_keys {{M}}
       [simplification, symbolic(M)]
   rule Key:WrappedInt in_keys (M:MapIntToBytes)
-      => unwrap(Key) in_keys {{M}}
+      => unwrap( Key ) in_keys {{M}}
       [simplification, symbolic(Key)]
   rule Key in_keys {{M:MapIntToBytes}} => wrap(Key) in_keys(M)
       [simplification, concrete]
@@ -250,16 +254,16 @@ module MAP-INT-TO-BYTES-PRIMITIVE-SYMBOLIC  [symbolic]
   rule M:MapIntToBytes {{ K <- _ }} {{ K <- V }} => M {{ K <- V }} [simplification]
   rule (K1 Int2Bytes|-> V1 M:MapIntToBytes) {{ K2 <- V2 }}
       => (K1 Int2Bytes|-> V1 (M {{ K2 <- V2 }}))
-      requires unwrap(K1) =/=K K2
+      requires unwrap( K1 ) =/=K K2
       [simplification]
 
   rule (K1 Int2Bytes|-> V1 M:MapIntToBytes) {{ K2 <- undef }}
       => (K1 Int2Bytes|-> V1 (M {{ K2 <- undef }}))
-      requires unwrap(K1) =/=K K2
+      requires unwrap( K1 ) =/=K K2
       [simplification]
 
   rule (K1 Int2Bytes|-> _V M:MapIntToBytes) {{ K2 }} => M {{K2}}
-      requires unwrap(K1) =/=K K2
+      requires unwrap( K1 ) =/=K K2
       ensures notBool (K1 in_keys(M))
       [simplification]
   rule (_MAP:MapIntToBytes {{ K  <-  V1 }}) {{ K }}  => V1 [simplification]
@@ -269,7 +273,7 @@ module MAP-INT-TO-BYTES-PRIMITIVE-SYMBOLIC  [symbolic]
 
   rule (K1 Int2Bytes|-> _V M:MapIntToBytes) {{ K2 }} orDefault D
       => M {{K2}} orDefault D
-      requires unwrap(K1) =/=K K2
+      requires unwrap( K1 ) =/=K K2
       ensures notBool (K1 in_keys(M))
       [simplification]
   rule (_MAP:MapIntToBytes {{ K  <-  V1 }}) {{ K }} orDefault _ => V1 [simplification]
@@ -289,19 +293,19 @@ module MAP-INT-TO-BYTES-PRIMITIVE-SYMBOLIC  [symbolic]
       [simplification]
 
   rule K1 in_keys {{ (K2 Int2Bytes|-> V) M:MapIntToBytes }}
-      => K1 ==K unwrap(K2) orBool K1 in_keys {{ M }}
+      => K1 ==K unwrap( K2 ) orBool K1 in_keys {{ M }}
     requires definedMapElementConcat(K2, V, M)
     [simplification(100)]
 
 
   rule {false #Equals @Key in_keys{{ Key' Int2Bytes|-> Val @M:MapIntToBytes }}}
       =>  #Ceil(@Key) #And #Ceil(Key' Int2Bytes|-> Val @M)
-          #And #Not({ @Key #Equals unwrap(Key') })
+          #And #Not({ @Key #Equals unwrap( Key' ) })
           #And {false #Equals @Key in_keys{{@M}}}
       [simplification]
   rule {@Key in_keys{{Key' Int2Bytes|-> Val @M:MapIntToBytes}} #Equals false}
       =>  #Ceil(@Key) #And #Ceil(Key' Int2Bytes|-> Val @M)
-          #And #Not({@Key #Equals unwrap(Key') })
+          #And #Not({@Key #Equals unwrap( Key' ) })
           #And {@Key in_keys{{@M}} #Equals false}
       [simplification]
 
@@ -412,7 +416,7 @@ module MAP-INT-TO-BYTES-CURLY-BRACE
   imports MAP-INT-TO-BYTES
 
   syntax MapIntToBytes ::= MapIntToBytes "{" key:WrappedInt "<-" value:Bytes "}"
-      [function, total, klabel(MapIntToBytes:curly_update), symbol]
+      [function, total, symbol, klabel(MapIntToBytes:curly_update)]
   rule M:MapIntToBytes{Key <- Value} => M (Key Int2Bytes|-> Value)
     requires notBool Key in_keys(M)
   rule (Key Int2Bytes|-> _ M:MapIntToBytes){Key <- Value}

@@ -107,7 +107,7 @@ module UTILS-CEILS
         [simplification]
 
     syntax Int ::= #signedTotal(IValType, Int)
-        [function, total, klabel(#signedTotal), symbol, no-evaluators]
+        [function, total, klabel(#signedTotal), symbol, no-evaluators, smtlib(signedTotal)]
  // ---------------------------------------------------------------------------------
     rule #signedTotal(Arg0:IValType, Arg1:Int)
         => #signed(Arg0, Arg1)

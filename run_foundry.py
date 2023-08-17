@@ -1,7 +1,6 @@
 import argparse
 import glob
 from os.path import join
-from subprocess import CompletedProcess
 from typing import Iterable, Mapping
 
 from hypothesis import given, settings, Verbosity
@@ -9,9 +8,6 @@ from hypothesis.strategies import SearchStrategy, integers, tuples
 from pyk.prelude.utils import token
 from pyk.prelude.collections import list_of, map_of
 from pyk.kast.inner import KSort, KVariable
-from pyk.kast.kast import kast_term
-from pyk.ktool.kprint import _kast, KAstInput, KAstOutput
-from pyk.ktool.krun import _krun, KRunOutput
 from pyk.cterm import CTerm, build_claim, KClaim
 from pyk.utils import ensure_dir_path
 from pyk.prelude.kint import leInt
@@ -24,6 +20,9 @@ TEST_PREFIX = 'test_'
 
 ROOT_ACCT_ADDR = 'address:k'
 TEST_SC_ADDR = 'sc:k-test'
+
+REC_LIMIT = 4000
+sys.setrecursionlimit(REC_LIMIT)
 
 def load_input_json(test_dir: str) -> dict:
     try:
@@ -51,11 +50,17 @@ def load_contract_wasms(contract_wasm_paths: Iterable[str]) -> dict[bytes, KInne
     contract_wasm_modules = {
         bytes(f, 'ascii'): load_wasm(f) for f in contract_wasm_paths
     }
-    
+
     return contract_wasm_modules
 
 
-def deploy_test(krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInner]) -> tuple[KInner, dict[str, KInner]]:
+def set_exit_code(i: int) -> KInner:
+    return KApply('setExitCode', [KInt(i)])
+
+
+def deploy_test(
+    krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInner]
+) -> tuple[KInner, dict[str, KInner]]:
     """
     1. create a main account: 'k'
     2. reserve a new address for the test contract: owner = 'k', contract address = 'k-test'
@@ -87,7 +92,9 @@ def deploy_test(krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInne
     )
 
     # initialization steps
-    init_steps = KSequence([init_main_acct, new_address, deploy_cmd])
+    init_steps = KSequence(
+        [set_exit_code(1), init_main_acct, new_address, deploy_cmd, set_exit_code(0)]
+    )
 
     # create an empty config and embed init steps
     empty_conf = krun.definition.init_config(KSort('GeneratedTopCell'))
@@ -106,43 +113,17 @@ def deploy_test(krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInne
     return sym_conf, subst
 
 
-def run_config(krun: KRun, conf: KInner) -> CompletedProcess:
-    with krun._temp_file() as fkast:
-        conf_dict = { 'format': 'KAST', 'version': 2, 'term': conf.to_dict() }
-        json.dump(conf_dict, fkast)
-        fkast.flush()
-
-        kast_res = _kast(
-            fkast.name,
-            sort='GeneratedTopCell',
-            input=KAstInput.JSON,
-            output=KAstOutput.KORE,
-            check=True,
-            definition_dir=krun.definition_dir,
-        )
-
-        with krun._temp_file() as ntf:
-            ntf.write(kast_res.stdout)
-            ntf.flush()
-
-            return _krun(
-                command=krun.command,
-                input_file=Path(ntf.name),
-                definition_dir=krun.definition_dir,
-                output=KRunOutput.JSON,
-                parser='cat',
-                term=True,
-                check=False,
-                pipe_stderr=True,
-            )
+def run_config(krun: KRun, conf: KInner) -> KInner:
+    conf_kore = krun.kast_to_kore(conf, sort=KSort('GeneratedTopCell')) 
+    res_conf_kore = krun.run_kore_term(conf_kore, expect_rc=0)
+    return krun.kore_to_kast(res_conf_kore)
 
 
-def parse_proc_res(proc_res: CompletedProcess) -> KInner:
-    return kast_term(json.loads(proc_res.stdout), KInner)
+def run_config_and_check_empty(
+    krun: KRun, conf: KInner
+) -> tuple[KInner, KInner, dict[str, KInner]]:
 
-
-def run_config_and_check_empty(krun: KRun, conf: KInner) -> tuple[KInner, KInner, dict[str, KInner]]:
-    final_conf = parse_proc_res(run_config(krun, conf))
+    final_conf = run_config(krun, conf)
     sym_conf, subst = split_config_from(final_conf)
     k_cell = subst['K_CELL']
     if not isinstance(k_cell, KSequence) or k_cell.arity != 0:
@@ -153,11 +134,13 @@ def run_config_and_check_empty(krun: KRun, conf: KInner) -> tuple[KInner, KInner
     return final_conf, sym_conf, subst
 
 
-def run_test(krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoint: str, args):
+def run_test(
+    krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoint: str, args: tuple[str, ...]
+):
     step = {
         'tx': {
-            'from': 'address:k',
-            'to': 'sc:k-test',
+            'from': ROOT_ACCT_ADDR,
+            'to': TEST_SC_ADDR,
             'function': endpoint,
             'value': '0',
             'arguments': args,
@@ -166,24 +149,29 @@ def run_test(krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoi
         },
         'expect': {'status': '0'},
     }
-    tx_steps = KSequence([KApply('setExitCode', [KInt(1)])] + get_steps_sc_call(step) + [KApply('setExitCode', [KInt(0)])])
-    
+    tx_steps = KSequence(
+        [set_exit_code(1)] + get_steps_sc_call(step) + [set_exit_code(0)]
+    )
+
     subst = init_subst.copy()
     subst['K_CELL'] = tx_steps
     conf_with_steps = Subst(subst)(sym_conf)
-    
-    proc_res = run_config(krun, conf_with_steps)
-    if proc_res.returncode:
-        raise RuntimeError(f'Run failed: {args}')
 
+    try:
+        run_config(krun, conf_with_steps)
+    except RuntimeError as rte:
+        if rte.args[0].startswith('Command krun exited with code 1'):
+            raise RuntimeError(f'Test failed for input input: {args}') from None
+        raise rte
 
 # Test metadata
 
+
 def get_test_endpoints(test_dir: str) -> Mapping[str, tuple[str, ...]]:
-    abi_path = glob.glob(test_dir + '/output/*.abi.json')
+    abi_paths = glob.glob(test_dir + '/output/*.abi.json')
     # TODO this loads the first wasm file in the directory. what if there are multiple wasm files?
-    if abi_path:
-        abi_path = abi_path[0]
+    if abi_paths:
+        abi_path = abi_paths[0]
     else:
         raise ValueError(f'ABI file not found: {test_dir}/output/?.abi.json')
 
@@ -221,6 +209,7 @@ def arg_types_to_strategy(types: Iterable[str]) -> SearchStrategy[tuple[str, ...
 
 # Hypothesis test runner
 
+
 def test_with_hypothesis(
     krun: KRun,
     sym_conf: KInner,
@@ -230,6 +219,10 @@ def test_with_hypothesis(
 ) -> None:
     
     def test(args: tuple[str,...]):
+        # set the recursion limit every time because hypothesis changes it
+        if sys.getrecursionlimit() < REC_LIMIT:
+            sys.setrecursionlimit(REC_LIMIT)
+
         run_test(krun, sym_conf, init_subst, endpoint, args)
 
     test.__name__ = endpoint  # show endpoint name in hypothesis logs
@@ -248,7 +241,7 @@ def run_concrete(
     krun: KRun,
     test_endpoints: Mapping[str, tuple[str, ...]],
     sym_conf: KInner,
-    init_subst: KInner,
+    init_subst: dict[str, KInner],
 ) -> None:
 
     for endpoint, arg_types in test_endpoints.items():
@@ -258,11 +251,12 @@ def run_concrete(
 
 # Claim generation
 
+
 def generate_claims(
     krun: KRun,
     test_endpoints: Mapping[str, tuple[str, ...]],
     sym_conf: KInner,
-    init_subst: KInner,
+    init_subst: dict[str, KInner],
     output_dir: Path,
 ) -> None:
     output_dir = ensure_dir_path(output_dir)
@@ -271,19 +265,18 @@ def generate_claims(
         claim = generate_claim(endpoint, arg_types, sym_conf, init_subst)
 
         output_file = output_dir / f'{endpoint}-spec.k'
-        
-        txt = krun.pretty_print(claim) # TODO wrap this in a spec module with imports
 
-        with open(output_file, 'w') as output_file:
+        txt = krun.pretty_print(claim)  # TODO wrap this in a spec module with imports
 
-            output_file.write(txt)
+        with open(output_file, 'w') as f:
+            f.write(txt)
 
 
 def generate_claim(
     func: str,
     arg_types: tuple[str, ...],
     sym_conf: KInner,
-    init_subst: dict[str, KInner]
+    init_subst: dict[str, KInner],
 ) -> KClaim:
     
     root_acc = mandos_argument_to_kbytes(ROOT_ACCT_ADDR)
@@ -336,7 +329,7 @@ def lhs_subst(init_subst: dict[str, KInner], steps: KInner) -> dict[str, KInner]
         'EXITCODE_CELL': KInt(0),
         'PRANK_CELL': KToken('false', KSort('Bool')),
     }
-    
+
     copy_cells = [
         'NEWADDRESSES_CELL',
         'ACCOUNTS_CELL',
@@ -351,10 +344,10 @@ def lhs_subst(init_subst: dict[str, KInner], steps: KInner) -> dict[str, KInner]
         'CURBLOCKROUND_CELL',
         'CURBLOCKTIMESTAMP_CELL',
     ]
-    
+
     for c in copy_cells:
         subst[c] = init_subst[c]
-    
+
     return subst
 
 
@@ -373,7 +366,7 @@ def rhs_subst(init_subst: dict[str, KInner]) -> dict[str, KInner]:
     return subst
 
 
-def vars_to_bytes_list(vars: tuple[KVariable, ...]) -> tuple[KInner, ...]:
+def vars_to_bytes_list(vars: tuple[KVariable, ...]) -> KInner:
     return ListBytes(var_to_bytes(var) for var in vars)
 
 
@@ -437,14 +430,11 @@ def type_to_constraint(typ: str, var: KVariable) -> tuple[KInner, ...]:
 
 # Main Script
 
-DESCRIPTION = '''
-Concrete execution for MultiversX Foundry-like tests.
-This is not the intended front-end of the tool, it is for developers\' use only.
-'''
-
 
 def main():
-    parser = argparse.ArgumentParser(description=DESCRIPTION)
+    sys.setrecursionlimit(REC_LIMIT)
+    
+    parser = argparse.ArgumentParser(description='Symbolic testing for MultiversX contracts')
     parser.add_argument(
         '-d', '--directory', required=True, help='path to the test contract'
     )

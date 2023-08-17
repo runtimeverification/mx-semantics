@@ -72,11 +72,11 @@ pub trait TestMultisigContract {
         let bob = ManagedAddress::from(BOB);
         
         // make assumptions
-        // testapi::assume(value <= self.get_num_board_members(&multisig));
+        testapi::assume(value <= self.get_num_board_members(&multisig));
         
-        // if value > self.get_num_board_members(&multisig) {
-        //     return
-        // }
+        if value > self.get_num_board_members(&multisig) {
+            return
+        }
 
 
         self.change_quorum_propose(&multisig, &alice, &value);

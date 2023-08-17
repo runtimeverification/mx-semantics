@@ -22,7 +22,7 @@ extern "C" {
         ownerHandle: i32,
         gasLimit: i64,
         valueHandle: i32,
-        codeHandle: i32,
+        codePathHandle: i32,
         argumentsHandle: i32,
         resultAddressHandle: i32,
     );

@@ -192,20 +192,28 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
 ```
 
-### Assertions/assumptions
+### Assertions and assumptions
 
 ```k
     rule [hostCall-assertBool]:
         <instrs> hostCall ( "env" , "assertBool" , [ i32 .ValTypes ] -> [ .ValTypes ] )
-              => #if P =/=Int 0
-                 #then .K
-                 #else #throwException(ExecutionFailed, "assertion failed")
-                 #fi
-                 ...
+              => #assert( P ) ...
         </instrs>
         <locals>
           0 |-> <i32> P
         </locals>
+
+    syntax InternalInstr ::= #assert(Int)     [symbol, klabel(foundryAssert)]
+ // -------------------------------------------------------------------------
+    rule [foundryAssert-true]:
+        <instrs> #assert( I ) => . ... </instrs>    
+      requires I =/=Int 0
+
+    rule [foundryAssert-false]:
+        <instrs> #assert( I ) 
+             => #throwException(ExecutionFailed, "assertion failed") ... 
+        </instrs>
+      requires I ==Int 0
 
 
     rule [hostCall-assumeBool]:

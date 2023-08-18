@@ -224,11 +224,36 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           0 |-> <i32> P
         </locals>
 
-    syntax IternalInstr ::= #assume(Int)
- // ------------------------------------
-    rule [assume]:
+    syntax IternalInstr ::= #assume(Int)     [symbol, klabel(foundryAssume)]
+ // ------------------------------------------------------------------------
+    rule [foundryAssume-true]:
         <instrs> #assume(P) => . ... </instrs>
-      ensures P =/=Int 0
+      requires P =/=Int 0
+
+    rule [foundryAssume-false]:
+        <instrs> #assume(P) => #endFoundryImmediately ... </instrs>
+      requires P ==Int 0
+
+    syntax IternalInstr ::= "#endFoundryImmediately"  
+        [symbol, klabel(endFoundryImmediately)]
+ // ------------------------------------------------------
+    rule [endFoundryImmediately]:
+        (<callState>
+          <instrs> #endFoundryImmediately ... </instrs>
+          ...
+        </callState> 
+          => 
+        <callState> 
+          <instrs> . </instrs>
+          ...
+        </callState>)
+        <callStack> _ => .List </callStack>
+        <interimStates> _ => .List </interimStates>
+        <k> _ => . </k>
+        <commands> _ => . </commands>
+        <checkedAccounts> _ => .Set </checkedAccounts>
+        <prank> _ => false </prank>
+        <exit-code> _ => 0 </exit-code>
 
 ```
 
@@ -253,7 +278,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
     rule [startPrank-not-allowed]:
         <instrs> #startPrank(_:Bytes)
-              => #throwException(ExecutionFailed, "Only the test contract can start a prank") 
+              => #throwException(ExecutionFailed, "Only the test contract can start a prank and the test contract can't start a prank while already pranking") 
                  ...
         </instrs>
         <callee> ADDR </callee>
@@ -277,7 +302,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
     rule [hostCall-stopPrank-err]:
         <instrs> hostCall ( "env" , "stopPrank" , [ .ValTypes ] -> [ .ValTypes ] )
-              => #throwException(ExecutionFailed, "Cannot stop prank because already not in a prank") ...
+              => #throwException(ExecutionFailed, "Cannot stop prank while not in a prank") ...
         </instrs>
         <locals> .Map </locals>
         <prank> false </prank>
@@ -293,7 +318,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
     rule [waitCommands]:
         <instrs> #waitCommands => . ... </instrs>
         <commands> #endWasm ... </commands>
-      [priority(200)]   // TODO is this good?
+      [priority(200)]
 
     rule <commands> #transferSuccess => . ... </commands>
          <instrs> #waitCommands ... </instrs>

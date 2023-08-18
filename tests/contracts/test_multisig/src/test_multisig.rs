@@ -74,10 +74,6 @@ pub trait TestMultisigContract {
         // make assumptions
         testapi::assume(value <= self.get_num_board_members(&multisig));
         
-        if value > self.get_num_board_members(&multisig) {
-            return
-        }
-
 
         self.change_quorum_propose(&multisig, &alice, &value);
         self.change_quorum_sign(&multisig, &bob);

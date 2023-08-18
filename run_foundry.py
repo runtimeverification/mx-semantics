@@ -285,6 +285,7 @@ def generate_claim(
     args = vars_to_bytes_list(vars)
     steps = KSequence(
         [
+            set_exit_code(1),
             KApply(
                 'callTx',
                 (
@@ -302,6 +303,7 @@ def generate_claim(
                 'checkExpectStatus',
                 [KApply('OK', [])],
             ),
+            set_exit_code(0),
         ]
     )
 
@@ -360,7 +362,8 @@ def rhs_subst(init_subst: dict[str, KInner]) -> dict[str, KInner]:
         'INSTRS_CELL': KSequence(),
         'CALLSTACK_CELL': list_of(()),
         'INTERIMSTATES_CELL': list_of(()),
-        'PRANK_CELL': KToken('false', KSort('Bool')),
+        'PRANK_CELL': token(False),
+        'EXIT_CODE_CELL': token(0),
     }
 
     return subst

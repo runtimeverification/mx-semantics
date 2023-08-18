@@ -5,9 +5,8 @@ require "bytes-type.k"
 module MAP-BYTES-TO-BYTES
   imports private BOOL-SYNTAX
   imports private INT-SYNTAX
-  // imports private LIST-BYTES
-  // imports private LIST-BYTES
-  imports private LIST
+  imports private LIST-BYTES
+  // imports private LIST
   // imports private SET-BYTES
   imports private SET
   imports BYTES-TYPE
@@ -38,7 +37,7 @@ module MAP-BYTES-TO-BYTES
                  [function, hook(MAP.lookup), klabel(MapBytesToBytes:lookup), symbol]
   syntax WrappedBytes ::= MapBytesToBytes "[" WrappedBytes "]" "orDefault" WrappedBytes
                  [ function, total, hook(MAP.lookupOrDefault),
-                   klabel(MapBytesToBytes:lookupOrDefault)
+                   klabel(MapBytesToBytes:lookupOrDefault), symbol
                  ]
   syntax MapBytesToBytes ::= MapBytesToBytes "[" key: WrappedBytes "<-" value: WrappedBytes "]"
                  [ function, total, klabel(MapBytesToBytes:update), symbol,
@@ -65,25 +64,25 @@ module MAP-BYTES-TO-BYTES
   // syntax SetBytes ::= keys(MapBytesToBytes)
   //                [function, total, hook(MAP.keys)]
 
-  syntax List ::= "keys_list" "(" MapBytesToBytes ")"
-                 [function, hook(MAP.keys_list)]
-  // syntax ListBytes ::= "keys_list" "(" MapBytesToBytes ")"
+  // syntax List ::= "keys_list" "(" MapBytesToBytes ")"
   //                [function, hook(MAP.keys_list)]
+  syntax ListBytes ::= "keys_list" "(" MapBytesToBytes ")"
+                 [function, hook(MAP.keys_list)]
 
   syntax Bool ::= WrappedBytes "in_keys" "(" MapBytesToBytes ")"
                  [function, total, hook(MAP.in_keys)]
 
-  syntax List ::= values(MapBytesToBytes)
-                 [function, hook(MAP.values)]
-  // syntax ListBytes ::= values(MapBytesToBytes)
+  // syntax List ::= values(MapBytesToBytes)
   //                [function, hook(MAP.values)]
+  syntax ListBytes ::= values(MapBytesToBytes)
+                 [function, hook(MAP.values)]
 
   syntax Int ::= size(MapBytesToBytes)
-                 [function, total, hook(MAP.size), klabel(MapBytesToBytes.sizeMap)]
+                 [function, total, hook(MAP.size), klabel(MapBytesToBytes.sizeMap), symbol]
   syntax Bool ::= MapBytesToBytes "<=Map" MapBytesToBytes
                  [function, total, hook(MAP.inclusion)]
   syntax WrappedBytes ::= choice(MapBytesToBytes)
-                 [function, hook(MAP.choice), klabel(MapBytesToBytes:choice)]
+                 [function, hook(MAP.choice), klabel(MapBytesToBytes:choice), symbol]
 endmodule
 
 module MAP-BYTES-TO-BYTES-PRIMITIVE
@@ -97,9 +96,9 @@ module MAP-BYTES-TO-BYTES-PRIMITIVE-CONCRETE [concrete]
   imports public  MAP-BYTES-TO-BYTES
 
   syntax Bytes ::= MapBytesToBytes "{{" Bytes "}}"
-                 [function, klabel(MapBytesToBytes:primitiveLookup)]
+                 [function, klabel(MapBytesToBytes:primitiveLookup), symbol]
   syntax Bytes ::= MapBytesToBytes "{{" Bytes "}}" "orDefault" Bytes
-                 [ function, total, klabel(MapBytesToBytes:primitiveLookupOrDefault) ]
+                 [ function, total, klabel(MapBytesToBytes:primitiveLookupOrDefault), symbol ]
   syntax MapBytesToBytes ::= MapBytesToBytes "{{" key: Bytes "<-" value: Bytes "}}"
                  [ function, total, klabel(MapBytesToBytes:primitiveUpdate), symbol,
                    prefer
@@ -107,17 +106,17 @@ module MAP-BYTES-TO-BYTES-PRIMITIVE-CONCRETE [concrete]
   syntax MapBytesToBytes ::= MapBytesToBytes "{{" Bytes "<-" "undef" "}}"
                  [ function, total, klabel(MapBytesToBytes:primitiveRemove), symbol ]
   syntax Bool ::= Bytes "in_keys" "{{" MapBytesToBytes "}}"
-                 [function, total, klabel(MapBytesToBytes:primitiveInKeys)]
+                 [function, total, klabel(MapBytesToBytes:primitiveInKeys), symbol]
 
-  rule M:MapBytesToBytes {{ Key:Bytes }}
-      => unwrap( M[wrap(Key)] )
+  rule (M:MapBytesToBytes {{ Key:Bytes }})
+      => unwrap( M[ wrap(Key) ] )
   rule M:MapBytesToBytes {{ Key:Bytes }} orDefault Value:Bytes
       => unwrap( M[wrap(Key)] orDefault wrap(Value) )
   rule M:MapBytesToBytes {{ Key:Bytes <- Value:Bytes }}
       => M[wrap(Key) <- wrap(Value)]
   rule M:MapBytesToBytes {{ Key:Bytes <- undef }}
       => M[wrap(Key) <- undef]
-  rule Key:Bytes in_keys {{ M:MapBytesToBytes}} => wrap(Key) in_keys(M)
+  rule Key:Bytes in_keys {{ M:MapBytesToBytes }} => wrap(Key) in_keys(M)
 endmodule
 
 module MAP-BYTES-TO-BYTES-PRIMITIVE-SYMBOLIC  [symbolic]
@@ -127,17 +126,17 @@ module MAP-BYTES-TO-BYTES-PRIMITIVE-SYMBOLIC  [symbolic]
   imports private MAP-BYTES-TO-BYTES-KORE-SYMBOLIC
 
   syntax Bytes ::= MapBytesToBytes "{{" Bytes "}}"
-                 [function, klabel(MapBytesToBytes:primitiveLookup)]
+                 [function, symbol, klabel(MapBytesToBytes:primitiveLookup)]
   syntax Bytes ::= MapBytesToBytes "{{" Bytes "}}" "orDefault" Bytes
-                 [ function, total, klabel(MapBytesToBytes:primitiveLookupOrDefault) ]
+                 [ function, total, symbol, klabel(MapBytesToBytes:primitiveLookupOrDefault) ]
   syntax MapBytesToBytes ::= MapBytesToBytes "{{" key: Bytes "<-" value: Bytes "}}"
                  [ function, total, klabel(MapBytesToBytes:primitiveUpdate), symbol,
                    prefer
                  ]
   syntax MapBytesToBytes ::= MapBytesToBytes "{{" Bytes "<-" "undef" "}}"
-                 [ function, total, klabel(MapBytesToBytes:primitiveRemove), symbol ]
+                 [ function, total, symbol, klabel(MapBytesToBytes:primitiveRemove) ]
   syntax Bool ::= Bytes "in_keys" "{{" MapBytesToBytes "}}"
-                 [function, total, klabel(MapBytesToBytes:primitiveInKeys)]
+                 [function, total, symbol, klabel(MapBytesToBytes:primitiveInKeys)]
 
   // Definitions
   // -----------
@@ -176,9 +175,13 @@ module MAP-BYTES-TO-BYTES-PRIMITIVE-SYMBOLIC  [symbolic]
       ensures notBool Key in_keys {{ M }}
   rule _Key:Bytes in_keys {{ .MapBytesToBytes }}
       => false
+  // TODO: This may create an exponential evaluation tree, depending on how
+  // caching works in the backend. It should be rewritten to finish in
+  // O(n^2) or something like that, where n is the number of explicit keys
+  // in the map.
   rule Key:Bytes in_keys
           {{Key2:Bytes Bytes2Bytes|-> _:Bytes M:MapBytesToBytes}}
-      => true
+      => Key in_keys {{ M }}
       requires Key =/=K Key2
       ensures notBool Key2 in_keys (M)
       [simplification]
@@ -412,7 +415,7 @@ module MAP-BYTES-TO-BYTES-CURLY-BRACE
   imports MAP-BYTES-TO-BYTES
 
   syntax MapBytesToBytes ::= MapBytesToBytes "{" key:Bytes "<-" value:Bytes "}"
-      [function, total, klabel(MapBytesToBytes:curly_update), symbol]
+      [function, total, symbol, klabel(MapBytesToBytes:curly_update)]
   rule M:MapBytesToBytes{Key <- Value} => M (Key Bytes2Bytes|-> Value)
     requires notBool Key in_keys(M)
   rule (Key Bytes2Bytes|-> _ M:MapBytesToBytes){Key <- Value}

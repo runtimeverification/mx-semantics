@@ -9,3 +9,5 @@
 .kompile*
 
 *.pyc
+venv
+.hypothesis

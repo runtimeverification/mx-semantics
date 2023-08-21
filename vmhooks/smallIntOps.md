@@ -14,7 +14,7 @@ module SMALLINTOPS
     // extern long long smallIntGetUnsignedArgument(void *context, int32_t id);
     rule [smallIntGetUnsignedArgument]:
         <instrs> hostCall("env", "smallIntGetUnsignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
-              => #returnIfUInt64(Bytes2Int(ARGS[ARG_IDX] orDefault b"", BE, Unsigned), "argument out of range")
+              => #returnIfUInt64(Bytes2Int(ARGS {{ ARG_IDX }} orDefault b"", BE, Unsigned), "argument out of range")
                  ...
         </instrs>
         <locals> 0 |-> <i32> ARG_IDX </locals>
@@ -34,7 +34,7 @@ module SMALLINTOPS
     // extern long long smallIntGetSignedArgument(void *context, int32_t id);
     rule [smallIntGetSignedArgument]:
         <instrs> hostCall("env", "smallIntGetSignedArgument", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
-              => #returnIfSInt64(Bytes2Int(ARGS[ARG_IDX] orDefault b"", BE, Signed), "argument out of range")
+              => #returnIfSInt64(Bytes2Int(ARGS {{ ARG_IDX }} orDefault b"", BE, Signed), "argument out of range")
                  ...
         </instrs>
         <locals> 0 |-> <i32> ARG_IDX </locals>

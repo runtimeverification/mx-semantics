@@ -2,6 +2,7 @@
 # Utils
 
 ```k
+require "../data/bytes-type.k"
 require "../data/list-bytes.k"
 
 module UTILS
@@ -9,7 +10,7 @@ module UTILS
     imports INT
     imports LIST
     imports LIST-BYTES
-    imports BYTES
+    imports BYTES-TYPE
     imports UTILS-CEILS
 
     syntax Error ::= Err(String)
@@ -32,7 +33,7 @@ module UTILS
 
     syntax ListBytesResult ::= BytesResult2ListResult(BytesResult)       [function, total]
  // ---------------------------------------------------------------------------------
-    rule BytesResult2ListResult(BS:Bytes) => ListItem(BS)
+    rule BytesResult2ListResult(BS:Bytes) => ListItem(wrap(BS))
     rule BytesResult2ListResult(Err(E))   => Err(E)
 
     syntax ListResult ::= IntResult2ListResult(IntResult)           [function, total]
@@ -107,7 +108,7 @@ module UTILS-CEILS
         [simplification]
 
     syntax Int ::= #signedTotal(IValType, Int)
-        [function, total, klabel(#signedTotal), symbol, no-evaluators]
+        [function, total, klabel(#signedTotal), symbol, no-evaluators, smtlib(signedTotal)]
  // ---------------------------------------------------------------------------------
     rule #signedTotal(Arg0:IValType, Arg1:Int)
         => #signed(Arg0, Arg1)

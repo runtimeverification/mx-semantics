@@ -2,7 +2,7 @@ Mandos Testing Framework
 ========================
 
 ```k
-require "wasm-text.md"
+require "wasm-semantics/wasm-text.md"
 require "elrond.md"
 
 module MANDOS-SYNTAX
@@ -55,8 +55,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         <commands> . </commands>
       [priority(60)]
 
-    syntax Step ::= "setExitCode" Int
- // ---------------------------------
+    syntax Step ::= "setExitCode" Int     [klabel(setExitCode), symbol]
+ // -------------------------------------------------------------------
     rule <k> setExitCode I => . ... </k>
          <commands> . </commands>
          <instrs> . </instrs>
@@ -91,12 +91,12 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule #removeEmptyBytes(.MapBytesToBytes)
         => .MapBytesToBytes
     rule #removeEmptyBytes(Key Bytes2Bytes|-> Value M)
-        =>  #if Value ==K .Bytes
+        =>  #if Value ==K wrap(.Bytes)
             #then #removeEmptyBytes(M)
             #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
             #fi
     rule #removeEmptyBytes(Key Bytes2Bytes|-> Value M)
-        =>  #if Value ==K .Bytes
+        =>  #if Value ==K wrap(.Bytes)
             #then #removeEmptyBytes(M)
             #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
             #fi

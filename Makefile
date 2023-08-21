@@ -1,7 +1,7 @@
 
 .PHONY: all clean deps wasm-deps                                                 \
-        build build-llvm build-haskell                                           \
-				plugin-deps libff libcryptopp libsecp256k1                               \
+        build build-llvm build-haskell build-foundry                             \
+        plugin-deps libff libcryptopp libsecp256k1                               \
         elrond-clean-sources elrond-loaded                                       \
         test unittest-python mandos-test test-elrond-contracts                   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
@@ -111,7 +111,9 @@ $(libsecp256k1_out): $(PLUGIN_SUBMODULE)/deps/secp256k1/autogen.sh
 	    && $(MAKE)                                                        \
 	    && $(MAKE) install
 
-plugin-deps: libff libcryptopp libsecp256k1
+PLUGIN_DEPS := $(libff_out) $(libcryptopp_out) $(libsecp256k1_out)
+
+plugin-deps: $(PLUGIN_DEPS)
 
 # Build Dependencies (K Submodule)
 # --------------------------------
@@ -136,7 +138,7 @@ endif
 LLVM_KOMPILE_OPTS  := -L$(LOCAL_LIB)                               \
                       -I$(LOCAL_INCLUDE)                           \
                       -I/usr/include                               \
-											$(PLUGIN_SUBMODULE)/plugin-c/plugin_util.cpp \
+                      $(PLUGIN_SUBMODULE)/plugin-c/plugin_util.cpp \
                       $(PLUGIN_SUBMODULE)/plugin-c/crypto.cpp      \
                       $(PLUGIN_SUBMODULE)/plugin-c/blake2.cpp      \
                       -g -std=c++17 -lff -lcryptopp -lsecp256k1    \
@@ -152,6 +154,7 @@ ELROND_FILE_NAMES      := elrond.md                   \
                           esdt.md                     \
                           auto-allocate.md            \
                           mandos.md                   \
+                          foundry.md                  \
                           $(wildcard data/*.k)        \
                           $(wildcard vmhooks/*.md)
 
@@ -170,7 +173,7 @@ llvm_kompiled := $(llvm_dir)/mandos-kompiled/interpreter
 
 build-llvm: $(llvm_kompiled)
 
-$(llvm_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) plugin-deps
+$(llvm_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_DEPS)
 	$(KWASM_MAKE) build-llvm                             \
 	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)            \
 	    llvm_main_module=$(MAIN_MODULE)                  \
@@ -178,8 +181,8 @@ $(llvm_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) plugin-dep
 	    llvm_main_file=$(MAIN_DEFN_FILE)                 \
 	    EXTRA_SOURCE_FILES="$(EXTRA_SOURCES)"            \
 	    KOMPILE_OPTS="$(KOMPILE_OPTS)"                   \
-	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"				 \
-			K_INCLUDE_DIR=$(K_INCLUDE_DIR)
+	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"	     \
+	    K_INCLUDE_DIR=$(K_INCLUDE_DIR)
 
 $(KWASM_SUBMODULE)/%.md: %.md
 	cp $< $@
@@ -195,6 +198,23 @@ $(KWASM_SUBMODULE)/vmhooks/%.md: vmhooks/%.md
 $(KWASM_SUBMODULE)/data/%.k: data/%.k
 	@mkdir -p $(dir $@)
 	cp $< $@
+
+# Foundry Build
+foundry_kompiled := $(llvm_dir)/foundry-kompiled/interpreter
+
+build-foundry: $(foundry_kompiled)
+
+# runs llvm-kompile separately to reduce max memory usage
+$(foundry_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_DEPS)
+	$(KWASM_MAKE) build-llvm                             \
+	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)            \
+	    llvm_main_module=FOUNDRY                         \
+	    llvm_syntax_module=FOUNDRY-SYNTAX                \
+	    llvm_main_file=foundry                           \
+	    EXTRA_SOURCE_FILES="$(EXTRA_SOURCES)"            \
+	    KOMPILE_OPTS="$(KOMPILE_OPTS)"                   \
+	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"	     \
+	    K_INCLUDE_DIR=$(K_INCLUDE_DIR)
 
 # Testing
 # -------
@@ -243,7 +263,7 @@ $(ELROND_LOADED_JSON): $(ELROND_RUNTIME)
 # Elrond Tests
 # ------------
 
-TEST_MANDOS := python3 run-elrond-tests.py
+TEST_MANDOS := python3 run_elrond_tests.py
 
 
 ## Mandos Test

@@ -138,13 +138,13 @@ callTx(
   , "testContract"
   , 0, .List
   , "smallIntGetUnsignedArgumentTest"
-  , ListItem(Int2Bytes(1, BE, Signed)) ListItem(Int2Bytes(123, BE, Unsigned))
+  , ListItemWrap(Int2Bytes(1, BE, Signed)) ListItemWrap(Int2Bytes(123, BE, Unsigned))
   , 0
   , 0
 )
 
 checkExpectStatus(OK)
-checkExpectOut(ListItem(Int2Bytes(123, BE, Unsigned)))
+checkExpectOut(ListItemWrap(Int2Bytes(123, BE, Unsigned)))
 
 
 ;; pass 1 argument, get 2nd, should fail
@@ -153,7 +153,7 @@ callTx(
   , "testContract"
   , 0, .List
   , "smallIntGetUnsignedArgumentTest"
-  , ListItem(Int2Bytes(1, BE, Signed))
+  , ListItemWrap(Int2Bytes(1, BE, Signed))
   , 0
   , 0
 )
@@ -168,7 +168,7 @@ callTx(
   , "testContract"
   , 0, .List
   , "smallIntGetUnsignedArgumentTest"
-  , ListItem(Int2Bytes(-1, BE, Signed)) ListItem(Int2Bytes(123, BE, Unsigned))
+  , ListItemWrap(Int2Bytes(-1, BE, Signed)) ListItemWrap(Int2Bytes(123, BE, Unsigned))
   , 0
   , 0
 )
@@ -183,8 +183,8 @@ callTx(
   , "testContract"
   , 0, .List
   , "smallIntGetUnsignedArgumentTest"
-  , ListItem(Int2Bytes(1, BE, Signed))
-    ListItem(Int2Bytes(maxUInt64 +Int 5, BE, Unsigned))
+  , ListItemWrap(Int2Bytes(1, BE, Signed))
+    ListItemWrap(Int2Bytes(maxUInt64 +Int 5, BE, Unsigned))
   , 0
   , 0
 )

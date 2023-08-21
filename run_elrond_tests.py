@@ -19,6 +19,10 @@ from kwasm_ast import KString, KInt, KBytes
 def flatten(l):
     return [item for sublist in l for item in sublist]
 
+def wrapBytes(bs: KInner):
+    assert bs.sort == KSort('Bytes')
+    return KApply('wrapBytes', [bs])
+
 def KWasmString(value):
     return KToken('"%s"' % value, 'WasmStringToken')
 
@@ -61,7 +65,6 @@ def config_to_kast_term(config):
 WASM_definition_main_file = 'mandos'
 WASM_definition_llvm_dir = Path('.build/defn/llvm')
 WASM_definition_llvm_kompiled_dir = WASM_definition_llvm_dir / (WASM_definition_main_file + '-kompiled')
-KRunner = KRun(WASM_definition_llvm_kompiled_dir)
 
 addr_prefix   = "address:"
 sc_prefix     = "sc:"
@@ -254,7 +257,8 @@ def mandos_argument_to_kbytes(argument: str):
 
 def mandos_arguments_to_klist(arguments: list):
     tokenized = list(map(lambda x: mandos_argument_to_kbytes(x), arguments))
-    return ListBytes(tokenized)
+    wrapped = list(map(wrapBytes, tokenized))
+    return ListBytes(wrapped)
 
 def mandos_to_set_account(address, sections, filename, output_dir):
     """Creates a K account cell from a Mandos account description. """
@@ -269,6 +273,7 @@ def mandos_to_set_account(address, sections, filename, output_dir):
             code_value = file_to_module_decl(code_path, output_dir)
 
     storage_pairs = [ (mandos_argument_to_kbytes(k), mandos_argument_to_kbytes(v)) for (k, v) in sections.get('storage', {}).items() ]
+    storage_pairs = [ (wrapBytes(k), wrapBytes(v)) for (k, v) in storage_pairs ]
     storage_value = KMapBytesToBytes(storage_pairs)
 
     set_account_steps = [KApply('setAccount', [address_value, nonce_value, balance_value, code_value, owner_value, storage_value])]
@@ -305,6 +310,7 @@ def mandos_to_check_account(address, sections, filename):
             k_bytes = mandos_argument_to_kbytes(k)
             v_bytes = mandos_argument_to_kbytes(v)
             storage_pairs.append((k_bytes, v_bytes))
+        storage_pairs = [ (wrapBytes(k), wrapBytes(v)) for (k, v) in storage_pairs ]
         storage_value = KMapBytesToBytes(storage_pairs)
         k_steps.append(KApply('checkAccountStorage', [address_value, storage_value]))
     if ('code' in sections) and (sections['code'] != '*'):
@@ -605,7 +611,7 @@ def get_steps_as_kseq(filename, output_dir):
             raise Exception('Step %s not implemented yet' % step['step'])
     return k_steps
 
-def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
+def run_test_file(krun: KRun, template_wasm_config, test_file_path, output_dir, cmd_args):
     global args
     test_name = os.path.basename(test_file_path)
     k_steps = get_steps_as_kseq(test_file_path, output_dir)
@@ -627,13 +633,13 @@ def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
 
         # Run: generate a new JSON as a temporary file, then read that as the new wasm state.
         if cmd_args.log_level != 'none':
-            log_intermediate_state("%s_%d_%s.pre" % (test_name, i, step_name), init_config, output_dir)
+            log_intermediate_state(krun, "%s_%d_%s.pre" % (test_name, i, step_name), init_config, output_dir)
 
-        new_config = krun_config(init_config=init_config)
+        new_config = krun_config(krun, init_config=init_config)
         final_config = new_config
 
         if cmd_args.log_level != 'none':
-            log_intermediate_state("%s_%d_%s" % (test_name, i, step_name), final_config, output_dir)
+            log_intermediate_state(krun, "%s_%d_%s" % (test_name, i, step_name), final_config, output_dir)
 
         # Check if the k cell is empty
         symbolic_config, init_subst = split_config_from(new_config)
@@ -644,18 +650,18 @@ def run_test_file(template_wasm_config, test_file_path, output_dir, cmd_args):
 
     return final_config
 
-def krun_config(init_config: KInner) -> KInner:
-    kore_config = KRunner.kast_to_kore(init_config, sort=KSort('GeneratedTopCell'))
-    kore_config = KRunner.run_kore_term(kore_config)
-    return KRunner.kore_to_kast(kore_config)
+def krun_config(krun: KRun, init_config: KInner) -> KInner:
+    kore_config = krun.kast_to_kore(init_config, sort=KSort('GeneratedTopCell'))
+    kore_config = krun.run_kore_term(kore_config)
+    return krun.kore_to_kast(kore_config)
 
 # ... Setup Elrond Wasm
 
-def log_intermediate_state(name, config, output_dir):
+def log_intermediate_state(krun: KRun, name, config, output_dir):
     with open('%s/%s' % (output_dir, name), 'w') as f:
         f.write(json.dumps(config_to_kast_term(config)))
     with open('%s/%s.pretty.k' % (output_dir, name), 'w') as f:
-        pretty = KRunner.pretty_print(config)
+        pretty = krun.pretty_print(config)
         f.write(pretty)
 
 # Main Script
@@ -670,6 +676,8 @@ def run_tests():
     args = testArgs.parse_args()
     tests = args.files
 
+    krun = KRun(WASM_definition_llvm_kompiled_dir)
+    
     with open('src/elrond-runtime.loaded.json', 'r') as f:
         runtime_json = json.load(f)
         template_wasm_config = KInner.from_dict(runtime_json['term'])
@@ -688,7 +696,7 @@ def run_tests():
         with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
             f.write(json.dumps(config_to_kast_term(template_wasm_config)))
 
-        run_test_file(template_wasm_config, test, tmpdir, args)
+        run_test_file(krun, template_wasm_config, test, tmpdir, args)
 
         if args.verbose:
             print('See %s' % tmpdir)

@@ -262,15 +262,21 @@ $(ELROND_LOADED_JSON): $(ELROND_RUNTIME)
 
 # Elrond Tests
 # ------------
+POETRY     := poetry -C pykelrond
+POETRY_RUN := $(POETRY) run
 
-TEST_MANDOS := python3 run_elrond_tests.py
+.PHONY: poetry-install
+poetry-install:
+	$(POETRY) install
+
+TEST_MANDOS := $(POETRY_RUN) mandos --definition-dir $(llvm_dir)/mandos-kompiled
 
 
 ## Mandos Test
 
 MANDOS_TESTS_DIR := tests/mandos
 mandos_tests=$(sort $(wildcard $(MANDOS_TESTS_DIR)/*.scen.json))
-mandos-test: $(llvm_kompiled)
+mandos-test: $(llvm_kompiled) poetry-install
 	$(TEST_MANDOS) $(mandos_tests)
 
 ## Adder Test
@@ -278,7 +284,7 @@ mandos-test: $(llvm_kompiled)
 ELROND_ADDER_DIR := $(ELROND_CONTRACT_EXAMPLES)/adder
 elrond_adder_tests=$(shell find $(ELROND_ADDER_DIR) -name "*.scen.json")
 
-test-elrond-adder: $(llvm_kompiled)
+test-elrond-adder: $(llvm_kompiled) poetry-install
 	mxpy contract build "$(ELROND_ADDER_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_adder_tests)
 
@@ -288,7 +294,7 @@ test-elrond-adder: $(llvm_kompiled)
 ELROND_CROWDFUNDING_DIR := $(ELROND_CONTRACT_EXAMPLES)/crowdfunding-esdt
 elrond_crowdfunding_tests=$(shell find $(ELROND_CROWDFUNDING_DIR) -name "*.scen.json")
 
-test-elrond-crowdfunding-esdt: $(llvm_kompiled)
+test-elrond-crowdfunding-esdt: $(llvm_kompiled) poetry-install
 	mxpy contract build "$(ELROND_CROWDFUNDING_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_crowdfunding_tests)
 
@@ -297,7 +303,7 @@ test-elrond-crowdfunding-esdt: $(llvm_kompiled)
 ELROND_MULTISIG_DIR=$(ELROND_CONTRACT_EXAMPLES)/multisig
 elrond_multisig_tests=$(shell cat tests/multisig.test)
 
-test-elrond-multisig: $(llvm_kompiled)
+test-elrond-multisig: $(llvm_kompiled) poetry-install
 	mxpy contract build "$(ELROND_MULTISIG_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_multisig_tests)
 
@@ -313,7 +319,7 @@ $(ELROND_BASIC_FEATURES_WASM):
 # TODO optimize test runner and enable logging
 test-elrond-basic-features: $(elrond_basic_features_tests:=.mandos)
 
-$(ELROND_BASIC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_BASIC_FEATURES_WASM)
+$(ELROND_BASIC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_BASIC_FEATURES_WASM) poetry-install
 	$(TEST_MANDOS) $(ELROND_BASIC_FEATURES_DIR)/scenarios/$*.scen.json --log-level none
 
 ## Alloc Features Test
@@ -328,7 +334,7 @@ $(ELROND_ALLOC_FEATURES_WASM):
 # TODO optimize test runner and enable logging
 test-elrond-alloc-features: $(elrond_alloc_features_tests:=.mandos)
 
-$(ELROND_ALLOC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_ALLOC_FEATURES_WASM)
+$(ELROND_ALLOC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_ALLOC_FEATURES_WASM) poetry-install
 	$(TEST_MANDOS) $(ELROND_ALLOC_FEATURES_DIR)/scenarios/$*.scen.json --log-level none
 
 # Custom contract tests
@@ -343,7 +349,7 @@ ELROND_ADDERCALLER_DIR := tests/contracts/addercaller
 elrond_addercaller_tests=$(shell find $(ELROND_ADDERCALLER_DIR) -name "*.scen.json")
 ELROND_MYADDER_DIR := tests/contracts/myadder
 
-test-elrond-addercaller: $(llvm_kompiled)
+test-elrond-addercaller: $(llvm_kompiled) poetry-install
 	mxpy contract build "$(ELROND_MYADDER_DIR)" --wasm-symbols
 	mxpy contract build "$(ELROND_ADDERCALLER_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_addercaller_tests)
@@ -354,7 +360,7 @@ ELROND_CALLER_DIR := tests/contracts/caller
 ELROND_CALLEE_DIR := tests/contracts/callee
 elrond_callercallee_tests=$(shell find $(ELROND_CALLER_DIR) -name "*.scen.json")
 
-test-elrond-callercallee: $(llvm_kompiled)
+test-elrond-callercallee: $(llvm_kompiled) poetry-install
 	mxpy contract build "$(ELROND_CALLER_DIR)" --wasm-symbols
 	mxpy contract build "$(ELROND_CALLEE_DIR)" --wasm-symbols
 	$(TEST_MANDOS) $(elrond_callercallee_tests)

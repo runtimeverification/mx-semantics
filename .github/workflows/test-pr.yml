@@ -12,18 +12,10 @@ jobs:
     name: 'Simple Tests'
     timeout-minutes: 30
     steps:
-      - name: Checkout
+      - name: 'Check out code'
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.JENKINS_GITHUB_PAT }}
-      - name: Checkout submodules
-        env: 
-          GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}
-        run: |
-          # https://gist.github.com/taoyuan/bfa3ff87e4b5611b5cbe ; for a repository we don't control the submodules over. 
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          git config --global url."https://".insteadOf git://
-          git submodule update --init --recursive
+        with:    
+          submodules: recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
@@ -47,18 +39,10 @@ jobs:
     needs: [simple-tests]
     timeout-minutes: 120
     steps:
-      - name: Checkout
+      - name: 'Check out code'
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.JENKINS_GITHUB_PAT }}
-      - name: Checkout submodules
-        env: 
-          GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}
-        run: |
-          # https://gist.github.com/taoyuan/bfa3ff87e4b5611b5cbe ; for a repository we don't control the submodules over. 
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          git config --global url."https://".insteadOf git://
-          git submodule update --init --recursive
+        with:    
+          submodules: recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
@@ -80,18 +64,10 @@ jobs:
     needs: [feature-tests]
     timeout-minutes: 60
     steps:
-      - name: Checkout
+      - name: 'Check out code'
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.JENKINS_GITHUB_PAT }}
-      - name: Checkout submodules
-        env: 
-          GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}
-        run: |
-          # https://gist.github.com/taoyuan/bfa3ff87e4b5611b5cbe ; for a repository we don't control the submodules over. 
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          git config --global url."https://".insteadOf git://
-          git submodule update --init --recursive
+        with:    
+          submodules: recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
@@ -115,18 +91,10 @@ jobs:
     needs: [feature-tests]
     timeout-minutes: 30
     steps:
-      - name: Checkout
+      - name: 'Check out code'
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.JENKINS_GITHUB_PAT }}
-      - name: Checkout submodules
-        env: 
-          GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}
-        run: |
-          # https://gist.github.com/taoyuan/bfa3ff87e4b5611b5cbe ; for a repository we don't control the submodules over. 
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          git config --global url."https://".insteadOf git://
-          git submodule update --init --recursive
+        with:    
+          submodules: recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:

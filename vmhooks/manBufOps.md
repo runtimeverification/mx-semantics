@@ -25,7 +25,7 @@ module MANBUFOPS
     syntax BytesResult ::= getBuffer(Int)                                   [function, total]
  // ---------------------------------------------------------------------------------------------
     rule [[ getBuffer(BUFFER_IDX) => {Bs}:>BytesResult ]]
-      <bufferHeap> ... wrap(BUFFER_IDX) Int2Bytes|-> Bs:Bytes ... </bufferHeap>
+      <bufferHeap> ... wrap(BUFFER_IDX) Int2Bytes|-> wrap(Bs:Bytes) ... </bufferHeap>
 
     rule getBuffer(_) => {Err("no managed buffer under the given handle")}:>BytesResult [owise]
 

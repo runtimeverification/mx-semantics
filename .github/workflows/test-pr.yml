@@ -22,6 +22,8 @@ jobs:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build RELEASE=true -j4'
+      - name: 'Install Pykelrond'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
       - name: 'Run Python Unit Tests'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm unittest-python'
       - name: 'Run Simple Test'
@@ -49,6 +51,8 @@ jobs:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
+      - name: 'Install Pykelrond'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
       - name: 'Run Basic Feature Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features -j6'
       - name: 'Run Alloc Feature Test'
@@ -74,6 +78,8 @@ jobs:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
+      - name: 'Install Pykelrond'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
       - name: 'Run Adder Contract Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-adder'
       - name: 'Run Crowdfunding ESDT Contract Test'
@@ -101,6 +107,8 @@ jobs:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
+      - name: 'Install Pykelrond'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
       - name: 'Run Custom Contract Tests'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-custom-contracts'
       - name: 'Tear down Docker'

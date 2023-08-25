@@ -267,7 +267,7 @@ POETRY_RUN := $(POETRY) run
 
 .PHONY: poetry-install
 poetry-install:
-	$(POETRY) install
+	$(POETRY) install --no-ansi
 
 TEST_MANDOS := $(POETRY_RUN) mandos --definition-dir $(llvm_dir)/mandos-kompiled
 

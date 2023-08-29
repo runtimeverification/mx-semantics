@@ -271,6 +271,13 @@ poetry-install:
 
 TEST_MANDOS := $(POETRY_RUN) mandos --definition-dir $(llvm_dir)/mandos-kompiled
 
+# Cargo resolves dependencies to the latest version that satisfy requirements without taking
+# the rustc version into account, which leads to the following error:
+#
+# > error: package `clap_derive v4.4.0` cannot be built because it requires rustc 1.70.0 or newer,
+# > while the currently active rustc version is 1.69.0-nightly
+# 
+# To avoid this, we enforce minimal version resolution before building the contract
 mxpy-build/%:
 	if [ ! -f "$*/Cargo.lock" ]; then \
 	    cargo generate-lockfile --manifest-path $*/Cargo.toml -Z minimal-versions ; \

@@ -3,7 +3,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "pykelrond"
+name = "kmultiversx"
 version = "0.1.0"
 description = "Python tools for Elrond semantics"
 authors = [
@@ -53,5 +53,5 @@ skip-string-normalization = true
 disallow_untyped_defs = true
 
 [tool.poetry.scripts]
-mandos = "pykelrond.scenario:run_tests"
-foundry = "pykelrond.foundry:main"
+mandos = "kmultiversx.scenario:run_tests"
+foundry = "kmultiversx.foundry:main"

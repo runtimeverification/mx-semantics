@@ -262,7 +262,7 @@ $(ELROND_LOADED_JSON): $(ELROND_RUNTIME)
 
 # Elrond Tests
 # ------------
-POETRY     := poetry -C pykelrond
+POETRY     := poetry -C kmultiversx
 POETRY_RUN := $(POETRY) run
 
 .PHONY: poetry-install

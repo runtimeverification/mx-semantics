@@ -22,7 +22,7 @@ from pyk.utils import ensure_dir_path
 from pykwasm import wasm2kast
 from pykwasm.kwasm_ast import KInt
 
-from pykelrond.scenario import (
+from kmultiversx.scenario import (
     KList,
     KMapBytesToBytes,
     KWasmString,

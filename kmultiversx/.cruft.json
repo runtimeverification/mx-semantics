@@ -4,9 +4,9 @@
   "checkout": null,
   "context": {
     "cookiecutter": {
-      "project_name": "pykelrond",
-      "project_slug": "pykelrond",
-      "package_name": "pykelrond",
+      "project_name": "kmultiversx",
+      "project_slug": "kmultiversx",
+      "package_name": "kmultiversx",
       "version": "0.1.0",
       "description": "Python tools for Elrond semantics",
       "author_name": "Runtime Verification, Inc.",

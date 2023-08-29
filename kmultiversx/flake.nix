@@ -1,5 +1,5 @@
 {
-  description = "pykelrond - Python tools for Elrond semantics";
+  description = "kmultiversx - Python tools for Elrond semantics";
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-22.05";
     flake-utils.url = "github:numtide/flake-utils";
@@ -10,7 +10,7 @@
       allOverlays = [
         poetry2nix.overlay
         (final: prev: {
-          pykelrond = prev.poetry2nix.mkPoetryApplication {
+          kmultiversx = prev.poetry2nix.mkPoetryApplication {
             python = prev.python310;
             projectDir = ./.;
             groups = [];
@@ -32,8 +32,8 @@
         };
       in {
         packages = rec {
-          inherit (pkgs) pykelrond;
-          default = pykelrond;
+          inherit (pkgs) kmultiversx;
+          default = kmultiversx;
         };
       }) // {
         overlay = nixpkgs.lib.composeManyExtensions allOverlays;

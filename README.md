@@ -40,17 +40,17 @@ $ make elrond-clean-sources
 $ make elrond-loaded
 ```
 
-### Installing `pykelrond`
+### Installing `kmultiversx`
 
-`pykelrond` is a Python package providing libraries and CLI tools to interact with the semantics.
-To install `pykelrond` and its dependencies into a virtual environment, run
+`kmultiversx` is a Python package providing libraries and CLI tools to interact with the semantics.
+To install `kmultiversx` and its dependencies into a virtual environment, run
 
 ```
 # from the project's root directory
-poetry -C pykelrond install
+poetry -C kmultiversx install
 ```
 
-After the installation, the Python package `pykelrond` and CLI tools `mandos` and `foundry` will be available via the `poetry run` command
+After the installation, the Python package `kmultiversx` and CLI tools `mandos` and `foundry` will be available via the `poetry run` command
 
 ```
 poetry -C run mandos --help
@@ -60,15 +60,15 @@ poetry -C run foundry --help
 Or you can activate the virtual environment managed by `poetry` and use the commands directly
 
 ```
-poetry -C pykelrond shell
+poetry -C kmultiversx shell
 mandos --help
 ```
 
-Alternatively, you can install `pykelrond` globally
+Alternatively, you can install `kmultiversx` globally
 
 ```
-make -C pykelrond build
-pip install pykelrond/dist/*.whl
+make -C kmultiversx build
+pip install kmultiversx/dist/*.whl
 mandos --help
 foundry --help
 ```
@@ -84,7 +84,7 @@ $ mxpy contract build "<path-to-contract-directory>" --wasm-symbols
 Then run Mandos scenarios with:
 
 ```shell
-poetry -C pykelrond run mandos --definition .build/defn/llvm/mandos-kompiled <path-to-mandos-file>
+poetry -C kmultiversx run mandos --definition .build/defn/llvm/mandos-kompiled <path-to-mandos-file>
 ```
 
 Or with a globally installed instance

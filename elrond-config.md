@@ -170,9 +170,18 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
-           <storage> STORAGE => #updateStorage(STORAGE, KEY, VALUE) </storage>
+           <storage> STORAGE => STORAGE{{KEY <- undef}} </storage>
            ...
          </account>
+         requires VALUE ==K .Bytes
+    rule <instrs> #writeToStorage(KEY, VALUE) => i32.const #storageStatus(STORAGE, KEY, VALUE) ... </instrs>
+         <callee> CALLEE </callee>
+         <account>
+           <address> CALLEE </address>
+           <storage> STORAGE => STORAGE{{KEY <- VALUE}} </storage>
+           ...
+         </account>
+         requires VALUE =/=K .Bytes
 
     rule [writeToStorage-unknown-addr]:
         <instrs> #writeToStorage(_, _) => #throwException(ExecutionFailed, "writeToStorage: unknown account address") ... </instrs>
@@ -212,11 +221,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         // <bytesStack> ADDR : _ : _ </bytesStack>
       [owise]
 
-    syntax MapBytesToBytes ::= #updateStorage ( MapBytesToBytes , key : Bytes , val : Bytes ) [function, total]
- // ----------------------------------------------------------------------------------------
-    rule #updateStorage(STOR, KEY, VAL) => STOR {{KEY <- undef}} requires VAL  ==K .Bytes
-    rule #updateStorage(STOR, KEY, VAL) => STOR {{KEY <- VAL  }} requires VAL =/=K .Bytes
-
     syntax Bytes ::= #lookupStorage ( MapBytesToBytes , key: Bytes ) [function, total]
  // ---------------------------------------------------------------
     rule #lookupStorage(STORAGE, KEY) => STORAGE{{KEY}} orDefault .Bytes
@@ -243,7 +247,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ### Integer Operation
 
 ```k
-    syntax Int ::= #cmpInt ( Int , Int ) [function, total]
+    syntax Int ::= #cmpInt ( Int , Int ) [function, total, symbol, klabel(cmpInt), smtlib(cmpInt)]
  // -----------------------------------------------------------
     rule #cmpInt(I1, I2) => -1 requires I1  <Int I2
     rule #cmpInt(I1, I2) =>  1 requires I1  >Int I2

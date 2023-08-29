@@ -1,11 +1,10 @@
-requires "bytes-type.k"
+require "bytes-type.k"
 
 module LIST-BYTES
   imports private INT-SYNTAX
   imports private BASIC-K
-  
   imports BYTES-TYPE
-  
+
   syntax Bytes
 
   syntax ListBytes [hook(LIST.List)]
@@ -26,7 +25,7 @@ module LIST-BYTES
   syntax WrappedBytes ::= ListBytes "[" Int "]"
           [ function, hook(LIST.get), klabel(ListBytes:get), symbol ]
   syntax ListBytes ::= ListBytes "[" index: Int "<-" value: WrappedBytes "]"
-          [function, hook(LIST.update), klabel(ListBytes:set)]
+          [function, hook(LIST.update), symbol, klabel(ListBytes:set)]
   syntax ListBytes ::= makeListBytes(length: Int, value: WrappedBytes)
           [function, hook(LIST.make)]
   syntax ListBytes ::= updateList(dest: ListBytes, index: Int, src: ListBytes)
@@ -36,27 +35,26 @@ module LIST-BYTES
   syntax ListBytes ::= range(ListBytes, fromFront: Int, fromBack: Int)
           [function, hook(LIST.range), klabel(ListBytes:range), symbol]
   syntax Bool ::= WrappedBytes "in" ListBytes
-          [function, total, hook(LIST.in), klabel(_inListBytes_)]
+          [function, total, hook(LIST.in), symbol, klabel(_inListBytes_)]
   syntax Int ::= size(ListBytes)
-          [function, total, hook(LIST.size), klabel (sizeListBytes), smtlib(smt_seq_len)]
+          [function, total, hook(LIST.size), symbol, klabel (sizeListBytes), smtlib(smt_seq_len)]
 endmodule
 
 module LIST-BYTES-EXTENSIONS
   imports BOOL
   imports INT
   imports LIST-BYTES
-  imports BYTES-TYPE
 
   syntax WrappedBytes ::= ListBytes "[" Int "]" "orDefault" WrappedBytes
           [ function, total, klabel(ListBytes:getOrDefault), symbol ]
 
   syntax Bytes ::= ListBytes "{{" Int "}}"
-                 [function, klabel(ListBytes:primitiveLookup)]
+                 [function, symbol, klabel(ListBytes:primitiveLookup)]
 // -----------------------------------------------------------
   rule L:ListBytes {{ I:Int }} => unwrap( L[ I ] )
   
   syntax Bytes ::= ListBytes "{{" Int "}}" "orDefault" Bytes
-                 [ function, total, klabel(ListBytes:primitiveLookupOrDefault) ]
+                 [ function, total, symbol, klabel(ListBytes:primitiveLookupOrDefault) ]
 // -----------------------------------------------------------------------------
   rule L:ListBytes {{ I:Int }} orDefault Value:Bytes
       => unwrap( L [I] orDefault wrap(Value) )
@@ -78,7 +76,8 @@ module LIST-BYTES-EXTENSIONS
     requires notBool (0 -Int size(L) <=Int I andBool I <Int size(L))
     [simplification]
 
-  syntax ListBytes ::= ListItemWrap( Bytes )    [function, total, klabel(ListBytesItemWrap)]
+  syntax ListBytes ::= ListItemWrap( Bytes )
+      [function, total, symbol, klabel(ListBytesItemWrap)]
   rule ListItemWrap( B:Bytes ) => ListItem(wrap(B))
 
 endmodule

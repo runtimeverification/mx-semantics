@@ -46,15 +46,15 @@ $ make elrond-loaded
 To install `kmultiversx` and its dependencies into a virtual environment, run
 
 ```
-# from the project's root directory
+# from the 'elrond-semantics' directory
 poetry -C kmultiversx install
 ```
 
 After the installation, the Python package `kmultiversx` and CLI tools `mandos` and `foundry` will be available via the `poetry run` command
 
 ```
-poetry -C run mandos --help
-poetry -C run foundry --help
+poetry -C kmultiversx run mandos --help
+poetry -C kmultiversx run foundry --help
 ```
 
 Or you can activate the virtual environment managed by `poetry` and use the commands directly

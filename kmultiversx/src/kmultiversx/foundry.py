@@ -52,7 +52,7 @@ def load_input_json(test_dir: str) -> dict:
         with open(join(test_dir, INPUT_FILE_NAME), 'r') as f:
             return json.load(f)
     except FileNotFoundError:
-        raise FileNotFoundError(f'"{INPUT_FILE_NAME}" not found in "{test_dir}"') from None
+        raise FileNotFoundError(f'{INPUT_FILE_NAME!r} not found in "{test_dir!r}"') from None
 
 
 def load_wasm(filename: str) -> KInner:

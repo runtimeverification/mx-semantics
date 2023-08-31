@@ -7,29 +7,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  python-code-quality-checks:
+    name: 'Code Quality Checks'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Check out code'
+        uses: actions/checkout@v3
+        with:    
+          submodules: recursive
+      - name: 'Install Poetry'
+        uses: Gr1N/setup-poetry@v8
+      - name: 'Build and run code quality checks'
+        run: make -C kmultiversx check
   simple-tests:
     runs-on: [self-hosted, linux, normal]
     name: 'Simple Tests'
+    needs: [python-code-quality-checks]
     timeout-minutes: 30
     steps:
-      - name: Checkout
+      - name: 'Check out code'
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.JENKINS_GITHUB_PAT }}
-      - name: Checkout submodules
-        env: 
-          GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}
-        run: |
-          # https://gist.github.com/taoyuan/bfa3ff87e4b5611b5cbe ; for a repository we don't control the submodules over. 
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          git config --global url."https://".insteadOf git://
-          git submodule update --init --recursive
+        with:    
+          submodules: recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build RELEASE=true -j4'
+      - name: 'Install Kmultiversx'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
       - name: 'Run Python Unit Tests'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm unittest-python'
       - name: 'Run Simple Test'
@@ -47,24 +54,18 @@ jobs:
     needs: [simple-tests]
     timeout-minutes: 120
     steps:
-      - name: Checkout
+      - name: 'Check out code'
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.JENKINS_GITHUB_PAT }}
-      - name: Checkout submodules
-        env: 
-          GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}
-        run: |
-          # https://gist.github.com/taoyuan/bfa3ff87e4b5611b5cbe ; for a repository we don't control the submodules over. 
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          git config --global url."https://".insteadOf git://
-          git submodule update --init --recursive
+        with:    
+          submodules: recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
+      - name: 'Install Kmultiversx'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
       - name: 'Run Basic Feature Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features -j6'
       - name: 'Run Alloc Feature Test'
@@ -80,24 +81,18 @@ jobs:
     needs: [feature-tests]
     timeout-minutes: 60
     steps:
-      - name: Checkout
+      - name: 'Check out code'
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.JENKINS_GITHUB_PAT }}
-      - name: Checkout submodules
-        env: 
-          GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}
-        run: |
-          # https://gist.github.com/taoyuan/bfa3ff87e4b5611b5cbe ; for a repository we don't control the submodules over. 
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          git config --global url."https://".insteadOf git://
-          git submodule update --init --recursive
+        with:    
+          submodules: recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
+      - name: 'Install Kmultiversx'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
       - name: 'Run Adder Contract Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-adder'
       - name: 'Run Crowdfunding ESDT Contract Test'
@@ -115,24 +110,18 @@ jobs:
     needs: [feature-tests]
     timeout-minutes: 30
     steps:
-      - name: Checkout
+      - name: 'Check out code'
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.JENKINS_GITHUB_PAT }}
-      - name: Checkout submodules
-        env: 
-          GITHUB_TOKEN: ${{ secrets.JENKINS_GITHUB_PAT }}
-        run: |
-          # https://gist.github.com/taoyuan/bfa3ff87e4b5611b5cbe ; for a repository we don't control the submodules over. 
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          git config --global url."https://".insteadOf git://
-          git submodule update --init --recursive
+        with:    
+          submodules: recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
+      - name: 'Install Kmultiversx'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
       - name: 'Run Custom Contract Tests'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-custom-contracts'
       - name: 'Tear down Docker'

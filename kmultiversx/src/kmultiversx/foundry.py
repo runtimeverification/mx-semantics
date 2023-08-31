@@ -1,19 +1,42 @@
+from __future__ import annotations
+
 import argparse
 import glob
+import json
+import sys
 from os.path import join
-from typing import Iterable, Mapping
+from pathlib import Path
+from typing import TYPE_CHECKING, Iterable, Mapping, cast
 
-from hypothesis import given, settings, Verbosity
-from hypothesis.strategies import SearchStrategy, integers, tuples
-from pyk.prelude.utils import token
-from pyk.prelude.collections import list_of, map_of
-from pyk.kast.inner import KSort, KVariable
-from pyk.cterm import CTerm, build_claim, KClaim
-from pyk.utils import ensure_dir_path
+from hypothesis import Verbosity, given, settings
+from hypothesis.strategies import integers, tuples
+from pyk.cli.utils import dir_path
+from pyk.cterm import CTerm, build_claim
+from pyk.kast.inner import KApply, KSequence, KSort, KToken, KVariable, Subst
+from pyk.ktool.krun import KRun
+from pyk.prelude.collections import list_of, map_of, set_of
 from pyk.prelude.kint import leInt
 from pyk.prelude.ml import mlEqualsTrue
+from pyk.prelude.utils import token
+from pyk.utils import ensure_dir_path
+from pykwasm import wasm2kast
+from pykwasm.kwasm_ast import KInt
 
-from run_elrond_tests import *
+from kmultiversx.scenario import (
+    KList,
+    KMapBytesToBytes,
+    KWasmString,
+    ListBytes,
+    get_steps_sc_call,
+    mandos_argument_to_kbytes,
+    split_config_from,
+    wrapBytes,
+)
+
+if TYPE_CHECKING:
+    from hypothesis.strategies import SearchStrategy
+    from pyk.cterm import KClaim
+    from pyk.kast.inner import KInner
 
 INPUT_FILE_NAME = 'foundry.json'
 TEST_PREFIX = 'test_'
@@ -22,14 +45,14 @@ ROOT_ACCT_ADDR = 'address:k'
 TEST_SC_ADDR = 'sc:k-test'
 
 REC_LIMIT = 4000
-sys.setrecursionlimit(REC_LIMIT)
+
 
 def load_input_json(test_dir: str) -> dict:
     try:
         with open(join(test_dir, INPUT_FILE_NAME), 'r') as f:
             return json.load(f)
-    except FileNotFoundError as e:
-        raise FileNotFoundError('"{INPUT_FILE_NAME}" not found in "{test_dir}"')
+    except FileNotFoundError:
+        raise FileNotFoundError(f'{INPUT_FILE_NAME!r} not found in "{test_dir!r}"') from None
 
 
 def load_wasm(filename: str) -> KInner:
@@ -47,9 +70,7 @@ def find_test_wasm_path(test_dir: str) -> str:
 
 
 def load_contract_wasms(contract_wasm_paths: Iterable[str]) -> dict[bytes, KInner]:
-    contract_wasm_modules = {
-        bytes(f, 'ascii'): load_wasm(f) for f in contract_wasm_paths
-    }
+    contract_wasm_modules = {bytes(f, 'ascii'): load_wasm(f) for f in contract_wasm_paths}
 
     return contract_wasm_modules
 
@@ -58,9 +79,7 @@ def set_exit_code(i: int) -> KInner:
     return KApply('setExitCode', [KInt(i)])
 
 
-def deploy_test(
-    krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInner]
-) -> tuple[KInner, dict[str, KInner]]:
+def deploy_test(krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInner]) -> tuple[KInner, dict[str, KInner]]:
     """
     1. create a main account: 'k'
     2. reserve a new address for the test contract: owner = 'k', contract address = 'k-test'
@@ -87,23 +106,17 @@ def deploy_test(
     # deploy the test contract
     arguments = ListBytes(wrapBytes(token(k)) for k in contract_wasms)
     gas = token(5000000000000)
-    deploy_cmd = KApply(
-        'deployTx', [k_addr, token(0), test_wasm, arguments, gas, token(0)]
-    )
+    deploy_cmd = KApply('deployTx', [k_addr, token(0), test_wasm, arguments, gas, token(0)])
 
     # initialization steps
-    init_steps = KSequence(
-        [set_exit_code(1), init_main_acct, new_address, deploy_cmd, set_exit_code(0)]
-    )
+    init_steps = KSequence([set_exit_code(1), init_main_acct, new_address, deploy_cmd, set_exit_code(0)])
 
     # create an empty config and embed init steps
     empty_conf = krun.definition.init_config(KSort('GeneratedTopCell'))
 
     conf, subst = split_config_from(empty_conf)
     subst['K_CELL'] = init_steps
-    subst['WASMSTORE_CELL'] = map_of(
-        {token(path): mod for path, mod in contract_wasms.items()}
-    )
+    subst['WASMSTORE_CELL'] = map_of({cast('KInner', token(path)): mod for path, mod in contract_wasms.items()})
     conf_with_steps = Subst(subst)(conf)
 
     _, sym_conf, subst = run_config_and_check_empty(krun, conf_with_steps)
@@ -114,15 +127,12 @@ def deploy_test(
 
 
 def run_config(krun: KRun, conf: KInner) -> KInner:
-    conf_kore = krun.kast_to_kore(conf, sort=KSort('GeneratedTopCell')) 
+    conf_kore = krun.kast_to_kore(conf, sort=KSort('GeneratedTopCell'))
     res_conf_kore = krun.run_kore_term(conf_kore, expect_rc=0)
     return krun.kore_to_kast(res_conf_kore)
 
 
-def run_config_and_check_empty(
-    krun: KRun, conf: KInner
-) -> tuple[KInner, KInner, dict[str, KInner]]:
-
+def run_config_and_check_empty(krun: KRun, conf: KInner) -> tuple[KInner, KInner, dict[str, KInner]]:
     final_conf = run_config(krun, conf)
     sym_conf, subst = split_config_from(final_conf)
     k_cell = subst['K_CELL']
@@ -134,9 +144,7 @@ def run_config_and_check_empty(
     return final_conf, sym_conf, subst
 
 
-def run_test(
-    krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoint: str, args: tuple[str, ...]
-):
+def run_test(krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoint: str, args: tuple[str, ...]) -> None:
     step = {
         'tx': {
             'from': ROOT_ACCT_ADDR,
@@ -149,9 +157,7 @@ def run_test(
         },
         'expect': {'status': '0'},
     }
-    tx_steps = KSequence(
-        [set_exit_code(1)] + get_steps_sc_call(step) + [set_exit_code(0)]
-    )
+    tx_steps = KSequence([set_exit_code(1)] + get_steps_sc_call(step) + [set_exit_code(0)])
 
     subst = init_subst.copy()
     subst['K_CELL'] = tx_steps
@@ -163,6 +169,7 @@ def run_test(
         if rte.args[0].startswith('Command krun exited with code 1'):
             raise RuntimeError(f'Test failed for input input: {args}') from None
         raise rte
+
 
 # Test metadata
 
@@ -211,14 +218,9 @@ def arg_types_to_strategy(types: Iterable[str]) -> SearchStrategy[tuple[str, ...
 
 
 def test_with_hypothesis(
-    krun: KRun,
-    sym_conf: KInner,
-    init_subst: dict[str, KInner],
-    endpoint: str,
-    arg_types: Iterable[str]
+    krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoint: str, arg_types: Iterable[str]
 ) -> None:
-    
-    def test(args: tuple[str,...]):
+    def test(args: tuple[str, ...]) -> None:
         # set the recursion limit every time because hypothesis changes it
         if sys.getrecursionlimit() < REC_LIMIT:
             sys.setrecursionlimit(REC_LIMIT)
@@ -243,9 +245,8 @@ def run_concrete(
     sym_conf: KInner,
     init_subst: dict[str, KInner],
 ) -> None:
-
     for endpoint, arg_types in test_endpoints.items():
-        print(f'Testing "{endpoint}"')
+        print(f'Testing {endpoint !r}')
         test_with_hypothesis(krun, sym_conf, init_subst, endpoint, arg_types)
 
 
@@ -278,7 +279,6 @@ def generate_claim(
     sym_conf: KInner,
     init_subst: dict[str, KInner],
 ) -> KClaim:
-    
     root_acc = mandos_argument_to_kbytes(ROOT_ACCT_ADDR)
     test_sc = mandos_argument_to_kbytes(TEST_SC_ADDR)
     vars, ctrs = make_vars_and_constraints(arg_types)
@@ -320,7 +320,6 @@ def generate_claim(
 
 
 def lhs_subst(init_subst: dict[str, KInner], steps: KInner) -> dict[str, KInner]:
-    
     subst = {
         'K_CELL': steps,
         'CHECKEDACCOUNTS_CELL': set_of(()),
@@ -354,7 +353,6 @@ def lhs_subst(init_subst: dict[str, KInner], steps: KInner) -> dict[str, KInner]
 
 
 def rhs_subst(init_subst: dict[str, KInner]) -> dict[str, KInner]:
-    
     subst = {
         'K_CELL': KSequence(),
         'CHECKEDACCOUNTS_CELL': set_of(()),
@@ -389,10 +387,7 @@ def var_to_bytes(var: KVariable) -> KInner:
     raise TypeError(f'Cannot convert sort {sort} to Bytes')
 
 
-def make_vars_and_constraints(
-    types: tuple[str, ...]
-) -> tuple[tuple[KVariable, ...], tuple[KInner, ...]]:
-
+def make_vars_and_constraints(types: tuple[str, ...]) -> tuple[tuple[KVariable, ...], tuple[KInner, ...]]:
     vars: tuple[KVariable, ...] = ()
     ctrs: tuple[KInner, ...] = ()
     for i, typ in enumerate(types):
@@ -404,9 +399,9 @@ def make_vars_and_constraints(
 
 
 def make_var_and_constraints(id: str, typ: str) -> tuple[KVariable, tuple[KInner, ...]]:
-    '''
+    """
     Create a K variable and constraints from a type
-    '''
+    """
 
     sort = type_to_sort(typ)
     var = KVariable(id, sort)
@@ -434,13 +429,18 @@ def type_to_constraint(typ: str, var: KVariable) -> tuple[KInner, ...]:
 # Main Script
 
 
-def main():
+def main() -> None:
     sys.setrecursionlimit(REC_LIMIT)
-    
+
     parser = argparse.ArgumentParser(description='Symbolic testing for MultiversX contracts')
     parser.add_argument(
-        '-d', '--directory', required=True, help='path to the test contract'
+        '--definition-dir',
+        default=None,
+        dest='definition_dir',
+        type=dir_path,
+        help='Path to Foundry LLVM definition to use.',
     )
+    parser.add_argument('-d', '--directory', required=True, help='path to the test contract')
     parser.add_argument(
         '--gen-claims',
         dest='gen_claims',
@@ -468,7 +468,7 @@ def main():
     wasm_paths = (join(test_dir, p) for p in input_json['contract_paths'])
     contract_wasms = load_contract_wasms(wasm_paths)
 
-    krun = KRun(Path('.build/defn/llvm/foundry-kompiled'))
+    krun = KRun(args.definition_dir)
 
     print('Initializing the test...')
     sym_conf, init_subst = deploy_test(krun, test_wasm, contract_wasms)
@@ -487,7 +487,3 @@ def main():
         generate_claims(krun, test_endpoints, sym_conf, init_subst, output_dir)
     else:
         run_concrete(krun, test_endpoints, sym_conf, init_subst)
-
-
-if __name__ == '__main__':
-    main()

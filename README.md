@@ -1,25 +1,23 @@
 Semantics of Elrond and Mandos
 ==============================
 
-This repository is work-in-progress, and currently a fork of [KWasm](https://github.com/kframework/wasm-semantics).
+This repository the semantics of the [MultiversX](https://multiversx.com/) (formerly Elrond) blockchain in K on top of WebAssembly semantics ([KWasm](https://github.com/kframework/wasm-semantics)).
 
-Elrond-specific code is in `elrond.md` and `run_elrond_tests.py`.
 
 ## Installation
 
 ### Dependencies
 
 * Python3
-* WABT
+* [WABT v1.0.13](https://github.com/WebAssembly/wabt/tree/1.0.13)
 * K framework ([version](./deps/wasm-semantics/deps/k_release))
-* `pyk` ([version](./deps/wasm-semantics/deps/pyk_release))
-* Crypto++
+* [Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer)
 * Rustup
 * [mxpy](https://docs.multiversx.com/sdk-and-tools/sdk-py/installing-mxpy/)
 
-See [Dockerfile](./Dockerfile) for installation.
+See [Dockerfile](./Dockerfile) for installation details.
 
-### Build
+### Building the semantics
 
 Compile the semantics with:
 
@@ -42,6 +40,39 @@ $ make elrond-clean-sources
 $ make elrond-loaded
 ```
 
+### Installing `kmultiversx`
+
+`kmultiversx` is a Python package providing libraries and CLI tools to interact with the semantics.
+To install `kmultiversx` and its dependencies into a virtual environment, run
+
+```
+# from the 'elrond-semantics' directory
+poetry -C kmultiversx install
+```
+
+After the installation, the Python package `kmultiversx` and CLI tools `mandos` and `foundry` will be available via the `poetry run` command
+
+```
+poetry -C kmultiversx run mandos --help
+poetry -C kmultiversx run foundry --help
+```
+
+Or you can activate the virtual environment managed by `poetry` and use the commands directly
+
+```
+poetry -C kmultiversx shell
+mandos --help
+```
+
+Alternatively, you can install `kmultiversx` globally
+
+```
+make -C kmultiversx build
+pip install kmultiversx/dist/*.whl
+mandos --help
+foundry --help
+```
+
 ## Run
 
 To run Mandos tests, first build the contract:
@@ -53,13 +84,13 @@ $ mxpy contract build "<path-to-contract-directory>" --wasm-symbols
 Then run Mandos scenarios with:
 
 ```shell
-$ python3 run_elrond_tests.py <path-to-mandos-file>
+poetry -C kmultiversx run mandos --definition .build/defn/llvm/mandos-kompiled <path-to-mandos-file>
 ```
 
-__Important__: `run_elrond_tests.py` makes use of Python modules implemented in the `wasm-semantics` submodule. For the time being, it requires setting the `PYTHONPATH` environment variable.
+Or with a globally installed instance
 
 ```shell
-$ export PYTHONPATH=$(pwd)/deps/wasm-semantics/binary-parser:$PYTHONPATH
+mandos --definition .build/defn/llvm/mandos-kompiled <path-to-mandos-file>
 ```
 
 Example:
@@ -69,7 +100,7 @@ $ mxpy contract build "deps/mx-sdk-rs/contracts/examples/multisig" --wasm-symbol
 ...
 INFO:projects.core:Build ran.
 INFO:projects.core:WASM file generated: /path/to/multisig/output/multisig.wasm
-$ python3 run_elrond_tests.py deps/mx-sdk-rs/contracts/examples/multisig/scenarios/changeBoard.scen.json
+$ mandos deps/mx-sdk-rs/contracts/examples/multisig/scenarios/changeBoard.scen.json
 ```
 
 ## Rule Coverage
@@ -214,12 +245,13 @@ Build the test contract by executing
 mxpy contract build <path to test contract>
 ```
 
-Run the `run_foundry.py` script with the test contract's path as the argument:
+
+Run the `foundry` tool with the test contract's path as the argument:
 
 ```shell
-python3 run_foundry.py --directory <path to test contract>
+foundry --definition-dir .build/defn/llvm/foundry-kompiled --directory <path to test contract>
 ```
 
-The `run_foundry.py` script will deploy the test contract using the arguments specified in the `foundry.json` file located in the test directory. It will extract the names and argument types of the test endpoints. Subsequently, the script will test these endpoints using random inputs generated with the `hypothesis` library, enabling fuzz testing. If it encounters an input that falsifies the assertions made in the test cases, it attempts to shrink the input and identify a minimal failing example.
+The `foundry` tool will deploy the test contract using the arguments specified in the `foundry.json` file located in the test directory. It will extract the names and argument types of the test endpoints. Subsequently, the script will test these endpoints using random inputs generated with the `hypothesis` library, enabling fuzz testing. If it encounters an input that falsifies the assertions made in the test cases, it attempts to shrink the input and identify a minimal failing example.
 
 By following these steps, you can efficiently and comprehensively evaluate your Smart Contracts, ensuring their correctness and reliability in various scenarios and inputs.

@@ -128,7 +128,7 @@ def deploy_test(krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInne
 
 def run_config(krun: KRun, conf: KInner) -> KInner:
     conf_kore = krun.kast_to_kore(conf, sort=KSort('GeneratedTopCell'))
-    res_conf_kore = krun.run_kore_term(conf_kore, expect_rc=0)
+    res_conf_kore = krun.run_kore_term(conf_kore)
     return krun.kore_to_kast(res_conf_kore)
 
 

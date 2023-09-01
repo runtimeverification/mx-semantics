@@ -7,7 +7,7 @@ import resource
 import subprocess
 import sys
 import tempfile
-from typing import Iterable, Optional, TypeVar
+from typing import Iterable, Optional
 
 from Cryptodome.Hash import keccak
 from pyk.cli.utils import dir_path
@@ -15,14 +15,9 @@ from pyk.kast.inner import KApply, KInner, KSequence, KSort, KToken, Subst
 from pyk.kast.manip import split_config_from
 from pyk.ktool.krun import KRun
 from pyk.prelude.collections import set_of
-from pykwasm import wasm2kast
 from pykwasm.kwasm_ast import KBytes, KInt, KString
 
-T = TypeVar('T')
-
-
-def flatten(l: list[list[T]]) -> list[T]:
-    return [item for sublist in l for item in sublist]
+from kmultiversx.utils import flatten, kast_to_json_str, krun_config, load_wasm
 
 
 def wrapBytes(bs: KToken) -> KInner:  # noqa: N802
@@ -72,10 +67,6 @@ def KList(  # noqa: N802
 
 def ListBytes(items: Iterable[KInner]) -> KInner:  # noqa: N802
     return KList(items, empty='.ListBytes', list_item='ListBytesItem', concat='_ListBytes_')
-
-
-def config_to_kast_term(config: KInner) -> dict:
-    return {'format': 'KAST', 'version': 2, 'term': config.to_dict()}
 
 
 ###############################
@@ -487,17 +478,10 @@ def register(with_name: str) -> KInner:
 
 def file_to_module_decl(filename: str, output_dir: str) -> KInner:
     if filename[-5:] == '.wasm':
-        return wasm_file_to_module_decl(filename)
+        return load_wasm(filename)
     if filename[-5:] == '.wast' or filename[-4:] == '.wat':
         return wat_file_to_module_decl(filename, output_dir)
     raise ValueError(f'Filetype not yet supported: {filename}')
-
-
-def wasm_file_to_module_decl(filename: str) -> KInner:
-    # Check that file exists.
-    with open(filename, 'rb') as f:
-        module = wasm2kast.wasm2kast(f, filename)
-        return module
 
 
 def wat_file_to_module_decl(filename: str, output_dir: str) -> KInner:
@@ -515,7 +499,7 @@ def wat_file_to_module_decl(filename: str, output_dir: str) -> KInner:
         print('stderr:')
         print(e.stderr)
         raise e
-    return wasm_file_to_module_decl(new_wasm_filename)
+    return load_wasm(new_wasm_filename)
 
 
 def get_external_file_path(test_file: str, rel_path_to_new_file: str) -> str:
@@ -697,7 +681,7 @@ def run_test_file(
         if cmd_args.log_level != 'none':
             log_intermediate_state(krun, '%s_%d_%s.pre' % (test_name, i, step_name), init_config, output_dir)
 
-        new_config = krun_config(krun, init_config=init_config)
+        new_config = krun_config(krun, conf=init_config)
         final_config = new_config
 
         if cmd_args.log_level != 'none':
@@ -715,18 +699,12 @@ def run_test_file(
     return final_config
 
 
-def krun_config(krun: KRun, init_config: KInner) -> KInner:
-    kore_config = krun.kast_to_kore(init_config, sort=KSort('GeneratedTopCell'))
-    kore_config = krun.run_kore_term(kore_config)
-    return krun.kore_to_kast(kore_config)
-
-
 # ... Setup Elrond Wasm
 
 
 def log_intermediate_state(krun: KRun, name: str, config: KInner, output_dir: str) -> None:
     with open('%s/%s' % (output_dir, name), 'w') as f:
-        f.write(json.dumps(config_to_kast_term(config)))
+        f.write(kast_to_json_str(config))
     with open('%s/%s.pretty.k' % (output_dir, name), 'w') as f:
         pretty = krun.pretty_print(config)
         f.write(pretty)
@@ -771,7 +749,7 @@ def run_tests() -> None:
 
         initial_name = '0000_initial_config'
         with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
-            f.write(json.dumps(config_to_kast_term(template_wasm_config)))
+            f.write(kast_to_json_str(template_wasm_config))
 
         run_test_file(krun, template_wasm_config, test, tmpdir, args)
 

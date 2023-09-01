@@ -13,13 +13,13 @@ from hypothesis.strategies import integers, tuples
 from pyk.cli.utils import dir_path
 from pyk.cterm import CTerm, build_claim
 from pyk.kast.inner import KApply, KSequence, KSort, KToken, KVariable, Subst
+from pyk.kast.manip import split_config_from
 from pyk.ktool.krun import KRun
 from pyk.prelude.collections import list_of, map_of, set_of
 from pyk.prelude.kint import leInt
 from pyk.prelude.ml import mlEqualsTrue
 from pyk.prelude.utils import token
 from pyk.utils import ensure_dir_path
-from pykwasm import wasm2kast
 from pykwasm.kwasm_ast import KInt
 
 from kmultiversx.scenario import (
@@ -29,14 +29,15 @@ from kmultiversx.scenario import (
     ListBytes,
     get_steps_sc_call,
     mandos_argument_to_kbytes,
-    split_config_from,
     wrapBytes,
 )
+from kmultiversx.utils import kast_to_json_str, krun_config, load_wasm
 
 if TYPE_CHECKING:
     from hypothesis.strategies import SearchStrategy
     from pyk.cterm import KClaim
     from pyk.kast.inner import KInner
+    from pyk.ktool.krun import KPrint
 
 INPUT_FILE_NAME = 'foundry.json'
 TEST_PREFIX = 'test_'
@@ -53,11 +54,6 @@ def load_input_json(test_dir: str) -> dict:
             return json.load(f)
     except FileNotFoundError:
         raise FileNotFoundError(f'{INPUT_FILE_NAME!r} not found in "{test_dir!r}"') from None
-
-
-def load_wasm(filename: str) -> KInner:
-    with open(filename, 'rb') as f:
-        return wasm2kast.wasm2kast(f, filename)
 
 
 def find_test_wasm_path(test_dir: str) -> str:
@@ -126,14 +122,8 @@ def deploy_test(krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInne
     return sym_conf, subst
 
 
-def run_config(krun: KRun, conf: KInner) -> KInner:
-    conf_kore = krun.kast_to_kore(conf, sort=KSort('GeneratedTopCell'))
-    res_conf_kore = krun.run_kore_term(conf_kore)
-    return krun.kore_to_kast(res_conf_kore)
-
-
 def run_config_and_check_empty(krun: KRun, conf: KInner) -> tuple[KInner, KInner, dict[str, KInner]]:
-    final_conf = run_config(krun, conf)
+    final_conf = krun_config(krun, conf)
     sym_conf, subst = split_config_from(final_conf)
     k_cell = subst['K_CELL']
     if not isinstance(k_cell, KSequence) or k_cell.arity != 0:
@@ -164,7 +154,7 @@ def run_test(krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoi
     conf_with_steps = Subst(subst)(sym_conf)
 
     try:
-        run_config(krun, conf_with_steps)
+        krun_config(krun, conf_with_steps)
     except RuntimeError as rte:
         if rte.args[0].startswith('Command krun exited with code 1'):
             raise RuntimeError(f'Test failed for input input: {args}') from None
@@ -254,20 +244,26 @@ def run_concrete(
 
 
 def generate_claims(
-    krun: KRun,
+    kprint: KPrint,
     test_endpoints: Mapping[str, tuple[str, ...]],
     sym_conf: KInner,
     init_subst: dict[str, KInner],
     output_dir: Path,
+    pretty_print: bool = False,
 ) -> None:
     output_dir = ensure_dir_path(output_dir)
 
     for endpoint, arg_types in test_endpoints.items():
         claim = generate_claim(endpoint, arg_types, sym_conf, init_subst)
 
-        output_file = output_dir / f'{endpoint}-spec.k'
+        if pretty_print:
+            txt = kprint.pretty_print(claim)
+            ext = 'k'
+        else:
+            txt = kast_to_json_str(claim)
+            ext = 'json'
 
-        txt = krun.pretty_print(claim)  # TODO wrap this in a spec module with imports
+        output_file = output_dir / f'{endpoint}-spec.{ext}'
 
         with open(output_file, 'w') as f:
             f.write(txt)
@@ -440,18 +436,26 @@ def main() -> None:
         type=dir_path,
         help='Path to Foundry LLVM definition to use.',
     )
-    parser.add_argument('-d', '--directory', required=True, help='path to the test contract')
+    parser.add_argument('-d', '--directory', required=True, help='Path to the test contract.')
     parser.add_argument(
         '--gen-claims',
         dest='gen_claims',
         action='store_true',
-        help='generate claims for symbolic testing',
+        help='Generate claims for symbolic testing.',
     )
     parser.add_argument(
         '--output-dir',
         dest='output_dir',
         required=False,
-        help='directory to store generated claims',
+        help='Directory to store generated claims.',
+    )
+    parser.add_argument(
+        '-p',
+        '--pretty',
+        dest='pretty',
+        default=False,
+        action='store_true',
+        help='Pretty print claims. Default output format is JSON.',
     )
     args = parser.parse_args()
 
@@ -484,6 +488,7 @@ def main() -> None:
             output_dir = Path('generated_claims')
 
         print('Generating claims:', output_dir)
-        generate_claims(krun, test_endpoints, sym_conf, init_subst, output_dir)
+        generate_claims(krun, test_endpoints, sym_conf, init_subst, output_dir, args.pretty)
+
     else:
         run_concrete(krun, test_endpoints, sym_conf, init_subst)

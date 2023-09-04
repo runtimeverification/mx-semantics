@@ -264,9 +264,7 @@ def generate_claims(
             ext = 'json'
 
         output_file = output_dir / f'{endpoint}-spec.{ext}'
-
-        with open(output_file, 'w') as f:
-            f.write(txt)
+        output_file.write_text(txt)
 
 
 def generate_claim(

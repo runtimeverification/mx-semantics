@@ -276,11 +276,13 @@ TEST_MANDOS := $(POETRY_RUN) mandos --definition-dir $(llvm_dir)/mandos-kompiled
 #
 # > error: package `clap_derive v4.4.0` cannot be built because it requires rustc 1.70.0 or newer,
 # > while the currently active rustc version is 1.69.0-nightly
-# 
-# To avoid this, we enforce minimal version resolution before building the contract
+# > Either upgrade to rustc 1.70.0 or newer, or use
+# > cargo update -p clap_builder@4.4.2 --precise ver
+#
+# Use a precise clap version.
 mxpy-build/%:
 	if [ ! -f "$*/Cargo.lock" ]; then \
-	    cargo generate-lockfile --manifest-path $*/Cargo.toml -Z minimal-versions ; \
+	    cargo update --manifest-path $*/Cargo.toml -p clap --precise 4.1.0 ; \
 	fi
 
 	mxpy contract build "$*" --wasm-symbols --no-wasm-opt

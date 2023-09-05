@@ -373,7 +373,7 @@ def var_to_bytes(var: KVariable) -> KInner:
 
     if sort == KSort('Int'):
         return KApply(
-            'Int2Bytes',
+            'Int2Bytes(_,_,_)_BYTES-HOOKED_Bytes_Int_Endianness_Signedness',
             [
                 var,
                 KToken('BE', 'Endianness'),

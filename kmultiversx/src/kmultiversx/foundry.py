@@ -301,62 +301,66 @@ def generate_claim(
         ]
     )
 
-    conf_with_steps = Subst(lhs_subst(init_subst, steps))(sym_conf)
-
+    lhs_subst = build_lhs_subst(init_subst, steps)
+    conf_with_steps = Subst(lhs_subst)(sym_conf)
     lhs = CTerm(conf_with_steps, [mlEqualsTrue(c) for c in ctrs])
 
-    conf_rhs = Subst(rhs_subst(init_subst))(sym_conf)
+    rhs_subst = build_rhs_subst(lhs_subst)
+    conf_rhs = Subst(rhs_subst)(sym_conf)
     rhs = CTerm(conf_rhs)
 
     claim, _ = build_claim(f'{func}', lhs, rhs)
 
     return claim
 
+def build_lhs_subst(init_subst: dict[str, KInner], steps: KInner) -> dict[str, KInner]:
 
-def lhs_subst(init_subst: dict[str, KInner], steps: KInner) -> dict[str, KInner]:
-    subst = {
-        'K_CELL': steps,
-        'CHECKEDACCOUNTS_CELL': set_of(()),
-        'COMMANDS_CELL': KSequence(),
-        'INSTRS_CELL': KSequence(),
-        'CALLSTACK_CELL': list_of(()),
-        'INTERIMSTATES_CELL': list_of(()),
-        'EXITCODE_CELL': KInt(0),
-        'PRANK_CELL': KToken('false', KSort('Bool')),
-    }
+    subst = init_subst.copy()
 
-    copy_cells = [
-        'NEWADDRESSES_CELL',
-        'ACCOUNTS_CELL',
-        'PREVBLOCKEPOCH_CELL',
-        'PREVBLOCKNONCE_CELL',
-        'PREVBLOCKRANDOMSEED_CELL',
-        'PREVBLOCKROUND_CELL',
-        'PREVBLOCKTIMESTAMP_CELL',
-        'CURBLOCKEPOCH_CELL',
-        'CURBLOCKNONCE_CELL',
-        'CURBLOCKRANDOMSEED_CELL',
-        'CURBLOCKROUND_CELL',
-        'CURBLOCKTIMESTAMP_CELL',
-    ]
-
-    for c in copy_cells:
-        subst[c] = init_subst[c]
+    subst['K_CELL'] = steps
+    subst['CHECKEDACCOUNTS_CELL'] = set_of(())
+    subst['COMMANDS_CELL'] = KSequence()
+    subst['INSTRS_CELL'] = KSequence()
+    subst['CALLSTACK_CELL'] = list_of(())
+    subst['INTERIMSTATES_CELL'] = list_of(())
+    subst['VMOUTPUT_CELL'] = KVariable('VMOUTPUT_CELL', 'VmOutputCell')
+    subst['LOGGING_CELL'] = KVariable('LOGGING_CELL', 'String')
+    subst['EXITCODE_CELL'] = KInt(0)
+    subst['PRANK_CELL'] = token(False)
 
     return subst
 
 
-def rhs_subst(init_subst: dict[str, KInner]) -> dict[str, KInner]:
-    subst = {
-        'K_CELL': KSequence(),
-        'CHECKEDACCOUNTS_CELL': set_of(()),
-        'COMMANDS_CELL': KSequence(),
-        'INSTRS_CELL': KSequence(),
-        'CALLSTACK_CELL': list_of(()),
-        'INTERIMSTATES_CELL': list_of(()),
-        'PRANK_CELL': token(False),
-        'EXIT_CODE_CELL': token(0),
-    }
+def build_rhs_subst(rhs_subst: dict[str, KInner]) -> dict[str, KInner]:
+    
+    # start from RHS
+    subst = rhs_subst.copy()
+
+    # ignore
+    del subst['ACCOUNTS_CELL']
+    del subst['LOGS_CELL']
+    del subst['PREVBLOCKTIMESTAMP_CELL']
+    del subst['PREVBLOCKNONCE_CELL']
+    del subst['PREVBLOCKROUND_CELL']
+    del subst['PREVBLOCKEPOCH_CELL']
+    del subst['PREVBLOCKRANDOMSEED_CELL']
+    del subst['CURBLOCKTIMESTAMP_CELL']
+    del subst['CURBLOCKNONCE_CELL']
+    del subst['CURBLOCKROUND_CELL']
+    del subst['CURBLOCKEPOCH_CELL']
+    del subst['CURBLOCKRANDOMSEED_CELL']
+    subst['VMOUTPUT_CELL'] = KVariable('VMOUTPUT_CELL_R', 'VmOutputCell')
+    subst['LOGGING_CELL'] = KVariable('LOGGING_CELL_R', 'String')
+
+    # expect
+    subst['K_CELL'] = KSequence()
+    subst['CHECKEDACCOUNTS_CELL'] = set_of(())
+    subst['COMMANDS_CELL'] = KSequence()
+    subst['INSTRS_CELL'] = KSequence()
+    subst['CALLSTACK_CELL'] = list_of(())
+    subst['INTERIMSTATES_CELL'] = list_of(())
+    subst['PRANK_CELL'] = token(False)
+    subst['EXIT_CODE_CELL'] = token(0)
 
     return subst
 

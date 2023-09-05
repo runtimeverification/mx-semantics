@@ -313,8 +313,8 @@ def generate_claim(
 
     return claim
 
-def build_lhs_subst(init_subst: dict[str, KInner], steps: KInner) -> dict[str, KInner]:
 
+def build_lhs_subst(init_subst: dict[str, KInner], steps: KInner) -> dict[str, KInner]:
     subst = init_subst.copy()
 
     subst['K_CELL'] = steps
@@ -332,7 +332,6 @@ def build_lhs_subst(init_subst: dict[str, KInner], steps: KInner) -> dict[str, K
 
 
 def build_rhs_subst(rhs_subst: dict[str, KInner]) -> dict[str, KInner]:
-    
     # start from RHS
     subst = rhs_subst.copy()
 

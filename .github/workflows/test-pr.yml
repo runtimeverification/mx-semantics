@@ -128,3 +128,28 @@ jobs:
         if: always()
         run: |
           docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
+
+  kmultiversx-tests:
+    needs: simple-tests
+    name: 'KMultiversX Tests'
+    runs-on: [self-hosted, linux, normal]
+    steps:
+      - name: 'Check out code'
+        uses: actions/checkout@v3
+        with:    
+          submodules: recursive
+      - name: 'Set up Docker'
+        uses: ./.github/actions/with-docker
+        with:
+          container-name: elrond-semantics-ci-${{ github.sha }}
+      - name: 'Build Foundry'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build-foundry -j4'
+      - name: 'Install Kmultiversx'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
+      - name: 'Run tests'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c \
+              'make -C kmultiversx test TEST_ARGS="--foundry-llvm-dir ../.build/defn/llvm/foundry-kompiled/"'
+      - name: 'Tear down Docker'
+        if: always()
+        run: |
+          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}

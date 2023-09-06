@@ -11,7 +11,7 @@ from typing import Iterable, Optional
 
 from Cryptodome.Hash import keccak
 from pyk.cli.utils import dir_path
-from pyk.kast.inner import KApply, KInner, KSequence, KSort, KToken, Subst
+from pyk.kast.inner import KApply, KInner, KSequence, KToken, Subst
 from pyk.kast.manip import split_config_from
 from pyk.ktool.krun import KRun
 from pyk.prelude.collections import set_of
@@ -20,8 +20,7 @@ from pykwasm.kwasm_ast import KBytes, KInt, KString
 from kmultiversx.utils import flatten, kast_to_json_str, krun_config, load_wasm
 
 
-def wrapBytes(bs: KToken) -> KInner:  # noqa: N802
-    assert bs.sort == KSort('Bytes')
+def wrapBytes(bs: KInner) -> KInner:  # noqa: N802
     return KApply('wrapBytes', [bs])
 
 

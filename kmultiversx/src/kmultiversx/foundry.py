@@ -31,7 +31,7 @@ from kmultiversx.scenario import (
     mandos_argument_to_kbytes,
     wrapBytes,
 )
-from kmultiversx.utils import kast_to_json_str, krun_config, load_wasm
+from kmultiversx.utils import GENERATED_TOP_CELL, kast_to_json_str, krun_config, load_wasm
 
 if TYPE_CHECKING:
     from hypothesis.strategies import SearchStrategy
@@ -108,7 +108,7 @@ def deploy_test(krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInne
     init_steps = KSequence([set_exit_code(1), init_main_acct, new_address, deploy_cmd, set_exit_code(0)])
 
     # create an empty config and embed init steps
-    empty_conf = krun.definition.init_config(KSort('GeneratedTopCell'))
+    empty_conf = krun.definition.init_config(GENERATED_TOP_CELL)
 
     conf, subst = split_config_from(empty_conf)
     subst['K_CELL'] = init_steps
@@ -254,7 +254,7 @@ def generate_claims(
     output_dir = ensure_dir_path(output_dir)
 
     for endpoint, arg_types in test_endpoints.items():
-        claim = generate_claim(endpoint, arg_types, sym_conf, init_subst)
+        claim, _, _ = generate_claim(endpoint, arg_types, sym_conf, init_subst)
 
         if pretty_print:
             txt = kprint.pretty_print(claim)
@@ -272,7 +272,7 @@ def generate_claim(
     arg_types: tuple[str, ...],
     sym_conf: KInner,
     init_subst: dict[str, KInner],
-) -> KClaim:
+) -> tuple[KClaim, CTerm, CTerm]:
     root_acc = mandos_argument_to_kbytes(ROOT_ACCT_ADDR)
     test_sc = mandos_argument_to_kbytes(TEST_SC_ADDR)
     vars, ctrs = make_vars_and_constraints(arg_types)
@@ -311,7 +311,7 @@ def generate_claim(
 
     claim, _ = build_claim(f'{func}', lhs, rhs)
 
-    return claim
+    return claim, lhs, rhs
 
 
 def build_lhs_subst(init_subst: dict[str, KInner], steps: KInner) -> dict[str, KInner]:
@@ -365,7 +365,7 @@ def build_rhs_subst(rhs_subst: dict[str, KInner]) -> dict[str, KInner]:
 
 
 def vars_to_bytes_list(vars: tuple[KVariable, ...]) -> KInner:
-    return ListBytes(var_to_bytes(var) for var in vars)
+    return ListBytes(wrapBytes(var_to_bytes(var)) for var in vars)
 
 
 def var_to_bytes(var: KVariable) -> KInner:

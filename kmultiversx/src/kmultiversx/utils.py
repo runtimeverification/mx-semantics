@@ -14,6 +14,9 @@ if TYPE_CHECKING:
     T = TypeVar('T')
 
 
+GENERATED_TOP_CELL = KSort('GeneratedTopCell')
+
+
 def kast_to_json(config: KAst) -> dict:
     return {'format': 'KAST', 'version': config.version(), 'term': config.to_dict()}
 
@@ -32,6 +35,6 @@ def load_wasm(filename: str) -> KInner:
 
 
 def krun_config(krun: KRun, conf: KInner) -> KInner:
-    conf_kore = krun.kast_to_kore(conf, sort=KSort('GeneratedTopCell'))
+    conf_kore = krun.kast_to_kore(conf, sort=GENERATED_TOP_CELL)
     res_conf_kore = krun.run_kore_term(conf_kore, pipe_stderr=False)
     return krun.kore_to_kast(res_conf_kore)

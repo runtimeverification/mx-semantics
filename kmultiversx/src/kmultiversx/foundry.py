@@ -373,7 +373,7 @@ def var_to_bytes(var: KVariable) -> KInner:
 
     if sort == KSort('Int'):
         return KApply(
-            'Int2Bytes(_,_,_)_BYTES-HOOKED_Bytes_Int_Endianness_Signedness',
+            'Int2Bytes(_,_,_)_BYTES-HOOKED_Bytes_Int_Endianness_Signedness',  # TODO add the 'symbol' attribute in domains.md to have a readable name
             [
                 var,
                 KToken('BE', 'Endianness'),

@@ -421,7 +421,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <vmOutput> _ => VMOutput( OK , .Bytes , OUT , LOGS) </vmOutput>
       [priority(60)]
 
-    syntax InternalCmd ::= "#waitWasm"
+    syntax InternalCmd ::= "#waitWasm"  [klabel(#waitWasm), symbol]
  // ----------------------------------
     rule <commands> #waitWasm => . ... </commands>
          <instrs> . </instrs>
@@ -656,7 +656,7 @@ Every contract call runs in its own Wasm instance initialized with the contract'
 
 ```k
     syntax WasmCell
-    syntax InternalCmd ::= newWasmInstance(ModuleDecl)
+    syntax InternalCmd ::= newWasmInstance(ModuleDecl)  [klabel(newWasmInstance), symbol]
                          | "setContractModIdx"
  // ------------------------------------------------------
     rule [newWasmInstance]:

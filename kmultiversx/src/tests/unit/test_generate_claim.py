@@ -14,6 +14,10 @@ if TYPE_CHECKING:
 def test_generate_cterms_init_config(foundry_llvm_krun: KRun) -> None:
     # Given
     conf = foundry_llvm_krun.definition.init_config(GENERATED_TOP_CELL)
+
+    # Check that the definition can be parsed
+    assert foundry_llvm_krun.kompiled_kore.definition
+
     sym_conf, subst = split_config_from(conf)
 
     # When

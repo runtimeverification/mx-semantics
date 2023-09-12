@@ -57,6 +57,36 @@ pub trait TestAdder {
 
         testapi::assume(value <= 100u32);
 
+        let adder = self.adder_address().get();
+
+        self.call_add(&value);
+
+        // check the sum value
+        let sum_as_bytes = testapi::get_storage(&adder, &ManagedBuffer::from(b"sum")); 
+        let sum = BigUint::from(sum_as_bytes);
+        testapi::assert( sum == (value + INIT_SUM) );
+
+    }
+
+    #[endpoint(test_call_add_twice)]
+    fn test_call_add_twice(&self, value1: BigUint, value2: BigUint) {
+
+        testapi::assume(value1 <= 100u32);
+        testapi::assume(value2 <= 100u32);
+
+        let adder = self.adder_address().get();
+
+        self.call_add(&value1);
+        self.call_add(&value2);
+
+        // check the sum value
+        let sum_as_bytes = testapi::get_storage(&adder, &ManagedBuffer::from(b"sum")); 
+        let sum = BigUint::from(sum_as_bytes);
+        testapi::assert( sum == (value1 + value2 + INIT_SUM) );
+
+    }
+
+    fn call_add(&self, value: &BigUint) {
         let owner = self.owner_address().get();
         let adder = self.adder_address().get();
 
@@ -78,14 +108,6 @@ pub trait TestAdder {
             Result::Err(_) => panic!("call failed"),
             Result::Ok(_) => ()
         };
-        
-        // check the sum value
-        let sum_as_bytes = testapi::get_storage(&adder, &ManagedBuffer::from(b"sum")); 
-        let sum = BigUint::from(sum_as_bytes);
-        testapi::assert( sum == (value + INIT_SUM) );
-        
-        // testapi::assert( sum <= (INIT_SUM + 1234u32) );
 
     }
-
 }

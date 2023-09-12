@@ -282,6 +282,7 @@ TEST_MANDOS := $(POETRY_RUN) mandos --definition-dir $(llvm_dir)/mandos-kompiled
 # Use a precise clap version.
 mxpy-build/%:
 	if [ ! -f "$*/Cargo.lock" ]; then \
+	    cargo update --manifest-path $*/Cargo.toml -p ruplacer --precise 0.8.1 ; \
 	    cargo update --manifest-path $*/Cargo.toml -p clap --precise 4.1.0 ; \
 	fi
 

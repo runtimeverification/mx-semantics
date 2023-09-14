@@ -12,7 +12,7 @@ from hypothesis import Verbosity, given, settings
 from hypothesis.strategies import integers, tuples
 from pyk.cli.utils import dir_path
 from pyk.cterm import CTerm, build_claim
-from pyk.kast.inner import KApply, KSequence, KSort, KToken, KVariable, Subst
+from pyk.kast.inner import KApply, KSequence, KSort, KVariable, Subst
 from pyk.kast.manip import split_config_from
 from pyk.ktool.krun import KRun
 from pyk.prelude.collections import list_of, map_of, set_of
@@ -376,8 +376,8 @@ def var_to_bytes(var: KVariable) -> KInner:
             'Int2Bytes(_,_,_)_BYTES-HOOKED_Bytes_Int_Endianness_Signedness',  # TODO add the 'symbol' attribute in domains.md to have a readable name
             [
                 var,
-                KToken('BE', 'Endianness'),
-                KToken('Signed', 'Signedness'),
+                KApply('bigEndianBytes', ()),
+                KApply('signedBytes', ()),
             ],
         )
 

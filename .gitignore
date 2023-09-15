@@ -1,5 +1,7 @@
 /.build/*
 /tests/*/*-out
+/generated_claims/*
+tmp
 
 *.pdf
 *.sty

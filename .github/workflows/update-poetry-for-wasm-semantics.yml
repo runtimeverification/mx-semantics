@@ -1,0 +1,24 @@
+name: 'Update poetry for wasm-semantics'
+on:
+  push:
+    branches:
+      - '_update-deps/runtimeverification/wasm-semantics'
+jobs:
+  update-submodule:
+    name: 'Update poetry'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Check out code'
+        uses: actions/checkout@v3
+        with:    
+          submodules: recursive
+      - name: 'Configure GitHub user'
+        run: |
+          git config user.name devops
+          git config user.email devops@runtimeverification.com
+      - name: 'Update wasm-semantics'
+        run: |
+          poetry -C kmultiversx update
+          git add --update && git commit -m "Update poetry" || true
+      - name: 'Push updates'
+        run: git push

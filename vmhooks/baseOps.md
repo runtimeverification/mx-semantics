@@ -406,6 +406,16 @@ module BASEOPS
         </instrs>
       requires 0 <Int lengthBytes(Func)
 
+    syntax InternalInstr ::= #executeOnDestContextWithTypedArgs(
+        BytesResult, IntResult, ListResult, Int, BytesResult, ListBytesResult)
+ // ----------------------------------------------------------------------------
+    rule [executeOnDestContextWithTypedArgs]:
+        <instrs> #executeOnDestContextWithTypedArgs(
+          Dest:Bytes, Value:Int, Esdt:List, Gas:Int, Func:Bytes, Args:ListBytes)
+              => #executeOnDestContext(Dest, Value, Esdt, Gas, Func, Args)
+                 ...
+        </instrs>
+
     syntax InternalInstr ::= #executeOnDestContext(Bytes, Int, List, Int, Bytes, ListBytes)
  // -----------------------------------------------------------------------------------------
     rule [executeOnDestContext]:

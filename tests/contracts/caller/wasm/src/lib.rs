@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            1
+// Endpoints:                            2
 // Async Callback (empty):               1
-// Total number of exported functions:   3
+// Total number of exported functions:   4
 
 #![no_std]
 #![feature(lang_items)]
@@ -19,6 +19,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     caller
     (
         call_other
+        call_other_exec_on_dest_ctx
     )
 }
 

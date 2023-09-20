@@ -30,4 +30,24 @@ pub trait CallerContract {
             Result::Ok(_) => ManagedBuffer::from("done")
         }
     }
+
+    #[endpoint]
+    #[payable("EGLD")]
+    fn call_other_exec_on_dest_ctx(&self, dest: ManagedAddress, func: ManagedBuffer, value: i64, to_send: BigUint)  -> ManagedBuffer {
+        
+        let mut arg_buffer = ManagedArgBuffer::new();
+        arg_buffer.push_arg(value);
+
+        let result = self.send_raw().execute_on_dest_context_raw(
+            5000000,
+            &dest,
+            &to_send,
+            &func,
+            &arg_buffer,
+        );
+        
+        require!(result.len() == 1, "ExecuteOnDestContext result data is empty");
+
+        ManagedBuffer::from("done")
+    }
 }

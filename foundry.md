@@ -192,6 +192,21 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
 ```
 
+### Set current block info
+
+```k
+    rule [setBlockTimestamp]:
+        <instrs> hostCall("env", "setBlockTimestamp", [i64 .ValTypes ] -> [.ValTypes ]) 
+              => . ...
+        </instrs>
+        <locals>
+          0 |-> <i64> TIMESTAMP
+        </locals>
+        <curBlockTimestamp> _ => TIMESTAMP </curBlockTimestamp>
+        <callee> #foundryRunner </callee>
+
+```
+
 ### Assertions and assumptions
 
 ```k

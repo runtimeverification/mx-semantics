@@ -45,6 +45,8 @@ extern "C" {
     fn startPrank(addressHandle: i32);
     fn stopPrank();
 
+    fn setBlockTimeStamp(timestamp: i64);
+
 }
 
 
@@ -168,5 +170,12 @@ pub fn assume(p: bool) {
 pub fn assert(p: bool) {
     unsafe {
         assertBool(p);
+    }
+}
+
+#[allow(unused)]
+pub fn set_block_timestamp(timestamp: u64) {
+    unsafe {
+        setBlockTimeStamp(timestamp as i64);
     }
 }

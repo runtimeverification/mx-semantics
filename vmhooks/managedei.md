@@ -126,7 +126,7 @@ module MANAGEDEI
  // ------------------------------------------------------
     rule [setReturnDataIfExists]:
         <instrs> #setReturnDataIfExists(OldLen, Dest)
-              => #writeManagedVecOfManagedBuffers(rangeTotal(OUT, size(OUT), 0), Dest)
+              => #writeManagedVecOfManagedBuffers(rangeTotal(OUT, OldLen, 0), Dest)
                  ...
         </instrs>
         <out> OUT </out>

@@ -174,6 +174,45 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         </locals>
         <callee> #foundryRunner </callee>
 
+    rule [testapi-setStorage]:
+        <instrs> hostCall ( "env" , "setStorage" , [ i32  i32  i32  .ValTypes ] -> [ .ValTypes ] )
+              => #getBuffer(VAL_HANDLE)
+              ~> #getBuffer(KEY_HANDLE)
+              ~> #getBuffer(ADDR_HANDLE)
+              ~> foundryWriteToStorage
+              ~> #dropBytes
+              ~> #dropBytes
+              ~> #dropBytes
+                 ...
+        </instrs>
+        <locals>
+          0 |-> <i32> ADDR_HANDLE
+          1 |-> <i32> KEY_HANDLE
+          2 |-> <i32> VAL_HANDLE
+        </locals>
+        <callee> #foundryRunner </callee>
+
+    syntax InternalInstr ::= "foundryWriteToStorage"
+ // -------------------------------------------------
+    rule [foundryWriteToStorage-empty]:
+        <instrs> foundryWriteToStorage => . ... </instrs>
+        <bytesStack> ADDR : KEY : VALUE : _ </bytesStack>
+         <account>
+           <address> ADDR </address>
+           <storage> STORAGE => STORAGE{{KEY <- undef}} </storage>
+           ...
+         </account>
+         requires VALUE ==K .Bytes
+
+    rule [foundryWriteToStorage]:
+        <instrs> foundryWriteToStorage => . ... </instrs>
+        <bytesStack> ADDR : KEY : VALUE : _ </bytesStack>
+         <account>
+           <address> ADDR </address>
+           <storage> STORAGE => STORAGE{{KEY <- VALUE}} </storage>
+           ...
+         </account>
+         requires VALUE =/=K .Bytes
 
 ```
 

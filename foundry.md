@@ -160,7 +160,11 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 ```k
     rule [testapi-getStorage]:
         <instrs> hostCall ( "env" , "getStorage" , [ i32  i32  i32  .ValTypes ] -> [ .ValTypes ] )
-              => foundryGetStorage( getBuffer(OWNER_HANDLE), getBuffer(KEY_HANDLE), DEST_HANDLE)
+              => #getBuffer(KEY_HANDLE)
+              ~> #getBuffer(OWNER_HANDLE)
+              ~> #storageLoadFromAddress
+              ~> #setBufferFromBytesStack(DEST_HANDLE)
+              ~> #dropBytes
                  ...
         </instrs>
         <locals>
@@ -170,25 +174,6 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         </locals>
         <callee> #foundryRunner </callee>
 
-    syntax InternalInstr ::= foundryGetStorage(BytesResult, BytesResult, Int)
- // -------------------------------------------------------------------------
-    rule [foundryGetStorage]:
-        <instrs> foundryGetStorage(OWNER:Bytes, KEY:Bytes, DEST_HANDLE)
-              => #setBuffer(DEST_HANDLE, VAL)
-                 ...
-        </instrs>
-        <account>
-          <address> OWNER </address>
-          <storage> ...  wrap(KEY) Bytes2Bytes|-> wrap(VAL) ... </storage>
-          ...
-        </account>
-
-    rule [foundryGetStorage-err]:
-        <instrs> foundryGetStorage(_, _, DEST_HANDLE)
-              => #setBuffer(DEST_HANDLE, .Bytes)
-                 ...
-        </instrs>
-      [owise]
 
 ```
 

@@ -34,7 +34,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 ### Create account
 
 ```k
-    rule [hostCall-createAccount]:
+    rule [testapi-createAccount]:
         <instrs> hostCall ( "env" , "createAccount" , [ i32  i64  i32  .ValTypes ] -> [ .ValTypes ] )
               => foundryCreateAccount( getBuffer(ADDR_HANDLE), NONCE, getBigInt(BALANCE_HANDLE))
                  ...
@@ -48,7 +48,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
     syntax InternalInstr ::= foundryCreateAccount(BytesResult, Int, IntResult)
  // ----------------------------------------------------------------------------
-    rule [instr-createAccount]:
+    rule [foundryCreateAccount]:
         <instrs> foundryCreateAccount(ADDR:Bytes, NONCE, BALANCE:Int)
               => #waitCommands
                  ...
@@ -58,7 +58,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
                     ) ... 
         </commands>
 
-    rule [instr-createAccount-err]:
+    rule [foundryCreateAccount-err]:
         <instrs> foundryCreateAccount(_, _, _)
               => #throwException(ExecutionFailed, "Could not create account")
                  ...
@@ -70,7 +70,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 ### Register new address
 
 ```k
-    rule [hostCall-registerNewAddress]:
+    rule [testapi-registerNewAddress]:
         <instrs> hostCall ( "env" , "registerNewAddress" , [ i32  i64  i32  .ValTypes ] -> [ .ValTypes ] )
               => foundryRegisterNewAddress( getBuffer(OWNER_HANDLE), NONCE, getBuffer(ADDR_HANDLE))
                  ...
@@ -84,13 +84,13 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
     syntax InternalInstr ::= foundryRegisterNewAddress(BytesResult, Int, BytesResult)
  // ----------------------------------------------------------------------------
-    rule [instr-registerNewAddress]:
+    rule [foundryRegisterNewAddress]:
         <instrs> foundryRegisterNewAddress(CREATOR:Bytes, NONCE, NEW:Bytes)
               => . ...
         </instrs>
         <newAddresses> NEWADDRESSES => NEWADDRESSES [tuple(CREATOR, NONCE) <- NEW] </newAddresses>
 
-    rule [instr-registerNewAddress-err]:
+    rule [foundryRegisterNewAddress-err]:
         <instrs> foundryRegisterNewAddress(_, _, _)
               => #throwException(ExecutionFailed, "Could not register address") ...
         </instrs>
@@ -101,7 +101,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 ### Deploy contract
 
 ```k
-    rule [hostCall-deployContract]:
+    rule [testapi-deployContract]:
         <instrs> hostCall("env", "deployContract", [i32 i64 i32 i32 i32 i32 .ValTypes] -> [.ValTypes])
               => foundryDeployContract(
                     getBuffer(OWNER_HANDLE), 
@@ -125,7 +125,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
     syntax InternalInstr ::= foundryDeployContract(BytesResult, Int, IntResult, BytesResult, ListBytesResult, Int)
  // ----------------------------------------------------------------------------
-    rule [instr-deployContract]:
+    rule [foundryDeployContract]:
         <instrs> foundryDeployContract(OWNER:Bytes, GAS, VALUE:Int, PATH:Bytes, ARGS:ListBytes, RESULT_ADDR_HANDLE)
               => #waitCommands
               ~> #setBuffer(RESULT_ADDR_HANDLE, NEWADDR)
@@ -146,7 +146,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <newAddresses> ... tuple(OWNER, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
         <wasmStore> ... PATH |-> MODULE </wasmStore>
 
-    rule [instr-deployContract-err]:
+    rule [foundryDeployContract-err]:
         <instrs> foundryDeployContract(_, _, _, _, _, _)
               => #throwException(ExecutionFailed, "Could not deploy contract")
                  ...
@@ -158,7 +158,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 ### Get/set storage
 
 ```k
-    rule [hostCall-getStorage]:
+    rule [testapi-getStorage]:
         <instrs> hostCall ( "env" , "getStorage" , [ i32  i32  i32  .ValTypes ] -> [ .ValTypes ] )
               => foundryGetStorage( getBuffer(OWNER_HANDLE), getBuffer(KEY_HANDLE), DEST_HANDLE)
                  ...
@@ -172,7 +172,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
     syntax InternalInstr ::= foundryGetStorage(BytesResult, BytesResult, Int)
  // -------------------------------------------------------------------------
-    rule [testapi-getStorage]:
+    rule [foundryGetStorage]:
         <instrs> foundryGetStorage(OWNER:Bytes, KEY:Bytes, DEST_HANDLE)
               => #setBuffer(DEST_HANDLE, VAL)
                  ...
@@ -183,7 +183,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           ...
         </account>
 
-    rule [testapi-getStorage-err]:
+    rule [foundryGetStorage-err]:
         <instrs> foundryGetStorage(_, _, DEST_HANDLE)
               => #setBuffer(DEST_HANDLE, .Bytes)
                  ...
@@ -246,7 +246,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 ### Set current block info
 
 ```k
-    rule [setBlockTimestamp]:
+    rule [testapi-setBlockTimestamp]:
         <instrs> hostCall("env", "setBlockTimestamp", [i64 .ValTypes ] -> [.ValTypes ]) 
               => . ...
         </instrs>
@@ -261,7 +261,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 ### Assertions and assumptions
 
 ```k
-    rule [hostCall-assertBool]:
+    rule [testapi-assertBool]:
         <instrs> hostCall ( "env" , "assertBool" , [ i32 .ValTypes ] -> [ .ValTypes ] )
               => #assert( P ) ...
         </instrs>
@@ -282,7 +282,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
       requires I ==Int 0
 
 
-    rule [hostCall-assumeBool]:
+    rule [testapi-assumeBool]:
         <instrs> hostCall ( "env" , "assumeBool" , [ i32 .ValTypes ] -> [ .ValTypes ] )
               => #assume(P) ...
         </instrs>
@@ -326,7 +326,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 ### Prank
 
 ```k
-    rule [hostCall-startPrank]:
+    rule [testapi-startPrank]:
         <instrs> hostCall ( "env" , "startPrank" , [ i32  .ValTypes ] -> [ .ValTypes ] )
               => #startPrank(getBuffer(ADDR_HANDLE)) ...
         </instrs>
@@ -358,7 +358,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
                  ...
         </instrs>
 
-    rule [hostCall-stopPrank]:
+    rule [testapi-stopPrank]:
         <instrs> hostCall ( "env" , "stopPrank" , [ .ValTypes ] -> [ .ValTypes ] )
               => . ...
         </instrs>
@@ -366,7 +366,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <callee> _ => #foundryRunner </callee>
         <prank> true => false </prank>
 
-    rule [hostCall-stopPrank-err]:
+    rule [testapi-stopPrank-err]:
         <instrs> hostCall ( "env" , "stopPrank" , [ .ValTypes ] -> [ .ValTypes ] )
               => #throwException(ExecutionFailed, "Cannot stop prank while not in a prank") ...
         </instrs>

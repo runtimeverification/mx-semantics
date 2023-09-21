@@ -218,6 +218,8 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
 ### Set balance
 
+#### EGLD
+
 ```k
     rule [testapi-setExternalBalance]:
         <instrs> hostCall ("env", "setExternalBalance", [i32 i32 .ValTypes] -> [.ValTypes])
@@ -242,7 +244,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
     rule [setBalance-neg]:
         <instrs> #setBalance(_:Bytes, VALUE:Int)
-              => . ...
+              => #throwException(UserError, "Cannot set negative balance") ...
         </instrs>
       requires VALUE <Int 0
 
@@ -265,6 +267,86 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               => #throwException(ExecutionFailed, MSG) ...
         </instrs>
     
+```
+
+#### ESDT
+
+```k
+
+    rule [testapi-setESDTExternalBalance]:
+        <instrs> hostCall ("env", "setESDTExternalBalance", [i32 i32 i32 .ValTypes] -> [.ValTypes])
+              => #getBuffer(TOK_ID_HANDLE)
+              ~> #getBuffer(ADDR_HANDLE)
+              ~> #setESDTBalance(getBigInt(VAL_HANDLE))
+              ~> #dropBytes
+              ~> #dropBytes
+                 ...
+        </instrs>
+        <locals>
+          0 |-> <i32> ADDR_HANDLE
+          1 |-> <i32> TOK_ID_HANDLE
+          2 |-> <i32> VAL_HANDLE
+        </locals>
+        <callee> #foundryRunner </callee>
+
+
+    syntax InternalInstr ::= #setESDTBalance(IntResult)
+ // ---------------------------------------------------
+    // ERROR: invalid value handle
+    rule [setESDTBalance-invalid-big-int]:
+        <instrs> #setESDTBalance(Err(MSG))
+              => #throwException(ExecutionFailed, MSG) ...
+        </instrs>
+    
+    // ERROR: value is negative
+    rule [setESDTBalance-neg]:
+        <instrs> #setESDTBalance(VALUE:Int)
+              => #throwException(UserError, "Cannot set negative balance") ...
+        </instrs>
+      requires 0 >Int VALUE
+    
+    
+    // change an existing ESDT balance
+    rule [setESDTBalance]:
+        <instrs> #setESDTBalance(VALUE:Int) => . ... </instrs>
+        <bytesStack> ADDR : TOK_ID : _ </bytesStack>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TOK_ID </esdtId>
+            <esdtBalance> _ => VALUE </esdtBalance>
+            ...
+          </esdtData>
+          ...
+        </account>
+      requires 0 <=Int VALUE
+
+    // add new ESDT data
+    rule [setESDTBalance-new-token]:
+        <instrs> #setESDTBalance(VALUE:Int) => . ... </instrs>
+        <bytesStack> ADDR : TOK_ID : _ </bytesStack>
+        <account>
+          <address> ADDR </address>
+          (.Bag => <esdtData>
+            <esdtId> TOK_ID </esdtId>
+            <esdtBalance> VALUE </esdtBalance>
+            ...
+          </esdtData>)
+          ...
+        </account>
+      requires 0 <=Int VALUE
+      [priority(60)]
+    
+    // ERROR: account not found
+    rule [setESDTBalance-acct-not-found]:
+        <instrs> #setESDTBalance(VALUE:Int) 
+              => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes ADDR)
+                 ... 
+        </instrs>
+        <bytesStack> ADDR : _ : _ </bytesStack>
+      requires 0 <=Int VALUE
+      [priority(61)]
+
 ```
 
 ### Set current block info

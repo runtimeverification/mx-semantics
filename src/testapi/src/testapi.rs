@@ -51,6 +51,12 @@ extern "C" {
         addressHandle: i32,
         valueHandle: i32,
     );
+
+    fn setESDTExternalBalance(
+        addressHandle: i32,
+        tokenIdHandle: i32,
+        valueHandle: i32,
+    );
 }
 
 
@@ -192,6 +198,22 @@ pub fn set_balance<M: ManagedTypeApi>(
     unsafe {
         setExternalBalance(
             address.get_raw_handle(),
+            value.get_raw_handle(),
+        );
+    }
+}
+
+
+#[allow(unused)]
+pub fn set_esdt_balance<M: ManagedTypeApi>(
+    address: &ManagedAddress<M>,
+    token_id: &TokenIdentifier<M>,
+    value: &BigUint<M>,
+) {
+    unsafe {
+        setESDTExternalBalance(
+            address.get_raw_handle(),
+            token_id.get_raw_handle(),
             value.get_raw_handle(),
         );
     }

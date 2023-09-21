@@ -13,6 +13,7 @@ pub trait TestTestapi {
         testapi::create_account(&alice, 1, &BigUint::from(0u64));
     
         self.test_set_balance(&alice);
+        self.test_set_esdt_balance(&alice);
         self.test_set_timestamp();
         self.test_set_get_storage(&alice);
     }
@@ -29,6 +30,21 @@ pub trait TestTestapi {
             .get_balance(addr);
 
         require!(value == actual, "Actual balance does not match the given value");
+    }
+
+    fn test_set_esdt_balance(&self, addr: &ManagedAddress) {
+        // Given
+        let value = BigUint::from(100000000u64);
+        let token = TokenIdentifier::from("MY_ESDT_TOKEN");
+
+        // When
+        testapi::set_esdt_balance(addr, &token, &value);
+
+        // Expect
+        let actual = self.blockchain()
+            .get_esdt_balance(addr, &token, 0u64);
+
+        require!(value == actual, "Actual esdt balance does not match the given value");
     }
 
     fn test_set_timestamp(&self) {

@@ -165,7 +165,7 @@ def run_test(krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoi
     conf_with_steps = Subst(subst)(sym_conf)
 
     try:
-        krun_config(krun, conf_with_steps)
+        run_config_and_check_empty(krun, conf_with_steps)
     except RuntimeError as rte:
         if rte.args[0].startswith('Command krun exited with code 1'):
             raise RuntimeError(f'Test failed for input input: {args}') from None

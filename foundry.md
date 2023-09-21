@@ -192,6 +192,57 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
 ```
 
+### Set balance
+
+```k
+    rule [testapi-setExternalBalance]:
+        <instrs> hostCall ("env", "setExternalBalance", [i32 i32 .ValTypes] -> [.ValTypes])
+              => #setBalance(getBuffer(ADDR_HANDLE), getBigInt(VAL_HANDLE)) ...
+        </instrs>
+        <locals>
+          0 |-> <i32> ADDR_HANDLE
+          1 |-> <i32> VAL_HANDLE
+        </locals>
+        <callee> #foundryRunner </callee>
+
+    syntax InternalInstr ::= #setBalance(BytesResult, IntResult)
+ // ------------------------------------------------------------
+    rule [setBalance]:
+        <instrs> #setBalance(ADDR:Bytes, VALUE:Int) => . ... </instrs>
+        <account>
+          <address> ADDR </address>
+          <balance> _ => VALUE </balance>
+          ...
+        </account>
+      requires 0 <=Int VALUE
+
+    rule [setBalance-neg]:
+        <instrs> #setBalance(_:Bytes, VALUE:Int)
+              => . ...
+        </instrs>
+      requires VALUE <Int 0
+
+    // VALUE is valid but account not found
+    rule [setBalance-acct-not-found]:
+        <instrs> #setBalance(ADDR:Bytes, VALUE:Int)
+              => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes ADDR)
+                 ...
+        </instrs>
+      requires 0 <=Int VALUE
+      [owise]
+
+    rule [setBalance-invalid-buffer]:
+        <instrs> #setBalance(Err(MSG), _)
+              => #throwException(ExecutionFailed, MSG) ...
+        </instrs>
+
+    rule [setBalance-invalid-big-int]:
+        <instrs> #setBalance(_:Bytes, Err(MSG))
+              => #throwException(ExecutionFailed, MSG) ...
+        </instrs>
+    
+```
+
 ### Set current block info
 
 ```k

@@ -45,8 +45,12 @@ extern "C" {
     fn startPrank(addressHandle: i32);
     fn stopPrank();
 
-    fn setBlockTimeStamp(timestamp: i64);
+    fn setBlockTimestamp(timestamp: i64);
 
+    fn setExternalBalance(
+        addressHandle: i32,
+        valueHandle: i32,
+    );
 }
 
 
@@ -176,6 +180,19 @@ pub fn assert(p: bool) {
 #[allow(unused)]
 pub fn set_block_timestamp(timestamp: u64) {
     unsafe {
-        setBlockTimeStamp(timestamp as i64);
+        setBlockTimestamp(timestamp as i64);
+    }
+}
+
+#[allow(unused)]
+pub fn set_balance<M: ManagedTypeApi>(
+    address: &ManagedAddress<M>,
+    value: &BigUint<M>,
+) {
+    unsafe {
+        setExternalBalance(
+            address.get_raw_handle(),
+            value.get_raw_handle(),
+        );
     }
 }

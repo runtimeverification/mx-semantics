@@ -313,6 +313,13 @@ module BASEOPS
     rule <instrs> #signalError => #throwExceptionBs(UserError, DATA) ... </instrs>
          <bytesStack> DATA : STACK => STACK </bytesStack>
 
+   // extern long long getGasLeft(void *context);
+    rule [getGasLeft]:
+        <instrs> hostCall("env", "getGasLeft", [ .ValTypes ] -> [ i64 .ValTypes ]) 
+              => i64.const GAS ...
+        </instrs>
+        <gasProvided> GAS </gasProvided>
+
     // extern long long getBlockTimestamp(void *context);
     rule <instrs> hostCall("env", "getBlockTimestamp", [ .ValTypes ] -> [ i64 .ValTypes ]) => i64.const TIMESTAMP ... </instrs>
          <curBlockTimestamp> TIMESTAMP </curBlockTimestamp>
@@ -405,6 +412,16 @@ module BASEOPS
                  ...
         </instrs>
       requires 0 <Int lengthBytes(Func)
+
+    syntax InternalInstr ::= #executeOnDestContextWithTypedArgs(
+        BytesResult, IntResult, ListResult, Int, BytesResult, ListBytesResult)
+ // ----------------------------------------------------------------------------
+    rule [executeOnDestContextWithTypedArgs]:
+        <instrs> #executeOnDestContextWithTypedArgs(
+          Dest:Bytes, Value:Int, Esdt:List, Gas:Int, Func:Bytes, Args:ListBytes)
+              => #executeOnDestContext(Dest, Value, Esdt, Gas, Func, Args)
+                 ...
+        </instrs>
 
     syntax InternalInstr ::= #executeOnDestContext(Bytes, Int, List, Int, Bytes, ListBytes)
  // -----------------------------------------------------------------------------------------

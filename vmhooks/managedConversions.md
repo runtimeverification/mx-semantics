@@ -14,13 +14,19 @@ module MANAGEDCONVERSIONS
     imports UTILS
 
     syntax InternalInstr ::= #writeEsdtsToBytes(List)
+                           | #writeEsdtsToBytesH(List)
                            | #writeEsdtToBytes(ESDTTransfer)
  // ---------------------------------------------------------------------
-    rule <instrs> #writeEsdtsToBytes(.List) => . ... </instrs>
+    rule <instrs> #writeEsdtsToBytes(L) 
+               => #pushBytes(.Bytes)
+               ~> #writeEsdtsToBytesH(L) ...
+         </instrs>
+    
+    rule <instrs> #writeEsdtsToBytesH(.List) => . ... </instrs>
 
-    rule <instrs> #writeEsdtsToBytes(Ts ListItem(T))
+    rule <instrs> #writeEsdtsToBytesH(Ts ListItem(T))
                => #writeEsdtToBytes(T)
-               ~> #writeEsdtsToBytes(Ts)
+               ~> #writeEsdtsToBytesH(Ts)
                   ... 
         </instrs>
     
@@ -102,6 +108,48 @@ module MANAGEDCONVERSIONS
           , chunks2buffers(substrBytes(VecBs, 4, lengthBytes(VecBs)))
           ) 
       requires lengthBytes(VecBs) >=Int 4
+
+    // Write each item to a buffer and accumulate buffer IDs in a result buffer
+    syntax InternalInstr ::= #writeManagedVecOfManagedBuffers(ListBytes, Int)
+ // -------------------------------------------------------------------------
+    rule [writeManagedVecOfManagedBuffers]:
+        <instrs> #writeManagedVecOfManagedBuffers(L, Dest)
+              => #writeListBytesToBuffers(L)
+              ~> #setBufferFromBytesStack(Dest)
+              ~> #dropBytes
+                 ...
+        </instrs>
+
+    syntax InternalInstr ::= #writeListBytesToBuffers(ListBytes)
+                           | #writeListBytesToBuffersH(ListBytes)
+                           | #writeBytesToBuffer(Bytes)
+ // ---------------------------------------------------------------------
+    rule [writeListBytesToBuffers]:
+        <instrs> #writeListBytesToBuffers(L) 
+              => #pushBytes(.Bytes)
+              ~> #writeListBytesToBuffersH(L) ...
+        </instrs>
+    
+    rule [writeListBytesToBuffersH-nil]:
+        <instrs> #writeListBytesToBuffersH(.ListBytes) => . ... </instrs>
+
+    rule [writeListBytesToBuffersH-cons]:
+        <instrs> #writeListBytesToBuffersH(Ts ListItem(wrap(T)))
+               => #writeBytesToBuffer(T)
+               ~> #writeListBytesToBuffersH(Ts)
+                  ... 
+        </instrs>
+    
+    rule [writeBytesToBuffer]:
+        <instrs> #writeBytesToBuffer(Bs)
+              => #setBuffer( #newKey(BUF_HEAP) , Bs )
+              ~> #pushBytes(
+                  Int2Bytes(4, #newKey(BUF_HEAP), BE)
+                 )
+              ~> #appendBytes
+                 ...
+        </instrs>
+        <bufferHeap> BUF_HEAP </bufferHeap>
 
 endmodule
 ```

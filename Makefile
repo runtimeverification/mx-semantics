@@ -378,6 +378,18 @@ test-elrond-callercallee: $(llvm_kompiled)                    \
                           mxpy-build/$(ELROND_CALLEE_DIR)
 	$(TEST_MANDOS) $(elrond_callercallee_tests)
 
+## Foundry Test API tests
+
+TEST_FOUNDRY := $(POETRY_RUN) foundry --definition-dir $(llvm_dir)/foundry-kompiled
+
+TEST_TESTAPI_DIR := tests/contracts/test_testapi
+testapi_tests=$(shell find $(TEST_TESTAPI_DIR) -name "*.scen.json")
+
+test-testapi: $(foundry_kompiled)                 \
+              poetry-install                      \
+              mxpy-build/$(TEST_TESTAPI_DIR)
+	$(TEST_FOUNDRY) -d $(TEST_TESTAPI_DIR)
+
 # Unit Tests
 # ----------
 PYTHON_UNITTEST_FILES =

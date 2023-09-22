@@ -33,6 +33,8 @@ deployTx(
 
       (import "env" "getESDTTokenName"      (func $getESDTTokenName      (param i32) (result i32)))
 
+      (import "env" "getGasLeft"        (func $getGasLeft        (result i64)))
+
       (memory 1)
 
       (func $i32.assertEqual (param i32 i32)
@@ -306,7 +308,12 @@ deployTx(
          drop         
       )
 
+      (func $getGasLeftTest
+        (call $i64.assertEqual (i64.const 123456789) (call $getGasLeft))
+      )
+      
       (func (export "init")
+        call $getGasLeftTest
         call $bigIntTest
         call $argsTest
         call $storageTest
@@ -317,8 +324,8 @@ deployTx(
       )
     )
     , ListItemWrap(Int2Bytes(0, BE, Unsigned)) ListItemWrap(Int2Bytes(32, 2 ^Int 256 -Int 1, BE))
-    , 0
-    , 0
+    , 123456789 ;; gas limit
+    , 0         ;; gas price
 )
 
 checkExpectStatus(OK)

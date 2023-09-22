@@ -149,6 +149,9 @@ jobs:
       - name: 'Run tests'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c \
               'make -C kmultiversx test TEST_ARGS="--foundry-llvm-dir ../.build/defn/llvm/foundry-kompiled/"'
+      - name: 'Run TestApi tests'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c \
+              'make test-testapi'
       - name: 'Tear down Docker'
         if: always()
         run: |

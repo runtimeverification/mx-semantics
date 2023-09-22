@@ -722,6 +722,7 @@ def run_tests() -> None:
     test_args.add_argument(
         '--definition-dir',
         default=None,
+        required=True,
         dest='definition_dir',
         type=dir_path,
         help='Path to Mandos LLVM definition to use.',

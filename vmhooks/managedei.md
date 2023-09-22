@@ -43,8 +43,7 @@ module MANAGEDEI
 
  // extern void      managedGetMultiESDTCallValue(void* context, int32_t multiCallValueHandle);
     rule <instrs> hostCall ( "env" , "managedGetMultiESDTCallValue" , [ i32  .ValTypes ] -> [ .ValTypes ] )
-               => #pushBytes(.Bytes)
-               ~> #writeEsdtsToBytes(ESDTS)
+               => #writeEsdtsToBytes(ESDTS)
                ~> #setBufferFromBytesStack(DEST_IDX)
                ~> #dropBytes
                   ...
@@ -98,6 +97,48 @@ module MANAGEDEI
            3 |-> <i32> FUNC_IDX
            4 |-> <i32> ARGS_IDX
          </locals>
+
+ // extern int32_t managedExecuteOnDestContext(void* context, long long gas, int32_t addressHandle, int32_t valueHandle, int32_t functionHandle, int32_t argumentsHandle, int32_t resultHandle);
+    rule [managedExecuteOnDestContext]:
+        <instrs> hostCall ( "env" , "managedExecuteOnDestContext" , [i64 i32 i32 i32 i32 i32 .ValTypes ] -> [ i32  .ValTypes ] )
+              => #executeOnDestContextWithTypedArgs(
+                  getBuffer(DEST_IDX), 
+                  getBigInt(VALUE_IDX),
+                  .List,
+                  GAS_LIMIT, 
+                  getBuffer(FUNC_IDX), 
+                  readManagedVecOfManagedBuffers(ARGS_IDX)
+                 )
+              ~> #setReturnDataIfExists(size(OUT), RES_IDX)
+                 ...
+        </instrs>
+        <locals>
+          0 |-> <i64> GAS_LIMIT
+          1 |-> <i32> DEST_IDX
+          2 |-> <i32> VALUE_IDX
+          3 |-> <i32> FUNC_IDX
+          4 |-> <i32> ARGS_IDX
+          5 |-> <i32> RES_IDX
+        </locals>
+        <out> OUT </out>
+
+    syntax InternalInstr ::= #setReturnDataIfExists(Int, Int)
+ // ------------------------------------------------------
+    rule [setReturnDataIfExists]:
+        <instrs> #setReturnDataIfExists(OldLen, Dest)
+              => #writeManagedVecOfManagedBuffers(rangeTotal(OUT, OldLen, 0), Dest)
+                 ...
+        </instrs>
+        <out> OUT </out>
+      requires OldLen <Int size(OUT)
+
+    rule [setReturnDataIfExists-noData]:
+        <instrs> #setReturnDataIfExists(OldLen, Dest)
+              => #setBuffer(Dest, .Bytes)
+                 ...
+        </instrs>
+        <out> OUT </out>
+      requires OldLen >=Int size(OUT)
 
  // extern void managedGetBlockRandomSeed(void *context, int32_t resultHandle);
     rule <instrs> hostCall("env", "managedGetBlockRandomSeed", [i32  .ValTypes] -> [ .ValTypes ] )

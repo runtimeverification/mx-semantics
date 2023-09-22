@@ -105,7 +105,19 @@ def deploy_test(krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInne
     deploy_cmd = KApply('deployTx', [k_addr, token(0), test_wasm, arguments, gas, token(0)])
 
     # initialization steps
-    init_steps = KSequence([set_exit_code(1), init_main_acct, new_address, deploy_cmd, set_exit_code(0)])
+    init_steps = KSequence(
+        [
+            set_exit_code(1),
+            init_main_acct,
+            new_address,
+            deploy_cmd,
+            KApply(
+                'checkExpectStatus',
+                [KApply('OK', [])],
+            ),
+            set_exit_code(0),
+        ]
+    )
 
     # create an empty config and embed init steps
     empty_conf = krun.definition.init_config(GENERATED_TOP_CELL)
@@ -118,7 +130,6 @@ def deploy_test(krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInne
     _, sym_conf, subst = run_config_and_check_empty(krun, conf_with_steps)
 
     subst['WASMSTORE_CELL'] = map_of({})
-
     return sym_conf, subst
 
 
@@ -154,7 +165,7 @@ def run_test(krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoi
     conf_with_steps = Subst(subst)(sym_conf)
 
     try:
-        krun_config(krun, conf_with_steps)
+        run_config_and_check_empty(krun, conf_with_steps)
     except RuntimeError as rte:
         if rte.args[0].startswith('Command krun exited with code 1'):
             raise RuntimeError(f'Test failed for input input: {args}') from None

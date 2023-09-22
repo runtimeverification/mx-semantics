@@ -80,4 +80,24 @@ module LIST-BYTES-EXTENSIONS
       [function, total, symbol, klabel(ListBytesItemWrap)]
   rule ListItemWrap( B:Bytes ) => ListItem(wrap(B))
 
+  syntax ListBytes ::= rangeTotal(ListBytes, Int, Int)
+      [function, total, klabel(ListBytes:rangeTotal), symbol]
+// ----------------------------------------------------------
+  rule rangeTotal(L, Front, Back) => range(L, Front, Back)
+    requires 0 <=Int Front
+     andBool 0 <=Int Back 
+     andBool size(L) >=Int Front +Int Back
+
+  rule rangeTotal(L, Front, Back) => rangeTotal(L, 0, Back)
+    requires Front <Int 0
+  
+  rule rangeTotal(L, Front, Back) => rangeTotal(L, Front, 0)
+    requires 0 <=Int Front
+     andBool Back <Int 0
+  
+  rule rangeTotal(L, Front, Back) => .ListBytes
+    requires 0 <=Int Front
+     andBool 0 <=Int Back 
+     andBool size(L) <Int Front +Int Back
+  
 endmodule

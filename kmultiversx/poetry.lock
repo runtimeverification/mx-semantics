@@ -946,7 +946,7 @@ plugins = ["importlib-metadata"]
 
 [[package]]
 name = "pyk"
-version = "0.1.447"
+version = "0.1.452"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -966,8 +966,8 @@ tomli = "^2.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/pyk.git"
-reference = "v0.1.447"
-resolved_reference = "abed8298b54de758d33494d1b802a8869c728554"
+reference = "v0.1.452"
+resolved_reference = "7c1868154f616881c6a22b3587724877cd36b811"
 
 [[package]]
 name = "pykwasm"
@@ -982,7 +982,7 @@ develop = false
 cytoolz = "^0.12.1"
 numpy = "^1.24.2"
 py-wasm = {url = "https://github.com/runtimeverification/py-wasm/archive/refs/tags/0.1.0-alpha.0.tar.gz"}
-pyk = {git = "https://github.com/runtimeverification/pyk.git", tag = "v0.1.447"}
+pyk = {git = "https://github.com/runtimeverification/pyk.git", tag = "v0.1.452"}
 
 [package.source]
 type = "directory"

@@ -3,6 +3,11 @@ on:
   push:
     branches:
       - '_update-deps/runtimeverification/wasm-semantics'
+# Stop in progress workflows on the same branch and same workflow to use latest committed code
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   update-submodule:
     name: 'Update poetry'
@@ -12,6 +17,7 @@ jobs:
         uses: actions/checkout@v3
         with:    
           submodules: recursive
+          token: ${{ secrets.JENKINS_GITHUB_PAT }}
       - name: 'Configure GitHub user'
         run: |
           git config user.name devops

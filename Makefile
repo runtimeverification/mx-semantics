@@ -181,7 +181,7 @@ $(llvm_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_D
 	    llvm_main_file=$(MAIN_DEFN_FILE)                 \
 	    EXTRA_SOURCE_FILES="$(EXTRA_SOURCES)"            \
 	    KOMPILE_OPTS="$(KOMPILE_OPTS)"                   \
-	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"	     \
+	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"         \
 	    K_INCLUDE_DIR=$(K_INCLUDE_DIR)
 
 $(KWASM_SUBMODULE)/%.md: %.md
@@ -213,7 +213,25 @@ $(foundry_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGI
 	    llvm_main_file=foundry                           \
 	    EXTRA_SOURCE_FILES="$(EXTRA_SOURCES)"            \
 	    KOMPILE_OPTS="$(KOMPILE_OPTS)"                   \
-	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"	     \
+	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"         \
+	    K_INCLUDE_DIR=$(K_INCLUDE_DIR)
+
+# Haskell build
+# The Haskell target is not currently in use. It is only for testing whether the symbolic modules compile successfully.
+haskell_dir      := $(DEFN_DIR)/haskell
+haskell_kompiled := $(haskell_dir)/mandos-kompiled/interpreter
+
+
+build-haskell: $(haskell_kompiled)
+
+$(haskell_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_DEPS)
+	$(KWASM_MAKE) build-haskell                             \
+	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)               \
+	    haskell_main_module=$(MAIN_MODULE)                  \
+	    haskell_syntax_module=$(MAIN_SYNTAX_MODULE)         \
+	    haskell_main_file=$(MAIN_DEFN_FILE)                 \
+	    EXTRA_SOURCE_FILES="$(EXTRA_SOURCES)"               \
+	    KOMPILE_OPTS="$(KOMPILE_OPTS)"                      \
 	    K_INCLUDE_DIR=$(K_INCLUDE_DIR)
 
 # Testing

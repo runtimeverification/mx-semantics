@@ -96,33 +96,5 @@ module UTILS-CEILS
             )
         [simplification]
 
-
-    syntax Bool ::= definedSigned(IValType, Int)  [function, total]
- // ---------------------------------------------------------------------------------
-    rule definedSigned(T:IValType, N:Int) => 0 <=Int N andBool N <Int #pow(T)
-
-    rule #Ceil(#signed(@Arg0:IValType, @Arg1:Int))
-        =>  (({ definedSigned(@Arg0, @Arg1)  #Equals true }
-          #And #Ceil(@Arg0))
-          #And #Ceil(@Arg1))
-        [simplification]
-
-    syntax Int ::= #signedTotal(IValType, Int)
-        [function, total, klabel(#signedTotal), symbol, no-evaluators, smtlib(signedTotal)]
- // ---------------------------------------------------------------------------------
-    rule #signedTotal(Arg0:IValType, Arg1:Int)
-        => #signed(Arg0, Arg1)
-        requires definedSigned(Arg0, Arg1)
-        [concrete, simplification]
-
-    rule #signed(Arg0:IValType, Arg1:Int)
-        => #signedTotal(Arg0, Arg1)
-        requires definedSigned(Arg0, Arg1)
-        [symbolic(Arg0), simplification]
-
-    rule #signed(Arg0:IValType, Arg1:Int)
-        => #signedTotal(Arg0, Arg1)
-        requires definedSigned(Arg0, Arg1)
-        [symbolic(Arg1), simplification]
 endmodule
 ```

@@ -61,7 +61,7 @@ module ELROND-CONFIG
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           <memAddrs> wrap(0) Int2Int|-> wrap(MEMADDR) </memAddrs>
            ...
          </moduleInst>
          <memInst>
@@ -76,7 +76,7 @@ module ELROND-CONFIG
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           <memAddrs> wrap(0) Int2Int|-> wrap(MEMADDR) </memAddrs>
            ...
          </moduleInst>
          <memInst>
@@ -108,7 +108,7 @@ module ELROND-CONFIG
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           <memAddrs> wrap(0) Int2Int|-> wrap(MEMADDR) </memAddrs>
            ...
          </moduleInst>
          <memInst>
@@ -126,7 +126,7 @@ module ELROND-CONFIG
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           <memAddrs> wrap(0) Int2Int|-> wrap(MEMADDR) </memAddrs>
            ...
          </moduleInst>
          <memInst>
@@ -693,7 +693,7 @@ Initialize the call state and invoke the endpoint function:
             <moduleInst>
               <modIdx> MODIDX </modIdx>
               <exports> ... FUNCNAME |-> FUNCIDX:Int </exports>
-              <funcAddrs> ... FUNCIDX |-> FUNCADDR:Int ... </funcAddrs>
+              <funcAddrs> ... wrap(FUNCIDX) Int2Int|-> wrap(FUNCADDR:Int) ... </funcAddrs>
               ...
             </moduleInst>
             ...

@@ -283,6 +283,8 @@ TEST_MANDOS := $(POETRY_RUN) mandos --definition-dir $(llvm_dir)/mandos-kompiled
 mxpy-build/%:
 	if [ ! -f "$*/Cargo.lock" ]; then \
 	    cargo update --manifest-path $*/Cargo.toml -p ruplacer --precise 0.8.1 ; \
+	    cargo update --manifest-path $*/Cargo.toml -p termcolor --precise 1.1.1; \
+	    cargo update --manifest-path $*/Cargo.toml -p syn --precise 1.0.74; \
 	    cargo update --manifest-path $*/Cargo.toml -p clap --precise 4.1.0 ; \
 	fi
 

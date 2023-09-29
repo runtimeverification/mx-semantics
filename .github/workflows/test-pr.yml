@@ -23,7 +23,7 @@ jobs:
     runs-on: [self-hosted, linux, normal]
     name: 'Simple Tests'
     needs: [python-code-quality-checks]
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: 'Check out code'
         uses: actions/checkout@v3

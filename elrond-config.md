@@ -487,7 +487,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <address> ADDR </address>
            ...
          </account>
-         <logging> S => S +String " -- initAccount duplicate " +String Bytes2String(ADDR) </logging>
+        //  <logging> S => S +String " -- initAccount duplicate " +String Bytes2String(ADDR) </logging>
       [priority(60)]
 
     rule <commands> createAccount(ADDR) => . ... </commands>
@@ -500,7 +500,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            )
            ...
          </accounts>
-         <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
+        //  <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
       [priority(61)]
 
     syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, Code, Bytes, MapBytesToBytes )

@@ -55,7 +55,7 @@ pub trait TestAdder {
     #[endpoint(test_call_add)]
     fn test_call_add(&self, value: BigUint) {
 
-        testapi::assume(value <= 100u32);
+        testapi::assume(value < 100u32);
 
         let adder = self.adder_address().get();
 
@@ -71,8 +71,8 @@ pub trait TestAdder {
     #[endpoint(test_call_add_twice)]
     fn test_call_add_twice(&self, value1: BigUint, value2: BigUint) {
 
-        testapi::assume(value1 <= 100u32);
-        testapi::assume(value2 <= 100u32);
+        testapi::assume(value1 < 100u32);
+        testapi::assume(value2 < 100u32);
 
         let adder = self.adder_address().get();
 

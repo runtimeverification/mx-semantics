@@ -481,13 +481,13 @@ pyreadline3 = {version = "*", markers = "sys_platform == \"win32\" and python_ve
 
 [[package]]
 name = "hypothesis"
-version = "6.86.2"
+version = "6.87.0"
 description = "A library for property-based testing"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "hypothesis-6.86.2-py3-none-any.whl", hash = "sha256:e1d36522824d62bb3e9fcb7b57dd4a6ca330bb36921324bb19c476bdafabeda7"},
-    {file = "hypothesis-6.86.2.tar.gz", hash = "sha256:e5d75d70f5a4fc372cddf03ec6141237a0a270ed106aeb2156a4984f06d37b0f"},
+    {file = "hypothesis-6.87.0-py3-none-any.whl", hash = "sha256:a3fcf9e56fecfa1cc0c8e05eda18a76bdc1bbaf84784cce4aff0a5661dc7b11d"},
+    {file = "hypothesis-6.87.0.tar.gz", hash = "sha256:2cc23c9bb1ee38f64ee19dda9acc6be9a1be947f6bd841d5efb9793a7ecf1415"},
 ]
 
 [package.dependencies]
@@ -946,7 +946,7 @@ plugins = ["importlib-metadata"]
 
 [[package]]
 name = "pyk"
-version = "0.1.447"
+version = "0.1.452"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -966,8 +966,8 @@ tomli = "^2.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/pyk.git"
-reference = "v0.1.447"
-resolved_reference = "abed8298b54de758d33494d1b802a8869c728554"
+reference = "v0.1.452"
+resolved_reference = "7c1868154f616881c6a22b3587724877cd36b811"
 
 [[package]]
 name = "pykwasm"
@@ -982,7 +982,7 @@ develop = false
 cytoolz = "^0.12.1"
 numpy = "^1.24.2"
 py-wasm = {url = "https://github.com/runtimeverification/py-wasm/archive/refs/tags/0.1.0-alpha.0.tar.gz"}
-pyk = {git = "https://github.com/runtimeverification/pyk.git", tag = "v0.1.447"}
+pyk = {git = "https://github.com/runtimeverification/pyk.git", tag = "v0.1.452"}
 
 [package.source]
 type = "directory"
@@ -1088,13 +1088,13 @@ testing = ["filelock"]
 
 [[package]]
 name = "pyupgrade"
-version = "3.12.0"
+version = "3.13.0"
 description = "A tool to automatically upgrade syntax for newer versions."
 optional = false
 python-versions = ">=3.8.1"
 files = [
-    {file = "pyupgrade-3.12.0-py2.py3-none-any.whl", hash = "sha256:c6f9c129560b9538e75b93fb0aee20508faae454714e8373d462e408985bd96a"},
-    {file = "pyupgrade-3.12.0.tar.gz", hash = "sha256:defc292ffaf402942b8fccaa97491964063e343fc1993230e44890b971dc1234"},
+    {file = "pyupgrade-3.13.0-py2.py3-none-any.whl", hash = "sha256:8add43ca1fea6eaeb6815b0b987d1f6ff49ec48085169b2a32e9a797e2d2f8fd"},
+    {file = "pyupgrade-3.13.0.tar.gz", hash = "sha256:92220ef0408ff5898bce8ce7845c33bf7bb79c8ff852c5a1dc4305e6333cd60b"},
 ]
 
 [package.dependencies]
@@ -1209,13 +1209,13 @@ test = ["coverage", "pytest", "pytest-cov"]
 
 [[package]]
 name = "wcwidth"
-version = "0.2.6"
+version = "0.2.8"
 description = "Measures the displayed width of unicode strings in a terminal"
 optional = false
 python-versions = "*"
 files = [
-    {file = "wcwidth-0.2.6-py2.py3-none-any.whl", hash = "sha256:795b138f6875577cd91bba52baf9e445cd5118fd32723b460e30a0af30ea230e"},
-    {file = "wcwidth-0.2.6.tar.gz", hash = "sha256:a5220780a404dbe3353789870978e472cfe477761f06ee55077256e509b156d0"},
+    {file = "wcwidth-0.2.8-py2.py3-none-any.whl", hash = "sha256:77f719e01648ed600dfa5402c347481c0992263b81a027344f3e1ba25493a704"},
+    {file = "wcwidth-0.2.8.tar.gz", hash = "sha256:8705c569999ffbb4f6a87c6d1b80f324bd6db952f5eb0b95bc07517f4c1813d4"},
 ]
 
 [[package]]

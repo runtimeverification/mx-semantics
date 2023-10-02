@@ -64,7 +64,7 @@ It is treated purely as a key set -- the actual stored values are not used or st
         <moduleInst>
           <modIdx> HOSTMOD </modIdx>
           <exports> EXPORTS => EXPORTS [NAME <- NEXTFUNC ] </exports>
-          <funcAddrs> FS => FS [NEXTFUNC <- NEXTADDR] </funcAddrs>
+          <funcAddrs> FS => FS {{ NEXTFUNC <- NEXTADDR }} </funcAddrs>
           <nextFuncIdx> NEXTFUNC => NEXTFUNC +Int 1 </nextFuncIdx>
           <nextTypeIdx> NEXTTYPE => NEXTTYPE +Int 1 </nextTypeIdx>
           <types> TYPES => TYPES [ NEXTTYPE <- TYPE ] </types>

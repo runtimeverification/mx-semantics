@@ -61,7 +61,7 @@ module ELROND-CONFIG
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           <memAddrs> wrap(0) Int2Int|-> wrap(MEMADDR) </memAddrs>
            ...
          </moduleInst>
          <memInst>
@@ -76,7 +76,7 @@ module ELROND-CONFIG
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           <memAddrs> wrap(0) Int2Int|-> wrap(MEMADDR) </memAddrs>
            ...
          </moduleInst>
          <memInst>
@@ -108,7 +108,7 @@ module ELROND-CONFIG
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           <memAddrs> wrap(0) Int2Int|-> wrap(MEMADDR) </memAddrs>
            ...
          </moduleInst>
          <memInst>
@@ -126,7 +126,7 @@ module ELROND-CONFIG
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           <memAddrs> wrap(0) Int2Int|-> wrap(MEMADDR) </memAddrs>
            ...
          </moduleInst>
          <memInst>
@@ -487,7 +487,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <address> ADDR </address>
            ...
          </account>
-         <logging> S => S +String " -- initAccount duplicate " +String Bytes2String(ADDR) </logging>
+        //  <logging> S => S +String " -- initAccount duplicate " +String Bytes2String(ADDR) </logging>
       [priority(60)]
 
     rule <commands> createAccount(ADDR) => . ... </commands>
@@ -500,7 +500,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            )
            ...
          </accounts>
-         <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
+        //  <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
       [priority(61)]
 
     syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, Code, Bytes, MapBytesToBytes )
@@ -689,11 +689,11 @@ Initialize the call state and invoke the endpoint function:
           (_:VmInputCell => VMINPUT)
           // executional
           <wasm>
-            <instrs> . => ( invoke FUNCADDR ) </instrs>
+            <instrs> . => ( invoke FUNCADDRS {{ FUNCIDX }} orDefault 0 ) </instrs>
             <moduleInst>
               <modIdx> MODIDX </modIdx>
               <exports> ... FUNCNAME |-> FUNCIDX:Int </exports>
-              <funcAddrs> ... FUNCIDX |-> FUNCADDR:Int ... </funcAddrs>
+              <funcAddrs> FUNCADDRS </funcAddrs>
               ...
             </moduleInst>
             ...
@@ -706,6 +706,7 @@ Initialize the call state and invoke the endpoint function:
           <out> _ => .ListBytes </out>
           <logs> _ => .List </logs>
         </callState>
+        requires FUNCIDX in_keys {{ FUNCADDRS }}
       [priority(60)]
 
     rule [mkCall-func-not-found]:

@@ -162,21 +162,24 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
 ```k
     syntax InternalCmd ::= "pushCallState"
  // ---------------------------------------
-    rule <commands> pushCallState => . ... </commands>
+    rule [pushCallState]:
+         <commands> pushCallState => . ... </commands>
          <callStack> (.List => ListItem(CALLSTATE)) ... </callStack>
          <callState> CALLSTATE </callState>
       [priority(60)]
 
     syntax InternalCmd ::= "popCallState"
  // --------------------------------------
-    rule <commands> popCallState => . ... </commands>
+    rule [popCallState]:
+         <commands> popCallState => . ... </commands>
          <callStack> (ListItem(CALLSTATE) => .List) ... </callStack>
          <callState> _ => CALLSTATE </callState>
       [priority(60)]
 
     syntax InternalCmd ::= "dropCallState"
  // ---------------------------------------
-    rule <commands> dropCallState => . ... </commands>
+    rule [dropCallState]:
+         <commands> dropCallState => . ... </commands>
          <callStack> (ListItem(_) => .List) ... </callStack>
       [priority(60)]
 ```

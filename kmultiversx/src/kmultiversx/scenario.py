@@ -93,7 +93,9 @@ sys.setrecursionlimit(1500000000)
 resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
 
-def mandos_int_to_kint(mandos_int: str) -> KToken:
+def mandos_int_to_kint(mandos_int: str, default_when_empty: int | None = None) -> KToken:
+    if mandos_int == '' and default_when_empty is not None:
+        return KInt(default_when_empty)
     if mandos_int[0:2] == '0x':
         return KInt(int(mandos_int, 16))
     unseparated_int = mandos_int.replace(',', '')
@@ -352,7 +354,7 @@ def mandos_to_deploy_tx(tx: dict, filename: str, output_dir: str) -> KInner:
     value = mandos_int_to_kint(get_egld_value(tx))
     arguments = mandos_arguments_to_klist(tx['arguments'])
     gas_limit = mandos_int_to_kint(tx['gasLimit'])
-    gas_price = mandos_int_to_kint(tx['gasPrice'])
+    gas_price = mandos_int_to_kint(tx['gasPrice'], default_when_empty=0)
 
     code = get_contract_code(tx['contractCode'], filename)
     assert isinstance(code, str)
@@ -369,7 +371,7 @@ def mandos_to_call_tx(tx: dict) -> KInner:
     function = KWasmString(tx['function'])
     arguments = mandos_arguments_to_klist(tx['arguments'])
     gas_limit = mandos_int_to_kint(tx['gasLimit'])
-    gas_price = mandos_int_to_kint(tx['gasPrice'])
+    gas_price = mandos_int_to_kint(tx['gasPrice'], default_when_empty=0)
 
     return KApply('callTx', [sender, to, value, esdt_value, function, arguments, gas_limit, gas_price])
 

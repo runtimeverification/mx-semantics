@@ -1,5 +1,4 @@
 deps/mx-sdk-rs/contracts/feature-tests/alloc-features/scenarios/boxed_bytes_zeros.scen.json
-deps/mx-sdk-rs/contracts/feature-tests/alloc-features/scenarios/crypto_sha256_legacy_alloc.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/alloc-features/scenarios/echo_async_result_empty.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/alloc-features/scenarios/echo_big_int_nested_alloc.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/alloc-features/scenarios/echo_boxed_bytes.scen.json

@@ -8,9 +8,7 @@ deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/big_uint_to_u64.
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/block_info.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/codec_err.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/count_ones.scen.json
-deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/crypto_keccak256_legacy_managed.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/crypto_keccak256.scen.json
-deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/crypto_sha256_legacy_managed.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/crypto_sha256.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_array_u8.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/echo_arrayvec.scen.json

@@ -406,7 +406,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <instrs> #assume(P) => #endFoundryImmediately ... </instrs>
       requires P ==Int 0
 
-    syntax IternalInstr ::= "#endFoundryImmediately"  
+    syntax InternalInstr ::= "#endFoundryImmediately"
         [symbol, klabel(endFoundryImmediately)]
  // ------------------------------------------------------
     rule [endFoundryImmediately]:

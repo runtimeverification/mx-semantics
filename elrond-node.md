@@ -160,23 +160,26 @@ Storage maps byte arrays to byte arrays.
 The `<callStack>` cell stores a list of previous contract execution states. These internal commands manages the callstack when calling and returning from a contract.
 
 ```k
-    syntax InternalCmd ::= "pushCallState"
+    syntax InternalCmd ::= "pushCallState"  [klabel(pushCallState), symbol]
  // ---------------------------------------
-    rule <commands> pushCallState => . ... </commands>
+    rule [pushCallState]:
+         <commands> pushCallState => . ... </commands>
          <callStack> (.List => ListItem(CALLSTATE)) ... </callStack>
          <callState> CALLSTATE </callState>
       [priority(60)]
 
-    syntax InternalCmd ::= "popCallState"
+    syntax InternalCmd ::= "popCallState"  [klabel(popCallState), symbol]
  // --------------------------------------
-    rule <commands> popCallState => . ... </commands>
+    rule [popCallState]:
+         <commands> popCallState => . ... </commands>
          <callStack> (ListItem(CALLSTATE) => .List) ... </callStack>
          <callState> _ => CALLSTATE </callState>
       [priority(60)]
 
-    syntax InternalCmd ::= "dropCallState"
+    syntax InternalCmd ::= "dropCallState"  [klabel(dropCallState), symbol]
  // ---------------------------------------
-    rule <commands> dropCallState => . ... </commands>
+    rule [dropCallState]:
+         <commands> dropCallState => . ... </commands>
          <callStack> (ListItem(_) => .List) ... </callStack>
       [priority(60)]
 ```

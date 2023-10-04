@@ -235,8 +235,22 @@ By combining pranks with storage access and assertions, we can comprehensively t
 To run the tests for your Smart Contracts, ensure that you have fulfilled the following prerequisites:
 
 1. Compile the semantics by executing `make build-foundry`.
-2. Compile the contract using `mxpy contract build <path to adder contract>`.
-3. Install the `hypothesis` library by running `pip3 install hypothesis`. This library will be utilized for concrete execution with fuzzing.
+2. Add a `<path to adder contract>/multicontract.toml` file to the adder contract, something like:
+    ```
+    [settings]
+    main = "main"
+
+    [contracts.main]
+    name = "adder"
+    add-unlabelled = true
+    allocator = "fail"
+    stack-size = "1 pages"
+    ```
+    The stack-size should be as low as possible, while also allowing the contract
+    to run without errors. Also, if the contract does not need it, the allocator
+    should be "fail".
+3. Compile the contract using `mxpy contract build <path to adder contract>`.
+4. Install the `hypothesis` library by running `pip3 install hypothesis`. This library will be utilized for concrete execution with fuzzing.
 
 Now, follow these steps to run the test contract:
 

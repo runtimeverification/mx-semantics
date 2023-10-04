@@ -11,7 +11,7 @@ extern "C" {
         nonce: i64,
         balanceHandle: i32,
     );
-    
+
     fn registerNewAddress(
         ownerHandle: i32,
         nonce: i64,
@@ -101,7 +101,7 @@ pub fn deploy_contract<M: ManagedTypeApi>(
 ) -> ManagedAddress<M> {
     unsafe {
         let mut dest = ManagedAddress::zero();
-        
+
         deployContract(
             owner.get_raw_handle(),
             gas_limit as i64,
@@ -141,7 +141,7 @@ pub fn get_storage<M: ManagedTypeApi>(
 ) -> ManagedBuffer<M> {
     unsafe {
         let mut dest = ManagedBuffer::new();
-        
+
         getStorage(
             address.get_raw_handle(),
             key.get_raw_handle(),

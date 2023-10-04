@@ -193,7 +193,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       requires notBool #hasPrefix(KEY, "ELROND")
 
     rule <instrs> #isReservedKey(KEY)
-               => #throwException(UserError, "cannot write to storage under Elrond reserved key") ...
+               => #throwException(ExecutionFailed, "cannot write to storage under reserved key") ...
          </instrs>
       requires         #hasPrefix(KEY, "ELROND")
 

@@ -235,7 +235,7 @@ By combining pranks with storage access and assertions, we can comprehensively t
 To run the tests for your Smart Contracts, ensure that you have fulfilled the following prerequisites:
 
 1. Compile the semantics by executing `make build-foundry`.
-2. Add a `<path to adder contract>/multicontract.ml` file to the adder contract, something like:
+2. Add a `<path to adder contract>/multicontract.toml` file to the adder contract, something like:
     ```
     [settings]
     main = "main"

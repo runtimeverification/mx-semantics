@@ -13,6 +13,7 @@ Calling an imported host function will result in `hostCall(MODULE_NAME, FUNCTION
 require "wasm-semantics/wasm-text.md"
 
 module WASM-AUTO-ALLOCATE
+    imports WASM-DATA-TOOLS
     imports WASM-TEXT
 
     syntax Stmt ::= "newEmptyModule" WasmString
@@ -64,7 +65,7 @@ It is treated purely as a key set -- the actual stored values are not used or st
         <moduleInst>
           <modIdx> HOSTMOD </modIdx>
           <exports> EXPORTS => EXPORTS [NAME <- NEXTFUNC ] </exports>
-          <funcAddrs> FS => FS {{ NEXTFUNC <- NEXTADDR }} </funcAddrs>
+          <funcAddrs> FS => setExtend(FS, NEXTFUNC, NEXTADDR, -1) </funcAddrs>
           <nextFuncIdx> NEXTFUNC => NEXTFUNC +Int 1 </nextFuncIdx>
           <nextTypeIdx> NEXTTYPE => NEXTTYPE +Int 1 </nextTypeIdx>
           <types> TYPES => TYPES [ NEXTTYPE <- TYPE ] </types>

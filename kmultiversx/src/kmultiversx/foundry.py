@@ -4,10 +4,10 @@ import argparse
 import glob
 import json
 import sys
+import warnings
 from os.path import join
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterable, Mapping, cast
-import warnings
 
 from hypothesis import Verbosity, given, settings
 from hypothesis.errors import HypothesisWarning

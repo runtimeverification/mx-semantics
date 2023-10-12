@@ -20,7 +20,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         test_call_add_concrete => test_call_add_concrete
-        test_call_add_twice => test_call_add_twice
+        test_call_add_twice_concrete => test_call_add_twice_concrete
     )
 }
 

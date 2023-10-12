@@ -66,7 +66,7 @@ pub trait TestAdder {
     }
 
     #[endpoint]
-    fn test_call_add_twice(&self) {
+    fn test_call_add_twice_concrete(&self) {
 
         let adder = self.adder_address().get();
 

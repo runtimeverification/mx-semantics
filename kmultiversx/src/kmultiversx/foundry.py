@@ -7,8 +7,10 @@ import sys
 from os.path import join
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterable, Mapping, cast
+import warnings
 
 from hypothesis import Verbosity, given, settings
+from hypothesis.errors import HypothesisWarning
 from hypothesis.strategies import integers, tuples
 from pyk.cli.utils import dir_path
 from pyk.cterm import CTerm, build_claim
@@ -439,6 +441,7 @@ def type_to_constraint(typ: str, var: KVariable) -> tuple[KInner, ...]:
 
 def main() -> None:
     sys.setrecursionlimit(REC_LIMIT)
+    warnings.filterwarnings('ignore', message='The recursion limit will not be reset', category=HypothesisWarning)
 
     parser = argparse.ArgumentParser(description='Symbolic testing for MultiversX contracts')
     parser.add_argument(

@@ -63,7 +63,6 @@ pub trait TestAdder {
         let sum_as_bytes = testapi::get_storage(&adder, &ManagedBuffer::from(b"sum")); 
         let sum = BigUint::from(sum_as_bytes);
         testapi::assert( sum == value + INIT_SUM );
-        testapi::assert( sum != 987654321u32 );
     }
 
     fn call_add(&self, value: &BigUint) {

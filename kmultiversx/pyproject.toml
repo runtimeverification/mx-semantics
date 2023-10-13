@@ -54,4 +54,4 @@ disallow_untyped_defs = true
 
 [tool.poetry.scripts]
 mandos = "kmultiversx.scenario:run_tests"
-foundry = "kmultiversx.foundry:main"
+kasmer = "kmultiversx.kasmer:main"

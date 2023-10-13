@@ -144,13 +144,13 @@ jobs:
         uses: ./.github/actions/with-docker
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
-      - name: 'Build Foundry'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build-foundry -j4'
+      - name: 'Build Kasmer'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build-kasmer -j4'
       - name: 'Install Kmultiversx'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
       - name: 'Run tests'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c \
-              'make -C kmultiversx test TEST_ARGS="--foundry-llvm-dir ../.build/defn/llvm/foundry-kompiled/"'
+              'make -C kmultiversx test TEST_ARGS="--kasmer-llvm-dir ../.build/defn/llvm/kasmer-kompiled/"'
       - name: 'Run TestApi tests'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c \
               'make test-testapi'

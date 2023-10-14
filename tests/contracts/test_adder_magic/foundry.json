@@ -1,0 +1,5 @@
+{
+  "contract_paths": [
+    "../magic_adder/output/magic_adder.wasm"
+  ]
+}

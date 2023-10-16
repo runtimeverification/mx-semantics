@@ -1,0 +1,14 @@
+[package]
+name = "magic_adder-meta"
+version = "0.0.0"
+edition = "2018"
+publish = false
+authors = [ "you",]
+
+[dev-dependencies]
+
+[dependencies.magic_adder]
+path = ".."
+
+[dependencies.multiversx-sc-meta]
+version = "0.42.0"

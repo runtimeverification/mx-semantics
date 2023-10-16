@@ -1,13 +1,13 @@
-# Foundry for Elrond
+# Kasmer Semantics
 
 ```k
 require "mandos.md"
 
-module FOUNDRY-SYNTAX
-    imports FOUNDRY
+module KASMER-SYNTAX
+    imports KASMER
 endmodule
 
-module FOUNDRY
+module KASMER
     imports MANDOS
 ```
 

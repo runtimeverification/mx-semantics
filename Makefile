@@ -1,6 +1,6 @@
 
 .PHONY: all clean deps wasm-deps                                                 \
-        build build-llvm build-haskell build-foundry                             \
+        build build-llvm build-haskell build-kasmer                              \
         plugin-deps libff libcryptopp libsecp256k1                               \
         elrond-clean-sources elrond-loaded                                       \
         test unittest-python mandos-test test-elrond-contracts                   \
@@ -154,7 +154,7 @@ ELROND_FILE_NAMES      := elrond.md                   \
                           esdt.md                     \
                           auto-allocate.md            \
                           mandos.md                   \
-                          foundry.md                  \
+                          kasmer.md                   \
                           $(wildcard data/*.k)        \
                           $(wildcard vmhooks/*.md)
 
@@ -199,18 +199,18 @@ $(KWASM_SUBMODULE)/data/%.k: data/%.k
 	@mkdir -p $(dir $@)
 	cp $< $@
 
-# Foundry Build
-foundry_kompiled := $(llvm_dir)/foundry-kompiled/interpreter
+# Kasmer Build
+kasmer_kompiled := $(llvm_dir)/kasmer-kompiled/interpreter
 
-build-foundry: $(foundry_kompiled)
+build-kasmer: $(kasmer_kompiled)
 
 # runs llvm-kompile separately to reduce max memory usage
-$(foundry_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_DEPS)
+$(kasmer_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_DEPS)
 	$(KWASM_MAKE) build-llvm                             \
 	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)            \
-	    llvm_main_module=FOUNDRY                         \
-	    llvm_syntax_module=FOUNDRY-SYNTAX                \
-	    llvm_main_file=foundry                           \
+	    llvm_main_module=KASMER                          \
+	    llvm_syntax_module=KASMER-SYNTAX                 \
+	    llvm_main_file=kasmer                            \
 	    EXTRA_SOURCE_FILES="$(EXTRA_SOURCES)"            \
 	    KOMPILE_OPTS="$(KOMPILE_OPTS)"                   \
 	    LLVM_KOMPILE_OPTS="$(LLVM_KOMPILE_OPTS)"         \
@@ -396,17 +396,17 @@ test-elrond-callercallee: $(llvm_kompiled)                    \
                           mxpy-build/$(ELROND_CALLEE_DIR)
 	$(TEST_MANDOS) $(elrond_callercallee_tests)
 
-## Foundry Test API tests
+## Kasmer Test API tests
 
-TEST_FOUNDRY := $(POETRY_RUN) foundry --definition-dir $(llvm_dir)/foundry-kompiled
+TEST_KASMER := $(POETRY_RUN) kasmer --definition-dir $(llvm_dir)/kasmer-kompiled
 
 TEST_TESTAPI_DIR := tests/contracts/test_testapi
 testapi_tests=$(shell find $(TEST_TESTAPI_DIR) -name "*.scen.json")
 
-test-testapi: $(foundry_kompiled)                 \
+test-testapi: $(kasmer_kompiled)                  \
               poetry-install                      \
               mxpy-build/$(TEST_TESTAPI_DIR)
-	$(TEST_FOUNDRY) -d $(TEST_TESTAPI_DIR)
+	$(TEST_KASMER) -d $(TEST_TESTAPI_DIR)
 
 # Unit Tests
 # ----------

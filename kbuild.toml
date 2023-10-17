@@ -14,10 +14,10 @@ backend='llvm'
 main-file = 'mandos.md'
 backend='haskell'
 
-[targets.llvm-foundry]
-main-file = 'foundry.md'
+[targets.llvm-kasmer]
+main-file = 'kasmer.md'
 backend='llvm'
 
-[targets.haskell-foundry]
-main-file = 'foundry.md'
+[targets.haskell-kasmer]
+main-file = 'kasmer.md'
 backend='haskell'

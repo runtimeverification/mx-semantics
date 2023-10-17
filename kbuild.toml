@@ -13,3 +13,11 @@ backend='llvm'
 [targets.haskell]
 main-file = 'mandos.md'
 backend='haskell'
+
+[targets.llvm-kasmer]
+main-file = 'kasmer.md'
+backend='llvm'
+
+[targets.haskell-kasmer]
+main-file = 'kasmer.md'
+backend='haskell'

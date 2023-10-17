@@ -34,7 +34,15 @@ def load_wasm(filename: str) -> KInner:
         return wasm2kast.wasm2kast(f, filename)
 
 
-def krun_config(krun: KRun, conf: KInner) -> KInner:
+def krun_config(krun: KRun, conf: KInner, pipe_stderr: bool = False) -> KInner:
     conf_kore = krun.kast_to_kore(conf, sort=GENERATED_TOP_CELL)
-    res_conf_kore = krun.run_pattern(conf_kore, pipe_stderr=False)
+    res_conf_kore = krun.run_pattern(conf_kore, pipe_stderr=pipe_stderr)
     return krun.kore_to_kast(res_conf_kore)
+
+
+class KasmerRunError(Exception):  # noqa: B903
+    def __init__(self, k_cell: KInner, vm_output: KInner, final_conf: KInner, message: str):
+        self.k_cell = k_cell
+        self.vm_output = vm_output
+        self.final_conf = final_conf
+        self.message = message

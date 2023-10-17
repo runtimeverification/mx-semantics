@@ -9,7 +9,7 @@ from os.path import join
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterable, Mapping, cast
 
-from hypothesis import Verbosity, given, settings
+from hypothesis import Phase, Verbosity, given, settings
 from hypothesis.errors import HypothesisWarning
 from hypothesis.strategies import integers, tuples
 from pyk.cli.utils import dir_path
@@ -33,7 +33,7 @@ from kmultiversx.scenario import (
     mandos_argument_to_kbytes,
     wrapBytes,
 )
-from kmultiversx.utils import GENERATED_TOP_CELL, kast_to_json_str, krun_config, load_wasm
+from kmultiversx.utils import GENERATED_TOP_CELL, KasmerRunError, kast_to_json_str, krun_config, load_wasm
 
 if TYPE_CHECKING:
     from hypothesis.strategies import SearchStrategy
@@ -135,14 +135,16 @@ def deploy_test(krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInne
     return sym_conf, subst
 
 
-def run_config_and_check_empty(krun: KRun, conf: KInner) -> tuple[KInner, KInner, dict[str, KInner]]:
-    final_conf = krun_config(krun, conf)
+def run_config_and_check_empty(
+    krun: KRun, conf: KInner, pipe_stderr: bool = False
+) -> tuple[KInner, KInner, dict[str, KInner]]:
+    final_conf = krun_config(krun, conf, pipe_stderr=pipe_stderr)
     sym_conf, subst = split_config_from(final_conf)
     k_cell = subst['K_CELL']
     if not isinstance(k_cell, KSequence) or k_cell.arity != 0:
-        print(krun.pretty_print(subst['VMOUTPUT_CELL']), file=sys.stderr)
-        print(krun.pretty_print(subst['K_CELL']), file=sys.stderr)
-        raise ValueError(f'k cell not empty:\n { krun.pretty_print(final_conf) }')
+        raise KasmerRunError(
+            k_cell=subst['K_CELL'], vm_output=subst['VMOUTPUT_CELL'], final_conf=final_conf, message='k cell not empty'
+        )
 
     return final_conf, sym_conf, subst
 
@@ -167,7 +169,7 @@ def run_test(krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoi
     conf_with_steps = Subst(subst)(sym_conf)
 
     try:
-        run_config_and_check_empty(krun, conf_with_steps)
+        run_config_and_check_empty(krun, conf_with_steps, pipe_stderr=True)
     except RuntimeError as rte:
         if rte.args[0].startswith('Command krun exited with code 1'):
             raise RuntimeError(f'Test failed for input input: {args}') from None
@@ -221,14 +223,24 @@ def arg_types_to_strategy(types: Iterable[str]) -> SearchStrategy[tuple[str, ...
 
 
 def test_with_hypothesis(
-    krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoint: str, arg_types: Iterable[str]
+    krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoint: str, arg_types: Iterable[str], verbose: bool
 ) -> None:
     def test(args: tuple[str, ...]) -> None:
         # set the recursion limit every time because hypothesis changes it
         if sys.getrecursionlimit() < REC_LIMIT:
             sys.setrecursionlimit(REC_LIMIT)
 
-        run_test(krun, sym_conf, init_subst, endpoint, args)
+        try:
+            run_test(krun, sym_conf, init_subst, endpoint, args)
+        except KasmerRunError as kre:
+            message = 'Test failed:'
+            message += f'\n\tendpoint: {endpoint}'
+            message += f'\n\tvm output: {krun.pretty_print(kre.vm_output)}'
+
+            if verbose:
+                message += f'\n\tfinal configuration: {krun.pretty_print(kre.final_conf)}'
+
+            raise ValueError(message) from None
 
     test.__name__ = endpoint  # show endpoint name in hypothesis logs
 
@@ -238,6 +250,7 @@ def test_with_hypothesis(
             deadline=50000,  # set time limit for individual runs
             max_examples=10,  # enough for demo
             verbosity=Verbosity.verbose,
+            phases=(Phase.generate, Phase.target, Phase.shrink),
         )(test)
     )()
 
@@ -247,10 +260,12 @@ def run_concrete(
     test_endpoints: Mapping[str, tuple[str, ...]],
     sym_conf: KInner,
     init_subst: dict[str, KInner],
+    verbose: bool = False,
 ) -> None:
     for endpoint, arg_types in test_endpoints.items():
         print(f'Testing {endpoint !r}')
-        test_with_hypothesis(krun, sym_conf, init_subst, endpoint, arg_types)
+        test_with_hypothesis(krun, sym_conf, init_subst, endpoint, arg_types, verbose)
+        print(f'Passed {endpoint !r}')
 
 
 # Claim generation
@@ -472,6 +487,14 @@ def main() -> None:
         action='store_true',
         help='Pretty print claims. Default output format is JSON.',
     )
+    parser.add_argument(
+        '-v',
+        '--verbose',
+        dest='verbose',
+        default=False,
+        action='store_true',
+        help='Print verbose error messages.',
+    )
     args = parser.parse_args()
 
     test_dir = args.directory
@@ -506,4 +529,4 @@ def main() -> None:
         generate_claims(krun, test_endpoints, sym_conf, init_subst, output_dir, args.pretty)
 
     else:
-        run_concrete(krun, test_endpoints, sym_conf, init_subst)
+        run_concrete(krun, test_endpoints, sym_conf, init_subst, args.verbose)

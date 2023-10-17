@@ -10,7 +10,7 @@ pub trait CalleeContract {
     #[endpoint]
     #[payable("EGLD")]
     fn fail_if_neg(&self, value: i64) -> ManagedBuffer {
-        
+
         require!( value >= 0 , "negative" );
 
         if value == 0 {

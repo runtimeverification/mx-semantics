@@ -99,7 +99,7 @@ pub trait TestCrowdfundingEsdtContract {
     }
 
     fn get_target(&self, crowdfunding: &ManagedAddress) -> BigUint {
-      let value = testapi::get_storage(&crowdfunding, &ManagedBuffer::from(b"target")); 
+      let value = testapi::get_storage(&crowdfunding, &ManagedBuffer::from(b"target"));
       BigUint::from(value)
     }
 }

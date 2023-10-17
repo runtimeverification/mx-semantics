@@ -13,7 +13,7 @@ pub trait CallerContract {
     #[endpoint]
     #[payable("EGLD")]
     fn call_other(&self, dest: ManagedAddress, func: ManagedBuffer, value: i64, to_send: BigUint)  -> ManagedBuffer {
-        
+
         let mut arg_buffer = ManagedArgBuffer::new();
         arg_buffer.push_arg(value);
 
@@ -34,7 +34,7 @@ pub trait CallerContract {
     #[endpoint]
     #[payable("EGLD")]
     fn call_other_exec_on_dest_ctx(&self, dest: ManagedAddress, func: ManagedBuffer, value: i64, to_send: BigUint)  -> ManagedBuffer {
-        
+
         let mut arg_buffer = ManagedArgBuffer::new();
         arg_buffer.push_arg(value);
 
@@ -45,7 +45,7 @@ pub trait CallerContract {
             &func,
             &arg_buffer,
         );
-        
+
         require!(result.len() == 1, "ExecuteOnDestContext result data is empty");
 
         ManagedBuffer::from("done")

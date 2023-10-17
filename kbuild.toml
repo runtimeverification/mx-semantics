@@ -13,3 +13,11 @@ backend='llvm'
 [targets.haskell]
 main-file = 'mandos.md'
 backend='haskell'
+
+[targets.llvm-foundry]
+main-file = 'foundry.md'
+backend='llvm'
+
+[targets.haskell-foundry]
+main-file = 'foundry.md'
+backend='haskell'

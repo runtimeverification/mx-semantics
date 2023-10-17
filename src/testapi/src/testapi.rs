@@ -153,7 +153,7 @@ pub fn get_storage<M: ManagedTypeApi>(
 }
 
 
-// Start a prank: set the caller address for contract calls until stop_prank 
+// Start a prank: set the caller address for contract calls until stop_prank
 #[allow(unused)]
 pub fn start_prank<M: ManagedTypeApi>(address: &ManagedAddress<M>) {
     unsafe {

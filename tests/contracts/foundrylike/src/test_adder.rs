@@ -17,13 +17,13 @@ pub trait TestAdder {
     /// Create the owner account and deploy adder
     #[init]
     fn init(&self, code_path: ManagedBuffer) {
-        
+
         // create the owner account
         let owner = ManagedAddress::from(b"owner___________________________");
         self.owner_address().set(&owner);
-        
+
         testapi::create_account(&owner, 1, &BigUint::from(0u64));
-        
+
         // register an address for the contract to be deployed
         let adder = ManagedAddress::from(b"adder___________________________");
         testapi::register_new_address(&owner, 1, &adder, );
@@ -45,7 +45,7 @@ pub trait TestAdder {
         self.adder_address().set(&adder);
 
         // check the initial sum value
-        let sum_as_bytes = testapi::get_storage(&adder, &ManagedBuffer::from(b"sum")); 
+        let sum_as_bytes = testapi::get_storage(&adder, &ManagedBuffer::from(b"sum"));
         let sum = BigUint::from(sum_as_bytes);
         testapi::assert( sum == INIT_SUM );
 
@@ -55,14 +55,14 @@ pub trait TestAdder {
     #[endpoint(test_call_add)]
     fn test_call_add(&self, value: BigUint) {
 
-        testapi::assume(value < 100u32);
+        testapi::assume(value <= 100u32);
 
         let adder = self.adder_address().get();
 
         self.call_add(&value);
 
         // check the sum value
-        let sum_as_bytes = testapi::get_storage(&adder, &ManagedBuffer::from(b"sum")); 
+        let sum_as_bytes = testapi::get_storage(&adder, &ManagedBuffer::from(b"sum"));
         let sum = BigUint::from(sum_as_bytes);
         testapi::assert( sum == (value + INIT_SUM) );
 
@@ -80,7 +80,7 @@ pub trait TestAdder {
         self.call_add(&value2);
 
         // check the sum value
-        let sum_as_bytes = testapi::get_storage(&adder, &ManagedBuffer::from(b"sum")); 
+        let sum_as_bytes = testapi::get_storage(&adder, &ManagedBuffer::from(b"sum"));
         let sum = BigUint::from(sum_as_bytes);
         testapi::assert( sum == (value1 + value2 + INIT_SUM) );
 
@@ -96,9 +96,9 @@ pub trait TestAdder {
         // start a prank and call 'adder' from 'owner'
         testapi::start_prank(&owner);
         let res = self.send_raw().direct_egld_execute(
-            &adder, 
-            &BigUint::from(0u32), 
-            5000000, 
+            &adder,
+            &BigUint::from(0u32),
+            5000000,
             &ManagedBuffer::from(b"add"),
             &adder_init_args,
         );

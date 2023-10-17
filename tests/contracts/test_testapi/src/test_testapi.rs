@@ -11,7 +11,7 @@ pub trait TestTestapi {
     fn init(&self) {
         let alice = ManagedAddress::from(b"alice___________________________");
         testapi::create_account(&alice, 1, &BigUint::from(0u64));
-    
+
         self.test_set_balance(&alice);
         self.test_set_esdt_balance(&alice);
         self.test_set_timestamp();
@@ -56,7 +56,7 @@ pub trait TestTestapi {
 
         // Expect
         require!(
-          value == self.blockchain().get_block_timestamp(), 
+          value == self.blockchain().get_block_timestamp(),
           "Actual timestamp does not match the given value"
         );
     }
@@ -65,7 +65,7 @@ pub trait TestTestapi {
       // Given
       let key = ManagedBuffer::from(b"a_storage_key");
       let value = ManagedBuffer::from(b"a storage value");
-      
+
       // When
       testapi::set_storage(addr, &key, &value);
 
@@ -73,5 +73,5 @@ pub trait TestTestapi {
       let actual = testapi::get_storage(addr, &key);
       require!(actual == value, "Actual storage does not match the given value");
     }
-    
+
 }

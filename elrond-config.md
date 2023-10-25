@@ -689,7 +689,7 @@ Initialize the call state and invoke the endpoint function:
           (_:VmInputCell => VMINPUT)
           // executional
           <wasm>
-            <instrs> . => ( invoke FUNCADDRS {{ FUNCIDX }} orDefault 0 ) </instrs>
+            <instrs> . => ( invoke FUNCADDRS {{ FUNCIDX }} orDefault -1 ) </instrs>
             <moduleInst>
               <modIdx> MODIDX </modIdx>
               <exports> ... FUNCNAME |-> FUNCIDX:Int </exports>
@@ -706,7 +706,7 @@ Initialize the call state and invoke the endpoint function:
           <out> _ => .ListBytes </out>
           <logs> _ => .List </logs>
         </callState>
-        requires FUNCIDX in_keys {{ FUNCADDRS }}
+        requires isListIndex(FUNCIDX, FUNCADDRS)
       [priority(60)]
 
     rule [mkCall-func-not-found]:

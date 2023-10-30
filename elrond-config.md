@@ -620,7 +620,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                 ~> pushCallState
                 ~> transferFunds(FROM, TO, VALUE)
                 ~> transferESDTs(FROM, TO, ESDT)
-                ~> newWasmInstance(CODE)
+                ~> newWasmInstance(TO, CODE)
                 ~> mkCall(TO, FUNCNAME, VMINPUT)
                 ~> #endWasm
                    ...
@@ -656,11 +656,11 @@ Every contract call runs in its own Wasm instance initialized with the contract'
 
 ```k
     syntax WasmCell
-    syntax InternalCmd ::= newWasmInstance(ModuleDecl)  [klabel(newWasmInstance), symbol]
+    syntax InternalCmd ::= newWasmInstance(Bytes, ModuleDecl)  [klabel(newWasmInstance), symbol]
                          | "setContractModIdx"
  // ------------------------------------------------------
     rule [newWasmInstance]:
-        <commands> newWasmInstance(CODE) => #waitWasm ~> setContractModIdx ...</commands>
+        <commands> newWasmInstance(_, CODE) => #waitWasm ~> setContractModIdx ...</commands>
         ( _:WasmCell => <wasm> 
           <instrs> initContractModule(CODE) </instrs>
           ...
@@ -689,7 +689,7 @@ Initialize the call state and invoke the endpoint function:
           (_:VmInputCell => VMINPUT)
           // executional
           <wasm>
-            <instrs> . => ( invoke FUNCADDRS {{ FUNCIDX }} orDefault 0 ) </instrs>
+            <instrs> . => ( invoke FUNCADDRS {{ FUNCIDX }} orDefault -1 ) </instrs>
             <moduleInst>
               <modIdx> MODIDX </modIdx>
               <exports> ... FUNCNAME |-> FUNCIDX:Int </exports>
@@ -706,7 +706,7 @@ Initialize the call state and invoke the endpoint function:
           <out> _ => .ListBytes </out>
           <logs> _ => .List </logs>
         </callState>
-        requires FUNCIDX in_keys {{ FUNCADDRS }}
+        requires isListIndex(FUNCIDX, FUNCADDRS)
       [priority(60)]
 
     rule [mkCall-func-not-found]:

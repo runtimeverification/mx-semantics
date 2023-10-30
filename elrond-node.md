@@ -192,23 +192,26 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax Accounts ::= "{" AccountsCellFragment "}"
  // --------------------------------------------------------
 
-    syntax InternalCmd ::= "pushWorldState"
+    syntax InternalCmd ::= "pushWorldState"  [klabel(pushWorldState), symbol]
  // ---------------------------------------
-    rule <commands> pushWorldState => . ... </commands>
+    rule [pushWorldState]:
+         <commands> pushWorldState => . ... </commands>
          <interimStates> (.List => ListItem({ ACCTDATA })) ... </interimStates>
          <accounts>       ACCTDATA </accounts>
       [priority(60)]
 
-    syntax InternalCmd ::= "popWorldState"
+    syntax InternalCmd ::= "popWorldState"  [klabel(popWorldState), symbol]
  // --------------------------------------
-    rule <commands> popWorldState => . ... </commands>
+    rule [popWorldState]:
+         <commands> popWorldState => . ... </commands>
          <interimStates> (ListItem({ ACCTDATA }) => .List) ... </interimStates>
          <accounts>       _ => ACCTDATA </accounts>
       [priority(60)]
 
-    syntax InternalCmd ::= "dropWorldState"
+    syntax InternalCmd ::= "dropWorldState"  [klabel(dropWorldState), symbol]
  // ---------------------------------------
-    rule <commands> dropWorldState => . ... </commands>
+    rule [dropWorldState]:
+         <commands> dropWorldState => . ... </commands>
          <interimStates> (ListItem(_) => .List) ... </interimStates>
       [priority(60)]
 ```

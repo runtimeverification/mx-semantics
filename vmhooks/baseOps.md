@@ -35,9 +35,10 @@ module BASEOPS
            0 |-> <i32> ADDROFFSET
          </locals>
 
-    syntax InternalInstr ::= "#checkIsSmartContract"
+    syntax InternalInstr ::= "#checkIsSmartContract"  [klabel(checkIsSmartContract), symbol]
  // ------------------------------------------------
-    rule <instrs> #checkIsSmartContract => i32.const 1 ... </instrs>
+    rule [checkIsSmartContract-code]:
+         <instrs> #checkIsSmartContract => i32.const 1 ... </instrs>
          <bytesStack> ADDR : STACK => STACK </bytesStack>
          <account>
            <address> ADDR </address>
@@ -45,7 +46,8 @@ module BASEOPS
            ...
          </account>
 
-    rule <instrs> #checkIsSmartContract => i32.const 0 ... </instrs>
+    rule [checkIsSmartContract-no-code]:
+         <instrs> #checkIsSmartContract => i32.const 0 ... </instrs>
          <bytesStack> ADDR : STACK => STACK </bytesStack>
          <account>
            <address> ADDR </address>

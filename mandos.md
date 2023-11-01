@@ -302,7 +302,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule #getModuleCodePath((module OID:OptionalId DS:Defns) => structureModule(DS, OID))
     rule #getModuleCodePath(_) => .String                                                   [owise]
 
-    rule <k> checkAccountCodeAux(ADDR, "") => . ... </k>
+    rule [checkAccountCodeAux-no-code]:
+         <k> checkAccountCodeAux(ADDR, "") => . ... </k>
          <account>
            <address> ADDR </address>
            <code> .Code </code>
@@ -311,7 +312,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <commands> . </commands>
       [priority(60)]
       
-    rule <k> checkAccountCodeAux(ADDR, CODEPATH) => . ... </k>
+    rule [checkAccountCodeAux-code]:
+         <k> checkAccountCodeAux(ADDR, CODEPATH) => . ... </k>
          <account>
            <address> ADDR </address>
            <code> CODE:ModuleDecl </code>

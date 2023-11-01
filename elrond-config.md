@@ -482,7 +482,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     syntax InternalCmd ::= createAccount ( Bytes ) [klabel(createAccount), symbol]
  // ------------------------------------------------------------------------------
     // ignore if the account already exists
-    rule <commands> createAccount(ADDR) => . ... </commands>
+    rule [createAccount-existing]:
+         <commands> createAccount(ADDR) => . ... </commands>
          <account>
            <address> ADDR </address>
            ...
@@ -490,7 +491,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         //  <logging> S => S +String " -- initAccount duplicate " +String Bytes2String(ADDR) </logging>
       [priority(60)]
 
-    rule <commands> createAccount(ADDR) => . ... </commands>
+    rule [createAccount-new]:
+         <commands> createAccount(ADDR) => . ... </commands>
          <accounts>
            ( .Bag
           => <account>
@@ -503,11 +505,12 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         //  <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
       [priority(61)]
 
-    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, Code, Bytes, MapBytesToBytes )
-                         | setAccountCode      ( Bytes, Code )
+    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, Code, Bytes, MapBytesToBytes )  [klabel(setAccountFields), symbol]
+                         | setAccountCode      ( Bytes, Code )  [klabel(setAccountCode), symbol]
                          | setAccountOwner     ( Bytes, Bytes )
  // ---------------------------------------------------------------
-    rule <commands> setAccountFields(ADDR, NONCE, BALANCE, CODE, OWNER_ADDR, STORAGE) => . ... </commands>
+    rule [setAccountFields]:
+         <commands> setAccountFields(ADDR, NONCE, BALANCE, CODE, OWNER_ADDR, STORAGE) => . ... </commands>
          <account>
            <address> ADDR </address>
            <nonce> _ => NONCE </nonce>
@@ -519,7 +522,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </account>
       [priority(60)]
 
-    rule <commands> setAccountCode(ADDR, CODE) => . ... </commands>
+    rule [setAccountCode]:
+         <commands> setAccountCode(ADDR, CODE) => . ... </commands>
          <account>
            <address> ADDR </address>
            <code> _ => CODE </code>
@@ -597,8 +601,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ## Calling Contract
 
 ```k
-    syntax InternalCmd ::= callContract ( Bytes, String,     VmInputCell ) [klabel(callContractString)]
-                         | callContract ( Bytes, WasmString, VmInputCell ) [klabel(callContractWasmString)]
+    syntax InternalCmd ::= callContract ( Bytes, String,     VmInputCell ) [klabel(callContractString), symbol]
+                         | callContract ( Bytes, WasmString, VmInputCell ) [klabel(callContractWasmString), symbol]
                          | mkCall       ( Bytes, WasmString, VmInputCell )
  // -------------------------------------------------------------------------------------
     rule <commands> callContract(TO, FUNCNAME:String, VMINPUT)

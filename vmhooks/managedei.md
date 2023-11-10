@@ -18,7 +18,7 @@ module MANAGEDEI
                => #setBuffer( DEST_IDX , OWNER )
                   ...
          </instrs>
-         <locals> 0 |-> <i32> DEST_IDX </locals>
+         <locals> wrap(0) Int2Val|-> <i32> DEST_IDX </locals>
          <callee> CALLEE </callee>
          <account>
             <address> CALLEE </address>
@@ -39,7 +39,7 @@ module MANAGEDEI
                ~> #signalError
                   ...
          </instrs>
-         <locals>  0 |-> <i32> ERR_IDX  </locals>
+         <locals>  wrap(0) Int2Val|-> <i32> ERR_IDX  </locals>
 
  // extern void      managedGetMultiESDTCallValue(void* context, int32_t multiCallValueHandle);
     rule <instrs> hostCall ( "env" , "managedGetMultiESDTCallValue" , [ i32  .ValTypes ] -> [ .ValTypes ] )
@@ -48,7 +48,7 @@ module MANAGEDEI
                ~> #dropBytes
                   ...
          </instrs>
-         <locals>  0 |-> <i32> DEST_IDX  </locals>
+         <locals>  wrap(0) Int2Val|-> <i32> DEST_IDX  </locals>
          <esdtTransfers> ESDTS </esdtTransfers>
   
  // extern int32_t   managedMultiTransferESDTNFTExecute(void* context, int32_t dstHandle, int32_t tokenTransfersHandle, long long gasLimit, int32_t functionHandle, int32_t argumentsHandle);
@@ -64,11 +64,11 @@ module MANAGEDEI
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> DEST_IDX
-          1 |-> <i32> TRANSFERS_IDX
-          2 |-> <i64> GAS_LIMIT
-          3 |-> <i32> FUNC_IDX
-          4 |-> <i32> ARGS_IDX
+          wrap(0) Int2Val|-> <i32> DEST_IDX
+          wrap(1) Int2Val|-> <i32> TRANSFERS_IDX
+          wrap(2) Int2Val|-> <i64> GAS_LIMIT
+          wrap(3) Int2Val|-> <i32> FUNC_IDX
+          wrap(4) Int2Val|-> <i32> ARGS_IDX
         </locals>
         
  // extern void      managedSCAddress(void* context, int32_t destinationHandle);
@@ -76,7 +76,7 @@ module MANAGEDEI
                => #setBuffer( DEST_IDX , CALLEE )
                   ...
          </instrs>
-         <locals> 0 |-> <i32> DEST_IDX </locals>
+         <locals> wrap(0) Int2Val|-> <i32> DEST_IDX </locals>
          <callee> CALLEE </callee>
 
  // extern int32_t managedTransferValueExecute(void* context, int32_t dstHandle, int32_t valueHandle, long long gasLimit, int32_t functionHandle, int32_t argumentsHandle);
@@ -91,11 +91,11 @@ module MANAGEDEI
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> DEST_IDX
-           1 |-> <i32> VALUE_IDX
-           2 |-> <i64> GAS_LIMIT
-           3 |-> <i32> FUNC_IDX
-           4 |-> <i32> ARGS_IDX
+           wrap(0) Int2Val|-> <i32> DEST_IDX
+           wrap(1) Int2Val|-> <i32> VALUE_IDX
+           wrap(2) Int2Val|-> <i64> GAS_LIMIT
+           wrap(3) Int2Val|-> <i32> FUNC_IDX
+           wrap(4) Int2Val|-> <i32> ARGS_IDX
          </locals>
 
  // extern int32_t managedExecuteOnDestContext(void* context, long long gas, int32_t addressHandle, int32_t valueHandle, int32_t functionHandle, int32_t argumentsHandle, int32_t resultHandle);
@@ -113,12 +113,12 @@ module MANAGEDEI
                  ...
         </instrs>
         <locals>
-          0 |-> <i64> GAS_LIMIT
-          1 |-> <i32> DEST_IDX
-          2 |-> <i32> VALUE_IDX
-          3 |-> <i32> FUNC_IDX
-          4 |-> <i32> ARGS_IDX
-          5 |-> <i32> RES_IDX
+          wrap(0) Int2Val|-> <i64> GAS_LIMIT
+          wrap(1) Int2Val|-> <i32> DEST_IDX
+          wrap(2) Int2Val|-> <i32> VALUE_IDX
+          wrap(3) Int2Val|-> <i32> FUNC_IDX
+          wrap(4) Int2Val|-> <i32> ARGS_IDX
+          wrap(5) Int2Val|-> <i32> RES_IDX
         </locals>
         <out> OUT </out>
 
@@ -145,7 +145,7 @@ module MANAGEDEI
                => #setBuffer(BUF_IDX, SEED)
                   ...
          </instrs>
-         <locals> 0 |-> <i32> BUF_IDX </locals>
+         <locals> wrap(0) Int2Val|-> <i32> BUF_IDX </locals>
          <curBlockRandomSeed> SEED </curBlockRandomSeed>
 
  // extern void managedGetPrevBlockRandomSeed(void* context, int32_t resultHandle);
@@ -154,7 +154,7 @@ module MANAGEDEI
               => #setBuffer(BUF_IDX, SEED)
                  ...
         </instrs>
-        <locals> 0 |-> <i32> BUF_IDX </locals>
+        <locals> wrap(0) Int2Val|-> <i32> BUF_IDX </locals>
         <prevBlockRandomSeed> SEED </prevBlockRandomSeed>
 
 endmodule

@@ -40,9 +40,9 @@ Only the `#foundryRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> ADDR_HANDLE
-          1 |-> <i64> NONCE
-          2 |-> <i32> BALANCE_HANDLE
+          wrap(0) Int2Val|-> <i32> ADDR_HANDLE
+          wrap(1) Int2Val|-> <i64> NONCE
+          wrap(2) Int2Val|-> <i32> BALANCE_HANDLE
         </locals>
         <callee> #foundryRunner </callee>
 
@@ -76,9 +76,9 @@ Only the `#foundryRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> OWNER_HANDLE
-          1 |-> <i64> NONCE
-          2 |-> <i32> ADDR_HANDLE
+          wrap(0) Int2Val|-> <i32> OWNER_HANDLE
+          wrap(1) Int2Val|-> <i64> NONCE
+          wrap(2) Int2Val|-> <i32> ADDR_HANDLE
         </locals>
         <callee> #foundryRunner </callee>
 
@@ -114,12 +114,12 @@ Only the `#foundryRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> OWNER_HANDLE
-          1 |-> <i64> GAS_LIMIT
-          2 |-> <i32> VALUE_HANDLE
-          3 |-> <i32> CODE_PATH_HANDLE
-          4 |-> <i32> ARGS_HANDLE
-          5 |-> <i32> RESULT_ADDR_HANDLE
+          wrap(0) Int2Val|-> <i32> OWNER_HANDLE
+          wrap(1) Int2Val|-> <i64> GAS_LIMIT
+          wrap(2) Int2Val|-> <i32> VALUE_HANDLE
+          wrap(3) Int2Val|-> <i32> CODE_PATH_HANDLE
+          wrap(4) Int2Val|-> <i32> ARGS_HANDLE
+          wrap(5) Int2Val|-> <i32> RESULT_ADDR_HANDLE
         </locals>
         <callee> #foundryRunner </callee>
 
@@ -168,9 +168,9 @@ Only the `#foundryRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> OWNER_HANDLE
-          1 |-> <i32> KEY_HANDLE
-          2 |-> <i32> DEST_HANDLE
+          wrap(0) Int2Val|-> <i32> OWNER_HANDLE
+          wrap(1) Int2Val|-> <i32> KEY_HANDLE
+          wrap(2) Int2Val|-> <i32> DEST_HANDLE
         </locals>
         <callee> #foundryRunner </callee>
 
@@ -186,9 +186,9 @@ Only the `#foundryRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> ADDR_HANDLE
-          1 |-> <i32> KEY_HANDLE
-          2 |-> <i32> VAL_HANDLE
+          wrap(0) Int2Val|-> <i32> ADDR_HANDLE
+          wrap(1) Int2Val|-> <i32> KEY_HANDLE
+          wrap(2) Int2Val|-> <i32> VAL_HANDLE
         </locals>
         <callee> #foundryRunner </callee>
 
@@ -226,8 +226,8 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               => #setBalance(getBuffer(ADDR_HANDLE), getBigInt(VAL_HANDLE)) ...
         </instrs>
         <locals>
-          0 |-> <i32> ADDR_HANDLE
-          1 |-> <i32> VAL_HANDLE
+          wrap(0) Int2Val|-> <i32> ADDR_HANDLE
+          wrap(1) Int2Val|-> <i32> VAL_HANDLE
         </locals>
         <callee> #foundryRunner </callee>
 
@@ -283,9 +283,9 @@ Only the `#foundryRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> ADDR_HANDLE
-          1 |-> <i32> TOK_ID_HANDLE
-          2 |-> <i32> VAL_HANDLE
+          wrap(0) Int2Val|-> <i32> ADDR_HANDLE
+          wrap(1) Int2Val|-> <i32> TOK_ID_HANDLE
+          wrap(2) Int2Val|-> <i32> VAL_HANDLE
         </locals>
         <callee> #foundryRunner </callee>
 
@@ -357,7 +357,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               => . ...
         </instrs>
         <locals>
-          0 |-> <i64> TIMESTAMP
+          wrap(0) Int2Val|-> <i64> TIMESTAMP
         </locals>
         <curBlockTimestamp> _ => TIMESTAMP </curBlockTimestamp>
         <callee> #foundryRunner </callee>
@@ -372,7 +372,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               => #assert( P ) ...
         </instrs>
         <locals>
-          0 |-> <i32> P
+          wrap(0) Int2Val|-> <i32> P
         </locals>
 
     syntax InternalInstr ::= #assert(Int)     [symbol, klabel(foundryAssert)]
@@ -393,7 +393,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               => #assume(P) ...
         </instrs>
         <locals>
-          0 |-> <i32> P
+          wrap(0) Int2Val|-> <i32> P
         </locals>
 
     syntax IternalInstr ::= #assume(Int)     [symbol, klabel(foundryAssume)]
@@ -437,7 +437,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               => #startPrank(getBuffer(ADDR_HANDLE)) ...
         </instrs>
         <locals>
-          0 |-> <i32> ADDR_HANDLE
+          wrap(0) Int2Val|-> <i32> ADDR_HANDLE
         </locals>
         <callee> #foundryRunner </callee>
 
@@ -468,7 +468,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <instrs> hostCall ( "env" , "stopPrank" , [ .ValTypes ] -> [ .ValTypes ] )
               => . ...
         </instrs>
-        <locals> .Map </locals>
+        <locals> .MapIntToVal </locals>
         <callee> _ => #foundryRunner </callee>
         <prank> true => false </prank>
 
@@ -476,7 +476,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <instrs> hostCall ( "env" , "stopPrank" , [ .ValTypes ] -> [ .ValTypes ] )
               => #throwException(ExecutionFailed, "Cannot stop prank while not in a prank") ...
         </instrs>
-        <locals> .Map </locals>
+        <locals> .MapIntToVal </locals>
         <prank> false </prank>
       [owise]
 

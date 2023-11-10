@@ -17,7 +17,7 @@ module SMALLINTOPS
               => #returnIfUInt64(Bytes2Int(ARGS {{ ARG_IDX }} orDefault b"", BE, Unsigned), "argument out of range")
                  ...
         </instrs>
-        <locals> 0 |-> <i32> ARG_IDX </locals>
+        <locals> wrap(0) Int2Val|-> <i32> ARG_IDX </locals>
         <callArgs> ARGS </callArgs>
       requires #validArgIdx(ARG_IDX, ARGS)
 
@@ -26,7 +26,7 @@ module SMALLINTOPS
               => #throwException(ExecutionFailed, "argument index out of range")
                  ...
         </instrs>
-        <locals> 0 |-> <i32> ARG_IDX </locals>
+        <locals> wrap(0) Int2Val|-> <i32> ARG_IDX </locals>
         <callArgs> ARGS </callArgs>
       requires notBool #validArgIdx(ARG_IDX, ARGS)
 
@@ -37,7 +37,7 @@ module SMALLINTOPS
               => #returnIfSInt64(Bytes2Int(ARGS {{ ARG_IDX }} orDefault b"", BE, Signed), "argument out of range")
                  ...
         </instrs>
-        <locals> 0 |-> <i32> ARG_IDX </locals>
+        <locals> wrap(0) Int2Val|-> <i32> ARG_IDX </locals>
         <callArgs> ARGS </callArgs>
       requires #validArgIdx(ARG_IDX, ARGS)
 
@@ -46,7 +46,7 @@ module SMALLINTOPS
               => #throwException(ExecutionFailed, "argument index out of range")
                  ...
         </instrs>
-        <locals> 0 |-> <i32> ARG_IDX </locals>
+        <locals> wrap(0) Int2Val|-> <i32> ARG_IDX </locals>
         <callArgs> ARGS </callArgs>
       requires notBool #validArgIdx(ARG_IDX, ARGS)
 
@@ -56,14 +56,14 @@ module SMALLINTOPS
                => #appendToOut(Int2Bytes(#unsigned(i64, VALUE), BE, Unsigned))
                   ...
          </instrs>
-         <locals> 0 |-> <i64> VALUE </locals>
+         <locals> wrap(0) Int2Val|-> <i64> VALUE </locals>
 
     // extern void smallIntFinishSigned(void* context, long long value);
     rule <instrs> hostCall("env", "smallIntFinishSigned", [ i64 .ValTypes ] -> [ .ValTypes ])
                => #appendToOut(Int2Bytes(#signed(i64, VALUE), BE, Signed))
                   ...
          </instrs>
-         <locals> 0 |-> <i64> VALUE </locals>
+         <locals> wrap(0) Int2Val|-> <i64> VALUE </locals>
 
     // extern int32_t smallIntStorageStoreUnsigned(void *context, int32_t keyOffset, int32_t keyLength, long long value);
     rule <instrs> hostCall("env", "smallIntStorageStoreUnsigned", [ i32 i32 i64 .ValTypes ] -> [ i32 .ValTypes ])
@@ -73,9 +73,9 @@ module SMALLINTOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLEN
-           2 |-> <i64> VALUE
+           wrap(0) Int2Val|-> <i32> KEYOFFSET
+           wrap(1) Int2Val|-> <i32> KEYLEN
+           wrap(2) Int2Val|-> <i64> VALUE
          </locals>
 
     // extern int32_t smallIntStorageStoreSigned(void *context, int32_t keyOffset, int32_t keyLength, long long value);
@@ -86,9 +86,9 @@ module SMALLINTOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLEN
-           2 |-> <i64> VALUE
+           wrap(0) Int2Val|-> <i32> KEYOFFSET
+           wrap(1) Int2Val|-> <i32> KEYLEN
+           wrap(2) Int2Val|-> <i64> VALUE
          </locals>
 
     // extern long long smallIntStorageLoadUnsigned(void *context, int32_t keyOffset, int32_t keyLength);
@@ -99,8 +99,8 @@ module SMALLINTOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLENGTH
+           wrap(0) Int2Val|-> <i32> KEYOFFSET
+           wrap(1) Int2Val|-> <i32> KEYLENGTH
          </locals>
 
     // extern long long smallIntStorageLoadSigned(void *context, int32_t keyOffset, int32_t keyLength);
@@ -111,8 +111,8 @@ module SMALLINTOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLENGTH
+           wrap(0) Int2Val|-> <i32> KEYOFFSET
+           wrap(1) Int2Val|-> <i32> KEYLENGTH
          </locals>
 
 endmodule

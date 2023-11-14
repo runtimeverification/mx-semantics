@@ -304,7 +304,7 @@ mxpy-build/%:
 	    cargo update --manifest-path $*/Cargo.toml -p clap --precise 4.1.0 ; \
 	fi
 
-	mxpy contract build "$*" --wasm-symbols --no-wasm-opt
+	mxpy contract build --path "$*" --wasm-symbols --no-wasm-opt
 
 ## Mandos Test
 

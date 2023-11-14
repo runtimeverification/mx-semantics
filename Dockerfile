@@ -44,7 +44,7 @@ RUN    git clone 'https://github.com/WebAssembly/wabt' --branch 1.0.13 --recurse
     && cmake --build .
 
 RUN    wget -O mxpy-up.py https://raw.githubusercontent.com/multiversx/mx-sdk-py-cli/main/mxpy-up.py    \
-    && python3 mxpy-up.py --not-interactive --exact-version 7.3.0
+    && python3 mxpy-up.py --not-interactive --exact-version 8.1.5
 
 ENV PATH=/home/$USER/multiversx-sdk:/home/$USER/wabt/build:/home/$USER/.local/bin:$PATH
 

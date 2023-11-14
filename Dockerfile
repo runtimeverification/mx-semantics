@@ -46,6 +46,8 @@ RUN    git clone 'https://github.com/WebAssembly/wabt' --branch 1.0.13 --recurse
 RUN    wget -O mxpy-up.py https://raw.githubusercontent.com/multiversx/mx-sdk-py-cli/main/mxpy-up.py    \
     && python3 mxpy-up.py --not-interactive --exact-version 8.1.5
 
+RUN    cargo install multiversx-sc-meta
+
 ENV PATH=/home/$USER/multiversx-sdk:/home/$USER/wabt/build:/home/$USER/.local/bin:$PATH
 
 # Use a specific version of rustc installed via rustup

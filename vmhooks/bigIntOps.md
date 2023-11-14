@@ -26,6 +26,10 @@ module BIGINT-HELPERS
          <bytesStack> STACK => Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN) : STACK </bytesStack>
          <bigIntHeap> HEAP </bigIntHeap>
       requires #validIntId(BIGINT_IDX, HEAP)
+      [preserves-definedness]
+      // Preserving definedness:
+      //  - Int2Bytes is total
+      //  - {HEAP[BIGINT_IDX]}:>Int because of #validIntId(BIGINT_IDX, HEAP)
 
     rule <instrs> #getBigInt(BIGINT_IDX, _SIGN) => #throwException(ExecutionFailed, "no bigInt under the given handle") ... </instrs>
          <bigIntHeap> HEAP </bigIntHeap>
@@ -38,6 +42,10 @@ module BIGINT-HELPERS
         <bytesStack> STACK => Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN) : STACK </bytesStack>
         <bigIntHeap> HEAP </bigIntHeap>
       requires #validIntId(BIGINT_IDX, HEAP)
+      [preserves-definedness]
+      // Preserving definedness:
+      //  - Int2Bytes is total
+      //  - {HEAP[BIGINT_IDX]}:>Int because of #validIntId(BIGINT_IDX, HEAP)
 
     rule [getBigIntOrCreate-create]:
         <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => #setBigIntValue(BIGINT_IDX, 0) ... </instrs>
@@ -119,6 +127,11 @@ module BIGINTOPS
          </instrs>
          <locals> 0 |-> <i64> INITIAL </locals>
          <bigIntHeap> HEAP => HEAP[#newKey(HEAP) <- #signed(i64, INITIAL)] </bigIntHeap>
+      requires definedSigned(i64, INITIAL)
+      [preserves-definedness]
+      // Preserving definedness:
+      //  - #newKey is total
+      //  - we check that #signed(i64, INITIAL) is defined.
 
     // extern int32_t bigIntUnsignedByteLength(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntUnsignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -212,6 +225,11 @@ module BIGINTOPS
                   ...
          </instrs>
          <locals> 0 |-> <i32> DEST_IDX 1 |-> <i64> VALUE </locals>
+      requires definedSigned(i64, VALUE)
+      [preserves-definedness]
+      // Preserving definedness:
+      //  - only constructors on the RHS except for #signed, and we
+      //    check for its definedness separately.
 
     // extern void bigIntAdd(void* context, int32_t destination, int32_t op1, int32_t op2);
     rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
@@ -219,6 +237,11 @@ module BIGINTOPS
          <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int +Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
       requires #validIntId(OP1_IDX, HEAP)
        andBool #validIntId(OP2_IDX, HEAP)
+      [preserves-definedness]
+      // Preserving definedness:
+      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
+      //  - +Int is total
+      //  - Map[Kitem <- KItem] is total
 
    // TODO a lot of code duplication in the error cases. 
    // use sth like #getBigInt that checks existence
@@ -236,6 +259,11 @@ module BIGINTOPS
          <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int -Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
       requires #validIntId(OP1_IDX, HEAP)
        andBool #validIntId(OP2_IDX, HEAP)
+      [preserves-definedness]
+      // Preserving definedness:
+      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
+      //  - -Int is total
+      //  - Map[Kitem <- KItem] is total
 
     rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
@@ -251,6 +279,11 @@ module BIGINTOPS
          <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int *Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
       requires #validIntId(OP1_IDX, HEAP)
        andBool #validIntId(OP2_IDX, HEAP)
+      [preserves-definedness]
+      // Preserving definedness:
+      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
+      //  - *Int is total
+      //  - Map[Kitem <- KItem] is total
 
     rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
@@ -266,6 +299,12 @@ module BIGINTOPS
          <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int /Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
       requires #validIntId(OP1_IDX, HEAP)
        andBool #validIntId(OP2_IDX, HEAP)
+       andBool {HEAP[OP2_IDX]}:>Int =/=Int 0
+      [preserves-definedness]
+      // Preserving definedness:
+      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
+      //  - we checked that /Int is defined
+      //  - Map[Kitem <- KItem] is total
 
     rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
@@ -275,6 +314,15 @@ module BIGINTOPS
       requires notBool (#validIntId(OP1_IDX, HEAP))
         orBool notBool (#validIntId(OP2_IDX, HEAP))
 
+    rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
+               => #throwException(ExecutionFailed, "bigInt division by 0") ...
+         </instrs>
+         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <bigIntHeap> HEAP </bigIntHeap>
+      requires #validIntId(OP1_IDX, HEAP)
+       andBool #validIntId(OP2_IDX, HEAP)
+       andBool {HEAP[OP2_IDX]}:>Int ==Int 0
+
     // extern int32_t bigIntSign(void* context, int32_t op);
     rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
                => i32.const #bigIntSign({HEAP[IDX]}:>Int)
@@ -283,6 +331,11 @@ module BIGINTOPS
          <locals> 0 |-> <i32> IDX </locals>
          <bigIntHeap> HEAP </bigIntHeap>
       requires #validIntId(IDX, HEAP)
+      [preserves-definedness]
+      // Preserving definedness:
+      //  - {HEAP[IDX]}:>Int is defined because #validIntId(IDX, HEAP)
+      //  - #bigIntSign is total
+      //  - Map[Kitem <- KItem] is total
 
     rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle")
@@ -301,6 +354,11 @@ module BIGINTOPS
          <bigIntHeap> HEAP </bigIntHeap>
       requires #validIntId(IDX1,  HEAP)
        andBool #validIntId(IDX2,  HEAP)
+      [preserves-definedness]
+      // Preserving definedness:
+      //  - {HEAP[IDX*]}:>Int is defined because #validIntId(IDX*, HEAP)
+      //  - #cmpInt is total
+      //  - Map[Kitem <- KItem] is total
 
     rule <instrs> hostCall("env", "bigIntCmp", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle")
@@ -361,6 +419,11 @@ module BIGINTOPS
          <callArgs> ARGS </callArgs>
          <bigIntHeap> HEAP => HEAP [BIG_IDX <- Bytes2Int(ARGS {{ ARG_IDX }}, BE, Unsigned)] </bigIntHeap>
       requires #validArgIdx(ARG_IDX, ARGS)
+      [preserves-definedness]
+      // Preserving definedness:
+      //  - ARGS {{ ARG_IDX }} is defined because #validArgIdx(ARG_IDX, ARGS)
+      //  - Bytes2Int is total
+      //  - Map[Kitem <- KItem] is total
 
     // If ARG_IDX is invalid (out of bounds) just ignore
     // https://github.com/multiversx/mx-chain-vm-go/blob/ea3d78d34c35f7ef9c1a9ea4fce8288608763229/vmhost/vmhooks/bigIntOps.go#L68
@@ -375,6 +438,11 @@ module BIGINTOPS
          <callArgs> ARGS </callArgs>
          <bigIntHeap> HEAP => HEAP [BIG_IDX <- Bytes2Int(ARGS {{ ARG_IDX }}, BE, Signed)] </bigIntHeap>
       requires #validArgIdx(ARG_IDX, ARGS)
+      [preserves-definedness]
+      // Preserving definedness:
+      //  - ARGS {{ ARG_IDX }} is defined because #validArgIdx(ARG_IDX, ARGS)
+      //  - Bytes2Int is total
+      //  - Map[Kitem <- KItem] is total
 
     rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> _BIG_IDX </locals>
@@ -488,6 +556,7 @@ module BIGINTOPS
         </instrs>
         <locals> 0 |-> <i32> DEST  1 |-> <i32> IDX </locals>
         <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
+      requires 0 <=Int V
 
  // extern void bigIntAbs(void* context, int32_t destinationHandle, int32_t opHandle);
     rule [bigIntAbs-invalid-handle]:

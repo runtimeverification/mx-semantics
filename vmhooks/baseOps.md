@@ -59,6 +59,7 @@ module BASEOPS
     rule <instrs> hostCall("env", "getExternalBalance", [ i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(ADDROFFSET, 32)
                ~> #getExternalBalance
+               ~> #intToBytesVmValStack(BE, Unsigned)
                ~> #memStoreFromVmValStack(RESULTOFFSET)
                ~> #dropVmValue
                   ...
@@ -71,7 +72,7 @@ module BASEOPS
     syntax InternalInstr ::= "#getExternalBalance"
  // ----------------------------------------------
     rule <instrs> #getExternalBalance => . ... </instrs>
-         <vmValStack> ADDR : STACK => Int2Bytes(BAL, BE, Unsigned) : STACK </vmValStack>
+         <vmValStack> ADDR : STACK => BAL : STACK </vmValStack>
          <account>
            <address> ADDR </address>
            <balance> BAL </balance>
@@ -80,7 +81,7 @@ module BASEOPS
 
     // return 0 if account does not exist (see the priority)
     rule <instrs> #getExternalBalance => . ... </instrs>
-         <vmValStack> _ADDR : STACK => Int2Bytes(0, BE, Unsigned) : STACK </vmValStack>
+         <vmValStack> _ADDR : STACK => 0 : STACK </vmValStack>
       [priority(201)]
          
     // extern int32_t transferValue(void *context, int32_t dstOffset, int32_t valueOffset, int32_t dataOffset, int32_t length);

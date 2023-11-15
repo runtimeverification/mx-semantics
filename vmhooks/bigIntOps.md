@@ -48,23 +48,19 @@ module BIGINT-HELPERS
       //  - {HEAP[BIGINT_IDX]}:>Int because of #validIntId(BIGINT_IDX, HEAP)
 
     rule [getBigIntOrCreate-create]:
-        <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => #setBigIntValue(BIGINT_IDX, 0) ... </instrs>
+        <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => #setBigInt(BIGINT_IDX, 0) ... </instrs>
         <vmValStack> STACK => Int2Bytes(0, BE, SIGN) : STACK </vmValStack>
         <bigIntHeap> HEAP </bigIntHeap>
       requires notBool #validIntId(BIGINT_IDX, HEAP)
 
-    syntax InternalInstr ::= #setBigIntFromVmValStack ( idx: Int , Signedness )
-                           | #setBigInt ( idx: Int , value: Bytes , Signedness )
-                           | #setBigIntValue ( Int , Int )
+    syntax InternalInstr ::= #setBigIntFromVmValStack ( idx: Int )
+                           | #setBigInt ( idx: Int , value: Int )
  // ----------------------------------------------------------------------------
-    rule <instrs> #setBigIntFromVmValStack(BIGINT_IDX, SIGN) => #setBigInt(BIGINT_IDX, BS, SIGN) ... </instrs>
-         <vmValStack> BS : _ </vmValStack>
+    rule <instrs> #setBigIntFromVmValStack(BIGINT_IDX) => #setBigInt(BIGINT_IDX, VAL) ... </instrs>
+         <vmValStack> VAL:Int : _ </vmValStack>
 
-    rule <instrs> #setBigInt(BIGINT_IDX, BS, SIGN) => . ... </instrs>
-         <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- Bytes2Int(BS, BE, SIGN)] </bigIntHeap>
-
-    rule <instrs> #setBigIntValue(BIGINT_IDX, VALUE) => . ... </instrs>
-         <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- VALUE] </bigIntHeap>
+    rule <instrs> #setBigInt(BIGINT_IDX, VAL) => . ... </instrs>
+         <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- VAL] </bigIntHeap>
 
     syntax Bool ::= #validIntId( Int , Map )    [function, total]
  // -------------------------------------------------------------
@@ -173,7 +169,7 @@ module BIGINTOPS
 
     rule [bigIntGetInt64-invalid-handle]:
         <instrs> hostCall ("env", "bigIntGetInt64", [i32 .ValTypes ] -> [i64  .ValTypes ] )
-              => #setBigIntValue(IDX, 0)
+              => #setBigInt(IDX, 0)
               ~> i64 . const 0
                  ...
         </instrs>
@@ -204,7 +200,8 @@ module BIGINTOPS
     // extern void bigIntSetUnsignedBytes(void* context, int32_t destination, int32_t byteOffset, int32_t byteLength);
     rule <instrs> hostCall("env", "bigIntSetUnsignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(OFFSET, LENGTH)
-               ~> #setBigIntFromVmValStack(IDX, Unsigned)
+               ~> #bytesToIntVmValStack(BE, Signed)
+               ~> #setBigIntFromVmValStack(IDX)
                ~> #dropVmValue
                   ...
          </instrs>
@@ -213,7 +210,8 @@ module BIGINTOPS
     // extern void bigIntSetSignedBytes(void* context, int32_t destination, int32_t byteOffset, int32_t byteLength);
     rule <instrs> hostCall("env", "bigIntSetSignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(OFFSET, LENGTH)
-               ~> #setBigIntFromVmValStack(IDX, Signed)
+               ~> #bytesToIntVmValStack(BE, Signed)
+               ~> #setBigIntFromVmValStack(IDX)
                ~> #dropVmValue
                   ...
          </instrs>
@@ -221,7 +219,7 @@ module BIGINTOPS
 
  // extern void      bigIntSetInt64(void* context, int32_t destinationHandle, long long value);
     rule <instrs> hostCall ( "env" , "bigIntSetInt64" , [ i32  i64  .ValTypes ] -> [ .ValTypes ] )
-               => #setBigIntValue(DEST_IDX, #signed(i64, VALUE))
+               => #setBigInt(DEST_IDX, #signed(i64, VALUE))
                   ...
          </instrs>
          <locals> 0 |-> <i32> DEST_IDX 1 |-> <i64> VALUE </locals>
@@ -402,7 +400,8 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntStorageLoadUnsigned", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #memLoad(KEYOFFSET, KEYLENGTH)
                ~> #storageLoad
-               ~> #setBigIntFromVmValStack(DEST, Unsigned)
+               ~> #bytesToIntVmValStack(BE, Unsigned)
+               ~> #setBigIntFromVmValStack(DEST)
                ~> #returnLength
                ~> #dropVmValue
                   ...
@@ -459,7 +458,7 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntGetExternalBalance", [ i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(ADDROFFSET, 32)
                ~> #getExternalBalance
-               ~> #setBigIntFromVmValStack(RESULT, Unsigned)
+               ~> #setBigIntFromVmValStack(RESULT)
                ~> #dropVmValue
                   ...
          </instrs>
@@ -488,7 +487,7 @@ module BIGINTOPS
     syntax InternalInstr ::= #bigIntGetESDTExternalBalance(Int)
  // -----------------------------------------------------------
     rule <instrs> #bigIntGetESDTExternalBalance(RES_HANDLE)
-               => #setBigIntValue( RES_HANDLE , BALANCE )
+               => #setBigInt( RES_HANDLE , BALANCE )
                   ...
          </instrs>
          <vmValStack> TOK_ID : ADDR : _ </vmValStack>
@@ -504,7 +503,7 @@ module BIGINTOPS
       [priority(60)]
 
     rule <instrs> #bigIntGetESDTExternalBalance(RES_HANDLE)
-               => #setBigIntValue( RES_HANDLE , 0 )
+               => #setBigInt( RES_HANDLE , 0 )
                   ...
          </instrs>
          <vmValStack> _TOK_ID : ADDR : _ </vmValStack>
@@ -551,7 +550,7 @@ module BIGINTOPS
 
     rule [bigIntSqrt]:
         <instrs> hostCall ( "env" , "bigIntSqrt" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
-              => #setBigIntValue(DEST, sqrtInt(V))
+              => #setBigInt(DEST, sqrtInt(V))
                  ...
         </instrs>
         <locals> 0 |-> <i32> DEST  1 |-> <i32> IDX </locals>
@@ -569,7 +568,7 @@ module BIGINTOPS
 
     rule [bigIntAbs]:
         <instrs> hostCall ( "env" , "bigIntAbs" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
-              => #setBigIntValue(DEST, absInt(V))
+              => #setBigInt(DEST, absInt(V))
                  ...
         </instrs>
         <locals> 0 |-> <i32> DEST  1 |-> <i32> IDX </locals>
@@ -587,7 +586,7 @@ module BIGINTOPS
 
     rule [bigIntNeg]:
         <instrs> hostCall ( "env" , "bigIntNeg" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
-              => #setBigIntValue(DEST, 0 -Int V)
+              => #setBigInt(DEST, 0 -Int V)
                  ...
         </instrs>
         <locals> 0 |-> <i32> DEST  1 |-> <i32> IDX </locals>

@@ -156,6 +156,15 @@ Storage maps byte arrays to byte arrays.
     rule <instrs> #bytesEqual => i32.const #bool( BS1 ==K BS2 ) ... </instrs>
          <vmValStack> BS1:Bytes : BS2:Bytes : _ </vmValStack>
 
+    syntax InternalInstr ::= #bytesToIntVmValStack( Endianness , Signedness )
+                           | #intToBytesVmValStack( Endianness , Signedness )
+ // -------------------------------------------------------------------------
+    rule <instrs> #bytesToIntVmValStack(END, SIGN) => . ... </instrs>
+         <vmValStack> (BS:Bytes => Bytes2Int(BS, END, SIGN)) : _ </vmValStack>
+
+    rule <instrs> #intToBytesVmValStack(END, SIGN) => . ... </instrs>
+         <vmValStack> (I:Int => Int2Bytes(I, END, SIGN)) : _ </vmValStack>
+
 ```
 
 ## Call State

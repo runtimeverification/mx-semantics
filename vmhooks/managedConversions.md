@@ -32,7 +32,7 @@ module MANAGEDCONVERSIONS
     
     rule <instrs> #writeEsdtToBytes(esdtTransfer(TokId, Value, Nonce))
                => #setBuffer(      #newKey(BUF_HEAP) , TokId )
-               ~> #setBigIntValue( #newKey(INT_HEAP) , Value )
+               ~> #setBigInt( #newKey(INT_HEAP) , Value )
                ~> #pushVmValue(
                     Int2Bytes(4, #newKey(BUF_HEAP), BE) +Bytes
                     Int2Bytes(8, Nonce,             BE) +Bytes

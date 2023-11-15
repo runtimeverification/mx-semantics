@@ -23,7 +23,7 @@ module BIGINT-HELPERS
     syntax InternalInstr ::= #getBigInt ( idx : Int ,  Signedness )
  // ---------------------------------------------------------------
     rule <instrs> #getBigInt(BIGINT_IDX, SIGN) => . ... </instrs>
-         <bytesStack> STACK => Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN) : STACK </bytesStack>
+         <vmValStack> STACK => Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN) : STACK </vmValStack>
          <bigIntHeap> HEAP </bigIntHeap>
       requires #validIntId(BIGINT_IDX, HEAP)
       [preserves-definedness]
@@ -39,7 +39,7 @@ module BIGINT-HELPERS
  // ---------------------------------------------------------------
     rule [getBigIntOrCreate-get]:
         <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => . ... </instrs>
-        <bytesStack> STACK => Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN) : STACK </bytesStack>
+        <vmValStack> STACK => Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN) : STACK </vmValStack>
         <bigIntHeap> HEAP </bigIntHeap>
       requires #validIntId(BIGINT_IDX, HEAP)
       [preserves-definedness]
@@ -49,16 +49,16 @@ module BIGINT-HELPERS
 
     rule [getBigIntOrCreate-create]:
         <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => #setBigIntValue(BIGINT_IDX, 0) ... </instrs>
-        <bytesStack> STACK => Int2Bytes(0, BE, SIGN) : STACK </bytesStack>
+        <vmValStack> STACK => Int2Bytes(0, BE, SIGN) : STACK </vmValStack>
         <bigIntHeap> HEAP </bigIntHeap>
       requires notBool #validIntId(BIGINT_IDX, HEAP)
 
-    syntax InternalInstr ::= #setBigIntFromBytesStack ( idx: Int , Signedness )
+    syntax InternalInstr ::= #setBigIntFromVmValStack ( idx: Int , Signedness )
                            | #setBigInt ( idx: Int , value: Bytes , Signedness )
                            | #setBigIntValue ( Int , Int )
  // ----------------------------------------------------------------------------
-    rule <instrs> #setBigIntFromBytesStack(BIGINT_IDX, SIGN) => #setBigInt(BIGINT_IDX, BS, SIGN) ... </instrs>
-         <bytesStack> BS : _ </bytesStack>
+    rule <instrs> #setBigIntFromVmValStack(BIGINT_IDX, SIGN) => #setBigInt(BIGINT_IDX, BS, SIGN) ... </instrs>
+         <vmValStack> BS : _ </vmValStack>
 
     rule <instrs> #setBigInt(BIGINT_IDX, BS, SIGN) => . ... </instrs>
          <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- Bytes2Int(BS, BE, SIGN)] </bigIntHeap>
@@ -184,7 +184,7 @@ module BIGINTOPS
     // extern int32_t bigIntGetUnsignedBytes(void* context, int32_t reference, int32_t byteOffset);
     rule <instrs> hostCall("env", "bigIntGetUnsignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #getBigInt(IDX, Unsigned)
-               ~> #memStoreFromBytesStack(OFFSET)
+               ~> #memStoreFromVmValStack(OFFSET)
                ~> #returnLength
                ~> #dropBytes
                   ...
@@ -194,7 +194,7 @@ module BIGINTOPS
     // extern int32_t bigIntGetSignedBytes(void* context, int32_t reference, int32_t byteOffset);
     rule <instrs> hostCall("env", "bigIntGetSignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #getBigInt(IDX, Signed)
-               ~> #memStoreFromBytesStack(OFFSET)
+               ~> #memStoreFromVmValStack(OFFSET)
                ~> #returnLength
                ~> #dropBytes
                   ...
@@ -204,7 +204,7 @@ module BIGINTOPS
     // extern void bigIntSetUnsignedBytes(void* context, int32_t destination, int32_t byteOffset, int32_t byteLength);
     rule <instrs> hostCall("env", "bigIntSetUnsignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(OFFSET, LENGTH)
-               ~> #setBigIntFromBytesStack(IDX, Unsigned)
+               ~> #setBigIntFromVmValStack(IDX, Unsigned)
                ~> #dropBytes
                   ...
          </instrs>
@@ -213,7 +213,7 @@ module BIGINTOPS
     // extern void bigIntSetSignedBytes(void* context, int32_t destination, int32_t byteOffset, int32_t byteLength);
     rule <instrs> hostCall("env", "bigIntSetSignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(OFFSET, LENGTH)
-               ~> #setBigIntFromBytesStack(IDX, Signed)
+               ~> #setBigIntFromVmValStack(IDX, Signed)
                ~> #dropBytes
                   ...
          </instrs>
@@ -372,7 +372,7 @@ module BIGINTOPS
     // extern void bigIntFinishUnsigned(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntFinishUnsigned", [ i32 .ValTypes ] -> [ .ValTypes ])
                => #getBigInt(IDX, Unsigned)
-               ~> #appendToOutFromBytesStack
+               ~> #appendToOutFromVmValStack
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
@@ -380,7 +380,7 @@ module BIGINTOPS
     // extern void bigIntFinishSigned(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntFinishSigned", [ i32 .ValTypes ] -> [ .ValTypes ])
                => #getBigInt(IDX, Signed)
-               ~> #appendToOutFromBytesStack
+               ~> #appendToOutFromVmValStack
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
@@ -402,7 +402,7 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntStorageLoadUnsigned", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #memLoad(KEYOFFSET, KEYLENGTH)
                ~> #storageLoad
-               ~> #setBigIntFromBytesStack(DEST, Unsigned)
+               ~> #setBigIntFromVmValStack(DEST, Unsigned)
                ~> #returnLength
                ~> #dropBytes
                   ...
@@ -459,7 +459,7 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntGetExternalBalance", [ i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(ADDROFFSET, 32)
                ~> #getExternalBalance
-               ~> #setBigIntFromBytesStack(RESULT, Unsigned)
+               ~> #setBigIntFromVmValStack(RESULT, Unsigned)
                ~> #dropBytes
                   ...
          </instrs>
@@ -491,7 +491,7 @@ module BIGINTOPS
                => #setBigIntValue( RES_HANDLE , BALANCE )
                   ...
          </instrs>
-         <bytesStack> TOK_ID : ADDR : _ </bytesStack>
+         <vmValStack> TOK_ID : ADDR : _ </vmValStack>
          <account>
            <address> ADDR </address>
            <esdtData>
@@ -507,7 +507,7 @@ module BIGINTOPS
                => #setBigIntValue( RES_HANDLE , 0 )
                   ...
          </instrs>
-         <bytesStack> _TOK_ID : ADDR : _ </bytesStack>
+         <vmValStack> _TOK_ID : ADDR : _ </vmValStack>
          <account>
            <address> ADDR </address>
            ...

@@ -115,7 +115,7 @@ module MANAGEDCONVERSIONS
     rule [writeManagedVecOfManagedBuffers]:
         <instrs> #writeManagedVecOfManagedBuffers(L, Dest)
               => #writeListBytesToBuffers(L)
-              ~> #setBufferFromBytesStack(Dest)
+              ~> #setBufferFromVmValStack(Dest)
               ~> #dropBytes
                  ...
         </instrs>

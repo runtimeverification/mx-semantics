@@ -34,7 +34,7 @@ module ELROND-NODE
           <wasm/>
           <bigIntHeap> .Map </bigIntHeap>
           <bufferHeap> .MapIntToBytes </bufferHeap>
-          <bytesStack> .BytesStack </bytesStack>
+          <vmValStack> .VmValStack </vmValStack>
           <contractModIdx> .Int </contractModIdx>
           // output
           <out> .ListBytes </out>
@@ -128,30 +128,33 @@ Storage maps byte arrays to byte arrays.
 
 ```
 
-### Bytes Stack
+### VM Value Stack
 
 ```k
-    syntax BytesStack ::= List{Bytes, ":"}  [klabel(bytesStackList), symbol]
+    syntax VmValue ::= Bytes
+                     | Int
+ 
+    syntax VmValStack ::= List{VmValue, ":"}  [klabel(bytesStackList), symbol]
  // --------------------------------------
 
     syntax BytesOp ::= #pushBytes ( Bytes )
                      | "#dropBytes"
  // ---------------------------------------
     rule <instrs> #pushBytes(BS) => . ... </instrs>
-         <bytesStack> STACK => BS : STACK </bytesStack>
+         <vmValStack> STACK => BS : STACK </vmValStack>
 
     rule <instrs> #dropBytes => . ... </instrs>
-         <bytesStack> _ : STACK => STACK </bytesStack>
+         <vmValStack> _ : STACK => STACK </vmValStack>
 
     syntax InternalInstr ::= "#returnLength"
  // ----------------------------------------
     rule <instrs> #returnLength => i32.const lengthBytes(BS) ... </instrs>
-         <bytesStack> BS : _ </bytesStack>
+         <vmValStack> BS : _ </vmValStack>
 
     syntax InternalInstr ::= "#bytesEqual"
  // --------------------------------------
     rule <instrs> #bytesEqual => i32.const #bool( BS1 ==K BS2 ) ... </instrs>
-         <bytesStack> BS1 : BS2 : _ </bytesStack>
+         <vmValStack> BS1 : BS2 : _ </vmValStack>
 
 ```
 

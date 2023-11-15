@@ -44,11 +44,11 @@ module ELROND-CONFIG
 ### Memory
 
 ```k
-    syntax InternalInstr ::= #memStoreFromBytesStack ( Int )
+    syntax InternalInstr ::= #memStoreFromVmValStack ( Int )
                            | #memStore ( offset: Int , bytes: Bytes )
  // -----------------------------------------------------------------
-    rule <instrs> #memStoreFromBytesStack(OFFSET) => #memStore(OFFSET, BS) ... </instrs>
-         <bytesStack> BS : _ </bytesStack>
+    rule <instrs> #memStoreFromVmValStack(OFFSET) => #memStore(OFFSET, BS) ... </instrs>
+         <vmValStack> BS : _ </vmValStack>
 
     rule <instrs> #memStore(OFFSET, _) 
                => #throwException(ExecutionFailed, "bad bounds (lower)") ... 
@@ -101,7 +101,7 @@ module ELROND-CONFIG
 
     rule [memLoad-zero-length]:
         <instrs> #memLoad(_, 0) => . ... </instrs>
-        <bytesStack> STACK => .Bytes : STACK </bytesStack>
+        <vmValStack> STACK => .Bytes : STACK </vmValStack>
 
     rule [memLoad-bad-bounds]:
          <instrs> #memLoad(OFFSET, LENGTH) => #throwException(ExecutionFailed, "mem load: bad bounds") ... </instrs>
@@ -122,7 +122,7 @@ module ELROND-CONFIG
 
     rule [memLoad]:
          <instrs> #memLoad(OFFSET, LENGTH) => . ... </instrs>
-         <bytesStack> STACK => #getBytesRange(DATA, OFFSET, LENGTH) : STACK </bytesStack>
+         <vmValStack> STACK => #getBytesRange(DATA, OFFSET, LENGTH) : STACK </vmValStack>
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
@@ -154,7 +154,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     syntax InternalInstr ::= "#storageStore"
  // ----------------------------------------
     rule <instrs> #storageStore => #setStorage(KEY, VALUE) ... </instrs>
-         <bytesStack> VALUE : KEY : STACK => STACK </bytesStack>
+         <vmValStack> VALUE : KEY : STACK => STACK </vmValStack>
 
     syntax InternalInstr ::= #setStorage ( Bytes , Bytes )
  // ------------------------------------------------------
@@ -201,12 +201,12 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                            | "#storageLoadFromAddress"
  // ---------------------------------------
     rule <instrs> #storageLoad => #storageLoadFromAddress ... </instrs>
-         <bytesStack> STACK => CALLEE : STACK </bytesStack>
+         <vmValStack> STACK => CALLEE : STACK </vmValStack>
          <callee> CALLEE </callee>
 
     rule [storageLoadFromAddress]:
         <instrs> #storageLoadFromAddress => . ... </instrs>
-        <bytesStack> ADDR : KEY : STACK => #lookupStorage(STORAGE, KEY) : STACK </bytesStack>
+        <vmValStack> ADDR : KEY : STACK => #lookupStorage(STORAGE, KEY) : STACK </vmValStack>
         <account>
           <address> ADDR </address>
           <storage> STORAGE </storage>
@@ -218,7 +218,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
               => #throwException(UserError, "storageLoadFromAddress: unknown account address") ... 
         </instrs>
         // ADDR does not match any user
-        // <bytesStack> ADDR : _ : _ </bytesStack>
+        // <vmValStack> ADDR : _ : _ </vmValStack>
       [owise]
 
     syntax Bytes ::= #lookupStorage ( MapBytesToBytes , key: Bytes ) [function, total]
@@ -300,20 +300,20 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                            | #loadBytesAsSInt64 ( String )
  // ------------------------------------------------------
     rule <instrs> #loadBytesAsUInt64(ERRORMSG) => #returnIfUInt64(Bytes2Int(BS, BE, Unsigned), ERRORMSG) ... </instrs>
-         <bytesStack> BS : STACK => STACK </bytesStack>
+         <vmValStack> BS : STACK => STACK </vmValStack>
 
     rule <instrs> #loadBytesAsSInt64(ERRORMSG) => #returnIfSInt64(Bytes2Int(BS, BE, Signed), ERRORMSG) ... </instrs>
-         <bytesStack> BS : STACK => STACK </bytesStack>
+         <vmValStack> BS : STACK => STACK </vmValStack>
 ```
 
 ### Output
 
 ```k
-    syntax InternalInstr ::= "#appendToOutFromBytesStack"
+    syntax InternalInstr ::= "#appendToOutFromVmValStack"
                            | #appendToOut ( Bytes )
  // -----------------------------------------------
-    rule <instrs> #appendToOutFromBytesStack => . ... </instrs>
-         <bytesStack> OUT : STACK => STACK </bytesStack>
+    rule <instrs> #appendToOutFromVmValStack => . ... </instrs>
+         <vmValStack> OUT : STACK => STACK </vmValStack>
          <out> ... (.ListBytes => ListItem(wrap(OUT))) </out>
 
     rule <instrs> #appendToOut(OUT) => . ... </instrs>
@@ -377,7 +377,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                => #loadArgData(Bytes2Int(ARGLEN, LE, Unsigned), NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
                   ...
          </instrs>
-         <bytesStack> ARGLEN : STACK => STACK </bytesStack>
+         <vmValStack> ARGLEN : STACK => STACK </vmValStack>
 
 
     rule <instrs> #loadArgData(ARGLEN, NUMARGS, TOTALLEN, COUNTER, LENGTHOFFSET, DATAOFFSET)
@@ -390,11 +390,11 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                            | #writeLogAux ( Int , ListBytes , Bytes )
  // ------------------------------------------------------------
     rule <instrs> #writeLog => #writeLogAux(NUMTOPICS, .ListBytes, DATA) ... </instrs>
-         <bytesStack> DATA : STACK => STACK </bytesStack>
+         <vmValStack> DATA : STACK => STACK </vmValStack>
          <valstack> <i32> NUMTOPICS : <i32> _ : VALSTACK => VALSTACK </valstack>
 
     rule <instrs> #writeLogAux(1, TOPICS, DATA) => . ... </instrs>
-         <bytesStack> IDENTIFIER : STACK => STACK </bytesStack>
+         <vmValStack> IDENTIFIER : STACK => STACK </vmValStack>
          <callee> CALLEE </callee>
          <logs> ... (.List => ListItem(logEntry(CALLEE, IDENTIFIER, TOPICS, DATA))) </logs>
 
@@ -402,7 +402,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                => #writeLogAux(NUMTOPICS -Int 1, ListItem(wrap(TOPIC)) TOPICS, DATA)
                   ...
          </instrs>
-         <bytesStack> TOPIC : STACK => STACK </bytesStack>
+         <vmValStack> TOPIC : STACK => STACK </vmValStack>
        requires 1 <Int NUMTOPICS
 ```
 
@@ -713,7 +713,7 @@ Initialize the call state and invoke the endpoint function:
           </wasm>
           <bigIntHeap> _ => .Map </bigIntHeap>
           <bufferHeap> _ => .MapIntToBytes </bufferHeap>
-          <bytesStack> _ => .BytesStack </bytesStack>
+          <vmValStack> _ => .VmValStack </vmValStack>
           <contractModIdx> MODIDX:Int </contractModIdx>
           // output
           <out> _ => .ListBytes </out>

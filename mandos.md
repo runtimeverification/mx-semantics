@@ -375,7 +375,13 @@ Only take the next step once both the Elrond node and Wasm are done executing.
           ...
         </account>
         <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
-      [priority(60)]
+      [priority(60), preserves-definedness]
+      // Preserving definedness:
+      //   - callContract is a constructor
+      //   - mkVmInputSCCall is total
+      //   - Map updates (account) preserve definedness
+      //   - +String, +Int, -Int and *Int are total
+      //   - #parseWasmString is total.
 
     syntax VmInputCell ::= mkVmInputSCCall(Bytes, ListBytes, Int, List, Int, Int)    [function, total]
  // -----------------------------------------------------------------------------------

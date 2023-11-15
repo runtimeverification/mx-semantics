@@ -582,7 +582,10 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           ...
         </account>
       requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
-      [priority(60)]
+      [priority(60), preserves-definedness]
+      // Preserving definedness:
+      //   - Map updates preserve definedness
+      //   - -Int and +Int are total
 
     rule [transferFundsH-oofunds]:
         <commands> transferFundsH(ACCT, _, VALUE) => #exception(OutOfFunds, b"") ... </commands>
@@ -669,6 +672,12 @@ Every contract call runs in its own Wasm instance initialized with the contract'
           <instrs> initContractModule(CODE) </instrs>
           ...
         </wasm>)
+      // TODO: It is fairly hard to check that this rule preserves definedness.
+      // However, if that's not the case, then this axiom is invalid. We should
+      // figure this out somehow. Preferably, we should make initContractModule
+      // a total function. Otherwise, we should probably make a
+      // `definedInitContractModule` function that we should use in the requires
+      // clause.
 
     rule [setContractModIdx]:
         <commands> setContractModIdx => . ... </commands>

@@ -20,25 +20,35 @@ module BIGINT-HELPERS
       <bigIntHeap> ... IDX |-> I:Int ... </bigIntHeap>
     rule getBigInt(_) => Err("no bigInt under the given handle") [owise]
 
-    syntax InternalInstr ::= #getBigInt ( idx : Int ,  Signedness )
+    syntax InternalInstr ::= #getBigInt      ( idx : Int )
+                           | #getBigIntBytes ( idx : Int ,  Signedness )
  // ---------------------------------------------------------------
-    rule <instrs> #getBigInt(BIGINT_IDX, SIGN) => . ... </instrs>
-         <vmValStack> STACK => Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN) : STACK </vmValStack>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires #validIntId(BIGINT_IDX, HEAP)
+    rule <instrs> #getBigInt(BIGINT_IDX) => . ... </instrs>
+         <vmValStack> STACK => VAL : STACK </vmValStack>
+         <bigIntHeap> ... BIGINT_IDX |-> VAL:Int ... </bigIntHeap>
       [preserves-definedness]
       // Preserving definedness:
-      //  - Int2Bytes is total
-      //  - {HEAP[BIGINT_IDX]}:>Int because of #validIntId(BIGINT_IDX, HEAP)
+      // - Everything on RHS is constructor
 
-    rule <instrs> #getBigInt(BIGINT_IDX, _SIGN) => #throwException(ExecutionFailed, "no bigInt under the given handle") ... </instrs>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires notBool #validIntId(BIGINT_IDX, HEAP)
 
-    syntax InternalInstr ::= #getBigIntOrCreate ( idx : Int ,  Signedness )
+    rule <instrs> #getBigInt(BIGINT_IDX) 
+               => #throwException(ExecutionFailed, "no bigInt under the given handle")
+                  ...
+         </instrs>
+      [owise]
+
+    rule <instrs> #getBigIntBytes(BIGINT_IDX, SIGN) 
+               => #getBigInt(BIGINT_IDX) 
+               ~> #intToBytesVmValStack( BE , SIGN ) ...
+         </instrs>
+      [preserves-definedness]
+      // Preserving definedness:
+      // - Everything on RHS is constructor
+
+    syntax InternalInstr ::= #getBigIntBytesOrCreate ( idx : Int ,  Signedness )
  // ---------------------------------------------------------------
     rule [getBigIntOrCreate-get]:
-        <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => . ... </instrs>
+        <instrs> #getBigIntBytesOrCreate(BIGINT_IDX, SIGN) => . ... </instrs>
         <vmValStack> STACK => Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN) : STACK </vmValStack>
         <bigIntHeap> HEAP </bigIntHeap>
       requires #validIntId(BIGINT_IDX, HEAP)
@@ -48,7 +58,7 @@ module BIGINT-HELPERS
       //  - {HEAP[BIGINT_IDX]}:>Int because of #validIntId(BIGINT_IDX, HEAP)
 
     rule [getBigIntOrCreate-create]:
-        <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => #setBigInt(BIGINT_IDX, 0) ... </instrs>
+        <instrs> #getBigIntBytesOrCreate(BIGINT_IDX, SIGN) => #setBigInt(BIGINT_IDX, 0) ... </instrs>
         <vmValStack> STACK => Int2Bytes(0, BE, SIGN) : STACK </vmValStack>
         <bigIntHeap> HEAP </bigIntHeap>
       requires notBool #validIntId(BIGINT_IDX, HEAP)
@@ -131,7 +141,7 @@ module BIGINTOPS
 
     // extern int32_t bigIntUnsignedByteLength(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntUnsignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #getBigInt(IDX, Unsigned)
+               => #getBigIntBytes(IDX, Unsigned)
                ~> #returnLength
                ~> #dropVmValue
                   ...
@@ -140,7 +150,7 @@ module BIGINTOPS
 
     // extern int32_t bigIntSignedByteLength(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntSignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #getBigInt(IDX, Unsigned)
+               => #getBigIntBytes(IDX, Unsigned)
                ~> #returnLength
                ~> #dropVmValue
                   ...
@@ -179,7 +189,7 @@ module BIGINTOPS
 
     // extern int32_t bigIntGetUnsignedBytes(void* context, int32_t reference, int32_t byteOffset);
     rule <instrs> hostCall("env", "bigIntGetUnsignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #getBigInt(IDX, Unsigned)
+               => #getBigIntBytes(IDX, Unsigned)
                ~> #memStoreFromVmValStack(OFFSET)
                ~> #returnLength
                ~> #dropVmValue
@@ -189,7 +199,7 @@ module BIGINTOPS
 
     // extern int32_t bigIntGetSignedBytes(void* context, int32_t reference, int32_t byteOffset);
     rule <instrs> hostCall("env", "bigIntGetSignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #getBigInt(IDX, Signed)
+               => #getBigIntBytes(IDX, Signed)
                ~> #memStoreFromVmValStack(OFFSET)
                ~> #returnLength
                ~> #dropVmValue
@@ -369,7 +379,7 @@ module BIGINTOPS
 
     // extern void bigIntFinishUnsigned(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntFinishUnsigned", [ i32 .ValTypes ] -> [ .ValTypes ])
-               => #getBigInt(IDX, Unsigned)
+               => #getBigIntBytes(IDX, Unsigned)
                ~> #appendToOutFromVmValStack
                   ...
          </instrs>
@@ -377,7 +387,7 @@ module BIGINTOPS
 
     // extern void bigIntFinishSigned(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntFinishSigned", [ i32 .ValTypes ] -> [ .ValTypes ])
-               => #getBigInt(IDX, Signed)
+               => #getBigIntBytes(IDX, Signed)
                ~> #appendToOutFromVmValStack
                   ...
          </instrs>
@@ -386,7 +396,7 @@ module BIGINTOPS
     // extern int32_t bigIntStorageStoreUnsigned(void *context, int32_t keyOffset, int32_t keyLength, int32_t source);
     rule <instrs> hostCall("env", "bigIntStorageStoreUnsigned", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #memLoad(KEYOFFSET, KEYLENGTH)
-               ~> #getBigIntOrCreate(BIGINTIDX, Unsigned)
+               ~> #getBigIntBytesOrCreate(BIGINTIDX, Unsigned)
                ~> #storageStore
                   ...
          </instrs>

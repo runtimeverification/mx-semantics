@@ -105,7 +105,7 @@ module MANBUFOPS
 
  // extern int32_t   mBufferFromBigIntUnsigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
     rule <instrs> hostCall("env", "mBufferFromBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
-               => #getBigInt(BIG_IDX, Unsigned) 
+               => #getBigIntBytes(BIG_IDX, Unsigned) 
                ~> #setBufferFromVmValStack ( BUFF_IDX ) 
                ~> #dropVmValue
                ~> i32 . const 0
@@ -115,7 +115,7 @@ module MANBUFOPS
 
  // extern int32_t   mBufferFromBigIntSigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
     rule <instrs> hostCall("env", "mBufferFromBigIntSigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
-               => #getBigInt(BIG_IDX, Signed) 
+               => #getBigIntBytes(BIG_IDX, Signed) 
                ~> #setBufferFromVmValStack ( BUFF_IDX ) 
                ~> #dropVmValue
                ~> i32 . const 0

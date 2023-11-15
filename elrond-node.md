@@ -161,9 +161,16 @@ Storage maps byte arrays to byte arrays.
  // -------------------------------------------------------------------------
     rule <instrs> #bytesToIntVmValStack(END, SIGN) => . ... </instrs>
          <vmValStack> (BS:Bytes => Bytes2Int(BS, END, SIGN)) : _ </vmValStack>
+      [preserves-definedness]
+      // Preserving definedness:
+      // - Bytes2Int is total
+
 
     rule <instrs> #intToBytesVmValStack(END, SIGN) => . ... </instrs>
          <vmValStack> (I:Int => Int2Bytes(I, END, SIGN)) : _ </vmValStack>
+      [preserves-definedness]
+      // Preserving definedness:
+      // - Int2Bytes is total
 
 ```
 

@@ -45,7 +45,7 @@ module MANAGEDEI
     rule <instrs> hostCall ( "env" , "managedGetMultiESDTCallValue" , [ i32  .ValTypes ] -> [ .ValTypes ] )
                => #writeEsdtsToBytes(ESDTS)
                ~> #setBufferFromVmValStack(DEST_IDX)
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals>  0 |-> <i32> DEST_IDX  </locals>

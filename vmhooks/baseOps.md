@@ -60,7 +60,7 @@ module BASEOPS
                => #memLoad(ADDROFFSET, 32)
                ~> #getExternalBalance
                ~> #memStoreFromVmValStack(RESULTOFFSET)
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals>
@@ -178,7 +178,7 @@ module BASEOPS
                => #memLoad(KEYOFFSET, KEYLENGTH)
                ~> #storageLoad
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals>
@@ -192,7 +192,7 @@ module BASEOPS
                ~> #storageLoad
                ~> #memStoreFromVmValStack(VALOFFSET)
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals>

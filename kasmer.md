@@ -164,7 +164,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               ~> #getBuffer(OWNER_HANDLE)
               ~> #storageLoadFromAddress
               ~> #setBufferFromVmValStack(DEST_HANDLE)
-              ~> #dropBytes
+              ~> #dropVmValue
                  ...
         </instrs>
         <locals>
@@ -180,9 +180,9 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               ~> #getBuffer(KEY_HANDLE)
               ~> #getBuffer(ADDR_HANDLE)
               ~> foundryWriteToStorage
-              ~> #dropBytes
-              ~> #dropBytes
-              ~> #dropBytes
+              ~> #dropVmValue
+              ~> #dropVmValue
+              ~> #dropVmValue
                  ...
         </instrs>
         <locals>
@@ -278,8 +278,8 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               => #getBuffer(TOK_ID_HANDLE)
               ~> #getBuffer(ADDR_HANDLE)
               ~> #setESDTBalance(getBigInt(VAL_HANDLE))
-              ~> #dropBytes
-              ~> #dropBytes
+              ~> #dropVmValue
+              ~> #dropVmValue
                  ...
         </instrs>
         <locals>

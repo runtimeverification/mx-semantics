@@ -137,7 +137,7 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntUnsignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #getBigInt(IDX, Unsigned)
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
@@ -146,7 +146,7 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntSignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #getBigInt(IDX, Unsigned)
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
@@ -186,7 +186,7 @@ module BIGINTOPS
                => #getBigInt(IDX, Unsigned)
                ~> #memStoreFromVmValStack(OFFSET)
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX  1 |-> <i32> OFFSET </locals>
@@ -196,7 +196,7 @@ module BIGINTOPS
                => #getBigInt(IDX, Signed)
                ~> #memStoreFromVmValStack(OFFSET)
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX  1 |-> <i32> OFFSET </locals>
@@ -205,7 +205,7 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntSetUnsignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(OFFSET, LENGTH)
                ~> #setBigIntFromVmValStack(IDX, Unsigned)
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX 1 |-> <i32> OFFSET 2 |-> <i32> LENGTH </locals>
@@ -214,7 +214,7 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntSetSignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(OFFSET, LENGTH)
                ~> #setBigIntFromVmValStack(IDX, Signed)
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX 1 |-> <i32> OFFSET 2 |-> <i32> LENGTH </locals>
@@ -404,7 +404,7 @@ module BIGINTOPS
                ~> #storageLoad
                ~> #setBigIntFromVmValStack(DEST, Unsigned)
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals>
@@ -460,7 +460,7 @@ module BIGINTOPS
                => #memLoad(ADDROFFSET, 32)
                ~> #getExternalBalance
                ~> #setBigIntFromVmValStack(RESULT, Unsigned)
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals>
@@ -473,8 +473,8 @@ module BIGINTOPS
                => #memLoad(ADDR_OFFSET, 32)
                ~> #memLoad(TOK_ID_OFFSET, TOK_ID_LEN)
                ~> #bigIntGetESDTExternalBalance(RES_HANDLE)
-               ~> #dropBytes
-               ~> #dropBytes
+               ~> #dropVmValue
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals>

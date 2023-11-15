@@ -31,7 +31,7 @@ module CRYPTOEI-HELPERS
                => #memLoad(DATAOFFSET, LENGTH)
                ~> HASHINSTR
                ~> #memStoreFromVmValStack(RESULTOFFSET)
-               ~> #dropBytes
+               ~> #dropVmValue
                ~> i32.const 0
                ...
           </instrs>
@@ -43,7 +43,7 @@ module CRYPTOEI-HELPERS
               => #getBuffer(DATA_HANDLE)
               ~> HASHINSTR
               ~> #setBufferFromVmValStack(DEST_HANDLE)
-              ~> #dropBytes
+              ~> #dropVmValue
               ~> i32.const 0
                 ...
         </instrs>

@@ -137,24 +137,24 @@ Storage maps byte arrays to byte arrays.
     syntax VmValStack ::= List{VmValue, ":"}  [klabel(bytesStackList), symbol]
  // --------------------------------------
 
-    syntax BytesOp ::= #pushBytes ( Bytes )
-                     | "#dropBytes"
+    syntax InternalInstr ::= #pushVmValue( VmValue )     [klabel(pushVmValue), symbol]
+                           | "#dropVmValue"
  // ---------------------------------------
-    rule <instrs> #pushBytes(BS) => . ... </instrs>
+    rule <instrs> #pushVmValue(BS) => . ... </instrs>
          <vmValStack> STACK => BS : STACK </vmValStack>
 
-    rule <instrs> #dropBytes => . ... </instrs>
+    rule <instrs> #dropVmValue => . ... </instrs>
          <vmValStack> _ : STACK => STACK </vmValStack>
 
     syntax InternalInstr ::= "#returnLength"
  // ----------------------------------------
     rule <instrs> #returnLength => i32.const lengthBytes(BS) ... </instrs>
-         <vmValStack> BS : _ </vmValStack>
+         <vmValStack> BS:Bytes : _ </vmValStack>
 
     syntax InternalInstr ::= "#bytesEqual"
  // --------------------------------------
     rule <instrs> #bytesEqual => i32.const #bool( BS1 ==K BS2 ) ... </instrs>
-         <vmValStack> BS1 : BS2 : _ </vmValStack>
+         <vmValStack> BS1:Bytes : BS2:Bytes : _ </vmValStack>
 
 ```
 

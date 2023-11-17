@@ -240,96 +240,84 @@ module BIGINTOPS
       //    check for its definedness separately.
 
     // extern void bigIntAdd(void* context, int32_t destination, int32_t op1, int32_t op2);
-    rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
+               => #getBigInt(OP1_IDX)
+               ~> #getBigInt(OP2_IDX)
+               ~> #bigIntAdd
+               ~> #setBigIntFromVmValStack(DST)
+               ~> #dropVmValue
+                  ...
+          </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int +Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
-      requires #validIntId(OP1_IDX, HEAP)
-       andBool #validIntId(OP2_IDX, HEAP)
       [preserves-definedness]
       // Preserving definedness:
-      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
-      //  - +Int is total
-      //  - Map[Kitem <- KItem] is total
+      // - everything on RHS is constructor
 
-   // TODO a lot of code duplication in the error cases. 
-   // use sth like #getBigInt that checks existence
-    rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
-               => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
-         </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires notBool (#validIntId(OP1_IDX, HEAP))
-        orBool notBool (#validIntId(OP2_IDX, HEAP))
 
     // extern void bigIntSub(void* context, int32_t destination, int32_t op1, int32_t op2);
-    rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
+               => #getBigInt(OP1_IDX)
+               ~> #getBigInt(OP2_IDX)
+               ~> #bigIntSub
+               ~> #setBigIntFromVmValStack(DST)
+               ~> #dropVmValue
+                  ...
+          </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int -Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
-      requires #validIntId(OP1_IDX, HEAP)
-       andBool #validIntId(OP2_IDX, HEAP)
       [preserves-definedness]
       // Preserving definedness:
-      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
-      //  - -Int is total
-      //  - Map[Kitem <- KItem] is total
-
-    rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
-               => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
-         </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires notBool (#validIntId(OP1_IDX, HEAP))
-        orBool notBool (#validIntId(OP2_IDX, HEAP))
+      // - everything on RHS is constructor
 
     // extern void bigIntMul(void* context, int32_t destination, int32_t op1, int32_t op2);
-    rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
+               => #getBigInt(OP1_IDX)
+               ~> #getBigInt(OP2_IDX)
+               ~> #bigIntMul
+               ~> #setBigIntFromVmValStack(DST)
+               ~> #dropVmValue
+                  ...
+          </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int *Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
-      requires #validIntId(OP1_IDX, HEAP)
-       andBool #validIntId(OP2_IDX, HEAP)
       [preserves-definedness]
       // Preserving definedness:
-      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
-      //  - *Int is total
-      //  - Map[Kitem <- KItem] is total
-
-    rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
-               => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
-         </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires notBool (#validIntId(OP1_IDX, HEAP))
-        orBool notBool (#validIntId(OP2_IDX, HEAP))
+      // - everything on RHS is constructor
 
     // extern void bigIntTDiv(void* context, int32_t destination, int32_t op1, int32_t op2);
-    rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
+               => #getBigInt(OP1_IDX)
+               ~> #getBigInt(OP2_IDX)
+               ~> #bigIntTDiv
+               ~> #setBigIntFromVmValStack(DST)
+               ~> #dropVmValue
+                  ...
+          </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int /Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
-      requires #validIntId(OP1_IDX, HEAP)
-       andBool #validIntId(OP2_IDX, HEAP)
-       andBool {HEAP[OP2_IDX]}:>Int =/=Int 0
       [preserves-definedness]
       // Preserving definedness:
-      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
-      //  - we checked that /Int is defined
-      //  - Map[Kitem <- KItem] is total
+      // - everything on RHS is constructor
 
-    rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
-               => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
-         </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires notBool (#validIntId(OP1_IDX, HEAP))
-        orBool notBool (#validIntId(OP2_IDX, HEAP))
+    syntax InterlanInstr ::= "#bigIntAdd"     [klabel(#bigIntAdd), symbol]
+                           | "#bigIntSub"     [klabel(#bigIntSub), symbol]
+                           | "#bigIntMul"     [klabel(#bigIntMul), symbol]
+                           | "#bigIntTDiv"    [klabel(#bigIntTDiv), symbol]
+ // ----------------------------------------------------------------------
+    rule <instrs> #bigIntAdd => . ... </instrs>
+         <vmValStack> OP2:Int : OP1:Int : REST => OP1 +Int OP2 : REST </vmValStack>
 
-    rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
-               => #throwException(ExecutionFailed, "bigInt division by 0") ...
-         </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires #validIntId(OP1_IDX, HEAP)
-       andBool #validIntId(OP2_IDX, HEAP)
-       andBool {HEAP[OP2_IDX]}:>Int ==Int 0
+    rule <instrs> #bigIntSub => . ... </instrs>
+         <vmValStack> OP2:Int : OP1:Int : REST => OP1 -Int OP2 : REST </vmValStack>
+
+    rule <instrs> #bigIntMul => . ... </instrs>
+         <vmValStack> OP2:Int : OP1:Int : REST => OP1 *Int OP2 : REST </vmValStack>
+
+    rule <instrs> #bigIntTDiv => . ... </instrs>
+         <vmValStack> OP2:Int : OP1:Int : REST => OP1 /Int OP2 : REST </vmValStack>
+      requires OP2 =/=Int 0
+
+    rule <instrs> #bigIntTDiv
+               => #throwException(ExecutionFailed, "bigInt division by 0") ... </instrs>
+         <vmValStack> OP2:Int : _OP1:Int : _REST </vmValStack>
+      requires OP2 ==Int 0
 
     // extern int32_t bigIntSign(void* context, int32_t op);
     rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])

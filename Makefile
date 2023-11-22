@@ -5,7 +5,7 @@
         elrond-clean-sources elrond-loaded                                       \
         test unittest-python mandos-test test-elrond-contracts                   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
-        test-elrond-multisig test-elrond-basic-features                          \
+        test-elrond-multisig test-elrond-basic-features test-elrond-deploy       \
         test-elrond-addercaller test-elrond-callercallee test-custom-contracts   \
         rule-coverage clean-coverage                                             \
 
@@ -355,7 +355,8 @@ $(ELROND_ALLOC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(EL
 # Custom contract tests
 
 custom-contracts := test-elrond-addercaller       \
-                    test-elrond-callercallee
+                    test-elrond-callercallee      \
+                    test-elrond-deploy
 test-custom-contracts: $(custom-contracts)
 
 ## Adder Caller Test
@@ -381,6 +382,14 @@ test-elrond-callercallee: $(llvm_kompiled)                    \
                           mxpy-build/$(ELROND_CALLER_DIR)     \
                           mxpy-build/$(ELROND_CALLEE_DIR)
 	$(TEST_MANDOS) $(elrond_callercallee_tests)
+
+## Deploy Test
+
+ELROND_DEPLOY_CNT_DIR := tests/contracts/deploy
+test-elrond-deploy: $(llvm_kompiled)                     \
+                    poetry-install                       \
+                    mxpy-build/$(ELROND_DEPLOY_CNT_DIR)
+	$(TEST_MANDOS) $(shell find $(ELROND_DEPLOY_CNT_DIR) -name "*.scen.json")
 
 ## Kasmer Test API tests
 

@@ -1,0 +1,90 @@
+{
+    "name": "deploy",
+    "steps": [
+        {
+            "id": "initialize",
+            "step": "setState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "1",
+                    "balance": "123"
+                }
+            },
+            "newAddresses": [
+                {
+                    "creatorAddress": "address:owner",
+                    "creatorNonce": "1",
+                    "newAddress": "sc:empty"
+                },
+                {
+                    "creatorAddress": "address:owner",
+                    "creatorNonce": "2",
+                    "newAddress": "sc:empty"
+                }
+            ]
+        },
+        {
+            "step": "scDeploy",
+            "id": "deploy 0",
+            "comment": "If the init function fails, the created account must be deleted",
+            "tx": {
+                "from": "address:owner",
+                "contractCode": "file:../output/deploy.wasm",
+                "arguments": ["0"],
+                "value": "10",
+                "gasLimit": "5,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "message": "str:cannot deploy 0",
+                "status": "4"
+            }
+        },
+        {
+            "id": "check 0",
+            "step": "checkState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "*",
+                    "balance": "123",
+                    "storage": {},
+                    "code": ""
+                }
+            }
+        },
+        {
+            "step": "scDeploy",
+            "id": "deploy 1",
+            "tx": {
+                "from": "address:owner",
+                "contractCode": "file:../output/deploy.wasm",
+                "arguments": ["1"],
+                "value": "10",
+                "gasLimit": "5,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "message": "",
+                "status": ""
+            }
+        },
+        {
+            "step": "checkState",
+            "id": "check 1",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "*",
+                    "balance": "113",
+                    "storage": {},
+                    "code": ""
+                },
+                "sc:empty": {
+                    "balance": "10",
+                    "code": "file:../output/deploy.wasm"
+                }
+            }
+        }
+    ]
+}

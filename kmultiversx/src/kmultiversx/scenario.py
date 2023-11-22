@@ -322,6 +322,9 @@ def mandos_to_esdt_value(v: str | dict) -> KToken:
 def mandos_to_check_account(address: str, sections: dict, filename: str) -> list:
     k_steps: list[KInner] = []
     address_value = mandos_argument_to_kbytes(address)
+
+    k_steps.append(KApply('checkAccountExists', [address_value]))
+    
     if ('nonce' in sections) and (sections['nonce'] != '*'):
         nonce_value = mandos_int_to_kint(sections['nonce'])
         k_steps.append(KApply('checkAccountNonce', [address_value, nonce_value]))
@@ -345,7 +348,6 @@ def mandos_to_check_account(address: str, sections: dict, filename: str) -> list
         k_code_path = KString(code_path)
         k_steps.append(KApply('checkAccountCode', [address_value, k_code_path]))
 
-    k_steps.append(KApply('checkedAccount', [address_value]))
     return k_steps
 
 
@@ -614,7 +616,6 @@ def get_steps_check_state(step: dict, filename: str) -> list:
             address_bytes = [mandos_argument_to_kbytes(a) for a in step['accounts'].keys()]
             all_addresses = set_of(address_bytes)
             k_steps.append(KApply('checkNoAdditionalAccounts', [all_addresses]))
-        k_steps.append(KApply('clearCheckedAccounts', []))
     return k_steps
 
 

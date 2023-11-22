@@ -506,7 +506,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
     syntax InternalCmd ::= "#revertIfDeployFails"   [klabel(#revertIfDeployFails), symbol]
  // ------------------------------------------------------------------------------------
     rule [revertIfDeployFails-ok]:
-         <commands> #revertIfDeployFails => . ... </commands>
+         <commands> #revertIfDeployFails => dropWorldState ... </commands>
          <instrs> . </instrs>
          <vmOutput> VMOutput( OK , _ , _ , _) </vmOutput>
 

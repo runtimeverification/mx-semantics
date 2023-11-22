@@ -324,7 +324,7 @@ def mandos_to_check_account(address: str, sections: dict, filename: str) -> list
     address_value = mandos_argument_to_kbytes(address)
 
     k_steps.append(KApply('checkAccountExists', [address_value]))
-    
+
     if ('nonce' in sections) and (sections['nonce'] != '*'):
         nonce_value = mandos_int_to_kint(sections['nonce'])
         k_steps.append(KApply('checkAccountNonce', [address_value, nonce_value]))

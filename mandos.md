@@ -470,13 +470,16 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
          <commands> . </commands>
       [priority(60)]
 
+   // TODO In the official Mandos implementation the owner's nonce is always incremented even if the deployment fails, whereas here we revert everything. Confirm that this is the correct behavior.
     rule [deployTxAux]:
         <k> deployTxAux(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
         <commands> . 
-                => createAccount(NEWADDR)
+                => pushWorldState
+                ~> createAccount(NEWADDR)
                 ~> setAccountOwner(NEWADDR, FROM)
                 ~> setAccountCode(NEWADDR, MODULE)
                 ~> callContract(NEWADDR, "init", mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE))
+                ~> #revertIfDeployFails
         </commands>
         <account>
            <address> FROM </address>
@@ -499,6 +502,19 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
             <gasProvided> GASLIMIT </gasProvided>
             <gasPrice> GASPRICE </gasPrice>
           </vmInput>
+
+    syntax InternalCmd ::= "#revertIfDeployFails"   [klabel(#revertIfDeployFails), symbol]
+ // ------------------------------------------------------------------------------------
+    rule [revertIfDeployFails-ok]:
+         <commands> #revertIfDeployFails => . ... </commands>
+         <instrs> . </instrs>
+         <vmOutput> VMOutput( OK , _ , _ , _) </vmOutput>
+
+    rule [revertIfDeployFails-err]:
+         <commands> #revertIfDeployFails => popWorldState ... </commands>
+         <instrs> . </instrs>
+         <vmOutput> VMOutput( _:ExceptionCode , _ , _ , _) </vmOutput>
+
 ```
 
 ### Step type: transfer

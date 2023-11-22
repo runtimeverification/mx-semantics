@@ -12,6 +12,7 @@ deployTx(
       (func (export "nonPayable")
         call $checkNoPayment
       )
+      (func (export "init"))
     )
   , .ListBytes
   , 0

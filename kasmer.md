@@ -423,7 +423,6 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <interimStates> _ => .List </interimStates>
         <k> _ => . </k>
         <commands> _ => . </commands>
-        <checkedAccounts> _ => .Set </checkedAccounts>
         <prank> _ => false </prank>
         <exit-code> _ => 0 </exit-code>
 

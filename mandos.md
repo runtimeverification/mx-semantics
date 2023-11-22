@@ -23,7 +23,6 @@ module MANDOS
       <mandos>
         <k> $PGM:Steps </k>
         <newAddresses> .Map </newAddresses>
-        <checkedAccounts> .Set </checkedAccounts>
         <elrond/>
         <exit-code exit=""> 0 </exit-code>
       </mandos>
@@ -323,33 +322,32 @@ Only take the next step once both the Elrond node and Wasm are done executing.
       requires CODEPATH ==K #getModuleCodePath(CODE)
       [priority(60)]
 
-    syntax Step ::= checkedAccount    ( Address ) [klabel(checkedAccount), symbol]
-                  | checkedAccountAux ( Bytes )   [klabel(checkedAccountAux), symbol]
+    syntax Step ::= checkAccountExists    ( Address ) [klabel(checkAccountExists), symbol]
+                  | checkAccountExistsAux ( Bytes )   [klabel(checkAccountExistsAux), symbol]
  // ---------------------------------------------------------------------------------
-    rule <k> checkedAccount(ADDRESS)
-             => checkedAccountAux(#address2Bytes(ADDRESS)) ... </k>
+    rule <k> checkAccountExists(ADDRESS)
+             => checkAccountExistsAux(#address2Bytes(ADDRESS)) ... </k>
          <commands> . </commands>
       [priority(60)]
 
-    rule <k> checkedAccountAux(ADDR) => . ... </k>
-         <checkedAccounts> ... (.Set => SetItem(ADDR)) ... </checkedAccounts>
+    rule <k> checkAccountExistsAux(ADDR) => . ... </k>
+         <address> ADDR </address>
          <commands> . </commands>
       [priority(60)]
 
     syntax Step ::= checkNoAdditionalAccounts( Set ) [klabel(checkNoAdditionalAccounts), symbol]
+                  | errorUnexpectedAccount( Bytes )
  // ---------------------------------------------------------------------------------------
-    rule <k> checkNoAdditionalAccounts(EXPECTED) => . ... </k>
-         <checkedAccounts> CHECKEDACCTS </checkedAccounts>
+    rule <k> checkNoAdditionalAccounts(EXPECTED) => errorUnexpectedAccount(ADDR) ... </k>
          <commands> . </commands>
-      requires EXPECTED ==K CHECKEDACCTS
+         <address> ADDR </address>
+      requires notBool( ADDR in( EXPECTED ) )
       [priority(60)]
+    
+    rule <k> checkNoAdditionalAccounts(_) => . ... </k>
+         <commands> . </commands>
+      [priority(61)]
 
-    syntax Step ::= "clearCheckedAccounts" [klabel(clearCheckedAccounts), symbol]
- // -----------------------------------------------------------------------------
-    rule <k> clearCheckedAccounts => . ... </k>
-         <checkedAccounts> _ => .Set </checkedAccounts>
-         <commands> . </commands>
-      [priority(60)]
 ```
 
 ### Step type: scCall
@@ -472,13 +470,16 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
          <commands> . </commands>
       [priority(60)]
 
+   // TODO In the official Mandos implementation the owner's nonce is always incremented even if the deployment fails, whereas here we revert everything. Confirm that this is the correct behavior.
     rule [deployTxAux]:
         <k> deployTxAux(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
         <commands> . 
-                => createAccount(NEWADDR)
+                => pushWorldState
+                ~> createAccount(NEWADDR)
                 ~> setAccountOwner(NEWADDR, FROM)
                 ~> setAccountCode(NEWADDR, MODULE)
                 ~> callContract(NEWADDR, "init", mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE))
+                ~> #revertIfDeployFails
         </commands>
         <account>
            <address> FROM </address>
@@ -501,6 +502,19 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
             <gasProvided> GASLIMIT </gasProvided>
             <gasPrice> GASPRICE </gasPrice>
           </vmInput>
+
+    syntax InternalCmd ::= "#revertIfDeployFails"   [klabel(#revertIfDeployFails), symbol]
+ // ------------------------------------------------------------------------------------
+    rule [revertIfDeployFails-ok]:
+         <commands> #revertIfDeployFails => dropWorldState ... </commands>
+         <instrs> . </instrs>
+         <vmOutput> VMOutput( OK , _ , _ , _) </vmOutput>
+
+    rule [revertIfDeployFails-err]:
+         <commands> #revertIfDeployFails => popWorldState ... </commands>
+         <instrs> . </instrs>
+         <vmOutput> VMOutput( _:ExceptionCode , _ , _ , _) </vmOutput>
+
 ```
 
 ### Step type: transfer

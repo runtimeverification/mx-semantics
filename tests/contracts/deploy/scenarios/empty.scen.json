@@ -85,6 +85,20 @@
                     "code": "file:../output/deploy.wasm"
                 }
             }
+        },
+        {
+            "step": "checkState",
+            "id": "check 2",
+            "comment": "check +",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "*",
+                    "balance": "113",
+                    "storage": {},
+                    "code": ""
+                },
+                "+": ""
+            }
         }
     ]
 }

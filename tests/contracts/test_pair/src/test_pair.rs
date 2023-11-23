@@ -50,6 +50,9 @@ mod pair_proxy {
         #[view(getReserve)]
         #[storage_mapper("reserve")]
         fn pair_reserve(&self, token_id: &TokenIdentifier) -> SingleValueMapper<BigUint>;
+
+        #[endpoint]
+        fn resume(&self);
     }
 }
 
@@ -73,6 +76,7 @@ pub trait TestMultisigContract {
         self.deploy(&code_path);
 
         self.set_lp_token(&self.pair_address().get(), &self.lp_token().get());
+        self.resume(&self.pair_address().get());
     }
 
     fn init_tokens(&self) {
@@ -167,12 +171,24 @@ pub trait TestMultisigContract {
         tokens.push(EsdtTokenPayment::new(self.first_token().get(), 0, first_liquidity.clone()));
         tokens.push(EsdtTokenPayment::new(self.second_token().get(), 0, second_liquidity.clone()));
         testapi::start_prank(&adder_address);
-        let _: IgnoreValue = self
-            .pair_proxy(pair_address.clone())
-            .add_liquidity(first_min, second_min)
-            .with_multi_token_transfer(tokens)
-            // .with_esdt_transfer((available_token.clone(), 0, available_amount.clone()))
-            .execute_on_dest_context();
+
+        let mut args = ManagedArgBuffer::new();
+        args.push_arg(&first_min);
+        args.push_arg(&second_min);
+
+        let _ = self.send_raw().multi_esdt_transfer_execute(
+            pair_address,
+            &tokens,
+            5000000,
+            &ManagedBuffer::from(b"addLiquidity"),
+            &args,
+        );
+
+        // let _: IgnoreValue = self
+        //     .pair_proxy(pair_address.clone())
+        //     .add_liquidity(first_min, second_min)
+        //     .with_multi_token_transfer(tokens)
+        //     .execute_on_dest_context();
         testapi::stop_prank();
     }
 
@@ -215,6 +231,18 @@ pub trait TestMultisigContract {
             .pair_reserve(token_id)
             .execute_on_dest_context();
         result
+    }
+
+    fn resume(
+        &self,
+        pair_address: &ManagedAddress,
+    ) {
+        testapi::start_prank(&ManagedAddress::from(ROUTER));
+        let _: IgnoreValue = self
+            .pair_proxy(pair_address.clone())
+            .resume()
+            .execute_on_dest_context();
+        testapi::stop_prank();
     }
 
     #[proxy]

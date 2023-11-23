@@ -507,6 +507,10 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
         => #throwExceptionBs(EC, MSG)
         [owise]
     
+    rule [cleanReturnData]:
+        <instrs> hostCall ( "env" , "cleanReturnData" , [ .ValTypes ] -> [ .ValTypes ] ) => . ... </instrs>
+        <out> _ => .ListBytes </out>
+
 ```
 
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.

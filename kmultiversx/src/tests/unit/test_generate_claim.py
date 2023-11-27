@@ -16,7 +16,7 @@ def test_generate_cterms_init_config(kasmer_llvm_krun: KRun) -> None:
     conf = kasmer_llvm_krun.definition.init_config(GENERATED_TOP_CELL)
 
     # Check that the definition can be parsed
-    assert kasmer_llvm_krun.kompiled_kore.definition
+    assert kasmer_llvm_krun.kompiled_kore
 
     sym_conf, subst = split_config_from(conf)
 

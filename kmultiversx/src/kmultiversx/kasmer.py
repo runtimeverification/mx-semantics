@@ -142,8 +142,13 @@ def run_config_and_check_empty(
     sym_conf, subst = split_config_from(final_conf)
     k_cell = subst['K_CELL']
     if not isinstance(k_cell, KSequence) or k_cell.arity != 0:
+        print(krun.pretty_print(k_cell))
         raise KasmerRunError(
-            k_cell=subst['K_CELL'], vm_output=subst['VMOUTPUT_CELL'], final_conf=final_conf, message='k cell not empty'
+            k_cell=subst['K_CELL'],
+            vm_output=subst['VMOUTPUT_CELL'],
+            logging=subst['LOGGING_CELL'],
+            final_conf=final_conf,
+            message='k cell not empty',
         )
 
     return final_conf, sym_conf, subst
@@ -236,6 +241,7 @@ def test_with_hypothesis(
             message = 'Test failed:'
             message += f'\n\tendpoint: {endpoint}'
             message += f'\n\tvm output: {krun.pretty_print(kre.vm_output)}'
+            message += f'\n\tlogging: {krun.pretty_print(kre.logging)}'
 
             if verbose:
                 message += f'\n\tfinal configuration: {krun.pretty_print(kre.final_conf)}'

@@ -1,0 +1,8 @@
+[settings]
+main = "main"
+
+[contracts.main]
+name = "test_pair"
+add-unlabelled = true
+allocator = "fail"
+stack-size = "1k"

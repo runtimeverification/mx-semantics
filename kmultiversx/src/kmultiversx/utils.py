@@ -41,8 +41,9 @@ def krun_config(krun: KRun, conf: KInner, pipe_stderr: bool = False) -> KInner:
 
 
 class KasmerRunError(Exception):  # noqa: B903
-    def __init__(self, k_cell: KInner, vm_output: KInner, final_conf: KInner, message: str):
+    def __init__(self, k_cell: KInner, vm_output: KInner, logging: KInner, final_conf: KInner, message: str):
         self.k_cell = k_cell
         self.vm_output = vm_output
+        self.logging = logging
         self.final_conf = final_conf
         self.message = message

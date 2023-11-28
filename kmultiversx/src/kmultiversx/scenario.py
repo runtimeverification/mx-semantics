@@ -304,19 +304,35 @@ def mandos_to_set_account(address: str, sections: dict, filename: str, output_di
     if 'esdt' in sections:
         for k, v in sections['esdt'].items():
             tok_id = mandos_argument_to_kbytes(k)
+
             value = mandos_to_esdt_value(v)
-            step = KApply('setEsdtBalance', [address_value, tok_id, value])
-            set_account_steps.append(step)
+            if value is not None:
+                step = KApply('setEsdtBalance', [address_value, tok_id, value])
+                set_account_steps.append(step)
+
+            roles = mandos_to_esdt_roles(v)
+            if roles is not None:
+                step = KApply('setEsdtRoles', [address_value, tok_id, set_of(roles)])
+                set_account_steps.append(step)
 
     return set_account_steps
 
 
 # ESDT value is either an integer (compact) or a dictionary (full)
-def mandos_to_esdt_value(v: str | dict) -> KToken:
+def mandos_to_esdt_value(v: str | dict) -> KToken | None:
     if isinstance(v, str):
         return mandos_int_to_kint(v)
-    # TODO properly parse 'instances'
-    return mandos_int_to_kint(v['instances'][0]['balance'])
+    if 'instances' in v:
+        return mandos_int_to_kint(v['instances'][0]['balance'])
+    return None
+
+
+def mandos_to_esdt_roles(v: str | dict) -> list[KToken] | None:
+    if isinstance(v, str):
+        return None
+    if 'roles' not in v:
+        return None
+    return [KString(r) for r in v['roles']]
 
 
 def mandos_to_check_account(address: str, sections: dict, filename: str) -> list:

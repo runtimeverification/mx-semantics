@@ -142,7 +142,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         </account>
         <commands> . </commands>
       [priority(60)]
-    
+
     rule <k> setEsdtBalance( ADDR , TokId , Value ) => . ... </k>
         <account>
           <address> ADDR </address>
@@ -150,7 +150,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             (.Bag => <esdtData>
               <esdtId> TokId </esdtId>
               <esdtBalance> Value </esdtBalance>
-              <frozen> false </frozen>
+              ...
             </esdtData>)
             ...
           </esdtDatas>
@@ -158,7 +158,41 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         </account>
         <commands> . </commands>
       [priority(61)]
-    
+
+    syntax Step ::= setEsdtRoles( Bytes , Bytes , Set )
+        [klabel(setEsdtRoles), symbol]
+ // ----------------------------------------------------------------------------
+    rule [setEsdtRoles-existing]:
+        <k> setEsdtRoles(ADDR, TOK, ROLES) => . ... </k>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TOK </esdtId>
+            <esdtRoles> _ => ROLES </esdtRoles>
+            ...
+           </esdtData>
+          ...
+        </account>
+        <commands> . </commands>
+      [priority(60)]
+
+    rule [setEsdtRoles-new]:
+        <k> setEsdtRoles(ADDR, TOK, ROLES) => . ... </k>
+        <account>
+          <address> ADDR </address>
+          <esdtDatas>
+            (.Bag => <esdtData>
+              <esdtId> TOK </esdtId>
+              <esdtRoles> ROLES </esdtRoles>
+              ...
+            </esdtData>)
+            ...
+          </esdtDatas>
+          ...
+        </account>
+        <commands> . </commands>
+      [priority(61)]
+
     syntax Step ::= newAddress    ( Address, Int, Address ) [klabel(newAddress), symbol]
                   | newAddressAux ( Bytes, Int, Bytes )     [klabel(newAddressAux), symbol]
  // ---------------------------------------------------------------------------------------

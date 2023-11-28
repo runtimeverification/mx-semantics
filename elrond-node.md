@@ -50,9 +50,9 @@ module ELROND-NODE
             <balance> 0 </balance>
             <esdtDatas>
               <esdtData multiplicity="*" type="Map">
-                <esdtId> .Bytes </esdtId>
-                <esdtBalance> 0 </esdtBalance>
-                <frozen> false </frozen>
+                <esdtId>     .Bytes </esdtId>
+                <esdtBalance> 0     </esdtBalance>
+                <esdtRoles>  .Set   </esdtRoles>
               </esdtData>
             </esdtDatas>
 ```
@@ -239,6 +239,29 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
 
     syntax InternalCmd ::= #exception( ExceptionCode , Bytes )
  // ---------------------------------------------------
+
+    syntax Bool ::= isBuiltinFunction(WasmStringToken)       [function, total]
+ // --------------------------------------------------------------------------
+    rule isBuiltinFunction(_) => false                          [owise]
+
+    syntax InternalCmd ::= processBuiltinFunc(String, Bytes, Bytes, VmInputCell)  [klabel(processBuiltinFunc),symbol]
+
+    syntax InternalCmd ::= checkBool(Bool, String)    [klabel(checkBool), symbol]
+                         | checkOr(Bool, K)           [klabel(checkOr), symbol] 
+ // -----------------------------------------------------------------------------------
+    rule [checkBool-t]:
+        <commands> checkBool(true, ERR) => #exception(ExecutionFailed, String2Bytes(ERR)) ... </commands>
+    rule [checkBool-f]:
+        <commands> checkBool(false,  _)   => . ... </commands>
+
+    rule [checkOr-t]:
+        <commands> checkOr(true, _) => . ... </commands>
+    rule [checkOr-f]:
+        <commands> checkOr(false, C) => C ... </commands>
+
+    syntax WasmCell
+    syntax InternalCmd ::= newWasmInstance(Bytes, ModuleDecl)  [klabel(newWasmInstance), symbol]
+                         | mkCall( Bytes, WasmString, VmInputCell )
 
 endmodule
 ```

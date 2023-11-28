@@ -1,0 +1,21 @@
+[package]
+name = "test_coindrip"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/test_coindrip.rs"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dependencies.multiversx-sc]
+version = "0.43.3"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.43.3"
+
+[dependencies]
+testapi = { version = "0.1.0", path = "../../../src/testapi" }

@@ -10,9 +10,14 @@ K_OPTS="-Xmx8192m" kbuild kompile llvm-kasmer && poetry -C kmultiversx run -- ka
 
 # Coindrip
 
-# mxpy contract build --path deps/coindrip-protocol-sc --wasm-symbols --no-wasm-opt
-# mxpy contract build --path tests/contracts/test_coindrip --wasm-symbols --no-wasm-opt
-# K_OPTS="-Xmx8192m" kbuild kompile llvm-kasmer && poetry -C kmultiversx run -- kasmer --definition-dir $(kbuild which llvm-kasmer) --directory "tests/contracts/test_coindrip" --gen-claims 2>&1 | tee kasmer.log
+for f in $(find deps/coindrip-protocol-sc/ -name 'Cargo.toml')
+do
+  cat $f | sed 's/0.39.2/0.47.4/' > tmp.rs
+  mv tmp.rs $f
+done
+sc-meta all build --path deps/coindrip-protocol-sc --wasm-symbols --no-wasm-opt
+sc-meta all build --path tests/contracts/test_coindrip --wasm-symbols --no-wasm-opt
+K_OPTS="-Xmx8192m" kbuild kompile llvm-kasmer && poetry -C kmultiversx run -- kasmer --definition-dir $(kbuild which llvm-kasmer) --directory "tests/contracts/test_coindrip" --gen-claims 2>&1 | tee kasmer.log
 
 # Crowdfunding
 

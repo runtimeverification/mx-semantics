@@ -247,17 +247,11 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax InternalCmd ::= processBuiltinFunc(String, Bytes, Bytes, VmInputCell)  [klabel(processBuiltinFunc),symbol]
 
     syntax InternalCmd ::= checkBool(Bool, String)    [klabel(checkBool), symbol]
-                         | checkOr(Bool, K)           [klabel(checkOr), symbol] 
  // -----------------------------------------------------------------------------------
     rule [checkBool-t]:
         <commands> checkBool(true, ERR) => #exception(ExecutionFailed, String2Bytes(ERR)) ... </commands>
     rule [checkBool-f]:
         <commands> checkBool(false,  _)   => . ... </commands>
-
-    rule [checkOr-t]:
-        <commands> checkOr(true, _) => . ... </commands>
-    rule [checkOr-f]:
-        <commands> checkOr(false, C) => C ... </commands>
 
     syntax WasmCell
     syntax InternalCmd ::= newWasmInstance(Bytes, ModuleDecl)  [klabel(newWasmInstance), symbol]

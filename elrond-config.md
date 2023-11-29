@@ -651,13 +651,13 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                                 </vmInput> #as VMINPUT)
                 => pushWorldState
                 ~> pushCallState
+                ~> resetCallstate
                 ~> transferFunds(FROM, TO, VALUE)
                 ~> transferESDTs(FROM, TO, ESDT)
                 ~> processBuiltinFunc(#parseWasmString(FUNC), FROM, TO, VMINPUT)
                 ~> #endWasm
                    ...
         </commands>
-        (_:CallStateCell => <callState> <callee> FROM </callee> ... </callState>) // cleanup the call state
         <vmOutput> _ => .VMOutput </vmOutput>
       requires isBuiltinFunction(FUNC)
       [priority(60)]

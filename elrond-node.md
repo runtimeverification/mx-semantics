@@ -249,13 +249,19 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax InternalCmd ::= checkBool(Bool, String)    [klabel(checkBool), symbol]
  // -----------------------------------------------------------------------------------
     rule [checkBool-t]:
-        <commands> checkBool(true, ERR) => #exception(ExecutionFailed, String2Bytes(ERR)) ... </commands>
+        <commands> checkBool(true, _)    => . ... </commands>
     rule [checkBool-f]:
-        <commands> checkBool(false,  _)   => . ... </commands>
+        <commands> checkBool(false, ERR) => #exception(ExecutionFailed, String2Bytes(ERR)) ... </commands>
 
     syntax WasmCell
     syntax InternalCmd ::= newWasmInstance(Bytes, ModuleDecl)  [klabel(newWasmInstance), symbol]
                          | mkCall( Bytes, WasmString, VmInputCell )
+
+    syntax InternalCmd ::= "resetCallstate"      [klabel(resetCallState), symbol]
+ // --------------------------------------------------------------------------- 
+    rule [resetCallstate]:
+        <commands> resetCallstate => . ... </commands>
+        (_:CallStateCell => <callState> <instrs> . </instrs> ... </callState>)
 
 endmodule
 ```

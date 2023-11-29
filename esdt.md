@@ -108,7 +108,7 @@ module ESDT
                 ~> checkBool(size(ARGS) >=Int 2, "invalid arguments to process built-in function")
                 ~> checkBool(SND ==K DST, "invalid receiver address")
                 ~> checkAccountExists(SND)
-                ~> checkAllowedToExecute(SND, ARGS {{ 0 }} orDefault b"", "ESDTRoleLocalMint")
+                ~> checkAllowedToExecute(SND, ARGS {{ 0 }} orDefault b"", ESDTRoleLocalMint)
                 ~> checkBool( lengthBytes(ARGS {{ 1 }} orDefault b"") <=Int 100
                             , "invalid arguments to process built-in function")
                 ~> esdtLocalMint( SND
@@ -206,7 +206,17 @@ module ESDT
 ## Misc
 
 ```k
-    syntax InternalCmd ::= checkAllowedToExecute(account: Bytes, token: Bytes, role: String)
+    syntax ESDTLocalRole ::= "ESDTRoleLocalMint"            [klabel(ESDTRoleLocalMint), symbol]
+                           | "ESDTRoleLocalBurn"            [klabel(ESDTRoleLocalBurn), symbol]
+                           | "ESDTRoleNFTCreate"            [klabel(ESDTRoleNFTCreate), symbol]
+                           | "ESDTRoleNFTAddQuantity"       [klabel(ESDTRoleNFTAddQuantity), symbol]
+                           | "ESDTRoleNFTBurn"              [klabel(ESDTRoleNFTBurn), symbol]
+                           | "ESDTRoleNFTAddURI"            [klabel(ESDTRoleNFTAddURI), symbol]
+                           | "ESDTRoleNFTUpdateAttributes"  [klabel(ESDTRoleNFTUpdateAttributes), symbol]
+                           | "ESDTTransferRole"             [klabel(ESDTTransferRole), symbol]
+                           | "None"                         [klabel(ESDTRoleNone), symbol]
+
+    syntax InternalCmd ::= checkAllowedToExecute(account: Bytes, token: Bytes, role: ESDTLocalRole)
         [klabel(checkAllowedToExecute), symbol]
  // ----------------------------------------------------------------------------------------
     rule [checkAllowedToExecute-pass]:

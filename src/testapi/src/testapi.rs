@@ -57,6 +57,19 @@ extern "C" {
         tokenIdHandle: i32,
         valueHandle: i32,
     );
+
+    fn setESDTRole(
+        addressHandle: i32,
+        tokenIdHandle: i32,
+        role: u16,
+        p: bool,
+    );
+
+    fn checkESDTRole(
+        addressHandle: i32,
+        tokenIdHandle: i32,
+        role: u16,
+    ) -> bool;
 }
 
 
@@ -216,5 +229,52 @@ pub fn set_esdt_balance<M: ManagedTypeApi>(
             token_id.get_raw_handle(),
             value.get_raw_handle(),
         );
+    }
+}
+
+#[allow(unused)]
+pub fn add_esdt_role<M: ManagedTypeApi>(
+    address: &ManagedAddress<M>,
+    token_id: &TokenIdentifier<M>,
+    role: EsdtLocalRole,
+) {
+    unsafe {
+        setESDTRole(
+            address.get_raw_handle(),
+            token_id.get_raw_handle(),
+            role as u16,
+            true,
+        );
+    }
+}
+
+#[allow(unused)]
+pub fn remove_esdt_role<M: ManagedTypeApi>(
+    address: &ManagedAddress<M>,
+    token_id: &TokenIdentifier<M>,
+    role: EsdtLocalRole,
+) {
+    unsafe {
+        setESDTRole(
+            address.get_raw_handle(),
+            token_id.get_raw_handle(),
+            role as u16,
+            false,
+        );
+    }
+}
+
+#[allow(unused)]
+pub fn check_esdt_role<M: ManagedTypeApi>(
+    address: &ManagedAddress<M>,
+    token_id: &TokenIdentifier<M>,
+    role: EsdtLocalRole,
+) -> bool {
+    unsafe {
+        checkESDTRole(
+            address.get_raw_handle(),
+            token_id.get_raw_handle(),
+            role as u16,
+        )
     }
 }

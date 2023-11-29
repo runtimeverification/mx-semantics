@@ -327,12 +327,30 @@ def mandos_to_esdt_value(v: str | dict) -> KToken | None:
     return None
 
 
-def mandos_to_esdt_roles(v: str | dict) -> list[KToken] | None:
+ESDT_ROLES = {
+    'ESDTRoleLocalMint',
+    'ESDTRoleLocalBurn',
+    'ESDTRoleNFTCreate',
+    'ESDTRoleNFTAddQuantity',
+    'ESDTRoleNFTBurn',
+    'ESDTRoleNFTAddURI',
+    'ESDTRoleNFTUpdateAttributes',
+    'ESDTTransferRole',
+    'None',
+}
+
+
+def mandos_to_esdt_roles(v: str | dict) -> list[KInner] | None:
+    def str_to_kast(s: str) -> KInner:
+        if s in ESDT_ROLES:
+            return KApply(s, [])
+        raise ValueError(f'ESDT role {s} not supported')
+
     if isinstance(v, str):
         return None
     if 'roles' not in v:
         return None
-    return [KString(r) for r in v['roles']]
+    return [str_to_kast(r) for r in v['roles']]
 
 
 def mandos_to_check_account(address: str, sections: dict, filename: str) -> list:

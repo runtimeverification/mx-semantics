@@ -271,6 +271,8 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
 #### ESDT
 
+- `setESDTExternalBalance`
+
 ```k
 
     rule [testapi-setESDTExternalBalance]:
@@ -345,6 +347,140 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         </instrs>
         <bytesStack> ADDR : _ : _ </bytesStack>
       requires 0 <=Int VALUE
+      [priority(61)]
+
+```
+
+- `setESDTRole`
+- `checkESDTRole`
+
+```k
+    rule [testapi-setESDTRole]:
+        <instrs> hostCall ("env", "setESDTRole", [i32 i32 i32 i32 .ValTypes] -> [.ValTypes])
+              => #getBuffer(TOK_ID_HANDLE)
+              ~> #getBuffer(ADDR_HANDLE)
+              ~> #setESDTRole(Int2ESDTRole(ROLE), P =/=Int 0)
+              ~> #dropBytes
+              ~> #dropBytes
+                 ...
+        </instrs>
+        <locals>
+          0 |-> <i32> ADDR_HANDLE
+          1 |-> <i32> TOK_ID_HANDLE
+          2 |-> <i32> ROLE
+          3 |-> <i32> P
+        </locals>
+
+    syntax InternalInstr ::= #setESDTRole(ESDTLocalRole, Bool)
+ // -------------------------------------------------------------
+    // account and ESDT exist
+    rule [setESDTRole-set-existing]:
+        <instrs> #setESDTRole(ROLE, P) => . ... </instrs>
+        <bytesStack> ADDR : TOK_ID : _ </bytesStack>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TOK_ID </esdtId>
+            <esdtRoles> ROLES => updateSet(ROLES, ROLE, P) </esdtRoles>
+            ...
+          </esdtData>
+          ...
+        </account>
+
+    // ESDT doesn't exist, P = true => add
+    rule [setESDTRole-add-new]:
+        <instrs> #setESDTRole(ROLE, true) => . ... </instrs>
+        <bytesStack> ADDR : TOK_ID : _ </bytesStack>
+        <account>
+          <address> ADDR </address>
+          (.Bag => <esdtData>
+            <esdtId> TOK_ID </esdtId>
+            <esdtRoles> SetItem(ROLE) </esdtRoles>
+            ...
+          </esdtData>)
+          ...
+        </account>
+      [priority(60)]
+
+    // ESDT doesn't exist, P = false => skip
+    rule [setESDTRole-remove-skip]:
+        <instrs> #setESDTRole(_ROLE, false) => . ... </instrs>
+        <bytesStack> _ADDR : _TOK_ID : _ </bytesStack>
+        <account>
+          <address> ADDR </address>
+          ...
+        </account>
+      [priority(61)]
+
+    // account not found
+    rule [setESDTRole-not-found]:
+        <instrs> #setESDTRole(_, _)
+              => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes ADDR) ... 
+        </instrs>
+        <bytesStack> ADDR : _TOK_ID : _ </bytesStack>
+      [priority(62)]
+
+    syntax Set ::= updateSet(Set, KItem, Bool)      [function, total]
+ // -----------------------------------------------------------------
+    rule updateSet(S, I, true) => S |Set SetItem(I)
+    rule updateSet(S, I, false) => S -Set SetItem(I)
+
+    syntax ESDTLocalRole ::= Int2ESDTRole(Int)   [function, total]
+ // -------------------------------------------------------
+    rule Int2ESDTRole(1) => ESDTRoleLocalMint
+    rule Int2ESDTRole(2) => ESDTRoleLocalBurn
+    rule Int2ESDTRole(3) => ESDTRoleNFTCreate
+    rule Int2ESDTRole(4) => ESDTRoleNFTAddQuantity
+    rule Int2ESDTRole(5) => ESDTRoleNFTBurn
+    rule Int2ESDTRole(6) => ESDTRoleNFTAddURI
+    rule Int2ESDTRole(7) => ESDTRoleNFTUpdateAttributes
+    rule Int2ESDTRole(8) => ESDTTransferRole
+    rule Int2ESDTRole(_) => None      [owise]
+
+    rule [testapi-checkESDTRole]:
+        <instrs> hostCall ("env", "checkESDTRole", [i32 i32 i32 .ValTypes] -> [i32 .ValTypes])
+              => #getBuffer(TOK_ID_HANDLE)
+              ~> #getBuffer(ADDR_HANDLE)
+              ~> #checkESDTRole(Int2ESDTRole(ROLE))
+              ~> #dropBytes
+              ~> #dropBytes
+                 ...
+        </instrs>
+        <locals>
+          0 |-> <i32> ADDR_HANDLE
+          1 |-> <i32> TOK_ID_HANDLE
+          2 |-> <i32> ROLE
+        </locals>
+
+    syntax InternalInstr ::= #checkESDTRole(ESDTLocalRole)
+ // -------------------------------------------------------------
+    rule [checkESDTRole-exists]:
+        <instrs> #checkESDTRole(ROLE) => i32.const #bool(ROLE in ROLES) ... </instrs>
+        <bytesStack> ADDR : TOK_ID : _ </bytesStack>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TOK_ID </esdtId>
+            <esdtRoles> ROLES </esdtRoles>
+            ...
+          </esdtData>
+          ...
+        </account>
+
+    rule [checkESDTRole-none]:
+        <instrs> #checkESDTRole(ROLE) => i32.const 0 ... </instrs>
+        <bytesStack> ADDR : _ : _ </bytesStack>
+        <account>
+          <address> ADDR </address>
+          ...
+        </account>
+      [priority(60)]
+
+    rule [checkESDTRole-not-found]:
+        <instrs> #checkESDTRole(ROLE)
+              => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes ADDR) ... 
+        </instrs>
+        <bytesStack> ADDR : _TOK_ID : _ </bytesStack>
       [priority(61)]
 
 ```

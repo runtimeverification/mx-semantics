@@ -606,7 +606,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ```k
     syntax InternalCmd ::= callContract ( Bytes, String,     VmInputCell ) [klabel(callContractString), symbol]
                          | callContract ( Bytes, WasmString, VmInputCell ) [klabel(callContractWasmString), symbol]
-                         | mkCall       ( Bytes, WasmString, VmInputCell )
  // -------------------------------------------------------------------------------------
     rule <commands> callContract(TO, FUNCNAME:String, VMINPUT)
                  => callContract(TO, #unparseWasmString("\"" +String FUNCNAME +String "\""), VMINPUT) ...
@@ -639,6 +638,28 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         </account>
         <vmOutput> _ => .VMOutput </vmOutput>
         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
+      requires notBool isBuiltinFunction(FUNCNAME)
+      [priority(60)]
+
+    rule [callContract-builtin]:
+        <commands> callContract(TO, FUNC:WasmStringToken,
+                                <vmInput> 
+                                  <caller> FROM </caller>
+                                  <callValue> VALUE </callValue>
+                                  <esdtTransfers> ESDT </esdtTransfers>
+                                  _ 
+                                </vmInput> #as VMINPUT)
+                => pushWorldState
+                ~> pushCallState
+                ~> resetCallstate
+                ~> transferFunds(FROM, TO, VALUE)
+                ~> transferESDTs(FROM, TO, ESDT)
+                ~> processBuiltinFunc(#parseWasmString(FUNC), FROM, TO, VMINPUT)
+                ~> #endWasm
+                   ...
+        </commands>
+        <vmOutput> _ => .VMOutput </vmOutput>
+      requires isBuiltinFunction(FUNC)
       [priority(60)]
 
     rule [callContract-not-contract]:
@@ -650,21 +671,19 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           <code> .Code </code>
           ...
         </account>
-      [priority(60)]
+      [priority(61)]
 
     rule [callContract-not-found]:
         <commands> callContract(TO, _:WasmString, _)
                 => #exception(ExecutionFailed, b"account not found: " +Bytes TO) ...
         </commands>
-      [priority(61)]
+      [priority(62)]
 ```
 
 Every contract call runs in its own Wasm instance initialized with the contract's code.
 
 ```k
-    syntax WasmCell
-    syntax InternalCmd ::= newWasmInstance(Bytes, ModuleDecl)  [klabel(newWasmInstance), symbol]
-                         | "setContractModIdx"
+    syntax InternalCmd ::= "setContractModIdx"
  // ------------------------------------------------------
     rule [newWasmInstance]:
         <commands> newWasmInstance(_, CODE) => #waitWasm ~> setContractModIdx ...</commands>

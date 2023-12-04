@@ -147,6 +147,9 @@ LLVM_KOMPILE_OPTS  := -L$(LOCAL_LIB)                               \
 MAIN_MODULE        := MANDOS
 MAIN_SYNTAX_MODULE := MANDOS-SYNTAX
 MAIN_DEFN_FILE     := mandos
+KASMER_MODULE        := KASMER
+KASMER_SYNTAX_MODULE := KASMER-SYNTAX
+KASMER_DEFN_FILE     := kasmer
 
 ELROND_FILE_NAMES      := elrond.md                   \
                           elrond-config.md            \
@@ -221,8 +224,21 @@ $(kasmer_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN
 haskell_dir      := $(DEFN_DIR)/haskell
 haskell_kompiled := $(haskell_dir)/mandos-kompiled/interpreter
 
+haskell_kasmer_kompiled := $(haskell_dir)/kasmer-kompiled/interpreter
 
 build-haskell: $(haskell_kompiled)
+
+build-haskell-kasmer: $(haskell_kasmer_kompiled)
+
+$(haskell_kasmer_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_DEPS)
+	$(KWASM_MAKE) build-haskell                             \
+	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)               \
+	    haskell_main_module=$(KASMER_MODULE)                  \
+	    haskell_syntax_module=$(KASMER_SYNTAX_MODULE)         \
+	    haskell_main_file=$(KASMER_DEFN_FILE)                 \
+	    EXTRA_SOURCE_FILES="$(EXTRA_SOURCES)"               \
+	    KOMPILE_OPTS="$(KOMPILE_OPTS) --warnings-to-errors" \
+	    K_INCLUDE_DIR=$(K_INCLUDE_DIR)
 
 $(haskell_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_DEPS)
 	$(KWASM_MAKE) build-haskell                             \
@@ -231,7 +247,7 @@ $(haskell_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGI
 	    haskell_syntax_module=$(MAIN_SYNTAX_MODULE)         \
 	    haskell_main_file=$(MAIN_DEFN_FILE)                 \
 	    EXTRA_SOURCE_FILES="$(EXTRA_SOURCES)"               \
-	    KOMPILE_OPTS="$(KOMPILE_OPTS)"                      \
+	    KOMPILE_OPTS="$(KOMPILE_OPTS) --warnings-to-errors" \
 	    K_INCLUDE_DIR=$(K_INCLUDE_DIR)
 
 # Testing

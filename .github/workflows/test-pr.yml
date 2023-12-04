@@ -19,6 +19,29 @@ jobs:
         uses: Gr1N/setup-poetry@v8
       - name: 'Build and run code quality checks'
         run: make -C kmultiversx check
+  compilation-tests:
+    runs-on: [self-hosted, linux, normal]
+    name: 'Simple Tests'
+    needs: [python-code-quality-checks]
+    timeout-minutes: 30
+    steps:
+      - name: 'Check out code'
+        uses: actions/checkout@v3
+        with:    
+          submodules: recursive
+      - name: 'Set up Docker'
+        uses: ./.github/actions/with-docker
+        with:
+          container-name: elrond-semantics-ci-${{ github.sha }}
+      - name: 'Build Haskell'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build-haskell RELEASE=true -j4'
+      - name: 'Build Haskell'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build-haskell-kasmer RELEASE=true -j4'
+      - name: 'Tear down Docker'
+        if: always()
+        run: |
+          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
+
   simple-tests:
     runs-on: [self-hosted, linux, normal]
     name: 'Simple Tests'

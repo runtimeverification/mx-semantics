@@ -460,7 +460,7 @@ If the call is successful; outputs and logs in the VM output are merged to the c
 If the result is a failure; `resolveErrorFromOutput` throws a new exception.
 
 ```k
-    syntax InternalInstr ::= "#finishExecuteOnDestContext"
+    syntax InternalInstr ::= "#finishExecuteOnDestContext"  [klabel(finishExecuteOnDestContext), symbol]
  // ------------------------------------------------------
     rule [finishExecuteOnDestContext-ok]:
         <commands> #endWasm ... </commands>

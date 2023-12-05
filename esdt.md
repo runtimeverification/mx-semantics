@@ -144,15 +144,29 @@ module ESDT
                 ~> checkBool(size(ARGS) >=Int 2, "invalid arguments to process built-in function")
                 // TODO ~> check transfer to meta
                 // TODO ~> checkIfTransferCanHappenWithLimitedTransfer()
+                ~> checkBool(ESDTTransfer.value(ARGS) >Int 0, "negative value")
                 ~> transferESDT( SND, DST
                                , esdtTransfer(
-                                   ARGS {{ 0 }} orDefault b"",
-                                   Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned), 
+                                   ESDTTransfer.token(ARGS),
+                                   ESDTTransfer.value(ARGS), 
                                    0)
                                )
                 ~> determineIsSCCallAfter(SND, DST, VMINPUT)
                    ...
         </commands>
+
+    syntax Bytes ::= "ESDTTransfer.token"  "(" ListBytes ")"   [function, total]
+    syntax Int   ::= "ESDTTransfer.value" "(" ListBytes ")"    [function, total]
+ // -----------------------------------------------------------------------------
+    rule ESDTTransfer.token(ARGS) => ARGS {{ 0 }} orDefault b""
+    rule ESDTTransfer.value(ARGS) => Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned)
+
+    syntax ListBytes ::= "ESDTTransfer.callArgs" "(" ListBytes ")"    [function, total]
+ // -----------------------------------------------------------------------------------
+    //                         token       amount      function
+    rule ESDTTransfer.callArgs(ListItem(_) ListItem(_) ListItem(_) ARGS) => ARGS
+    rule ESDTTransfer.callArgs(_) => .ListBytes                        [owise]
+
 
     syntax InternalCmd ::= determineIsSCCallAfter(Bytes, Bytes, VmInputCell)
         [klabel(determineIsSCCallAfter), symbol]
@@ -194,7 +208,7 @@ module ESDT
                                 </vmInput>)
       => <vmInput>
             <caller> FROM </caller>
-            <callArgs> ARGS </callArgs>
+            <callArgs> ESDTTransfer.callArgs(ARGS) </callArgs>
             <callValue> 0 </callValue>
             <esdtTransfers> ESDT </esdtTransfers>
             // gas

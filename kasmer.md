@@ -405,7 +405,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
     // ESDT doesn't exist, P = false => skip
     rule [setESDTRole-remove-skip]:
         <instrs> #setESDTRole(_ROLE, false) => . ... </instrs>
-        <bytesStack> _ADDR : _TOK_ID : _ </bytesStack>
+        <bytesStack> ADDR : _TOK_ID : _ </bytesStack>
         <account>
           <address> ADDR </address>
           ...
@@ -468,7 +468,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         </account>
 
     rule [checkESDTRole-none]:
-        <instrs> #checkESDTRole(ROLE) => i32.const 0 ... </instrs>
+        <instrs> #checkESDTRole(_ROLE) => i32.const 0 ... </instrs>
         <bytesStack> ADDR : _ : _ </bytesStack>
         <account>
           <address> ADDR </address>
@@ -477,7 +477,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
       [priority(60)]
 
     rule [checkESDTRole-not-found]:
-        <instrs> #checkESDTRole(ROLE)
+        <instrs> #checkESDTRole(_ROLE)
               => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes ADDR) ... 
         </instrs>
         <bytesStack> ADDR : _TOK_ID : _ </bytesStack>

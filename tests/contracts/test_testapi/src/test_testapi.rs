@@ -50,7 +50,12 @@ pub trait TestTestapi {
     }
 
     fn test_set_esdt_role(&self, addr: &ManagedAddress) {
-        let token = TokenIdentifier::from("MY_ESDT_TOKEN");
+        let token  = TokenIdentifier::from("MY_ESDT_TOKEN");
+        let token2 = TokenIdentifier::from("MY_ESDT_TOKEN_2");
+        
+        require!(!testapi::check_esdt_role(addr, &token, EsdtLocalRole::Mint),
+            "Cannot check role for unknown ESDT");
+        
         testapi::add_esdt_role(addr, &token, EsdtLocalRole::Mint);
         require!( testapi::check_esdt_role(addr, &token, EsdtLocalRole::Mint),
             "Cannot add ESDT role local mint");
@@ -66,6 +71,10 @@ pub trait TestTestapi {
         testapi::remove_esdt_role(addr, &token, EsdtLocalRole::Burn);
         require!(!testapi::check_esdt_role(addr, &token, EsdtLocalRole::Burn),
             "Cannot remove ESDT role local burn");
+        
+        testapi::remove_esdt_role(addr, &token2, EsdtLocalRole::Burn);
+        require!(!testapi::check_esdt_role(addr, &token, EsdtLocalRole::Burn),
+            "Cannot remove ESDT role for unknown token");
     }
 
     fn test_local_mint(&self, addr: &ManagedAddress) {

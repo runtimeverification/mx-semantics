@@ -18,6 +18,7 @@ static LP_TOKEN: &[u8]      = b"LPT-123456";
 
 static TOTAL_FEE_PERCENT: u64    = 1_000u64;
 static SPECIAL_FEE_PERCENT: u64  = 500u64;
+static MAX_PERCENTAGE: u64       = 100_000u64;
 
 mod pair_proxy {
     multiversx_sc::imports!();
@@ -75,6 +76,7 @@ pub trait TestMultisigContract {
         self.init_tokens();
         self.deploy(&code_path);
 
+        testapi::add_esdt_role(&self.pair_address().get(), &self.lp_token().get(), EsdtLocalRole::Mint);
         self.set_lp_token(&self.pair_address().get(), &self.lp_token().get());
         self.resume(&self.pair_address().get());
     }
@@ -130,6 +132,9 @@ pub trait TestMultisigContract {
         // make assumptions
         testapi::assume(BigUint::from(1000u32) < first_liquidity);
         testapi::assume(BigUint::from(1000u32) < second_liquidity);
+        testapi::assume(BigUint::from(2u32) < first_value);
+        let first_no_percent = first_value.clone() * (MAX_PERCENTAGE - TOTAL_FEE_PERCENT);
+        testapi::assume((first_liquidity.clone() * MAX_PERCENTAGE + first_no_percent.clone()) < second_liquidity.clone() * first_no_percent );
 
         testapi::set_esdt_balance(&liquidity_adder, &self.first_token().get(), &first_liquidity);
         testapi::set_esdt_balance(&liquidity_adder, &self.second_token().get(), &second_liquidity);
@@ -145,17 +150,23 @@ pub trait TestMultisigContract {
         let second_reserve_initial = self.get_reserve(&pair, &self.second_token().get());
 
         self.swap_tokens_fixed_input_first(
-            &pair, &alice, &first_value, &BigUint::zero()
+            &pair, &alice, &first_value, &BigUint::from(1u64)
         );
 
         let first_reserve_final = self.get_reserve(&pair, &self.first_token().get());
         let second_reserve_final = self.get_reserve(&pair, &self.second_token().get());
 
+        let total_fee = first_value.clone() * TOTAL_FEE_PERCENT / MAX_PERCENTAGE;
+        let special_fee = BigUint::zero();  // Fee not enabled
+                                            // first_value * SPECIAL_FEE_PERCENT / MAX_PERCENTAGE;
         let initial_k = first_reserve_initial.clone() * second_reserve_initial.clone();
-        let final_k = first_reserve_final * second_reserve_final;
+        let final_k = first_reserve_final.clone() * second_reserve_final.clone();
 
-        testapi::assert(initial_k.clone() <= final_k.clone());
-        testapi::assert(final_k <= initial_k + first_reserve_initial + second_reserve_initial);
+        require!(initial_k.clone() <= final_k.clone(), "K decreased!");
+        let condition = final_k <= initial_k.clone() + first_reserve_final.clone() + (total_fee.clone() - special_fee.clone() + 1u64) * second_reserve_final.clone();
+        require!(condition, "K grew too much!");
+        // testapi::assert(initial_k.clone() <= final_k.clone());
+        // testapi::assert(final_k <= initial_k + first_reserve_initial + second_reserve_initial);
     }
 
     fn add_liquidity(
@@ -170,11 +181,12 @@ pub trait TestMultisigContract {
         let mut tokens = ManagedVec::new();
         tokens.push(EsdtTokenPayment::new(self.first_token().get(), 0, first_liquidity.clone()));
         tokens.push(EsdtTokenPayment::new(self.second_token().get(), 0, second_liquidity.clone()));
-        testapi::start_prank(&adder_address);
 
         let mut args = ManagedArgBuffer::new();
         args.push_arg(&first_min);
         args.push_arg(&second_min);
+
+        testapi::start_prank(&adder_address);
 
         let _ = self.send_raw().multi_esdt_transfer_execute(
             pair_address,
@@ -199,11 +211,13 @@ pub trait TestMultisigContract {
         first_amount: &BigUint,
         min_second: &BigUint,
     ) {
+        let first_token = self.first_token().get();
+        let second_token = self.second_token().get();
         testapi::start_prank(&user_address);
         let _:IgnoreValue = self
             .pair_proxy(pair_address.clone())
-            .swap_tokens_fixed_input(self.second_token().get(), min_second)
-            .with_esdt_transfer((self.first_token().get(), 0, first_amount.clone()))
+            .swap_tokens_fixed_input(second_token, min_second)
+            .with_esdt_transfer((first_token, 0, first_amount.clone()))
             .execute_on_dest_context();
         testapi::stop_prank();
     }

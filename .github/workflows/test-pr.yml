@@ -21,7 +21,7 @@ jobs:
         run: make -C kmultiversx check
   compilation-tests:
     runs-on: [self-hosted, linux, normal]
-    name: 'Simple Tests'
+    name: 'Compilation Tests'
     needs: [python-code-quality-checks]
     timeout-minutes: 30
     steps:

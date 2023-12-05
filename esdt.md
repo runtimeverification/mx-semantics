@@ -161,6 +161,13 @@ module ESDT
     rule ESDTTransfer.token(ARGS) => ARGS {{ 0 }} orDefault b""
     rule ESDTTransfer.value(ARGS) => Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned)
 
+    syntax ListBytes ::= "ESDTTransfer.callArgs" "(" ListBytes ")"    [function, total]
+ // -----------------------------------------------------------------------------------
+    //                         token       amount      function
+    rule ESDTTransfer.callArgs(ListItem(_) ListItem(_) ListItem(_) ARGS) => ARGS
+    rule ESDTTransfer.callArgs(_) => .ListBytes                        [owise]
+
+
     syntax InternalCmd ::= determineIsSCCallAfter(Bytes, Bytes, VmInputCell)
         [klabel(determineIsSCCallAfter), symbol]
  // ----------------------------------------------
@@ -201,7 +208,7 @@ module ESDT
                                 </vmInput>)
       => <vmInput>
             <caller> FROM </caller>
-            <callArgs> ARGS </callArgs>
+            <callArgs> ESDTTransfer.callArgs(ARGS) </callArgs>
             <callValue> 0 </callValue>
             <esdtTransfers> ESDT </esdtTransfers>
             // gas

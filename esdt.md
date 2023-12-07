@@ -203,15 +203,15 @@ module ESDT
                                   <callArgs> ARGS </callArgs>
                                   <gasProvided> GAS </gasProvided>
                                   <gasPrice> GAS_PRICE </gasPrice>
-                                  <esdtTransfers> ESDT </esdtTransfers>
                                   _
                                 </vmInput>)
       => <vmInput>
             <caller> FROM </caller>
             <callArgs> ESDTTransfer.callArgs(ARGS) </callArgs>
             <callValue> 0 </callValue>
-            <esdtTransfers> ESDT </esdtTransfers>
-            // gas
+            <esdtTransfers>
+              ListItem(esdtTransfer( ESDTTransfer.token(ARGS), ESDTTransfer.value(ARGS), 0))
+            </esdtTransfers>
             <gasProvided> GAS </gasProvided>
             <gasPrice> GAS_PRICE </gasPrice>
           </vmInput>

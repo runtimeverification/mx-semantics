@@ -432,13 +432,13 @@ flake8 = "*"
 
 [[package]]
 name = "flake8-type-checking"
-version = "2.7.0"
+version = "2.8.0"
 description = "A flake8 plugin for managing type-checking imports & forward references"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "flake8_type_checking-2.7.0-py3-none-any.whl", hash = "sha256:bcb0f8bd88d2921482dcdc8349017f1c55d024c207e02c4f13cdd47c2d898a56"},
-    {file = "flake8_type_checking-2.7.0.tar.gz", hash = "sha256:a738157af62e2040b0cd501a548d57dba49480dbb2227809aba2c0140c7856d2"},
+    {file = "flake8_type_checking-2.8.0-py3-none-any.whl", hash = "sha256:a6f9ded325f0c9845f073609c557bf481882adc4d18571a39b137ef2d284dc85"},
+    {file = "flake8_type_checking-2.8.0.tar.gz", hash = "sha256:07d949b686f39eb0cb828a394aa29d48bd1ca0df92d552d9794d17b22c309cd7"},
 ]
 
 [package.dependencies]
@@ -782,13 +782,13 @@ flake8 = ">=5.0.0"
 
 [[package]]
 name = "platformdirs"
-version = "4.0.0"
+version = "4.1.0"
 description = "A small Python package for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "platformdirs-4.0.0-py3-none-any.whl", hash = "sha256:118c954d7e949b35437270383a3f2531e99dd93cf7ce4dc8340d3356d30f173b"},
-    {file = "platformdirs-4.0.0.tar.gz", hash = "sha256:cb633b2bcf10c51af60beb0ab06d2f1d69064b43abf4c185ca6b28865f3f9731"},
+    {file = "platformdirs-4.1.0-py3-none-any.whl", hash = "sha256:11c8f37bcca40db96d8144522d925583bdb7a31f7b0e37e3ed4318400a8e2380"},
+    {file = "platformdirs-4.1.0.tar.gz", hash = "sha256:906d548203468492d432bcb294d4bc2fff751bf84971fbb2c10918cc206ee420"},
 ]
 
 [package.extras]

@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            2
+// Endpoints:                            4
 // Async Callback (empty):               1
-// Total number of exported functions:   4
+// Total number of exported functions:   6
 
 #![no_std]
 #![feature(lang_items)]
@@ -20,6 +20,8 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         call_adder
         call_adder_esdt
+        call_adder_esdt_builtin
+        call_adder_esdt_builtin_multi
     )
 }
 

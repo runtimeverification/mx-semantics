@@ -96,10 +96,11 @@ module ESDT
 ### Local Mint
 
 ```k
-    rule isBuiltinFunction(F) => true requires F ==K #token("\"ESDTLocalMint\"", "WasmStringToken")
+    syntax BuiltinFunction ::= "#ESDTLocalMint"        [klabel(#ESDTLocalMint), symbol]
+    rule toBuiltinFunction(F) => #ESDTLocalMint requires F ==K #token("\"ESDTLocalMint\"", "WasmStringToken")
 
     rule [ESDTLocalMint]:
-        <commands> processBuiltinFunc("\"ESDTLocalMint\"", SND, DST, <vmInput> 
+        <commands> processBuiltinFunction(#ESDTLocalMint, SND, DST, <vmInput> 
                                                                     <callValue> VALUE </callValue>
                                                                     <callArgs> ARGS </callArgs>
                                                                     _ 
@@ -131,10 +132,11 @@ module ESDT
 ### ESDT Transfer
 
 ```k
-    rule isBuiltinFunction(F) => true requires F ==K #token("\"ESDTTransfer\"", "WasmStringToken")
+    syntax BuiltinFunction ::= "#ESDTTransfer"        [klabel(#ESDTTransfer), symbol]
+    rule toBuiltinFunction(F) => #ESDTTransfer requires F ==K #token("\"ESDTTransfer\"", "WasmStringToken")
 
     rule [ESDTTransfer]:
-        <commands> processBuiltinFunc("\"ESDTTransfer\"", SND, DST, 
+        <commands> processBuiltinFunction(#ESDTTransfer, SND, DST, 
                                       <vmInput> 
                                         <callValue> VALUE </callValue>
                                         <callArgs> ARGS </callArgs>
@@ -145,13 +147,8 @@ module ESDT
                 // TODO ~> check transfer to meta
                 // TODO ~> checkIfTransferCanHappenWithLimitedTransfer()
                 ~> checkBool(ESDTTransfer.value(ARGS) >Int 0, "negative value")
-                ~> transferESDT( SND, DST
-                               , esdtTransfer(
-                                   ESDTTransfer.token(ARGS),
-                                   ESDTTransfer.value(ARGS), 
-                                   0)
-                               )
-                ~> determineIsSCCallAfter(SND, DST, VMINPUT)
+                ~> transferESDTs( SND, DST, parseESDTTransfers(#ESDTTransfer, ARGS))
+                ~> determineIsSCCallAfter(SND, DST, #ESDTTransfer, VMINPUT)
                    ...
         </commands>
 
@@ -161,25 +158,20 @@ module ESDT
     rule ESDTTransfer.token(ARGS) => ARGS {{ 0 }} orDefault b""
     rule ESDTTransfer.value(ARGS) => Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned)
 
-    syntax ListBytes ::= "ESDTTransfer.callArgs" "(" ListBytes ")"    [function, total]
- // -----------------------------------------------------------------------------------
-    //                         token       amount      function
-    rule ESDTTransfer.callArgs(ListItem(_) ListItem(_) ListItem(_) ARGS) => ARGS
-    rule ESDTTransfer.callArgs(_) => .ListBytes                        [owise]
-
-
-    syntax InternalCmd ::= determineIsSCCallAfter(Bytes, Bytes, VmInputCell)
+    syntax InternalCmd ::= determineIsSCCallAfter(Bytes, Bytes, BuiltinFunction, VmInputCell)
         [klabel(determineIsSCCallAfter), symbol]
  // ----------------------------------------------
     rule [determineIsSCCallAfter-call]:
-        <commands> determineIsSCCallAfter(SND, DST, <vmInput> 
-                                                      <callArgs> ARGS </callArgs>
-                                                      _ 
-                                                    </vmInput> #as VMINPUT)
+        <commands> determineIsSCCallAfter(SND, DST, FUNC, <vmInput> 
+                                                            <callArgs> ARGS </callArgs>
+                                                            <gasProvided> GAS </gasProvided>
+                                                            <gasPrice> GAS_PRICE </gasPrice>
+                                                            _ 
+                                                          </vmInput>)
                 => newWasmInstance(DST, CODE)
                 ~> mkCall( DST
-                         , #unparseWasmString("\"" +String Bytes2String(ARGS {{ 2 }} orDefault b"") +String "\"")
-                         , mkVmInputEsdtExec(SND, VMINPUT)
+                         , #unparseWasmString("\"" +String Bytes2String(getCallFunc(FUNC, ARGS)) +String "\"")
+                         , mkVmInputEsdtExec(SND, FUNC, ARGS, GAS, GAS_PRICE)
                          )
                    ...
         </commands>
@@ -188,33 +180,90 @@ module ESDT
           <code> CODE:ModuleDecl </code>
           ...
         </account>
-      requires size(ARGS) >Int 2     // extra arguments for SC call after
+      requires getCallFunc(FUNC, ARGS) =/=K b""
 
     rule [determineIsSCCallAfter-nocall]:
-        <commands> determineIsSCCallAfter(_SND, _DST, _VMINPUT)
+        <commands> determineIsSCCallAfter(_SND, _DST, _FUNC, _VMINPUT)
                 => . ...
         </commands>
         <vmOutput> _ => VMOutput(OK, b"", .ListBytes, .List)</vmOutput> // TODO add log entry
       [owise]
 
-    syntax VmInputCell ::= mkVmInputEsdtExec(Bytes, VmInputCell)    [function, total]
+    syntax VmInputCell ::= mkVmInputEsdtExec(Bytes, BuiltinFunction, ListBytes, Int, Int)
+        [function, total]
  // -----------------------------------------------------------------------------------
-    rule mkVmInputEsdtExec(FROM, <vmInput>
-                                  <callArgs> ARGS </callArgs>
-                                  <gasProvided> GAS </gasProvided>
-                                  <gasPrice> GAS_PRICE </gasPrice>
-                                  _
-                                </vmInput>)
+    rule mkVmInputEsdtExec(FROM, BIFUNC, ARGS, GAS, GAS_PRICE)
       => <vmInput>
             <caller> FROM </caller>
-            <callArgs> ESDTTransfer.callArgs(ARGS) </callArgs>
+            <callArgs> getCallArgs(BIFUNC, ARGS) </callArgs>
             <callValue> 0 </callValue>
             <esdtTransfers>
-              ListItem(esdtTransfer( ESDTTransfer.token(ARGS), ESDTTransfer.value(ARGS), 0))
+              parseESDTTransfers(BIFUNC, ARGS)
             </esdtTransfers>
             <gasProvided> GAS </gasProvided>
             <gasPrice> GAS_PRICE </gasPrice>
           </vmInput>
+```
+
+
+### Multi ESDT Transfer
+
+```k
+    syntax BuiltinFunction ::= "#MultiESDTNFTTransfer"        [klabel(#MultiESDTNFTTransfer), symbol]
+    rule toBuiltinFunction(F) => #MultiESDTNFTTransfer
+      requires F ==K #token("\"MultiESDTNFTTransfer\"", "WasmStringToken")
+
+    rule [MultiESDTNFTTransfer]:
+        <commands> processBuiltinFunction(#MultiESDTNFTTransfer, SND, DST, 
+                                      <vmInput> 
+                                        <callValue> VALUE </callValue>
+                                        <callArgs> ARGS </callArgs>
+                                        _ 
+                                      </vmInput> #as VMINPUT)
+                => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
+                ~> checkBool(size(ARGS) >=Int 4, "invalid arguments to process built-in function")
+                ~> checkBool(SND ==K DST, "invalid receiver address")
+                // TODO ~> check transfer to meta
+                // TODO ~> checkIfTransferCanHappenWithLimitedTransfer()
+                ~> checkBool(MultiESDTNFTTransfer.num(ARGS) >Int 0,
+                      "invalid arguments to process built-in function, 0 tokens to transfer")
+                ~> checkBool(size(ARGS) >=Int MultiESDTNFTTransfer.num(ARGS) *Int 3 +Int 2,
+                      "invalid arguments to process built-in function, invalid number of arguments")
+                ~> transferESDTs( SND, MultiESDTNFTTransfer.dest(ARGS),
+                      parseESDTTransfers(#MultiESDTNFTTransfer, ARGS))
+                ~> determineIsSCCallAfter(SND, MultiESDTNFTTransfer.dest(ARGS), #MultiESDTNFTTransfer, VMINPUT)
+                   ...
+        </commands>
+
+
+    syntax Bytes ::= "MultiESDTNFTTransfer.dest" "(" ListBytes ")"    [function, total]
+    syntax Int   ::= "MultiESDTNFTTransfer.num"  "(" ListBytes ")"    [function, total]
+ // -----------------------------------------------------------------------------------
+    rule MultiESDTNFTTransfer.dest(ARGS) => ARGS {{ 0 }} orDefault b""
+    rule MultiESDTNFTTransfer.num(ARGS)  => Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned)
+
+    syntax List ::= parseESDTTransfers  (BuiltinFunction, ListBytes)  [function, total]
+                  | parseESDTTransfersH (Int, ListBytes)              [function, total]
+ // ------------------------------------------------------------------------------------
+    rule parseESDTTransfers(#ESDTTransfer, ARGS)
+      => ListItem(esdtTransfer( ESDTTransfer.token(ARGS), ESDTTransfer.value(ARGS), 0))
+
+    rule parseESDTTransfers(#MultiESDTNFTTransfer, ARGS)
+      => parseESDTTransfersH(MultiESDTNFTTransfer.num(ARGS), rangeTotal(ARGS, 2, 0))
+      requires size(ARGS) >=Int 2
+
+    rule parseESDTTransfers(_, _) => .List
+      [owise]
+
+    rule parseESDTTransfersH(N, ListItem(wrap(TOK)) ListItem(wrap(NONCE)) ListItem(wrap(AMT)) REST) 
+      => ListItem( esdtTransfer( 
+            TOK, Bytes2Int(NONCE, BE, Unsigned), Bytes2Int(AMT, BE, Unsigned)
+          ))
+         parseESDTTransfersH(N -Int 1, REST)
+      requires 0 <Int N
+
+    // end of list or invalid args
+    rule parseESDTTransfersH(_, _) => .List [owise]
 ```
 
 ## Misc
@@ -253,6 +302,19 @@ module ESDT
         </commands>
       [priority(61)]
 
+    syntax ListBytes ::= getCallArgs(BuiltinFunction, ListBytes)  [function, total]
+ // -------------------------------------------------------------------------------
+    rule getCallArgs(#ESDTTransfer, ARGS) => rangeTotal(ARGS, 3, 0) // drop token, amount, func
+    rule getCallArgs(#MultiESDTNFTTransfer, ARGS)
+      => rangeTotal(ARGS, MultiESDTNFTTransfer.num(ARGS) *Int 3 +Int 3, 0) // drop dest, num, num*3, func
+    rule getCallArgs(_, _) => .ListBytes  [owise]
+
+    syntax Bytes ::= getCallFunc(BuiltinFunction, ListBytes)  [function, total]
+ // --------------------------------------------------------------------------
+    rule getCallFunc(#ESDTTransfer, ARGS) => ARGS {{ 2 }} orDefault b"" // token&amount&func&...
+    rule getCallFunc(#MultiESDTNFTTransfer, ARGS)
+      => ARGS {{ MultiESDTNFTTransfer.num(ARGS) *Int 3 +Int 2 }} orDefault b""
+    rule getCallFunc(_, _) => b""   [owise]
 ```
 
 ```k

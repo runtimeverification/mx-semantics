@@ -240,11 +240,13 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax InternalCmd ::= #exception( ExceptionCode , Bytes )
  // ---------------------------------------------------
 
-    syntax Bool ::= isBuiltinFunction(WasmStringToken)       [function, total]
+    syntax BuiltinFunction ::= "#notBuiltin"                           [klabel(#notBuiltin),symbol]
+                             | toBuiltinFunction(WasmStringToken)       [function, total]
  // --------------------------------------------------------------------------
-    rule isBuiltinFunction(_) => false                          [owise]
+    rule toBuiltinFunction(_) => #notBuiltin                          [owise]
 
-    syntax InternalCmd ::= processBuiltinFunc(String, Bytes, Bytes, VmInputCell)  [klabel(processBuiltinFunc),symbol]
+    syntax InternalCmd ::= processBuiltinFunction(BuiltinFunction, Bytes, Bytes, VmInputCell)
+      [klabel(processBuiltinFunction),symbol]
 
     syntax InternalCmd ::= checkBool(Bool, String)    [klabel(checkBool), symbol]
  // -----------------------------------------------------------------------------------

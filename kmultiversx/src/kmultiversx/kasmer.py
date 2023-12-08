@@ -254,7 +254,7 @@ def test_with_hypothesis(
     given(args_strategy)(
         settings(
             deadline=50000,  # set time limit for individual runs
-            max_examples=10,  # enough for demo
+            max_examples=50,
             verbosity=Verbosity.verbose,
             phases=(Phase.generate, Phase.target, Phase.shrink),
         )(test)

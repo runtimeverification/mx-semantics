@@ -654,12 +654,12 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                 ~> resetCallstate
                 ~> transferFunds(FROM, TO, VALUE)
                 ~> transferESDTs(FROM, TO, ESDT)
-                ~> processBuiltinFunc(#parseWasmString(FUNC), FROM, TO, VMINPUT)
+                ~> processBuiltinFunction(toBuiltinFunction(FUNC), FROM, TO, VMINPUT)
                 ~> #endWasm
                    ...
         </commands>
         <vmOutput> _ => .VMOutput </vmOutput>
-      requires isBuiltinFunction(FUNC)
+      requires toBuiltinFunction(FUNC) =/=K #notBuiltin
       [priority(60)]
 
     rule [callContract-not-contract]:

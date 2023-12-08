@@ -167,7 +167,7 @@ module ESDT
                                                             <gasProvided> GAS </gasProvided>
                                                             <gasPrice> GAS_PRICE </gasPrice>
                                                             _ 
-                                                          </vmInput> #as VMINPUT)
+                                                          </vmInput>)
                 => newWasmInstance(DST, CODE)
                 ~> mkCall( DST
                          , #unparseWasmString("\"" +String Bytes2String(getCallFunc(FUNC, ARGS)) +String "\"")

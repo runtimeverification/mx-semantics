@@ -164,12 +164,14 @@ module ESDT
     rule [determineIsSCCallAfter-call]:
         <commands> determineIsSCCallAfter(SND, DST, FUNC, <vmInput> 
                                                             <callArgs> ARGS </callArgs>
+                                                            <gasProvided> GAS </gasProvided>
+                                                            <gasPrice> GAS_PRICE </gasPrice>
                                                             _ 
                                                           </vmInput> #as VMINPUT)
                 => newWasmInstance(DST, CODE)
                 ~> mkCall( DST
                          , #unparseWasmString("\"" +String Bytes2String(getCallFunc(FUNC, ARGS)) +String "\"")
-                         , mkVmInputEsdtExec(SND, FUNC, VMINPUT)
+                         , mkVmInputEsdtExec(SND, FUNC, ARGS, GAS, GAS_PRICE)
                          )
                    ...
         </commands>
@@ -187,14 +189,10 @@ module ESDT
         <vmOutput> _ => VMOutput(OK, b"", .ListBytes, .List)</vmOutput> // TODO add log entry
       [owise]
 
-    syntax VmInputCell ::= mkVmInputEsdtExec(Bytes, BuiltinFunction, VmInputCell)    [function, total]
+    syntax VmInputCell ::= mkVmInputEsdtExec(Bytes, BuiltinFunction, ListBytes, Int, Int)
+        [function, total]
  // -----------------------------------------------------------------------------------
-    rule mkVmInputEsdtExec(FROM, BIFUNC, <vmInput>
-                                           <callArgs> ARGS </callArgs>
-                                           <gasProvided> GAS </gasProvided>
-                                           <gasPrice> GAS_PRICE </gasPrice>
-                                           _
-                                         </vmInput>)
+    rule mkVmInputEsdtExec(FROM, BIFUNC, ARGS, GAS, GAS_PRICE)
       => <vmInput>
             <caller> FROM </caller>
             <callArgs> getCallArgs(BIFUNC, ARGS) </callArgs>

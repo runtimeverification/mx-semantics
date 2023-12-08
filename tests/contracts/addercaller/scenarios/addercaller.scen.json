@@ -166,6 +166,33 @@
             }
         },
         {
+            "step": "scCall",
+            "id": "call addercaller esdt - builtin - multi",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:addercaller",
+                "function": "call_adder_esdt_builtin_multi",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:MYESDT",
+                        "value": "40"
+                    }
+                ],
+                "arguments": [
+                    "11"
+                ],
+                "gasLimit": "15,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": ["35", "str:added-esdt-builtin-multi"],
+                "status": "",
+                "logs": "*",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
             "step": "checkState",
             "accounts": {
                 "address:owner": {
@@ -174,18 +201,18 @@
                     "storage": {},
                     "code": "",
                     "esdt": {
-                        "str:MYESDT": "135"
+                        "str:MYESDT": "95"
                     }
                 },
                 "sc:adder": {
                     "nonce": "0",
                     "balance": "1030",
                     "storage": {
-                        "str:sum": "24"
+                        "str:sum": "35"
                     },
                     "code": "file:../../myadder/output/adder.wasm",
                     "esdt": {
-                        "str:MYESDT": "40"
+                        "str:MYESDT": "55"
                     }
                 },
                 "sc:addercaller": {
@@ -196,7 +223,7 @@
                     },
                     "code": "file:../output/addercaller.wasm",
                     "esdt": {
-                        "str:MYESDT": "25"
+                        "str:MYESDT": "50"
                     }
                 }
             }

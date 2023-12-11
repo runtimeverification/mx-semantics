@@ -128,10 +128,14 @@ pub trait TestMultisigContract {
         let pair = ManagedAddress::from(PAIR);
         let alice = ManagedAddress::from(ALICE);
         let liquidity_adder = ManagedAddress::from(BOB);
+
+        let max_liquidity = self.get_max_mint_value() + 1000u32;
         
         // make assumptions
         testapi::assume(BigUint::from(1000u32) < first_liquidity);
         testapi::assume(BigUint::from(1000u32) < second_liquidity);
+        testapi::assume(first_liquidity < max_liquidity);
+        testapi::assume(second_liquidity < max_liquidity);
         testapi::assume(BigUint::from(2u32) < first_value);
         let first_no_percent = first_value.clone() * (MAX_PERCENTAGE - TOTAL_FEE_PERCENT);
         testapi::assume((first_liquidity.clone() * MAX_PERCENTAGE + first_no_percent.clone()) < second_liquidity.clone() * first_no_percent );
@@ -182,25 +186,25 @@ pub trait TestMultisigContract {
         tokens.push(EsdtTokenPayment::new(self.first_token().get(), 0, first_liquidity.clone()));
         tokens.push(EsdtTokenPayment::new(self.second_token().get(), 0, second_liquidity.clone()));
 
-        let mut args = ManagedArgBuffer::new();
-        args.push_arg(&first_min);
-        args.push_arg(&second_min);
+        // let mut args = ManagedArgBuffer::new();
+        // args.push_arg(&first_min);
+        // args.push_arg(&second_min);
 
         testapi::start_prank(&adder_address);
 
-        let _ = self.send_raw().multi_esdt_transfer_execute(
-            pair_address,
-            &tokens,
-            5000000,
-            &ManagedBuffer::from(b"addLiquidity"),
-            &args,
-        );
+        // let _ = self.send_raw().multi_esdt_transfer_execute(
+        //     pair_address,
+        //     &tokens,
+        //     5000000,
+        //     &ManagedBuffer::from(b"addLiquidity"),
+        //     &args,
+        // );
 
-        // let _: IgnoreValue = self
-        //     .pair_proxy(pair_address.clone())
-        //     .add_liquidity(first_min, second_min)
-        //     .with_multi_token_transfer(tokens)
-        //     .execute_on_dest_context();
+        let _: IgnoreValue = self
+            .pair_proxy(pair_address.clone())
+            .add_liquidity(first_min, second_min)
+            .with_multi_token_transfer(tokens)
+            .execute_on_dest_context();
         testapi::stop_prank();
     }
 
@@ -257,6 +261,17 @@ pub trait TestMultisigContract {
             .resume()
             .execute_on_dest_context();
         testapi::stop_prank();
+    }
+
+    fn get_max_mint_value(&self) -> BigUint {
+        // 800 = 11 0010 000
+        // 2^800 = 2^512 * 2^256 * 2^32
+        let a32 = BigUint::from(4294967296u64);
+        let a64 = a32.clone() * a32.clone();
+        let a128 = a64.clone() * a64;
+        let a256 = a128.clone() * a128;
+        let a512 = a256.clone() * a256.clone();
+        a32 * a256 * a512
     }
 
     #[proxy]

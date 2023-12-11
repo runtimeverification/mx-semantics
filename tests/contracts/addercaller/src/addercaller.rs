@@ -61,6 +61,54 @@ pub trait AdderCaller {
             Result::Ok(_) => ManagedBuffer::from("added-esdt")
         }
     }
+
+    #[endpoint]
+    #[payable("MYESDT")]
+    fn call_adder_esdt_builtin(&self, value: BigUint) -> ManagedBuffer {
+      let mut arg_buffer = ManagedArgBuffer::new();
+      arg_buffer.push_arg(b"MYESDT");
+      arg_buffer.push_arg(20u32);
+      arg_buffer.push_arg(b"add");
+      arg_buffer.push_arg(value);
+
+      let _ = self.send_raw().execute_on_dest_context_raw(
+        5000000,
+        &self.dest().get(),
+        &BigUint::from(0u32), 
+        &ManagedBuffer::from(b"ESDTTransfer"), 
+        &arg_buffer,
+      );
+
+      ManagedBuffer::from("added-esdt-builtin")
+    }
+
+    #[endpoint]
+    #[payable("MYESDT")]
+    fn call_adder_esdt_builtin_multi(&self, value: BigUint) -> ManagedBuffer {
+      let mut arg_buffer = ManagedArgBuffer::new();
+      arg_buffer.push_arg(self.dest().get());
+      arg_buffer.push_arg(2u32);
+      arg_buffer.push_arg(b"MYESDT");
+      arg_buffer.push_arg(0u32);
+      arg_buffer.push_arg(5u32);
+      arg_buffer.push_arg(b"MYESDT");
+      arg_buffer.push_arg(0u32);
+      arg_buffer.push_arg(10u32);
+      
+      arg_buffer.push_arg(b"add");
+      arg_buffer.push_arg(value);
+
+      let _ = self.send_raw().execute_on_dest_context_raw(
+        5000000,
+        &self.blockchain().get_sc_address(),
+        &BigUint::from(0u32), 
+        &ManagedBuffer::from(b"MultiESDTNFTTransfer"), 
+        &arg_buffer,
+      );
+
+      ManagedBuffer::from("added-esdt-builtin-multi")
+    }
+
 }
 
 // 

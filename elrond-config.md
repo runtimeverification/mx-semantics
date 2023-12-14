@@ -638,7 +638,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         </account>
         <vmOutput> _ => .VMOutput </vmOutput>
         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
-      requires notBool isBuiltinFunction(FUNCNAME)
+      requires toBuiltinFunction(FUNCNAME) ==K #notBuiltin
       [priority(60)]
 
     rule [callContract-builtin]:

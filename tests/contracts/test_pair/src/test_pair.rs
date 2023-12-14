@@ -31,6 +31,14 @@ mod pair_proxy {
     pub trait PairProxy {
         #[payable("*")]
         #[endpoint(addInitialLiquidity)]
+        fn add_initial_liquidity(
+            &self,
+            first_token_amount_min: BigUint,
+            second_token_amount_min: BigUint,
+        ) -> AddLiquidityResultType<Self::Api>;
+
+        #[payable("*")]
+        #[endpoint(addLiquidity)]
         fn add_liquidity(
             &self,
             first_token_amount_min: BigUint,
@@ -186,19 +194,7 @@ pub trait TestMultisigContract {
         tokens.push(EsdtTokenPayment::new(self.first_token().get(), 0, first_liquidity.clone()));
         tokens.push(EsdtTokenPayment::new(self.second_token().get(), 0, second_liquidity.clone()));
 
-        // let mut args = ManagedArgBuffer::new();
-        // args.push_arg(&first_min);
-        // args.push_arg(&second_min);
-
         testapi::start_prank(&adder_address);
-
-        // let _ = self.send_raw().multi_esdt_transfer_execute(
-        //     pair_address,
-        //     &tokens,
-        //     5000000,
-        //     &ManagedBuffer::from(b"addLiquidity"),
-        //     &args,
-        // );
 
         let _: IgnoreValue = self
             .pair_proxy(pair_address.clone())

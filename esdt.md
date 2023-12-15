@@ -257,7 +257,7 @@ module ESDT
 
     rule parseESDTTransfersH(N, ListItem(wrap(TOK)) ListItem(wrap(NONCE)) ListItem(wrap(AMT)) REST) 
       => ListItem( esdtTransfer( 
-            TOK, Bytes2Int(NONCE, BE, Unsigned), Bytes2Int(AMT, BE, Unsigned)
+            TOK, Bytes2Int(AMT, BE, Unsigned), Bytes2Int(NONCE, BE, Unsigned)
           ))
          parseESDTTransfersH(N -Int 1, REST)
       requires 0 <Int N

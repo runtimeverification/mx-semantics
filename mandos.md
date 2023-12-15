@@ -304,6 +304,27 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <commands> . </commands>
       [priority(60)]
 
+    syntax Step ::= checkAccountESDTBalance    ( Address, Bytes, Int ) [klabel(checkAccountESDTBalance), symbol]
+                  | checkAccountESDTBalanceAux ( Bytes, Bytes, Int )   [klabel(checkAccountESDTBalanceAux), symbol]
+ // ------------------------------------------------------------------------------------------------
+    rule <k> checkAccountESDTBalance(ADDRESS, TOKEN, BALANCE)
+             => checkAccountESDTBalanceAux(#address2Bytes(ADDRESS), TOKEN, BALANCE) ... </k>
+         <commands> . </commands>
+      [priority(60)]
+
+    rule <k> checkAccountESDTBalanceAux(ADDR, TOKEN, BALANCE) => . ... </k>
+         <account>
+           <address> ADDR </address>
+           <esdtData>
+             <esdtId> TOKEN </esdtId>
+             <esdtBalance> BALANCE </esdtBalance>
+             ...
+           </esdtData>
+           ...
+         </account>
+         <commands> . </commands>
+      [priority(60)]
+
     syntax Step ::= checkAccountStorage    ( Address, MapBytesToBytes ) [klabel(checkAccountStorage), symbol]
                   | checkAccountStorageAux ( Bytes, MapBytesToBytes )   [klabel(checkAccountStorageAux), symbol]
  // ------------------------------------------------------------------------------------------------

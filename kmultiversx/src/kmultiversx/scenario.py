@@ -378,6 +378,11 @@ def mandos_to_check_account(address: str, sections: dict, filename: str) -> list
             code_path = ''
         k_code_path = KString(code_path)
         k_steps.append(KApply('checkAccountCode', [address_value, k_code_path]))
+    if ('esdt' in sections) and (sections['esdt'] != '*'):
+        for token, value in sections['esdt'].items():
+            token_bytes = mandos_argument_to_kbytes(token)
+            value_kint = mandos_int_to_kint(value)
+            k_steps.append(KApply('checkAccountESDTBalance', [address_value, token_bytes, value_kint]))
 
     k_steps.append(KApply('checkedAccount', [address_value]))
     return k_steps

@@ -31,11 +31,7 @@ mod pair_proxy {
     pub trait PairProxy {
         #[payable("*")]
         #[endpoint(addInitialLiquidity)]
-        fn add_initial_liquidity(
-            &self,
-            first_token_amount_min: BigUint,
-            second_token_amount_min: BigUint,
-        ) -> AddLiquidityResultType<Self::Api>;
+        fn add_initial_liquidity(&self) -> AddLiquidityResultType<Self::Api>;
 
         #[payable("*")]
         #[endpoint(addLiquidity)]

@@ -481,13 +481,13 @@ pyreadline3 = {version = "*", markers = "sys_platform == \"win32\" and python_ve
 
 [[package]]
 name = "hypothesis"
-version = "6.92.0"
+version = "6.92.1"
 description = "A library for property-based testing"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "hypothesis-6.92.0-py3-none-any.whl", hash = "sha256:d4577f99b912acc725bea684899b7cb62591a0412e2446c618be0b4855995276"},
-    {file = "hypothesis-6.92.0.tar.gz", hash = "sha256:65b72c7dc7da3e16144db54fe093c6b74a33631b933a8063eb754c5a61361ae6"},
+    {file = "hypothesis-6.92.1-py3-none-any.whl", hash = "sha256:3cba76a7389bd7245c350fcf7234663314dc81a5be0bbef72a07d8c249bfc210"},
+    {file = "hypothesis-6.92.1.tar.gz", hash = "sha256:fa755ded526e50b7e2f642cdc5d64519f88d4e4ee71d9d29ec3eb2f2fddf1274"},
 ]
 
 [package.dependencies]
@@ -957,7 +957,7 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pyk"
-version = "0.1.549"
+version = "0.1.551"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -978,8 +978,8 @@ xdg-base-dirs = "^6.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/pyk.git"
-reference = "v0.1.549"
-resolved_reference = "c397bba169e7e3f46ea403452a5f44c4cfa9eab0"
+reference = "v0.1.551"
+resolved_reference = "5bbf99e02cc07b86647fc8b1de9577032c34dc1a"
 
 [[package]]
 name = "pykwasm"
@@ -994,7 +994,7 @@ develop = false
 cytoolz = "^0.12.1"
 numpy = "^1.24.2"
 py-wasm = {url = "https://github.com/runtimeverification/py-wasm/archive/refs/tags/0.1.1.tar.gz"}
-pyk = {git = "https://github.com/runtimeverification/pyk.git", tag = "v0.1.549"}
+pyk = {git = "https://github.com/runtimeverification/pyk.git", tag = "v0.1.551"}
 
 [package.source]
 type = "directory"

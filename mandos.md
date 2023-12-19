@@ -429,7 +429,6 @@ Only take the next step once both the Elrond node and Wasm are done executing.
           <balance> BALANCE => BALANCE -Int GASLIMIT *Int GASPRICE </balance>
           ...
         </account>
-        <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
       [priority(60), preserves-definedness]
       // Preserving definedness:
       //   - callContract is a constructor
@@ -498,7 +497,6 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
 
     rule <k> queryTxAux(TO, FUNCTION, ARGS) => #wait ... </k>
          <commands> . => callContract(TO, FUNCTION, mkVmInputQuery(TO, ARGS)) </commands>
-         <logging> S => S +String " -- query contract: " +String #parseWasmString(FUNCTION) </logging>
       [priority(60)]
 
     syntax VmInputCell ::= mkVmInputQuery(Bytes, ListBytes)    [function, total]

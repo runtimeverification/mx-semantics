@@ -594,7 +594,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       //   - -Int and +Int are total
 
     rule [transferFundsH-oofunds]:
-        <commands> transferFundsH(ACCT, _, VALUE) => #throwExceptionBs(OutOfFunds, b"OutOfFunds") ... </commands>
+        <commands> transferFundsH(ACCT, _, VALUE) => #throwExceptionBs(OutOfFunds, b"") ... </commands>
         <account>
           <address> ACCT </address>
           <balance> ORIGFROM </balance>

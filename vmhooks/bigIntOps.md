@@ -20,26 +20,36 @@ module BIGINT-HELPERS
       <bigIntHeap> ... IDX |-> I:Int ... </bigIntHeap>
     rule getBigInt(_) => Err("no bigInt under the given handle") [owise]
 
-    syntax InternalInstr ::= #getBigInt ( idx : Int ,  Signedness )
+    syntax InternalInstr ::= #getBigInt      ( idx : Int )
+                           | #getBigIntBytes ( idx : Int ,  Signedness )
  // ---------------------------------------------------------------
-    rule <instrs> #getBigInt(BIGINT_IDX, SIGN) => . ... </instrs>
-         <bytesStack> STACK => Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN) : STACK </bytesStack>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires #validIntId(BIGINT_IDX, HEAP)
+    rule <instrs> #getBigInt(BIGINT_IDX) => . ... </instrs>
+         <vmValStack> STACK => VAL : STACK </vmValStack>
+         <bigIntHeap> ... BIGINT_IDX |-> VAL:Int ... </bigIntHeap>
       [preserves-definedness]
       // Preserving definedness:
-      //  - Int2Bytes is total
-      //  - {HEAP[BIGINT_IDX]}:>Int because of #validIntId(BIGINT_IDX, HEAP)
+      // - Everything on RHS is constructor
 
-    rule <instrs> #getBigInt(BIGINT_IDX, _SIGN) => #throwException(ExecutionFailed, "no bigInt under the given handle") ... </instrs>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires notBool #validIntId(BIGINT_IDX, HEAP)
 
-    syntax InternalInstr ::= #getBigIntOrCreate ( idx : Int ,  Signedness )
+    rule <instrs> #getBigInt(_BIGINT_IDX) 
+               => #throwException(ExecutionFailed, "no bigInt under the given handle")
+                  ...
+         </instrs>
+      [owise]
+
+    rule <instrs> #getBigIntBytes(BIGINT_IDX, SIGN) 
+               => #getBigInt(BIGINT_IDX) 
+               ~> #intToBytesVmValStack( BE , SIGN ) ...
+         </instrs>
+      [preserves-definedness]
+      // Preserving definedness:
+      // - Everything on RHS is constructor
+
+    syntax InternalInstr ::= #getBigIntBytesOrCreate ( idx : Int ,  Signedness )
  // ---------------------------------------------------------------
     rule [getBigIntOrCreate-get]:
-        <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => . ... </instrs>
-        <bytesStack> STACK => Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN) : STACK </bytesStack>
+        <instrs> #getBigIntBytesOrCreate(BIGINT_IDX, SIGN) => . ... </instrs>
+        <vmValStack> STACK => Int2Bytes({HEAP[BIGINT_IDX]}:>Int, BE, SIGN) : STACK </vmValStack>
         <bigIntHeap> HEAP </bigIntHeap>
       requires #validIntId(BIGINT_IDX, HEAP)
       [preserves-definedness]
@@ -48,23 +58,19 @@ module BIGINT-HELPERS
       //  - {HEAP[BIGINT_IDX]}:>Int because of #validIntId(BIGINT_IDX, HEAP)
 
     rule [getBigIntOrCreate-create]:
-        <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => #setBigIntValue(BIGINT_IDX, 0) ... </instrs>
-        <bytesStack> STACK => Int2Bytes(0, BE, SIGN) : STACK </bytesStack>
+        <instrs> #getBigIntBytesOrCreate(BIGINT_IDX, SIGN) => #setBigInt(BIGINT_IDX, 0) ... </instrs>
+        <vmValStack> STACK => Int2Bytes(0, BE, SIGN) : STACK </vmValStack>
         <bigIntHeap> HEAP </bigIntHeap>
       requires notBool #validIntId(BIGINT_IDX, HEAP)
 
-    syntax InternalInstr ::= #setBigIntFromBytesStack ( idx: Int , Signedness )
-                           | #setBigInt ( idx: Int , value: Bytes , Signedness )
-                           | #setBigIntValue ( Int , Int )
+    syntax InternalInstr ::= #setBigIntFromVmValStack ( idx: Int )
+                           | #setBigInt ( idx: Int , value: Int )
  // ----------------------------------------------------------------------------
-    rule <instrs> #setBigIntFromBytesStack(BIGINT_IDX, SIGN) => #setBigInt(BIGINT_IDX, BS, SIGN) ... </instrs>
-         <bytesStack> BS : _ </bytesStack>
+    rule <instrs> #setBigIntFromVmValStack(BIGINT_IDX) => #setBigInt(BIGINT_IDX, VAL) ... </instrs>
+         <vmValStack> VAL:Int : _ </vmValStack>
 
-    rule <instrs> #setBigInt(BIGINT_IDX, BS, SIGN) => . ... </instrs>
-         <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- Bytes2Int(BS, BE, SIGN)] </bigIntHeap>
-
-    rule <instrs> #setBigIntValue(BIGINT_IDX, VALUE) => . ... </instrs>
-         <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- VALUE] </bigIntHeap>
+    rule <instrs> #setBigInt(BIGINT_IDX, VAL) => . ... </instrs>
+         <bigIntHeap> HEAP => HEAP [BIGINT_IDX <- VAL] </bigIntHeap>
 
     syntax Bool ::= #validIntId( Int , Map )    [function, total]
  // -------------------------------------------------------------
@@ -135,18 +141,18 @@ module BIGINTOPS
 
     // extern int32_t bigIntUnsignedByteLength(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntUnsignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #getBigInt(IDX, Unsigned)
+               => #getBigIntBytes(IDX, Unsigned)
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
 
     // extern int32_t bigIntSignedByteLength(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntSignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #getBigInt(IDX, Unsigned)
+               => #getBigIntBytes(IDX, Unsigned)
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
@@ -173,7 +179,7 @@ module BIGINTOPS
 
     rule [bigIntGetInt64-invalid-handle]:
         <instrs> hostCall ("env", "bigIntGetInt64", [i32 .ValTypes ] -> [i64  .ValTypes ] )
-              => #setBigIntValue(IDX, 0)
+              => #setBigInt(IDX, 0)
               ~> i64 . const 0
                  ...
         </instrs>
@@ -183,20 +189,20 @@ module BIGINTOPS
 
     // extern int32_t bigIntGetUnsignedBytes(void* context, int32_t reference, int32_t byteOffset);
     rule <instrs> hostCall("env", "bigIntGetUnsignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #getBigInt(IDX, Unsigned)
-               ~> #memStoreFromBytesStack(OFFSET)
+               => #getBigIntBytes(IDX, Unsigned)
+               ~> #memStoreFromVmValStack(OFFSET)
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX  1 |-> <i32> OFFSET </locals>
 
     // extern int32_t bigIntGetSignedBytes(void* context, int32_t reference, int32_t byteOffset);
     rule <instrs> hostCall("env", "bigIntGetSignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => #getBigInt(IDX, Signed)
-               ~> #memStoreFromBytesStack(OFFSET)
+               => #getBigIntBytes(IDX, Signed)
+               ~> #memStoreFromVmValStack(OFFSET)
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX  1 |-> <i32> OFFSET </locals>
@@ -204,8 +210,9 @@ module BIGINTOPS
     // extern void bigIntSetUnsignedBytes(void* context, int32_t destination, int32_t byteOffset, int32_t byteLength);
     rule <instrs> hostCall("env", "bigIntSetUnsignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(OFFSET, LENGTH)
-               ~> #setBigIntFromBytesStack(IDX, Unsigned)
-               ~> #dropBytes
+               ~> #bytesToIntVmValStack(BE, Signed)
+               ~> #setBigIntFromVmValStack(IDX)
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX 1 |-> <i32> OFFSET 2 |-> <i32> LENGTH </locals>
@@ -213,15 +220,16 @@ module BIGINTOPS
     // extern void bigIntSetSignedBytes(void* context, int32_t destination, int32_t byteOffset, int32_t byteLength);
     rule <instrs> hostCall("env", "bigIntSetSignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(OFFSET, LENGTH)
-               ~> #setBigIntFromBytesStack(IDX, Signed)
-               ~> #dropBytes
+               ~> #bytesToIntVmValStack(BE, Signed)
+               ~> #setBigIntFromVmValStack(IDX)
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX 1 |-> <i32> OFFSET 2 |-> <i32> LENGTH </locals>
 
  // extern void      bigIntSetInt64(void* context, int32_t destinationHandle, long long value);
     rule <instrs> hostCall ( "env" , "bigIntSetInt64" , [ i32  i64  .ValTypes ] -> [ .ValTypes ] )
-               => #setBigIntValue(DEST_IDX, #signed(i64, VALUE))
+               => #setBigInt(DEST_IDX, #signed(i64, VALUE))
                   ...
          </instrs>
          <locals> 0 |-> <i32> DEST_IDX 1 |-> <i64> VALUE </locals>
@@ -232,96 +240,84 @@ module BIGINTOPS
       //    check for its definedness separately.
 
     // extern void bigIntAdd(void* context, int32_t destination, int32_t op1, int32_t op2);
-    rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
+               => #getBigInt(OP1_IDX)
+               ~> #getBigInt(OP2_IDX)
+               ~> #bigIntAdd
+               ~> #setBigIntFromVmValStack(DST)
+               ~> #dropVmValue
+                  ...
+          </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int +Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
-      requires #validIntId(OP1_IDX, HEAP)
-       andBool #validIntId(OP2_IDX, HEAP)
       [preserves-definedness]
       // Preserving definedness:
-      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
-      //  - +Int is total
-      //  - Map[Kitem <- KItem] is total
+      // - everything on RHS is constructor
 
-   // TODO a lot of code duplication in the error cases. 
-   // use sth like #getBigInt that checks existence
-    rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
-               => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
-         </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires notBool (#validIntId(OP1_IDX, HEAP))
-        orBool notBool (#validIntId(OP2_IDX, HEAP))
 
     // extern void bigIntSub(void* context, int32_t destination, int32_t op1, int32_t op2);
-    rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
+               => #getBigInt(OP1_IDX)
+               ~> #getBigInt(OP2_IDX)
+               ~> #bigIntSub
+               ~> #setBigIntFromVmValStack(DST)
+               ~> #dropVmValue
+                  ...
+          </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int -Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
-      requires #validIntId(OP1_IDX, HEAP)
-       andBool #validIntId(OP2_IDX, HEAP)
       [preserves-definedness]
       // Preserving definedness:
-      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
-      //  - -Int is total
-      //  - Map[Kitem <- KItem] is total
-
-    rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
-               => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
-         </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires notBool (#validIntId(OP1_IDX, HEAP))
-        orBool notBool (#validIntId(OP2_IDX, HEAP))
+      // - everything on RHS is constructor
 
     // extern void bigIntMul(void* context, int32_t destination, int32_t op1, int32_t op2);
-    rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
+               => #getBigInt(OP1_IDX)
+               ~> #getBigInt(OP2_IDX)
+               ~> #bigIntMul
+               ~> #setBigIntFromVmValStack(DST)
+               ~> #dropVmValue
+                  ...
+          </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int *Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
-      requires #validIntId(OP1_IDX, HEAP)
-       andBool #validIntId(OP2_IDX, HEAP)
       [preserves-definedness]
       // Preserving definedness:
-      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
-      //  - *Int is total
-      //  - Map[Kitem <- KItem] is total
-
-    rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
-               => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
-         </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires notBool (#validIntId(OP1_IDX, HEAP))
-        orBool notBool (#validIntId(OP2_IDX, HEAP))
+      // - everything on RHS is constructor
 
     // extern void bigIntTDiv(void* context, int32_t destination, int32_t op1, int32_t op2);
-    rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
+               => #getBigInt(OP1_IDX)
+               ~> #getBigInt(OP2_IDX)
+               ~> #bigIntTDiv
+               ~> #setBigIntFromVmValStack(DST)
+               ~> #dropVmValue
+                  ...
+          </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP => HEAP [DST <- {HEAP[OP1_IDX]}:>Int /Int {HEAP[OP2_IDX]}:>Int] </bigIntHeap>
-      requires #validIntId(OP1_IDX, HEAP)
-       andBool #validIntId(OP2_IDX, HEAP)
-       andBool {HEAP[OP2_IDX]}:>Int =/=Int 0
       [preserves-definedness]
       // Preserving definedness:
-      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
-      //  - we checked that /Int is defined
-      //  - Map[Kitem <- KItem] is total
+      // - everything on RHS is constructor
 
-    rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
-               => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
-         </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires notBool (#validIntId(OP1_IDX, HEAP))
-        orBool notBool (#validIntId(OP2_IDX, HEAP))
+    syntax InterlanInstr ::= "#bigIntAdd"     [klabel(#bigIntAdd), symbol]
+                           | "#bigIntSub"     [klabel(#bigIntSub), symbol]
+                           | "#bigIntMul"     [klabel(#bigIntMul), symbol]
+                           | "#bigIntTDiv"    [klabel(#bigIntTDiv), symbol]
+ // ----------------------------------------------------------------------
+    rule <instrs> #bigIntAdd => . ... </instrs>
+         <vmValStack> OP2:Int : OP1:Int : REST => OP1 +Int OP2 : REST </vmValStack>
 
-    rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
-               => #throwException(ExecutionFailed, "bigInt division by 0") ...
-         </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
-         <bigIntHeap> HEAP </bigIntHeap>
-      requires #validIntId(OP1_IDX, HEAP)
-       andBool #validIntId(OP2_IDX, HEAP)
-       andBool {HEAP[OP2_IDX]}:>Int ==Int 0
+    rule <instrs> #bigIntSub => . ... </instrs>
+         <vmValStack> OP2:Int : OP1:Int : REST => OP1 -Int OP2 : REST </vmValStack>
+
+    rule <instrs> #bigIntMul => . ... </instrs>
+         <vmValStack> OP2:Int : OP1:Int : REST => OP1 *Int OP2 : REST </vmValStack>
+
+    rule <instrs> #bigIntTDiv => . ... </instrs>
+         <vmValStack> OP2:Int : OP1:Int : REST => OP1 /Int OP2 : REST </vmValStack>
+      requires OP2 =/=Int 0
+
+    rule <instrs> #bigIntTDiv
+               => #throwException(ExecutionFailed, "bigInt division by 0") ... </instrs>
+         <vmValStack> OP2:Int : _OP1:Int : _REST </vmValStack>
+      requires OP2 ==Int 0
 
     // extern int32_t bigIntSign(void* context, int32_t op);
     rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -371,16 +367,16 @@ module BIGINTOPS
 
     // extern void bigIntFinishUnsigned(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntFinishUnsigned", [ i32 .ValTypes ] -> [ .ValTypes ])
-               => #getBigInt(IDX, Unsigned)
-               ~> #appendToOutFromBytesStack
+               => #getBigIntBytes(IDX, Unsigned)
+               ~> #appendToOutFromVmValStack
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
 
     // extern void bigIntFinishSigned(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntFinishSigned", [ i32 .ValTypes ] -> [ .ValTypes ])
-               => #getBigInt(IDX, Signed)
-               ~> #appendToOutFromBytesStack
+               => #getBigIntBytes(IDX, Signed)
+               ~> #appendToOutFromVmValStack
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
@@ -388,7 +384,7 @@ module BIGINTOPS
     // extern int32_t bigIntStorageStoreUnsigned(void *context, int32_t keyOffset, int32_t keyLength, int32_t source);
     rule <instrs> hostCall("env", "bigIntStorageStoreUnsigned", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #memLoad(KEYOFFSET, KEYLENGTH)
-               ~> #getBigIntOrCreate(BIGINTIDX, Unsigned)
+               ~> #getBigIntBytesOrCreate(BIGINTIDX, Unsigned)
                ~> #storageStore
                   ...
          </instrs>
@@ -402,9 +398,10 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntStorageLoadUnsigned", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #memLoad(KEYOFFSET, KEYLENGTH)
                ~> #storageLoad
-               ~> #setBigIntFromBytesStack(DEST, Unsigned)
+               ~> #bytesToIntVmValStack(BE, Unsigned)
+               ~> #setBigIntFromVmValStack(DEST)
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals>
@@ -459,8 +456,8 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntGetExternalBalance", [ i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(ADDROFFSET, 32)
                ~> #getExternalBalance
-               ~> #setBigIntFromBytesStack(RESULT, Unsigned)
-               ~> #dropBytes
+               ~> #setBigIntFromVmValStack(RESULT)
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals>
@@ -473,8 +470,8 @@ module BIGINTOPS
                => #memLoad(ADDR_OFFSET, 32)
                ~> #memLoad(TOK_ID_OFFSET, TOK_ID_LEN)
                ~> #bigIntGetESDTExternalBalance(RES_HANDLE)
-               ~> #dropBytes
-               ~> #dropBytes
+               ~> #dropVmValue
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals>
@@ -488,10 +485,10 @@ module BIGINTOPS
     syntax InternalInstr ::= #bigIntGetESDTExternalBalance(Int)
  // -----------------------------------------------------------
     rule <instrs> #bigIntGetESDTExternalBalance(RES_HANDLE)
-               => #setBigIntValue( RES_HANDLE , BALANCE )
+               => #setBigInt( RES_HANDLE , BALANCE )
                   ...
          </instrs>
-         <bytesStack> TOK_ID : ADDR : _ </bytesStack>
+         <vmValStack> TOK_ID : ADDR : _ </vmValStack>
          <account>
            <address> ADDR </address>
            <esdtData>
@@ -504,10 +501,10 @@ module BIGINTOPS
       [priority(60)]
 
     rule <instrs> #bigIntGetESDTExternalBalance(RES_HANDLE)
-               => #setBigIntValue( RES_HANDLE , 0 )
+               => #setBigInt( RES_HANDLE , 0 )
                   ...
          </instrs>
-         <bytesStack> _TOK_ID : ADDR : _ </bytesStack>
+         <vmValStack> _TOK_ID : ADDR : _ </vmValStack>
          <account>
            <address> ADDR </address>
            ...
@@ -551,7 +548,7 @@ module BIGINTOPS
 
     rule [bigIntSqrt]:
         <instrs> hostCall ( "env" , "bigIntSqrt" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
-              => #setBigIntValue(DEST, sqrtInt(V))
+              => #setBigInt(DEST, sqrtInt(V))
                  ...
         </instrs>
         <locals> 0 |-> <i32> DEST  1 |-> <i32> IDX </locals>
@@ -569,7 +566,7 @@ module BIGINTOPS
 
     rule [bigIntAbs]:
         <instrs> hostCall ( "env" , "bigIntAbs" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
-              => #setBigIntValue(DEST, absInt(V))
+              => #setBigInt(DEST, absInt(V))
                  ...
         </instrs>
         <locals> 0 |-> <i32> DEST  1 |-> <i32> IDX </locals>
@@ -587,7 +584,7 @@ module BIGINTOPS
 
     rule [bigIntNeg]:
         <instrs> hostCall ( "env" , "bigIntNeg" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
-              => #setBigIntValue(DEST, 0 -Int V)
+              => #setBigInt(DEST, 0 -Int V)
                  ...
         </instrs>
         <locals> 0 |-> <i32> DEST  1 |-> <i32> IDX </locals>

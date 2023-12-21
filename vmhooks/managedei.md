@@ -44,8 +44,8 @@ module MANAGEDEI
  // extern void      managedGetMultiESDTCallValue(void* context, int32_t multiCallValueHandle);
     rule <instrs> hostCall ( "env" , "managedGetMultiESDTCallValue" , [ i32  .ValTypes ] -> [ .ValTypes ] )
                => #writeEsdtsToBytes(ESDTS)
-               ~> #setBufferFromBytesStack(DEST_IDX)
-               ~> #dropBytes
+               ~> #setBufferFromVmValStack(DEST_IDX)
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals>  0 |-> <i32> DEST_IDX  </locals>

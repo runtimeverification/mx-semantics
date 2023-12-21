@@ -18,7 +18,7 @@ module MANAGEDCONVERSIONS
                            | #writeEsdtToBytes(ESDTTransfer)
  // ---------------------------------------------------------------------
     rule <instrs> #writeEsdtsToBytes(L) 
-               => #pushBytes(.Bytes)
+               => #pushVmValue(.Bytes)
                ~> #writeEsdtsToBytesH(L) ...
          </instrs>
     
@@ -32,8 +32,8 @@ module MANAGEDCONVERSIONS
     
     rule <instrs> #writeEsdtToBytes(esdtTransfer(TokId, Value, Nonce))
                => #setBuffer(      #newKey(BUF_HEAP) , TokId )
-               ~> #setBigIntValue( #newKey(INT_HEAP) , Value )
-               ~> #pushBytes(
+               ~> #setBigInt( #newKey(INT_HEAP) , Value )
+               ~> #pushVmValue(
                     Int2Bytes(4, #newKey(BUF_HEAP), BE) +Bytes
                     Int2Bytes(8, Nonce,             BE) +Bytes
                     Int2Bytes(4, #newKey(INT_HEAP), BE)
@@ -115,8 +115,8 @@ module MANAGEDCONVERSIONS
     rule [writeManagedVecOfManagedBuffers]:
         <instrs> #writeManagedVecOfManagedBuffers(L, Dest)
               => #writeListBytesToBuffers(L)
-              ~> #setBufferFromBytesStack(Dest)
-              ~> #dropBytes
+              ~> #setBufferFromVmValStack(Dest)
+              ~> #dropVmValue
                  ...
         </instrs>
 
@@ -126,7 +126,7 @@ module MANAGEDCONVERSIONS
  // ---------------------------------------------------------------------
     rule [writeListBytesToBuffers]:
         <instrs> #writeListBytesToBuffers(L) 
-              => #pushBytes(.Bytes)
+              => #pushVmValue(.Bytes)
               ~> #writeListBytesToBuffersH(L) ...
         </instrs>
     
@@ -143,7 +143,7 @@ module MANAGEDCONVERSIONS
     rule [writeBytesToBuffer]:
         <instrs> #writeBytesToBuffer(Bs)
               => #setBuffer( #newKey(BUF_HEAP) , Bs )
-              ~> #pushBytes(
+              ~> #pushVmValue(
                   Int2Bytes(4, #newKey(BUF_HEAP), BE)
                  )
               ~> #appendBytes

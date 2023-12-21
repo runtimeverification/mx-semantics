@@ -68,7 +68,7 @@ module SMALLINTOPS
     // extern int32_t smallIntStorageStoreUnsigned(void *context, int32_t keyOffset, int32_t keyLength, long long value);
     rule <instrs> hostCall("env", "smallIntStorageStoreUnsigned", [ i32 i32 i64 .ValTypes ] -> [ i32 .ValTypes ])
                => #memLoad(KEYOFFSET, KEYLEN)
-               ~> #pushBytes(Int2Bytes(VALUE, BE, Unsigned))
+               ~> #pushVmValue(Int2Bytes(VALUE, BE, Unsigned))
                ~> #storageStore
                   ...
          </instrs>
@@ -81,7 +81,7 @@ module SMALLINTOPS
     // extern int32_t smallIntStorageStoreSigned(void *context, int32_t keyOffset, int32_t keyLength, long long value);
     rule <instrs> hostCall("env", "smallIntStorageStoreSigned", [ i32 i32 i64 .ValTypes ] -> [ i32 .ValTypes ])
                => #memLoad(KEYOFFSET, KEYLEN)
-               ~> #pushBytes(Int2Bytes(VALUE, BE, Signed))
+               ~> #pushVmValue(Int2Bytes(VALUE, BE, Signed))
                ~> #storageStore
                   ...
          </instrs>

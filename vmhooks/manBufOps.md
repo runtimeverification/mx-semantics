@@ -33,7 +33,7 @@ module MANBUFOPS
  // ---------------------------------------------------------------
     rule [getBuffer]:
         <instrs> #getBuffer(BUFFER_IDX) => . ... </instrs>
-        <bytesStack> STACK => HEAP{{BUFFER_IDX}} orDefault .Bytes : STACK </bytesStack>
+        <vmValStack> STACK => HEAP{{BUFFER_IDX}} orDefault .Bytes : STACK </vmValStack>
         <bufferHeap> HEAP </bufferHeap>
       requires #validBufferId(BUFFER_IDX, HEAP)
     
@@ -45,11 +45,11 @@ module MANBUFOPS
         <bufferHeap> HEAP </bufferHeap>
       requires notBool #validBufferId(BUFFER_IDX, HEAP)
 
-    syntax InternalInstr ::= #setBufferFromBytesStack ( idx: Int )
+    syntax InternalInstr ::= #setBufferFromVmValStack ( idx: Int )
                            | #setBuffer ( idx: Int , value: Bytes )
  // ----------------------------------------------------------------------------
-    rule <instrs> #setBufferFromBytesStack(BUFFER_IDX) => #setBuffer(BUFFER_IDX, BS) ... </instrs>
-         <bytesStack> BS : _ </bytesStack>
+    rule <instrs> #setBufferFromVmValStack(BUFFER_IDX) => #setBuffer(BUFFER_IDX, BS) ... </instrs>
+         <vmValStack> BS : _ </vmValStack>
 
     rule <instrs> #setBuffer(BUFFER_IDX, BS) => . ... </instrs>
          <bufferHeap> HEAP => HEAP {{ BUFFER_IDX <- BS }} </bufferHeap>
@@ -60,17 +60,17 @@ module MANBUFOPS
     rule <instrs> #appendBytesToBuffer( DEST_IDX )
                => #getBuffer(DEST_IDX)
                ~> #appendBytes
-               ~> #setBufferFromBytesStack( DEST_IDX )
+               ~> #setBufferFromVmValStack( DEST_IDX )
                   ... 
          </instrs>
 
     rule <instrs> #appendBytes => . ... </instrs>
-         <bytesStack> BS1 : BS2 : BSS => (BS1 +Bytes BS2) : BSS </bytesStack>
+         <vmValStack> BS1 : BS2 : BSS => (BS1 +Bytes BS2) : BSS </vmValStack>
 
     syntax InternalInstr ::= #sliceBytes( Int , Int )
  // ------------------------------------------------------------------
     rule <instrs> #sliceBytes(OFFSET, LENGTH) => . ... </instrs>
-         <bytesStack> (BS => substrBytes(BS, OFFSET, OFFSET +Int LENGTH)) : _ </bytesStack>
+         <vmValStack> (BS => substrBytes(BS, OFFSET, OFFSET +Int LENGTH)) : _ </vmValStack>
          requires #sliceBytesInBounds( BS , OFFSET , LENGTH )
 
     syntax Bool ::= #sliceBytesInBounds( Bytes , Int , Int )      [function, total]
@@ -86,8 +86,8 @@ module MANBUFOPS
  // extern int32_t   mBufferSetBytes(void* context, int32_t mBufferHandle, int32_t dataOffset, int32_t dataLength);
     rule <instrs> hostCall("env", "mBufferSetBytes", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #memLoad(OFFSET, LENGTH) 
-               ~> #setBufferFromBytesStack ( ARG_IDX ) 
-               ~> #dropBytes
+               ~> #setBufferFromVmValStack ( ARG_IDX ) 
+               ~> #dropVmValue
                ~> i32 . const 0
                   ... 
          </instrs>
@@ -96,8 +96,8 @@ module MANBUFOPS
  // extern int32_t   mBufferGetBytes(void* context, int32_t mBufferHandle, int32_t resultOffset);
     rule <instrs> hostCall ( "env" , "mBufferGetBytes" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] ) 
                => #getBuffer( BUFF_IDX ) 
-               ~> #memStoreFromBytesStack ( DEST_OFFSET ) 
-               ~> #dropBytes
+               ~> #memStoreFromVmValStack ( DEST_OFFSET ) 
+               ~> #dropVmValue
                ~> i32 . const 0
                   ... 
          </instrs>
@@ -105,9 +105,9 @@ module MANBUFOPS
 
  // extern int32_t   mBufferFromBigIntUnsigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
     rule <instrs> hostCall("env", "mBufferFromBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
-               => #getBigInt(BIG_IDX, Unsigned) 
-               ~> #setBufferFromBytesStack ( BUFF_IDX ) 
-               ~> #dropBytes
+               => #getBigIntBytes(BIG_IDX, Unsigned) 
+               ~> #setBufferFromVmValStack ( BUFF_IDX ) 
+               ~> #dropVmValue
                ~> i32 . const 0
                   ... 
          </instrs>
@@ -115,9 +115,9 @@ module MANBUFOPS
 
  // extern int32_t   mBufferFromBigIntSigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
     rule <instrs> hostCall("env", "mBufferFromBigIntSigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
-               => #getBigInt(BIG_IDX, Signed) 
-               ~> #setBufferFromBytesStack ( BUFF_IDX ) 
-               ~> #dropBytes
+               => #getBigIntBytes(BIG_IDX, Signed) 
+               ~> #setBufferFromVmValStack ( BUFF_IDX ) 
+               ~> #dropVmValue
                ~> i32 . const 0
                   ... 
          </instrs>
@@ -136,8 +136,8 @@ module MANBUFOPS
     rule <instrs> hostCall("env", "mBufferStorageLoad", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBuffer(KEY_IDX)
                ~> #storageLoad
-               ~> #setBufferFromBytesStack(DEST_IDX)
-               ~> #dropBytes
+               ~> #setBufferFromVmValStack(DEST_IDX)
+               ~> #dropVmValue
                ~> i32 . const 0
                   ... 
          </instrs>
@@ -146,8 +146,9 @@ module MANBUFOPS
  // extern int32_t   mBufferToBigIntUnsigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
     rule <instrs> hostCall("env", "mBufferToBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBuffer(KEY_IDX)
-               ~> #setBigIntFromBytesStack(DEST_IDX, Unsigned)
-               ~> #dropBytes
+               ~> #bytesToIntVmValStack(BE, Unsigned)
+               ~> #setBigIntFromVmValStack(DEST_IDX)
+               ~> #dropVmValue
                ~> i32 . const 0
                   ... 
          </instrs>
@@ -156,8 +157,9 @@ module MANBUFOPS
  // extern int32_t   mBufferToBigIntSigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
     rule <instrs> hostCall("env", "mBufferToBigIntSigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBuffer(KEY_IDX)
-               ~> #setBigIntFromBytesStack(DEST_IDX, Signed)
-               ~> #dropBytes
+               ~> #bytesToIntVmValStack(BE, Signed)
+               ~> #setBigIntFromVmValStack(DEST_IDX)
+               ~> #dropVmValue
                ~> i32 . const 0
                   ... 
          </instrs>
@@ -177,7 +179,7 @@ module MANBUFOPS
     rule <instrs> hostCall("env", "mBufferAppend", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBuffer(DATA_IDX)
                ~> #appendBytesToBuffer( ACC_IDX )
-               ~> #dropBytes
+               ~> #dropVmValue
                ~> i32 . const 0
                   ...
          </instrs>
@@ -189,8 +191,8 @@ module MANBUFOPS
                => #getBuffer(BUFF1_IDX)
                ~> #getBuffer(BUFF2_IDX)
                ~> #bytesEqual
-               ~> #dropBytes
-               ~> #dropBytes
+               ~> #dropVmValue
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals> 0 |-> <i32> BUFF1_IDX  1 |-> <i32> BUFF2_IDX </locals>
@@ -201,7 +203,7 @@ module MANBUFOPS
     rule <instrs> hostCall("env", "mBufferAppendBytes", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #memLoad( OFFSET , LENGTH )
                ~> #appendBytesToBuffer( BUFF_IDX )
-               ~> #dropBytes
+               ~> #dropVmValue
                ~> i32 . const 0
                   ... 
          </instrs>
@@ -211,7 +213,7 @@ module MANBUFOPS
     rule <instrs> hostCall("env", "mBufferGetLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBuffer( BUFF_IDX )
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ... 
          </instrs>
          <locals> 0 |-> <i32> BUFF_IDX </locals>
@@ -220,7 +222,7 @@ module MANBUFOPS
     rule <instrs> hostCall("env", "mBufferGetByteSlice", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
                => #getBuffer( SRC_BUFF_IDX )
                ~> #mBufferGetByteSliceH( OFFSET , LENGTH , DEST_OFFSET )
-               ~> #dropBytes
+               ~> #dropVmValue
                   ... 
          </instrs>
          <locals> 0 |-> <i32> SRC_BUFF_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH  3 |-> <i32> DEST_OFFSET </locals>
@@ -230,18 +232,18 @@ module MANBUFOPS
  // ----------------------------------------------------------------
     rule <instrs> #mBufferGetByteSliceH( OFFSET , LENGTH , DEST_OFFSET )
                => #sliceBytes( OFFSET , LENGTH )
-               ~> #memStoreFromBytesStack( DEST_OFFSET )
+               ~> #memStoreFromVmValStack( DEST_OFFSET )
                ~> i32 . const 0
                   ...
          </instrs>
-         <bytesStack> BS : _ </bytesStack>
+         <vmValStack> BS : _ </vmValStack>
          requires #sliceBytesInBounds( BS , OFFSET , LENGTH )
 
     rule <instrs> #mBufferGetByteSliceH( OFFSET , LENGTH , _DEST_OFFSET )
                => i32 . const 1
                   ...
          </instrs> 
-         <bytesStack> BS : _ </bytesStack>
+         <vmValStack> BS : _ </vmValStack>
          requires notBool( #sliceBytesInBounds( BS , OFFSET , LENGTH ) )
 
  // extern int32_t   mBufferNew(void* context);
@@ -254,8 +256,8 @@ module MANBUFOPS
  // extern int32_t   mBufferNewFromBytes(void* context, int32_t dataOffset, int32_t dataLength);
     rule <instrs> hostCall ( "env" , "mBufferNewFromBytes" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] )
               => #memLoad( OFFSET , LENGTH )
-              ~> #setBufferFromBytesStack( #newKey(HEAP) )
-              ~> #dropBytes
+              ~> #setBufferFromVmValStack( #newKey(HEAP) )
+              ~> #dropVmValue
               ~> i32 . const #newKey(HEAP)
                  ... 
          </instrs>
@@ -275,8 +277,8 @@ module MANBUFOPS
                => #getBuffer( KEY_IDX )
                ~> #getBuffer( ADDR_IDX )
                ~> #storageLoadFromAddress
-               ~> #setBufferFromBytesStack( DEST_IDX )
-               ~> #dropBytes
+               ~> #setBufferFromVmValStack( DEST_IDX )
+               ~> #dropVmValue
                   ... 
          </instrs>
          <locals> 0 |-> <i32> ADDR_IDX  1 |-> <i32> KEY_IDX  2 |-> <i32> DEST_IDX </locals>
@@ -286,7 +288,7 @@ module MANBUFOPS
  // extern int32_t   mBufferFinish(void* context, int32_t sourceHandle);
     rule <instrs> hostCall ( "env" , "mBufferFinish" , [ i32  .ValTypes ] -> [ i32  .ValTypes ] )
                => #getBuffer( SRC_IDX )
-               ~> #appendToOutFromBytesStack
+               ~> #appendToOutFromVmValStack
                ~> i32 . const 0
                   ... 
          </instrs>
@@ -296,7 +298,7 @@ module MANBUFOPS
     rule <instrs> hostCall ( "env" , "mBufferCopyByteSlice" , [ i32  i32  i32  i32  .ValTypes ] -> [ i32  .ValTypes ] )
                => #getBuffer( SRC_IDX )
                ~> #mBufferCopyByteSliceH( OFFSET , LENGTH , DEST_IDX )
-               ~> #dropBytes
+               ~> #dropVmValue
                   ... 
          </instrs>
          <locals> 0 |-> <i32> SRC_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH  3 |-> <i32> DEST_IDX </locals>
@@ -305,18 +307,18 @@ module MANBUFOPS
  // ------------------------------------------------------------------
     rule <instrs> #mBufferCopyByteSliceH( OFFSET , LENGTH , DEST_IDX )
                => #sliceBytes( OFFSET , LENGTH )
-               ~> #setBufferFromBytesStack( DEST_IDX )
+               ~> #setBufferFromVmValStack( DEST_IDX )
                ~> i32 . const 0
                   ...
          </instrs> 
-         <bytesStack> BS : _ </bytesStack>
+         <vmValStack> BS : _ </vmValStack>
          requires #sliceBytesInBounds( BS , OFFSET , LENGTH )
 
     rule <instrs> #mBufferCopyByteSliceH( OFFSET , LENGTH , _DEST_OFFSET )
                => i32 . const 1
                   ...
          </instrs> 
-         <bytesStack> BS : _ </bytesStack>
+         <vmValStack> BS : _ </vmValStack>
          requires notBool( #sliceBytesInBounds( BS , OFFSET , LENGTH ) )
 
 endmodule

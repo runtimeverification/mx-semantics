@@ -39,7 +39,7 @@ module BASEOPS
  // ------------------------------------------------
     rule [checkIsSmartContract-code]:
          <instrs> #checkIsSmartContract => i32.const 1 ... </instrs>
-         <bytesStack> ADDR : STACK => STACK </bytesStack>
+         <vmValStack> ADDR : STACK => STACK </vmValStack>
          <account>
            <address> ADDR </address>
            <code> _:ModuleDecl </code>
@@ -48,7 +48,7 @@ module BASEOPS
 
     rule [checkIsSmartContract-no-code]:
          <instrs> #checkIsSmartContract => i32.const 0 ... </instrs>
-         <bytesStack> ADDR : STACK => STACK </bytesStack>
+         <vmValStack> ADDR : STACK => STACK </vmValStack>
          <account>
            <address> ADDR </address>
            <code> .Code </code>
@@ -59,8 +59,9 @@ module BASEOPS
     rule <instrs> hostCall("env", "getExternalBalance", [ i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #memLoad(ADDROFFSET, 32)
                ~> #getExternalBalance
-               ~> #memStoreFromBytesStack(RESULTOFFSET)
-               ~> #dropBytes
+               ~> #intToBytesVmValStack(BE, Unsigned)
+               ~> #memStoreFromVmValStack(RESULTOFFSET)
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals>
@@ -71,7 +72,7 @@ module BASEOPS
     syntax InternalInstr ::= "#getExternalBalance"
  // ----------------------------------------------
     rule <instrs> #getExternalBalance => . ... </instrs>
-         <bytesStack> ADDR : STACK => Int2Bytes(BAL, BE, Unsigned) : STACK </bytesStack>
+         <vmValStack> ADDR : STACK => BAL : STACK </vmValStack>
          <account>
            <address> ADDR </address>
            <balance> BAL </balance>
@@ -80,7 +81,7 @@ module BASEOPS
 
     // return 0 if account does not exist (see the priority)
     rule <instrs> #getExternalBalance => . ... </instrs>
-         <bytesStack> _ADDR : STACK => Int2Bytes(0, BE, Unsigned) : STACK </bytesStack>
+         <vmValStack> _ADDR : STACK => 0 : STACK </vmValStack>
       [priority(201)]
          
     // extern int32_t transferValue(void *context, int32_t dstOffset, int32_t valueOffset, int32_t dataOffset, int32_t length);
@@ -104,7 +105,7 @@ module BASEOPS
     rule <commands> (. => transferFunds(CALLEE, DEST, Bytes2Int(VALUE, BE, Unsigned))) ... </commands>
          <instrs> #transferValue => #waitForTransfer ~> i32.const 0 ... </instrs>
          <callee> CALLEE </callee>
-         <bytesStack> _DATA : VALUE : DEST : STACK => STACK </bytesStack>
+         <vmValStack> _DATA : VALUE : DEST : STACK => STACK </vmValStack>
 
     // switch to wasm execution after the transfer
     rule <commands> (#transferSuccess => .) ~> #endWasm ... </commands>
@@ -178,7 +179,7 @@ module BASEOPS
                => #memLoad(KEYOFFSET, KEYLENGTH)
                ~> #storageLoad
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals>
@@ -190,9 +191,9 @@ module BASEOPS
     rule <instrs> hostCall("env", "storageLoad", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
                => #memLoad(KEYOFFSET, KEYLENGTH)
                ~> #storageLoad
-               ~> #memStoreFromBytesStack(VALOFFSET)
+               ~> #memStoreFromVmValStack(VALOFFSET)
                ~> #returnLength
-               ~> #dropBytes
+               ~> #dropVmValue
                   ...
          </instrs>
          <locals>
@@ -295,7 +296,7 @@ module BASEOPS
  // -------------------------------------------------
     rule <instrs> #returnData(OFFSET, LENGTH)
                => #memLoad(OFFSET, LENGTH)
-               ~> #appendToOutFromBytesStack
+               ~> #appendToOutFromVmValStack
                   ...
          </instrs>
 
@@ -313,7 +314,7 @@ module BASEOPS
     syntax InternalInstr ::= "#signalError"
  // ---------------------------------------
     rule <instrs> #signalError => #throwExceptionBs(UserError, DATA) ... </instrs>
-         <bytesStack> DATA : STACK => STACK </bytesStack>
+         <vmValStack> DATA : STACK => STACK </vmValStack>
 
    // extern long long getGasLeft(void *context);
     rule [getGasLeft]:

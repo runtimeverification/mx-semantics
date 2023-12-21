@@ -360,8 +360,8 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               => #getBuffer(TOK_ID_HANDLE)
               ~> #getBuffer(ADDR_HANDLE)
               ~> #setESDTRole(Int2ESDTRole(ROLE), P =/=Int 0)
-              ~> #dropBytes
-              ~> #dropBytes
+              ~> #dropVmValue
+              ~> #dropVmValue
                  ...
         </instrs>
         <locals>
@@ -376,7 +376,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
     // account and ESDT exist
     rule [setESDTRole-set-existing]:
         <instrs> #setESDTRole(ROLE, P) => . ... </instrs>
-        <bytesStack> ADDR : TOK_ID : _ </bytesStack>
+        <vmValStack> ADDR : TOK_ID : _ </vmValStack>
         <account>
           <address> ADDR </address>
           <esdtData>
@@ -390,7 +390,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
     // ESDT doesn't exist, P = true => add
     rule [setESDTRole-add-new]:
         <instrs> #setESDTRole(ROLE, true) => . ... </instrs>
-        <bytesStack> ADDR : TOK_ID : _ </bytesStack>
+        <vmValStack> ADDR : TOK_ID : _ </vmValStack>
         <account>
           <address> ADDR </address>
           (.Bag => <esdtData>
@@ -405,7 +405,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
     // ESDT doesn't exist, P = false => skip
     rule [setESDTRole-remove-skip]:
         <instrs> #setESDTRole(_ROLE, false) => . ... </instrs>
-        <bytesStack> ADDR : _TOK_ID : _ </bytesStack>
+        <vmValStack> ADDR : _TOK_ID : _ </vmValStack>
         <account>
           <address> ADDR </address>
           ...
@@ -417,7 +417,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <instrs> #setESDTRole(_, _)
               => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes ADDR) ... 
         </instrs>
-        <bytesStack> ADDR : _TOK_ID : _ </bytesStack>
+        <vmValStack> ADDR : _TOK_ID : _ </vmValStack>
       [priority(62)]
 
     syntax Set ::= updateSet(Set, KItem, Bool)      [function, total]
@@ -442,8 +442,8 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               => #getBuffer(TOK_ID_HANDLE)
               ~> #getBuffer(ADDR_HANDLE)
               ~> #checkESDTRole(Int2ESDTRole(ROLE))
-              ~> #dropBytes
-              ~> #dropBytes
+              ~> #dropVmValue
+              ~> #dropVmValue
                  ...
         </instrs>
         <locals>
@@ -456,7 +456,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
  // -------------------------------------------------------------
     rule [checkESDTRole-exists]:
         <instrs> #checkESDTRole(ROLE) => i32.const #bool(ROLE in ROLES) ... </instrs>
-        <bytesStack> ADDR : TOK_ID : _ </bytesStack>
+        <vmValStack> ADDR : TOK_ID : _ </vmValStack>
         <account>
           <address> ADDR </address>
           <esdtData>
@@ -469,7 +469,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
     rule [checkESDTRole-none]:
         <instrs> #checkESDTRole(_ROLE) => i32.const 0 ... </instrs>
-        <bytesStack> ADDR : _ : _ </bytesStack>
+        <vmValStack> ADDR : _ : _ </vmValStack>
         <account>
           <address> ADDR </address>
           ...
@@ -480,7 +480,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <instrs> #checkESDTRole(_ROLE)
               => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes ADDR) ... 
         </instrs>
-        <bytesStack> ADDR : _TOK_ID : _ </bytesStack>
+        <vmValStack> ADDR : _TOK_ID : _ </vmValStack>
       [priority(61)]
 
 ```

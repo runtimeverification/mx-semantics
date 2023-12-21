@@ -31,7 +31,7 @@ module BIGINT-HELPERS
       // - Everything on RHS is constructor
 
 
-    rule <instrs> #getBigInt(BIGINT_IDX) 
+    rule <instrs> #getBigInt(_BIGINT_IDX) 
                => #throwException(ExecutionFailed, "no bigInt under the given handle")
                   ...
          </instrs>

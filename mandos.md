@@ -142,7 +142,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         </account>
         <commands> . </commands>
       [priority(60)]
-    
+
     rule <k> setEsdtBalance( ADDR , TokId , Value ) => . ... </k>
         <account>
           <address> ADDR </address>
@@ -150,7 +150,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             (.Bag => <esdtData>
               <esdtId> TokId </esdtId>
               <esdtBalance> Value </esdtBalance>
-              <frozen> false </frozen>
+              ...
             </esdtData>)
             ...
           </esdtDatas>
@@ -158,7 +158,41 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         </account>
         <commands> . </commands>
       [priority(61)]
-    
+
+    syntax Step ::= setEsdtRoles( Bytes , Bytes , Set )
+        [klabel(setEsdtRoles), symbol]
+ // ----------------------------------------------------------------------------
+    rule [setEsdtRoles-existing]:
+        <k> setEsdtRoles(ADDR, TOK, ROLES) => . ... </k>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TOK </esdtId>
+            <esdtRoles> _ => ROLES </esdtRoles>
+            ...
+           </esdtData>
+          ...
+        </account>
+        <commands> . </commands>
+      [priority(60)]
+
+    rule [setEsdtRoles-new]:
+        <k> setEsdtRoles(ADDR, TOK, ROLES) => . ... </k>
+        <account>
+          <address> ADDR </address>
+          <esdtDatas>
+            (.Bag => <esdtData>
+              <esdtId> TOK </esdtId>
+              <esdtRoles> ROLES </esdtRoles>
+              ...
+            </esdtData>)
+            ...
+          </esdtDatas>
+          ...
+        </account>
+        <commands> . </commands>
+      [priority(61)]
+
     syntax Step ::= newAddress    ( Address, Int, Address ) [klabel(newAddress), symbol]
                   | newAddressAux ( Bytes, Int, Bytes )     [klabel(newAddressAux), symbol]
  // ---------------------------------------------------------------------------------------
@@ -270,6 +304,27 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <commands> . </commands>
       [priority(60)]
 
+    syntax Step ::= checkAccountESDTBalance    ( Address, Bytes, Int ) [klabel(checkAccountESDTBalance), symbol]
+                  | checkAccountESDTBalanceAux ( Bytes, Bytes, Int )   [klabel(checkAccountESDTBalanceAux), symbol]
+ // ------------------------------------------------------------------------------------------------
+    rule <k> checkAccountESDTBalance(ADDRESS, TOKEN, BALANCE)
+             => checkAccountESDTBalanceAux(#address2Bytes(ADDRESS), TOKEN, BALANCE) ... </k>
+         <commands> . </commands>
+      [priority(60)]
+
+    rule <k> checkAccountESDTBalanceAux(ADDR, TOKEN, BALANCE) => . ... </k>
+         <account>
+           <address> ADDR </address>
+           <esdtData>
+             <esdtId> TOKEN </esdtId>
+             <esdtBalance> BALANCE </esdtBalance>
+             ...
+           </esdtData>
+           ...
+         </account>
+         <commands> . </commands>
+      [priority(60)]
+
     syntax Step ::= checkAccountStorage    ( Address, MapBytesToBytes ) [klabel(checkAccountStorage), symbol]
                   | checkAccountStorageAux ( Bytes, MapBytesToBytes )   [klabel(checkAccountStorageAux), symbol]
  // ------------------------------------------------------------------------------------------------
@@ -374,7 +429,6 @@ Only take the next step once both the Elrond node and Wasm are done executing.
           <balance> BALANCE => BALANCE -Int GASLIMIT *Int GASPRICE </balance>
           ...
         </account>
-        <logging> S => S +String " -- call contract: " +String #parseWasmString(FUNCTION) </logging>
       [priority(60), preserves-definedness]
       // Preserving definedness:
       //   - callContract is a constructor
@@ -443,7 +497,6 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
 
     rule <k> queryTxAux(TO, FUNCTION, ARGS) => #wait ... </k>
          <commands> . => callContract(TO, FUNCTION, mkVmInputQuery(TO, ARGS)) </commands>
-         <logging> S => S +String " -- query contract: " +String #parseWasmString(FUNCTION) </logging>
       [priority(60)]
 
     syntax VmInputCell ::= mkVmInputQuery(Bytes, ListBytes)    [function, total]

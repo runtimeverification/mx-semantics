@@ -304,19 +304,53 @@ def mandos_to_set_account(address: str, sections: dict, filename: str, output_di
     if 'esdt' in sections:
         for k, v in sections['esdt'].items():
             tok_id = mandos_argument_to_kbytes(k)
+
             value = mandos_to_esdt_value(v)
-            step = KApply('setEsdtBalance', [address_value, tok_id, value])
-            set_account_steps.append(step)
+            if value is not None:
+                step = KApply('setEsdtBalance', [address_value, tok_id, value])
+                set_account_steps.append(step)
+
+            roles = mandos_to_esdt_roles(v)
+            if roles is not None:
+                step = KApply('setEsdtRoles', [address_value, tok_id, set_of(roles)])
+                set_account_steps.append(step)
 
     return set_account_steps
 
 
 # ESDT value is either an integer (compact) or a dictionary (full)
-def mandos_to_esdt_value(v: str | dict) -> KToken:
+def mandos_to_esdt_value(v: str | dict) -> KToken | None:
     if isinstance(v, str):
         return mandos_int_to_kint(v)
-    # TODO properly parse 'instances'
-    return mandos_int_to_kint(v['instances'][0]['balance'])
+    if 'instances' in v:
+        return mandos_int_to_kint(v['instances'][0]['balance'])
+    return None
+
+
+ESDT_ROLES = {
+    'ESDTRoleLocalMint',
+    'ESDTRoleLocalBurn',
+    'ESDTRoleNFTCreate',
+    'ESDTRoleNFTAddQuantity',
+    'ESDTRoleNFTBurn',
+    'ESDTRoleNFTAddURI',
+    'ESDTRoleNFTUpdateAttributes',
+    'ESDTTransferRole',
+    'None',
+}
+
+
+def mandos_to_esdt_roles(v: str | dict) -> list[KInner] | None:
+    def str_to_kast(s: str) -> KInner:
+        if s in ESDT_ROLES:
+            return KApply(s, [])
+        raise ValueError(f'ESDT role {s} not supported')
+
+    if isinstance(v, str):
+        return None
+    if 'roles' not in v:
+        return None
+    return [str_to_kast(r) for r in v['roles']]
 
 
 def mandos_to_check_account(address: str, sections: dict, filename: str) -> list:
@@ -344,6 +378,11 @@ def mandos_to_check_account(address: str, sections: dict, filename: str) -> list
             code_path = ''
         k_code_path = KString(code_path)
         k_steps.append(KApply('checkAccountCode', [address_value, k_code_path]))
+    if ('esdt' in sections) and (sections['esdt'] != '*'):
+        for token, value in sections['esdt'].items():
+            token_bytes = mandos_argument_to_kbytes(token)
+            value_kint = mandos_int_to_kint(value)
+            k_steps.append(KApply('checkAccountESDTBalance', [address_value, token_bytes, value_kint]))
 
     k_steps.append(KApply('checkedAccount', [address_value]))
     return k_steps

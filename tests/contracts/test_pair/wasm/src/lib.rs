@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            4
+// Endpoints:                            1
 // Async Callback (empty):               1
-// Total number of exported functions:   6
+// Total number of exported functions:   3
 
 #![no_std]
 #![feature(lang_items)]
@@ -16,13 +16,11 @@ multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
 
 multiversx_sc_wasm_adapter::endpoints! {
-    addercaller
+    test_pair
     (
-        call_adder
-        call_adder_esdt
-        call_adder_esdt_builtin
-        call_adder_esdt_builtin_multi
+        init => init
+        test_exchange_k => test_exchange_k
     )
 }
 
-multiversx_sc_wasm_adapter::empty_callback! {}
+multiversx_sc_wasm_adapter::async_callback_empty! {}

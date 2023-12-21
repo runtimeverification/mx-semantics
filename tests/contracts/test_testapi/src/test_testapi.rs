@@ -16,6 +16,8 @@ pub trait TestTestapi {
         self.test_set_esdt_balance(&alice);
         self.test_set_timestamp();
         self.test_set_get_storage(&alice);
+        self.test_set_esdt_role(&alice);
+        self.test_local_mint(&alice);
     }
 
     fn test_set_balance(&self, addr: &ManagedAddress) {
@@ -45,6 +47,61 @@ pub trait TestTestapi {
             .get_esdt_balance(addr, &token, 0u64);
 
         require!(value == actual, "Actual esdt balance does not match the given value");
+    }
+
+    fn test_set_esdt_role(&self, addr: &ManagedAddress) {
+        let token  = TokenIdentifier::from("MY_ESDT_TOKEN");
+        let token2 = TokenIdentifier::from("MY_ESDT_TOKEN_2");
+        
+        require!(!testapi::check_esdt_role(addr, &token, EsdtLocalRole::Mint),
+            "Cannot check role for unknown ESDT");
+        
+        testapi::add_esdt_role(addr, &token, EsdtLocalRole::Mint);
+        require!( testapi::check_esdt_role(addr, &token, EsdtLocalRole::Mint),
+            "Cannot add ESDT role local mint");
+        
+        testapi::add_esdt_role(addr, &token, EsdtLocalRole::Burn);
+        require!( testapi::check_esdt_role(addr, &token, EsdtLocalRole::Burn),
+            "Cannot add ESDT role local mint");
+        
+        testapi::remove_esdt_role(addr, &token, EsdtLocalRole::Mint);
+        require!(!testapi::check_esdt_role(addr, &token, EsdtLocalRole::Mint), 
+            "Cannot remove ESDT role local mint");
+        
+        testapi::remove_esdt_role(addr, &token, EsdtLocalRole::Burn);
+        require!(!testapi::check_esdt_role(addr, &token, EsdtLocalRole::Burn),
+            "Cannot remove ESDT role local burn");
+        
+        testapi::remove_esdt_role(addr, &token2, EsdtLocalRole::Burn);
+        require!(!testapi::check_esdt_role(addr, &token, EsdtLocalRole::Burn),
+            "Cannot remove ESDT role for unknown token");
+    }
+
+    fn test_local_mint(&self, addr: &ManagedAddress) {
+        let token = TokenIdentifier::from("MY_ESDT_TOKEN");
+        testapi::add_esdt_role(addr, &token, EsdtLocalRole::Mint);
+        
+        let initial_balance = self.blockchain()
+            .get_esdt_balance(addr, &token, 0u64);
+        
+        let mut args = ManagedArgBuffer::new();
+        args.push_arg(&token);
+        args.push_arg(100u32);
+        
+        testapi::start_prank(&addr);
+        let _ = self.send_raw().direct_egld_execute(
+            &addr, 
+            &BigUint::from(0u32), 
+            5000000000, 
+            &ManagedBuffer::from(b"ESDTLocalMint"),
+            &args,
+        );
+        testapi::stop_prank();
+    
+        let final_balance = self.blockchain()
+            .get_esdt_balance(addr, &token, 0u64);
+   
+        require!(initial_balance + 100u32 == final_balance, "Cannot local mint");
     }
 
     fn test_set_timestamp(&self) {

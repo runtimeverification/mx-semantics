@@ -461,7 +461,7 @@ If the call is successful; outputs and logs in the VM output are merged to the c
 If the result is a failure; `resolveErrorFromOutput` throws a new exception.
 
 ```k
-    syntax InternalInstr ::= "#finishExecuteOnDestContext"
+    syntax InternalInstr ::= "#finishExecuteOnDestContext"  [klabel(finishExecuteOnDestContext), symbol]
  // ------------------------------------------------------
     rule [finishExecuteOnDestContext-ok]:
         <commands> #endWasm ... </commands>
@@ -508,6 +508,10 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
         => #throwExceptionBs(EC, MSG)
         [owise]
     
+    rule [cleanReturnData]:
+        <instrs> hostCall ( "env" , "cleanReturnData" , [ .ValTypes ] -> [ .ValTypes ] ) => . ... </instrs>
+        <out> _ => .ListBytes </out>
+
 ```
 
 The (incorrect) default implementation of a host call is to just return zero values of the correct type.

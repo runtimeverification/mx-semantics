@@ -50,13 +50,13 @@ module ELROND-CONFIG
     rule <instrs> #memStoreFromVmValStack(OFFSET) => #memStore(OFFSET, BS) ... </instrs>
          <vmValStack> BS : _ </vmValStack>
 
-    rule <instrs> #memStore(OFFSET, _) 
-               => #throwException(ExecutionFailed, "bad bounds (lower)") ... 
+    rule <instrs> #memStore(OFFSET, _)
+               => #throwException(ExecutionFailed, "bad bounds (lower)") ...
          </instrs>
       requires #signed(i32 , OFFSET) <Int 0
 
-    rule <instrs> #memStore(OFFSET, BS) 
-               => #throwException(ExecutionFailed, "bad bounds (upper)") ... 
+    rule <instrs> #memStore(OFFSET, BS)
+               => #throwException(ExecutionFailed, "bad bounds (upper)") ...
          </instrs>
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
@@ -214,8 +214,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         </account>
 
     rule [storageLoadFromAddress-unknown-addr]:
-        <instrs> #storageLoadFromAddress 
-              => #throwException(UserError, "storageLoadFromAddress: unknown account address") ... 
+        <instrs> #storageLoadFromAddress
+              => #throwException(UserError, "storageLoadFromAddress: unknown account address") ...
         </instrs>
         // ADDR does not match any user
         // <vmValStack> ADDR : _ : _ </vmValStack>
@@ -270,11 +270,11 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
  // --------------------------
     rule minSInt32 => -2147483648            /* -2^31     */
     rule maxSInt32 =>  2147483647            /*  2^31 - 1 */
-    rule minUInt32 =>  0                    
+    rule minUInt32 =>  0
     rule maxUInt32 =>  4294967296            /*  2^32 - 1 */
     rule minSInt64 => -9223372036854775808   /* -2^63     */
     rule maxSInt64 =>  9223372036854775807   /*  2^63 - 1 */
-    rule minUInt64 =>  0                    
+    rule minUInt64 =>  0
     rule maxUInt64 =>  18446744073709551615  /*  2^64 - 1 */
 
     syntax InternalInstr ::= #returnIfUInt64 ( Int , String )
@@ -283,16 +283,16 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <instrs> #returnIfUInt64(V, _) => i64.const V ... </instrs>
       requires          minUInt64 <=Int V andBool V <=Int maxUInt64
 
-    rule <instrs> #returnIfUInt64(V, ERRORMSG) 
-               => #throwException(UserError, ERRORMSG) ... 
+    rule <instrs> #returnIfUInt64(V, ERRORMSG)
+               => #throwException(UserError, ERRORMSG) ...
          </instrs>
       requires notBool (minUInt64 <=Int V andBool V <=Int maxUInt64)
 
     rule <instrs> #returnIfSInt64(V, _) => i64.const V ... </instrs>
       requires          minSInt64 <=Int V andBool V <=Int maxSInt64
 
-    rule <instrs> #returnIfSInt64(V, ERRORMSG) 
-               => #throwException(UserError, ERRORMSG) ... 
+    rule <instrs> #returnIfSInt64(V, ERRORMSG)
+               => #throwException(UserError, ERRORMSG) ...
          </instrs>
       requires notBool (minSInt64 <=Int V andBool V <=Int maxSInt64)
 
@@ -439,7 +439,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule [exception-revert]:
         <commands> (#exception(EC, MSG) ~> #endWasm) => popCallState ~> popWorldState ... </commands>
         <vmOutput> .VMOutput => VMOutput( EC , MSG , .ListBytes , .List) </vmOutput>
-    
+
     rule [exception-skip]:
         <commands> #exception(_,_) ~> (CMD:InternalCmd => . ) ... </commands>
       requires CMD =/=K #endWasm
@@ -451,17 +451,23 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 `#throwException*` clears the `<instrs>` cell and creates an `#exception(_,_)` command with the given error code and message.
 
 ```k
-    syntax InternalInstr ::= #throwException( ExceptionCode , String )
-                           | #throwExceptionBs( ExceptionCode , Bytes )
  // ------------------------------------------------------------------
     rule [throwException]:
         <instrs> #throwException( EC , MSG )
               => #throwExceptionBs( EC , String2Bytes(MSG) ) ...
         </instrs>
+    rule [throwException-cmd]:
+        <commands> #throwException( EC , MSG )
+              => #throwExceptionBs( EC , String2Bytes(MSG) ) ...
+        </commands>
 
     rule [throwExceptionBs]:
         <instrs> (#throwExceptionBs( EC , MSG ) ~> _ ) => . </instrs>
         <commands> (. => #exception(EC,MSG)) ... </commands>
+        <logging> S => S +String " -- Exception: " +String Bytes2String(MSG) </logging>
+    rule [throwExceptionBs-cmd]:
+        <commands> (#throwExceptionBs( EC , MSG ) => #exception(EC,MSG)) ... </commands>
+        <logging> S => S +String " -- Exception: " +String Bytes2String(MSG) </logging>
 
 ```
 
@@ -551,11 +557,11 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     syntax InternalCmd ::= transferFunds ( Bytes, Bytes, Int )
                          | transferFundsH ( Bytes, Bytes, Int )
  // -----------------------------------------
-    rule <commands> transferFunds(A, B, V) 
+    rule <commands> transferFunds(A, B, V)
                  => checkAccountExists(A)
                  ~> checkAccountExists(B)
                  ~> transferFundsH(A, B, V)
-                    ... 
+                    ...
          </commands>
       [priority(60)]
 
@@ -588,7 +594,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       //   - -Int and +Int are total
 
     rule [transferFundsH-oofunds]:
-        <commands> transferFundsH(ACCT, _, VALUE) => #exception(OutOfFunds, b"") ... </commands>
+        <commands> transferFundsH(ACCT, _, VALUE) => #throwExceptionBs(OutOfFunds, b"") ... </commands>
         <account>
           <address> ACCT </address>
           <balance> ORIGFROM </balance>
@@ -606,7 +612,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ```k
     syntax InternalCmd ::= callContract ( Bytes, String,     VmInputCell ) [klabel(callContractString), symbol]
                          | callContract ( Bytes, WasmString, VmInputCell ) [klabel(callContractWasmString), symbol]
-                         | mkCall       ( Bytes, WasmString, VmInputCell )
  // -------------------------------------------------------------------------------------
     rule <commands> callContract(TO, FUNCNAME:String, VMINPUT)
                  => callContract(TO, #unparseWasmString("\"" +String FUNCNAME +String "\""), VMINPUT) ...
@@ -615,12 +620,12 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 
     // TODO compare with the EVM contract call implementation
     rule [callContract]:
-        <commands> callContract(TO, FUNCNAME:WasmStringToken, 
-                                <vmInput> 
+        <commands> callContract(TO, FUNCNAME:WasmStringToken,
+                                <vmInput>
                                   <caller> FROM </caller>
                                   <callValue> VALUE </callValue>
                                   <esdtTransfers> ESDT </esdtTransfers>
-                                  _ 
+                                  _
                                 </vmInput> #as VMINPUT
                    )
                 => pushWorldState
@@ -639,36 +644,57 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         </account>
         <vmOutput> _ => .VMOutput </vmOutput>
         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
+      requires toBuiltinFunction(FUNCNAME) ==K #notBuiltin
+      [priority(60)]
+
+    rule [callContract-builtin]:
+        <commands> callContract(TO, FUNC:WasmStringToken,
+                                <vmInput>
+                                  <caller> FROM </caller>
+                                  <callValue> VALUE </callValue>
+                                  <esdtTransfers> ESDT </esdtTransfers>
+                                  _
+                                </vmInput> #as VMINPUT)
+                => pushWorldState
+                ~> pushCallState
+                ~> resetCallstate
+                ~> transferFunds(FROM, TO, VALUE)
+                ~> transferESDTs(FROM, TO, ESDT)
+                ~> processBuiltinFunction(toBuiltinFunction(FUNC), FROM, TO, VMINPUT)
+                ~> #endWasm
+                   ...
+        </commands>
+        <vmOutput> _ => .VMOutput </vmOutput>
+        <logging> S => S +String " -- callContract " +String #parseWasmString(FUNC) </logging>
+      requires toBuiltinFunction(FUNC) =/=K #notBuiltin
       [priority(60)]
 
     rule [callContract-not-contract]:
         <commands> callContract(TO, _:WasmString, _)
-                => #exception(ContractNotFound, b"not a contract: " +Bytes TO) ...
+                => #throwExceptionBs(ContractNotFound, b"not a contract: " +Bytes TO) ...
         </commands>
         <account>
           <address> TO </address>
           <code> .Code </code>
           ...
         </account>
-      [priority(60)]
+      [priority(61)]
 
     rule [callContract-not-found]:
         <commands> callContract(TO, _:WasmString, _)
-                => #exception(ExecutionFailed, b"account not found: " +Bytes TO) ...
+                => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes TO) ...
         </commands>
-      [priority(61)]
+      [priority(62)]
 ```
 
 Every contract call runs in its own Wasm instance initialized with the contract's code.
 
 ```k
-    syntax WasmCell
-    syntax InternalCmd ::= newWasmInstance(Bytes, ModuleDecl)  [klabel(newWasmInstance), symbol]
-                         | "setContractModIdx"
+    syntax InternalCmd ::= "setContractModIdx"
  // ------------------------------------------------------
     rule [newWasmInstance]:
         <commands> newWasmInstance(_, CODE) => #waitWasm ~> setContractModIdx ...</commands>
-        ( _:WasmCell => <wasm> 
+        ( _:WasmCell => <wasm>
           <instrs> initContractModule(CODE) </instrs>
           ...
         </wasm>)
@@ -686,7 +712,7 @@ Every contract call runs in its own Wasm instance initialized with the contract'
 
     syntax K ::= initContractModule(ModuleDecl)   [function]
  // ------------------------------------------------------------------------
-    rule initContractModule((module _:OptionalId _:Defns):ModuleDecl #as M) 
+    rule initContractModule((module _:OptionalId _:Defns):ModuleDecl #as M)
       => sequenceStmts(text2abstract(M .Stmts))
 
     rule initContractModule(M:ModuleDecl) => M              [owise]

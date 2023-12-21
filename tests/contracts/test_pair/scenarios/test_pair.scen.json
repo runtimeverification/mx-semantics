@@ -1,0 +1,186 @@
+{
+    "name": "test-pair",
+    "comment": "",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {},
+                    "code": ""
+                },
+                "address:alice": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {},
+                    "code": ""
+                },
+                "address:bob": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {},
+                    "code": ""
+                },
+                "address:charlie": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {},
+                    "code": ""
+                },
+                "address:router": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {},
+                    "code": ""
+                },
+                "address:routerowner": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {},
+                    "code": ""
+                }
+            },
+            "newAddresses": [
+                {
+                    "creatorAddress": "address:owner",
+                    "creatorNonce": "0",
+                    "newAddress": "sc:pair"
+                }
+            ]
+        },
+        {
+            "step": "scDeploy",
+            "txId": "2",
+            "comment": "deploy example",
+            "tx": {
+                "from": "address:owner",
+                "value": "0",
+                "contractCode": "file:../../../../deps/mx-exchange-sc/dex/pair/output/pair.wasm",
+                "arguments": [
+                    "str:FIRST-123456", 
+                    "str:SECOND-123456", 
+                    "address:router",
+                    "address:routerowner",
+                    "1000",
+                    "500",
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "gasLimit": "5000000000000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "0"
+            }
+        },
+        {
+            "step": "setState",
+            "comment": "set ESDT roles. we also need to reset other fields because mandos clears the omitted fields",
+            "accounts": {
+                "sc:pair": {
+                    "esdt": {
+                        "str:LPT-123456": {
+                            "roles": [
+                                "ESDTRoleLocalMint",
+                                "ESDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:total_fee_percent": "0x03e8",
+                        "str:special_fee_percent": "0x01f4",
+                        "str:first_token_id": "str:FIRST-123456",
+                        "str:second_token_id": "str:SECOND-123456",
+                        "str:router_address": "sc:router",
+                        "str:permissionsrouter__________________________": "7",
+                        "str:permissionsrouterowner_____________________": "7"
+                    },
+                    "code": "file:../../../../deps/mx-exchange-sc/dex/pair/output/pair.wasm"
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "set lp token",
+            "tx": {
+                "from": "address:router",
+                "to": "sc:pair",
+                "function": "setLpTokenIdentifier",
+                "arguments": [
+                    "str:LPT-123456"
+                ],
+                "gasLimit": "5,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "resume",
+            "tx": {
+                "from": "address:router",
+                "to": "sc:pair",
+                "function": "resume",
+                "arguments": [],
+                "gasLimit": "5,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0"
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "address:bob": {
+                    "esdt": {
+                        "str:FIRST-123456": "1234",
+                        "str:SECOND-123456": "12345"
+                    }
+                },
+                "address:alice": {
+                    "esdt": {
+                        "str:FIRST-123456": "500"
+                    }
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "add liquidity",
+            "tx": {
+                "from": "address:bob",
+                "to": "sc:pair",
+                "function": "addLiquidity",
+                "arguments": [
+                    "1234",
+                    "12345"
+                ],
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:FIRST-123456",
+                        "value": "1234"
+                    },
+                    {
+                        "tokenIdentifier": "str:SECOND-123456",
+                        "value": "12345"
+                    }
+                ],
+                "gasLimit": "5,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "status": "0",
+                "out": "*"
+            }
+        }
+        
+    ]
+}

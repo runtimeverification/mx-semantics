@@ -53,7 +53,7 @@ module ESDT
 
     // VALUE > ORIGFROM or TOKEN does not exist
     rule [checkESDTBalance-oof]:
-        <commands> checkESDTBalance(_, _, _) => #exception(OutOfFunds, b"") ... </commands>
+        <commands> checkESDTBalance(_, _, _) => #throwExceptionBs(OutOfFunds, b"") ... </commands>
       [priority(61)]
 
 ```
@@ -298,7 +298,7 @@ module ESDT
 
     rule [checkAllowedToExecute-fail]:
         <commands> checkAllowedToExecute(_ADDR, _TOK, _ROLE) 
-                => #exception(UserError, b"action is not allowed") ...
+                => #throwExceptionBs(UserError, b"action is not allowed") ...
         </commands>
       [priority(61)]
 

@@ -233,9 +233,14 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
 
     rule [checkAccountExists-fail]:
         <commands> checkAccountExists(ADDR) 
-                => #exception(ExecutionFailed, b"account not found: " +Bytes ADDR) ... 
+                => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes ADDR) ... 
         </commands>
       [priority(61)]
+
+    syntax ThrowException ::= #throwException( ExceptionCode , String )
+                            | #throwExceptionBs( ExceptionCode , Bytes )
+    syntax InternalInstr ::= ThrowException
+    syntax InternalCmd ::= ThrowException
 
     syntax InternalCmd ::= #exception( ExceptionCode , Bytes )
  // ---------------------------------------------------
@@ -253,7 +258,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     rule [checkBool-t]:
         <commands> checkBool(true, _)    => . ... </commands>
     rule [checkBool-f]:
-        <commands> checkBool(false, ERR) => #exception(ExecutionFailed, String2Bytes(ERR)) ... </commands>
+        <commands> checkBool(false, ERR) => #throwExceptionBs(ExecutionFailed, String2Bytes(ERR)) ... </commands>
 
     syntax WasmCell
     syntax InternalCmd ::= newWasmInstance(Bytes, ModuleDecl)  [klabel(newWasmInstance), symbol]

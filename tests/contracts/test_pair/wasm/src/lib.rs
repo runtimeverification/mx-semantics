@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            1
+// Endpoints:                            3
 // Async Callback (empty):               1
-// Total number of exported functions:   3
+// Total number of exported functions:   5
 
 #![no_std]
 #![feature(lang_items)]
@@ -20,6 +20,8 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         test_exchange_k => test_exchange_k
+        test_add_liquidity => test_add_liquidity
+        test_swap => test_swap
     )
 }
 

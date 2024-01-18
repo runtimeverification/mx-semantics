@@ -62,7 +62,7 @@ mod pair_proxy {
 }
 
 #[multiversx_sc::contract]
-pub trait TestMultisigContract {
+pub trait TestPairContract {
     #[storage_mapper("firstToken")]
     fn first_token(&self) -> SingleValueMapper<TokenIdentifier>;
     #[storage_mapper("secondToken")]
@@ -140,6 +140,7 @@ pub trait TestMultisigContract {
         testapi::assume(BigUint::from(1000u32) < second_liquidity);
         testapi::assume(first_liquidity < max_liquidity);
         testapi::assume(second_liquidity < max_liquidity);
+
         testapi::assume(BigUint::from(2u32) < first_value);
         let first_no_percent = first_value.clone() * (MAX_PERCENTAGE - TOTAL_FEE_PERCENT);
         testapi::assume((first_liquidity.clone() * MAX_PERCENTAGE + first_no_percent.clone()) < second_liquidity.clone() * first_no_percent );
@@ -173,7 +174,99 @@ pub trait TestMultisigContract {
         require!(initial_k.clone() <= final_k.clone(), "K decreased!");
         let condition = final_k <= initial_k.clone() + first_reserve_final.clone() + (total_fee.clone() - special_fee.clone() + 1u64) * second_reserve_final.clone();
         require!(condition, "K grew too much!");
-        // testapi::assert(initial_k.clone() <= final_k.clone());
+        testapi::assert(initial_k.clone() <= final_k.clone());
+        // testapi::assert(final_k <= initial_k + first_reserve_initial + second_reserve_initial);
+    }
+
+    #[endpoint(test_add_liquidity)]
+    fn test_add_liquidity(&self, first_liquidity: BigUint, second_liquidity: BigUint, first_value: BigUint) {
+        let pair = ManagedAddress::from(PAIR);
+        let alice = ManagedAddress::from(ALICE);
+        let liquidity_adder = ManagedAddress::from(BOB);
+
+        let max_liquidity = self.get_max_mint_value() + 1000u32;
+
+        // make assumptions
+        testapi::assume(BigUint::from(1000u32) < first_liquidity);
+        testapi::assume(BigUint::from(1000u32) < second_liquidity);
+        testapi::assume(first_liquidity < max_liquidity);
+        testapi::assume(second_liquidity < max_liquidity);
+
+        testapi::assume(BigUint::from(2u32) < first_value);
+        let first_no_percent = first_value.clone() * (MAX_PERCENTAGE - TOTAL_FEE_PERCENT);
+        testapi::assume((first_liquidity.clone() * MAX_PERCENTAGE + first_no_percent.clone()) < second_liquidity.clone() * first_no_percent );
+
+        testapi::set_esdt_balance(&liquidity_adder, &self.first_token().get(), &first_liquidity);
+        testapi::set_esdt_balance(&liquidity_adder, &self.second_token().get(), &second_liquidity);
+        testapi::set_esdt_balance(&alice, &self.first_token().get(), &first_value);
+
+        self.add_liquidity(
+            &pair, &liquidity_adder,
+            &first_liquidity, &second_liquidity,
+            &first_liquidity, &second_liquidity,
+        );
+
+        let lp_tokens = self.blockchain().get_esdt_balance(&liquidity_adder, &self.lp_token().get(), 0);
+        let first_reserve_initial = self.get_reserve(&pair, &self.first_token().get());
+        let second_reserve_initial = self.get_reserve(&pair, &self.second_token().get());
+
+        testapi::assert(first_liquidity == first_reserve_initial);
+        testapi::assert(second_liquidity == second_reserve_initial);
+        if first_liquidity < second_liquidity {
+          testapi::assert(lp_tokens == first_reserve_initial - 1000u64);
+        } else {
+          testapi::assert(lp_tokens == second_reserve_initial - 1000u64);
+        }
+    }
+
+    #[endpoint(test_swap)]
+    fn test_swap(&self, first_liquidity: BigUint, second_liquidity: BigUint, first_value: BigUint) {
+        let pair = ManagedAddress::from(PAIR);
+        let alice = ManagedAddress::from(ALICE);
+
+        let max_liquidity = self.get_max_mint_value() + 1000u32;
+
+        // make assumptions
+        testapi::assume(BigUint::from(1000u32) < first_liquidity);
+        testapi::assume(BigUint::from(1000u32) < second_liquidity);
+        testapi::assume(first_liquidity < second_liquidity);
+        testapi::assume(first_liquidity < max_liquidity);
+        testapi::assume(second_liquidity < max_liquidity);
+
+        testapi::assume(BigUint::from(2u32) < first_value);
+        let first_no_percent = first_value.clone() * (MAX_PERCENTAGE - TOTAL_FEE_PERCENT);
+        testapi::assume((first_liquidity.clone() * MAX_PERCENTAGE + first_no_percent.clone()) < second_liquidity.clone() * first_no_percent );
+
+        testapi::set_esdt_balance(&pair, &self.first_token().get(), &first_liquidity);
+        testapi::set_esdt_balance(&pair, &self.second_token().get(), &second_liquidity);
+        testapi::set_esdt_balance(&alice, &self.first_token().get(), &first_value);
+
+        let first_liquidity_bytes = first_liquidity.to_bytes_be_buffer();
+        let second_liquidity_bytes = second_liquidity.to_bytes_be_buffer();
+        testapi::set_storage(&pair, &ManagedBuffer::new_from_bytes(b"lp_token_supply"), &first_liquidity_bytes);
+        testapi::set_storage(&pair, &ManagedBuffer::new_from_bytes(b"reserve\x00\x00\x00\x0CFIRST-123456"), &first_liquidity_bytes);
+        testapi::set_storage(&pair, &ManagedBuffer::new_from_bytes(b"reserve\x00\x00\x00\x0DSECOND-123456"), &second_liquidity_bytes);
+
+        let first_reserve_initial = self.get_reserve(&pair, &self.first_token().get());
+        let second_reserve_initial = self.get_reserve(&pair, &self.second_token().get());
+
+        self.swap_tokens_fixed_input_first(
+            &pair, &alice, &first_value, &BigUint::from(1u64)
+        );
+
+        let first_reserve_final = self.get_reserve(&pair, &self.first_token().get());
+        let second_reserve_final = self.get_reserve(&pair, &self.second_token().get());
+
+        let total_fee = first_value.clone() * TOTAL_FEE_PERCENT / MAX_PERCENTAGE;
+        let special_fee = BigUint::zero();  // Fee not enabled
+                                            // first_value * SPECIAL_FEE_PERCENT / MAX_PERCENTAGE;
+        let initial_k = first_reserve_initial.clone() * second_reserve_initial.clone();
+        let final_k = first_reserve_final.clone() * second_reserve_final.clone();
+
+        require!(initial_k.clone() <= final_k.clone(), "K decreased!");
+        let condition = final_k <= initial_k.clone() + first_reserve_final.clone() + (total_fee.clone() - special_fee.clone() + 1u64) * second_reserve_final.clone();
+        require!(condition, "K grew too much!");
+        testapi::assert(initial_k.clone() <= final_k.clone());
         // testapi::assert(final_k <= initial_k + first_reserve_initial + second_reserve_initial);
     }
 
@@ -255,8 +348,11 @@ pub trait TestMultisigContract {
         testapi::stop_prank();
     }
 
+    // the ESDTLocalMint function limits its input to 100 bytes, which means
+    // that a contract can mint at most 2^(8*100) tokens.
     fn get_max_mint_value(&self) -> BigUint {
         // 800 = 11 0010 000
+        // 800 = 2^5 + 2^8 + 2^9
         // 2^800 = 2^512 * 2^256 * 2^32
         let a32 = BigUint::from(4294967296u64);
         let a64 = a32.clone() * a32.clone();

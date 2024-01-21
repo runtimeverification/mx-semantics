@@ -354,6 +354,9 @@ test-elrond-basic-features: $(elrond_basic_features_tests:=.mandos)
 $(ELROND_BASIC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_BASIC_FEATURES_WASM) poetry-install
 	$(TEST_MANDOS) $(ELROND_BASIC_FEATURES_DIR)/scenarios/$*.scen.json --log-level none
 
+tests/custom-scenarios/basic-features/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_BASIC_FEATURES_WASM) poetry-install
+	$(TEST_MANDOS) tests/custom-scenarios/basic-features/$*.scen.json --log-level none
+
 ## Alloc Features Test
 
 ELROND_ALLOC_FEATURES_DIR=$(ELROND_CONTRACT)/feature-tests/alloc-features

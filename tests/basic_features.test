@@ -73,3 +73,4 @@ deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_u64.scen
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_usize_bad.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_usize.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/struct_eq.scen.json
+tests/custom-scenarios/basic-features/storage_mapper_fungible_token.scen.json

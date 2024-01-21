@@ -129,6 +129,46 @@ module ESDT
         <vmOutput> _ => VMOutput(OK, b"", .ListBytes, .List)</vmOutput>
 ```
 
+### Local Burn
+
+```k
+    syntax BuiltinFunction ::= "#ESDTLocalBurn"        [klabel(#ESDTLocalBurn), symbol]
+    rule toBuiltinFunction(F) => #ESDTLocalBurn requires F ==K #token("\"ESDTLocalBurn\"", "WasmStringToken")
+
+    rule [ESDTLocalBurn]:
+        <commands> processBuiltinFunction(#ESDTLocalBurn, SND, DST, <vmInput> 
+                                                                    <callValue> VALUE </callValue>
+                                                                    <callArgs> ARGS </callArgs>
+                                                                    _ 
+                                                                  </vmInput>)
+                => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
+                ~> checkBool(size(ARGS) >=Int 2, "invalid arguments to process built-in function")
+                ~> checkBool(SND ==K DST, "invalid receiver address")
+                ~> checkAccountExists(SND)
+                // TODO If the token has the 'BurnRoleForAll' global property, skip 'checkAllowedToExecute'
+                ~> checkAllowedToExecute(SND, ARGS {{ 0 }} orDefault b"", ESDTRoleLocalBurn) 
+                ~> checkBool( lengthBytes(ARGS {{ 1 }} orDefault b"") <=Int 100
+                            , "invalid arguments to process built-in function")
+                ~> esdtLocalBurn( SND
+                                , ARGS {{ 0 }} orDefault b""
+                                , Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned)
+                                )
+                   ...
+        </commands>
+
+    syntax InternalCmd ::= esdtLocalBurn(account: Bytes, token: Bytes, value: Int)
+        [klabel(esdtLocalBurn), symbol]
+ // ------------------------------------------------------------------------------
+    rule [esdtLocalBurn-cmd]:
+        <commands> esdtLocalBurn(ADDR, TOK, VAL)
+                => checkESDTBalance(ADDR, TOK, VAL)
+                ~> addToESDTBalance(ADDR, TOK, 0 -Int VAL)
+                   ...
+        </commands>
+        <vmOutput> _ => VMOutput(OK, b"", .ListBytes, .List)</vmOutput>
+
+```
+
 ### ESDT Transfer
 
 ```k

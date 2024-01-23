@@ -126,7 +126,6 @@ module ESDT
         <commands> esdtLocalMint(ADDR, TOK, VAL)
                 => addToESDTBalance(ADDR, TOK, VAL) ...
         </commands>
-        <vmOutput> _ => VMOutput(OK, b"", .ListBytes, .List)</vmOutput>
 ```
 
 ### Local Burn
@@ -165,7 +164,6 @@ module ESDT
                 ~> addToESDTBalance(ADDR, TOK, 0 -Int VAL)
                    ...
         </commands>
-        <vmOutput> _ => VMOutput(OK, b"", .ListBytes, .List)</vmOutput>
 
 ```
 
@@ -226,7 +224,6 @@ module ESDT
         <commands> determineIsSCCallAfter(_SND, _DST, _FUNC, _VMINPUT)
                 => . ...
         </commands>
-        <vmOutput> _ => VMOutput(OK, b"", .ListBytes, .List)</vmOutput> // TODO add log entry
       [owise]
 
     syntax VmInputCell ::= mkVmInputEsdtExec(Bytes, BuiltinFunction, ListBytes, Int, Int)

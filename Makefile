@@ -6,6 +6,7 @@
         test unittest-python mandos-test test-elrond-contracts                   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
         test-elrond-multisig test-elrond-basic-features                          \
+				test-elrond-alloc-features                                               \
         test-elrond-addercaller test-elrond-callercallee test-custom-contracts   \
         rule-coverage clean-coverage                                             \
 
@@ -259,7 +260,8 @@ KRUN_OPTS :=
 elrond-contract-deps := test-elrond-adder             \
                         test-elrond-crowdfunding-esdt \
                         test-elrond-multisig          \
-                        test-elrond-basic-features
+                        test-elrond-basic-features    \
+												test-elrond-alloc-features
 test-elrond-contracts: $(elrond-contract-deps)
 
 test: test-simple mandos-test test-elrond-contracts test-custom-contracts

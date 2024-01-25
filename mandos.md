@@ -193,6 +193,23 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         <commands> . </commands>
       [priority(61)]
 
+    syntax Step ::= checkEsdtRoles( Bytes , Bytes , Set )
+        [klabel(checkEsdtRoles), symbol]
+ // ----------------------------------------------------------------------------
+    rule [checkEsdtRoles]:
+        <k> checkEsdtRoles(ADDR, TOK, ROLES) => . ... </k>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TOK </esdtId>
+            <esdtRoles> ROLES </esdtRoles>
+            ...
+           </esdtData>
+          ...
+        </account>
+        <commands> . </commands>
+      [priority(60)]
+
     syntax Step ::= newAddress    ( Address, Int, Address ) [klabel(newAddress), symbol]
                   | newAddressAux ( Bytes, Int, Bytes )     [klabel(newAddressAux), symbol]
  // ---------------------------------------------------------------------------------------

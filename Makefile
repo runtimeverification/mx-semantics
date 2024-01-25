@@ -6,6 +6,7 @@
         test unittest-python mandos-test test-elrond-contracts                   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
         test-elrond-multisig test-elrond-basic-features                          \
+				test-elrond-alloc-features                                               \
         test-elrond-addercaller test-elrond-callercallee test-custom-contracts   \
         rule-coverage clean-coverage                                             \
 
@@ -259,7 +260,8 @@ KRUN_OPTS :=
 elrond-contract-deps := test-elrond-adder             \
                         test-elrond-crowdfunding-esdt \
                         test-elrond-multisig          \
-                        test-elrond-basic-features
+                        test-elrond-basic-features    \
+												test-elrond-alloc-features
 test-elrond-contracts: $(elrond-contract-deps)
 
 test: test-simple mandos-test test-elrond-contracts test-custom-contracts
@@ -353,6 +355,9 @@ test-elrond-basic-features: $(elrond_basic_features_tests:=.mandos)
 
 $(ELROND_BASIC_FEATURES_DIR)/scenarios/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_BASIC_FEATURES_WASM) poetry-install
 	$(TEST_MANDOS) $(ELROND_BASIC_FEATURES_DIR)/scenarios/$*.scen.json --log-level none
+
+tests/custom-scenarios/basic-features/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_BASIC_FEATURES_WASM) poetry-install
+	$(TEST_MANDOS) tests/custom-scenarios/basic-features/$*.scen.json --log-level none
 
 ## Alloc Features Test
 

@@ -380,9 +380,17 @@ def mandos_to_check_account(address: str, sections: dict, filename: str) -> list
         k_steps.append(KApply('checkAccountCode', [address_value, k_code_path]))
     if ('esdt' in sections) and (sections['esdt'] != '*'):
         for token, value in sections['esdt'].items():
-            token_bytes = mandos_argument_to_kbytes(token)
-            value_kint = mandos_int_to_kint(value)
-            k_steps.append(KApply('checkAccountESDTBalance', [address_value, token_bytes, value_kint]))
+            token_kbytes = mandos_argument_to_kbytes(token)
+
+            value_kint = mandos_to_esdt_value(value)
+            if value_kint is not None:
+                step = KApply('checkAccountESDTBalance', [address_value, token_kbytes, value_kint])
+                k_steps.append(step)
+
+            roles = mandos_to_esdt_roles(value)
+            if roles is not None:
+                step = KApply('checkEsdtRoles', [address_value, token_kbytes, set_of(roles)])
+                k_steps.append(step)
 
     k_steps.append(KApply('checkedAccount', [address_value]))
     return k_steps

@@ -1,0 +1,192 @@
+{
+    "name": "storage",
+    "comment": "This scenario is a simplified version of mx-sdk-rs/contracts/feature-tests/basic-features/output/basic-features.wasm" ,
+    "steps": [
+        {
+            "step": "setState",
+            "comment": "initialize accounts",
+            "accounts": {
+                "address:an_account": {
+                    "nonce": "0",
+                    "balance": "100"
+                },
+                "sc:basic-features": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:TICKER-333333": {
+                            "instances": [
+                                {
+                                    "nonce": "",
+                                    "balance": "3000"
+                                }
+                            ],
+                            "roles": [
+                                "ESDTRoleLocalMint",
+                                "ESDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:fungibleTokenMapper": "str:TICKER-333333",
+                        "str:rolesSet": "true"
+                    },
+                    "code": "file:../../../deps/mx-sdk-rs/contracts/feature-tests/basic-features/output/basic-features.wasm"
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "burn-fungible-too-much",
+            "tx": {
+                "from": "address:an_account",
+                "to": "sc:basic-features",
+                "function": "burn_fungible",
+                "arguments": [
+                    "1000000"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "10",
+                "message": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:an_account": {
+                    "nonce": "*",
+                    "balance": "100"
+                },
+                "sc:basic-features": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:TICKER-333333": {
+                            "instances": [
+                                {
+                                    "nonce": "",
+                                    "balance": "3000"
+                                }
+                            ],
+                            "roles": [
+                                "ESDTRoleLocalMint",
+                                "ESDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:fungibleTokenMapper": "str:TICKER-333333",
+                        "str:rolesSet": "true"
+                    },
+                    "code": "file:../../../deps/mx-sdk-rs/contracts/feature-tests/basic-features/output/basic-features.wasm"
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "comment": "remove mint role",
+            "accounts": {
+                "address:an_account": {
+                    "nonce": "0",
+                    "balance": "100"
+                },
+                "sc:basic-features": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:TICKER-333333": {
+                            "instances": [
+                                {
+                                    "nonce": "",
+                                    "balance": "3000"
+                                }
+                            ],
+                            "roles": [
+                                "ESDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:fungibleTokenMapper": "str:TICKER-333333",
+                        "str:rolesSet": "true"
+                    },
+                    "code": "file:../../../deps/mx-sdk-rs/contracts/feature-tests/basic-features/output/basic-features.wasm"
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "mint-not-allowed",
+            "tx": {
+                "from": "address:an_account",
+                "to": "sc:basic-features",
+                "function": "mint_fungible",
+                "arguments": [
+                    "1000000"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "10",
+                "message": "*"
+            }
+        },
+        {
+            "step": "setState",
+            "comment": "remove burn role",
+            "accounts": {
+                "address:an_account": {
+                    "nonce": "0",
+                    "balance": "100"
+                },
+                "sc:basic-features": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:TICKER-333333": {
+                            "instances": [
+                                {
+                                    "nonce": "",
+                                    "balance": "3000"
+                                }
+                            ],
+                            "roles": [
+                                "ESDTRoleLocalMint"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:fungibleTokenMapper": "str:TICKER-333333",
+                        "str:rolesSet": "true"
+                    },
+                    "code": "file:../../../deps/mx-sdk-rs/contracts/feature-tests/basic-features/output/basic-features.wasm"
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "burn-not-allowed",
+            "tx": {
+                "from": "address:an_account",
+                "to": "sc:basic-features",
+                "function": "burn_fungible",
+                "arguments": [
+                    "1000000"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "10",
+                "message": "*"
+            }
+        }
+    ]
+}

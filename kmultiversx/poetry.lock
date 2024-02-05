@@ -969,7 +969,7 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pyk"
-version = "0.1.599"
+version = "0.1.614"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -990,8 +990,8 @@ xdg-base-dirs = "^6.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/pyk.git"
-reference = "v0.1.599"
-resolved_reference = "4de42e8f8ea740c4dc89291433ee1ae150b8a043"
+reference = "v0.1.614"
+resolved_reference = "272bc8cbcb61b82e1e0ad4fc3669812de213a936"
 
 [[package]]
 name = "pykwasm"
@@ -1006,7 +1006,7 @@ develop = false
 cytoolz = "^0.12.1"
 numpy = "^1.24.2"
 py-wasm = {url = "https://github.com/runtimeverification/py-wasm/archive/refs/tags/0.2.0.tar.gz"}
-pyk = {git = "https://github.com/runtimeverification/pyk.git", tag = "v0.1.599"}
+pyk = {git = "https://github.com/runtimeverification/pyk.git", tag = "v0.1.614"}
 
 [package.source]
 type = "directory"

@@ -10,6 +10,7 @@
 // Total number of exported functions:   6
 
 #![no_std]
+#![allow(internal_features)]
 #![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
@@ -18,11 +19,12 @@ multiversx_sc_wasm_adapter::panic_handler!();
 multiversx_sc_wasm_adapter::endpoints! {
     addercaller
     (
-        call_adder
-        call_adder_esdt
-        call_adder_esdt_builtin
-        call_adder_esdt_builtin_multi
+        init => init
+        call_adder => call_adder
+        call_adder_esdt => call_adder_esdt
+        call_adder_esdt_builtin => call_adder_esdt_builtin
+        call_adder_esdt_builtin_multi => call_adder_esdt_builtin_multi
     )
 }
 
-multiversx_sc_wasm_adapter::empty_callback! {}
+multiversx_sc_wasm_adapter::async_callback_empty! {}

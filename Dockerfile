@@ -39,4 +39,5 @@ RUN    wget -O mxpy-up.py https://raw.githubusercontent.com/multiversx/mx-sdk-py
 
 ENV PATH=/home/$USER/multiversx-sdk:/home/$USER/wabt/build:/home/$USER/.local/bin:$PATH
 
-RUN mxpy deps install rust
+RUN mxpy config set "dependencies.rust.tag" nightly-2023-12-11 && \
+    mxpy deps install rust

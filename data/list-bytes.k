@@ -80,6 +80,27 @@ module LIST-BYTES-EXTENSIONS
       [function, total, symbol, klabel(ListBytesItemWrap)]
   rule ListItemWrap( B:Bytes ) => ListItem(wrap(B))
 
+  // Workaround for the Haskell backend missing the range hook.
+  // See https://github.com/runtimeverification/haskell-backend/issues/3706
+  rule range(ListItem(_) L:ListBytes, FromStart:Int, FromEnd:Int)
+      => range(L, FromStart -Int 1, FromEnd)
+      requires 0 <Int FromStart
+  rule range(L:ListBytes ListItem(_), 0, FromEnd:Int)
+      => range(L, 0, FromEnd -Int 1)
+      requires 0 <Int FromEnd
+  rule range(L:ListBytes, 0, 0)
+      => L
+
+  syntax Bool ::= rangeDefined(ListBytes, fromStart:Int, fromEnd:Int)  [function, total]
+  rule rangeDefined(L:ListBytes, FromStart:Int, FromEnd:Int)
+      => 0 <=Int FromStart
+        andBool 0 <=Int FromEnd
+        andBool FromStart +Int FromEnd <=Int size(L)
+
+  rule #Ceil(range(L:ListBytes, FromStart:Int, FromEnd:Int))
+      => {true #Equals rangeDefined(L, FromStart, FromEnd)}
+      [simplification]
+
   syntax ListBytes ::= rangeTotal(ListBytes, Int, Int)
       [function, total, klabel(ListBytes:rangeTotal), symbol]
 // ----------------------------------------------------------

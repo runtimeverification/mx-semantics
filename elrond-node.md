@@ -32,7 +32,7 @@ module ELROND-NODE
           // executional
           // every contract call uses its own wasm module instance, managed data heaps, and bytesStack.
           <wasm/>
-          <bigIntHeap> .Map </bigIntHeap>
+          <bigIntHeap> .MapIntToInt   </bigIntHeap>
           <bufferHeap> .MapIntToBytes </bufferHeap>
           <bytesStack> .BytesStack </bytesStack>
           <contractModIdx> .Int </contractModIdx>

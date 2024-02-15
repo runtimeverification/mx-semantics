@@ -737,7 +737,7 @@ Initialize the call state and invoke the endpoint function:
             </moduleInst>
             ...
           </wasm>
-          <bigIntHeap> _ => .Map </bigIntHeap>
+          <bigIntHeap> _ => .MapIntToInt </bigIntHeap>
           <bufferHeap> _ => .MapIntToBytes </bufferHeap>
           <bytesStack> _ => .BytesStack </bytesStack>
           <contractModIdx> MODIDX:Int </contractModIdx>

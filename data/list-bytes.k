@@ -16,7 +16,7 @@ module LIST-BYTES
           ]
   syntax ListBytes ::= ".ListBytes"
           [ function, total, hook(LIST.unit), klabel(.ListBytes),
-            symbol, smtlib(smt_seq_nil), latex(\dotCt{ListBytes})
+            symbol, smtlib(smt_seq_nil)
           ]
   syntax ListBytes ::= ListItem(WrappedBytes)
           [ function, total, hook(LIST.element), klabel(ListBytesItem),

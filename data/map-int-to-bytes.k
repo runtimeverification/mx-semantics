@@ -24,12 +24,12 @@ module MAP-INT-TO-BYTES
          ]
   syntax MapIntToBytes ::= ".MapIntToBytes"
          [ function, total, hook(MAP.unit),
-           klabel(.MapIntToBytes), symbol, latex(\dotCt{MapIntToBytes})
+           klabel(.MapIntToBytes), symbol
          ]
   syntax MapIntToBytes ::= WrappedInt "Int2Bytes|->" WrappedBytes
          [ function, total, hook(MAP.element),
            klabel(_Int2Bytes|->_), symbol,
-           latex({#1}\mapsto{#2}), injective
+           injective
          ]
 
   syntax priorities _Int2Bytes|->_ > _MapIntToBytes_ .MapIntToBytes
@@ -49,9 +49,7 @@ module MAP-INT-TO-BYTES
                    klabel(_MapIntToBytes[_<-undef]), symbol
                  ]
   syntax MapIntToBytes ::= MapIntToBytes "-Map" MapIntToBytes
-                 [ function, total, hook(MAP.difference),
-                   latex({#1}-_{\it MapIntToBytesMap}{#2})
-                 ]
+                 [ function, total, hook(MAP.difference), ]
   syntax MapIntToBytes ::= updateMap(MapIntToBytes, MapIntToBytes)
                  [function, total, hook(MAP.updateAll)]
 

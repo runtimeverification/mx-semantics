@@ -29,8 +29,9 @@ module BIGINT-HELPERS
       [preserves-definedness]
       // Preserving definedness:
       //  - Int2Bytes is total
-      //  - {HEAP[BIGINT_IDX]}:>Int because of #validIntId(BIGINT_IDX, HEAP)
-
+      //  - in_keys is total
+      //  - '_{{_}} orDefault' is total
+      
     rule <instrs> #getBigInt(BIGINT_IDX, _SIGN) => #throwException(ExecutionFailed, "no bigInt under the given handle") ... </instrs>
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool( BIGINT_IDX in_keys{{ HEAP }} )
@@ -45,7 +46,8 @@ module BIGINT-HELPERS
       [preserves-definedness]
       // Preserving definedness:
       //  - Int2Bytes is total
-      //  - {HEAP[BIGINT_IDX]}:>Int because of #validIntId(BIGINT_IDX, HEAP)
+      //  - in_keys is total
+      //  - '_{{_}} orDefault' is total
 
     rule [getBigIntOrCreate-create]:
         <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => #setBigIntValue(BIGINT_IDX, 0) ... </instrs>
@@ -133,6 +135,7 @@ module BIGINTOPS
       [preserves-definedness]
       // Preserving definedness:
       //  - #newKey is total
+      //  - MapIntToInt{{Int <- Int}} is total
       //  - we check that #signed(i64, INITIAL) is defined.
 
     // extern int32_t bigIntUnsignedByteLength(void* context, int32_t reference);
@@ -242,11 +245,10 @@ module BIGINTOPS
       requires OP1_IDX in_keys{{HEAP}}
        andBool OP2_IDX in_keys{{HEAP}}
       [preserves-definedness]
-      // Preserving definedness: 
-      // TODO update this
-      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
+      // Preserving definedness:
       //  - +Int is total
-      //  - Map[Kitem <- KItem] is total
+      //  - in_keys is total
+      //  - _{{_ <- _}} is total
 
    // TODO a lot of code duplication in the error cases. 
    // use sth like #getBigInt that checks existence
@@ -268,9 +270,9 @@ module BIGINTOPS
        andBool OP2_IDX in_keys{{HEAP}}
       [preserves-definedness]
       // Preserving definedness:
-      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
       //  - -Int is total
-      //  - Map[Kitem <- KItem] is total
+      //  - in_keys is total
+      //  - _{{_ <- _}} is total
 
     rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
@@ -288,10 +290,11 @@ module BIGINTOPS
          </bigIntHeap>
       requires OP1_IDX in_keys{{HEAP}}
        andBool OP2_IDX in_keys{{HEAP}}
+      [preserves-definedness]
       // Preserving definedness:
-      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
       //  - *Int is total
-      //  - Map[Kitem <- KItem] is total
+      //  - in_keys is total
+      //  - _{{_ <- _}} is total
 
     rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
@@ -312,9 +315,8 @@ module BIGINTOPS
        andBool HEAP{{OP1_IDX}} orDefault 0 =/=Int 0
       [preserves-definedness]
       // Preserving definedness:
-      //  - {HEAP[OP*_IDX]}:>Int is defined because #validIntId(OP*_IDX, HEAP)
       //  - we checked that /Int is defined
-      //  - Map[Kitem <- KItem] is total
+      //  - MapIntToInt{{Int <- Int}} is total
 
     rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
@@ -342,9 +344,9 @@ module BIGINTOPS
          <bigIntHeap> ... wrap(IDX) Int2Int|-> wrap(V) </bigIntHeap>
       [preserves-definedness]
       // Preserving definedness:
-      //  - {HEAP[IDX]}:>Int is defined because #validIntId(IDX, HEAP)
       //  - #bigIntSign is total
-      //  - Map[Kitem <- KItem] is total
+      //  - in_keys is total
+      //  - _{{_ <- _}} is total
 
     rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle")
@@ -365,9 +367,9 @@ module BIGINTOPS
        andBool OP2_IDX in_keys{{HEAP}}
       [preserves-definedness]
       // Preserving definedness:
-      //  - {HEAP[IDX*]}:>Int is defined because #validIntId(IDX*, HEAP)
       //  - #cmpInt is total
-      //  - Map[Kitem <- KItem] is total
+      //  - in_keys is total
+      //  - _{{_ <- _}} is total
 
     rule <instrs> hostCall("env", "bigIntCmp", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle")
@@ -430,9 +432,9 @@ module BIGINTOPS
       requires #validArgIdx(ARG_IDX, ARGS)
       [preserves-definedness]
       // Preserving definedness:
-      //  - ARGS {{ ARG_IDX }} is defined because #validArgIdx(ARG_IDX, ARGS)
+      //  - #cmpInt is total
       //  - Bytes2Int is total
-      //  - Map[Kitem <- KItem] is total
+      //  - _{{_ <- _}} is total
 
     // If ARG_IDX is invalid (out of bounds) just ignore
     // https://github.com/multiversx/mx-chain-vm-go/blob/ea3d78d34c35f7ef9c1a9ea4fce8288608763229/vmhost/vmhooks/bigIntOps.go#L68
@@ -451,7 +453,7 @@ module BIGINTOPS
       // Preserving definedness:
       //  - ARGS {{ ARG_IDX }} is defined because #validArgIdx(ARG_IDX, ARGS)
       //  - Bytes2Int is total
-      //  - Map[Kitem <- KItem] is total
+      //  - _{{_ <- _}} is total
 
     rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> _BIG_IDX </locals>

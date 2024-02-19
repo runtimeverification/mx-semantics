@@ -1,4 +1,4 @@
-name: 'Update poetry for wasm-semantics'
+name: 'Update Versions'
 on:
   push:
     branches:

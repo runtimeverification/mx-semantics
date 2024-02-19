@@ -31,12 +31,10 @@ jobs:
           git fetch --tags
           git checkout v${kwasm_version}
           cd ../..
-          git add deps/wasm-semantics
-          git commit -m "deps/wasm-semantics: update submodule v${kwasm_version}"
+          git add deps/wasm-semantics && git commit -m "deps/wasm-semantics: update submodule v${kwasm_version}" || true
           cat deps/wasm-semantics/deps/k_release > deps/k_release
           cat deps/wasm-semantics/deps/pyk_release > deps/pyk_release
-          git add deps/k_release deps/pyk_release
-          git commit -m 'deps/{k_release,pyk_release}: update versions'
+          git add deps/k_release deps/pyk_release && git commit -m 'deps/{k_release,pyk_release}: update versions' || true
       - name: 'Update poetry files'
         run: |
           pykwasm_version="$(cat deps/kwasm_release)"

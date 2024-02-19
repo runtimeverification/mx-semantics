@@ -21,13 +21,13 @@ tests-no-zope = ["attrs[tests-mypy]", "cloudpickle", "hypothesis", "pympler", "p
 
 [[package]]
 name = "autoflake"
-version = "2.2.1"
+version = "2.3.0"
 description = "Removes unused imports and unused variables"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "autoflake-2.2.1-py3-none-any.whl", hash = "sha256:265cde0a43c1f44ecfb4f30d95b0437796759d07be7706a2f70e4719234c0f79"},
-    {file = "autoflake-2.2.1.tar.gz", hash = "sha256:62b7b6449a692c3c9b0c916919bbc21648da7281e8506bcf8d3f8280e431ebc1"},
+    {file = "autoflake-2.3.0-py3-none-any.whl", hash = "sha256:79a51eb8c0744759d2efe052455ab20aa6a314763510c3fd897499a402126327"},
+    {file = "autoflake-2.3.0.tar.gz", hash = "sha256:8c2011fa34701b9d7dcf05b9873bc4859d4fce4e62dfea90dffefd1576f5f01d"},
 ]
 
 [package.dependencies]
@@ -494,13 +494,13 @@ pyreadline3 = {version = "*", markers = "sys_platform == \"win32\" and python_ve
 
 [[package]]
 name = "hypothesis"
-version = "6.98.6"
+version = "6.98.8"
 description = "A library for property-based testing"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "hypothesis-6.98.6-py3-none-any.whl", hash = "sha256:6d94e748311e331d1bc975550bece652d961b3f5218d77a2d450eb541a94cbae"},
-    {file = "hypothesis-6.98.6.tar.gz", hash = "sha256:2d80f64c58f58a60e035c665e94a36f77c3f8fe057b55053d06b2c82dcefc507"},
+    {file = "hypothesis-6.98.8-py3-none-any.whl", hash = "sha256:82d13cc46311c4a8de49a8a8613f4e6afbeabbc037e86d24ac16e2f15a0d676d"},
+    {file = "hypothesis-6.98.8.tar.gz", hash = "sha256:35bcb6e497967e73d968fc4adedaf49ca5d85a22cc8065798716581f2205563a"},
 ]
 
 [package.dependencies]
@@ -1113,13 +1113,13 @@ testing = ["filelock"]
 
 [[package]]
 name = "pyupgrade"
-version = "3.15.0"
+version = "3.15.1"
 description = "A tool to automatically upgrade syntax for newer versions."
 optional = false
 python-versions = ">=3.8.1"
 files = [
-    {file = "pyupgrade-3.15.0-py2.py3-none-any.whl", hash = "sha256:8dc8ebfaed43566e2c65994162795017c7db11f531558a74bc8aa077907bc305"},
-    {file = "pyupgrade-3.15.0.tar.gz", hash = "sha256:a7fde381060d7c224f55aef7a30fae5ac93bbc428367d27e70a603bc2acd4f00"},
+    {file = "pyupgrade-3.15.1-py2.py3-none-any.whl", hash = "sha256:c5e005de2805edcd333d1deb04553200ec69da85e4bc9db37b16345ed9e27ed9"},
+    {file = "pyupgrade-3.15.1.tar.gz", hash = "sha256:7690857cae0f6253f39241dcd2e57118c333c438b78609fc3c17a5aa61227b7d"},
 ]
 
 [package.dependencies]

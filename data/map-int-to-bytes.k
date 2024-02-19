@@ -49,7 +49,7 @@ module MAP-INT-TO-BYTES
                    klabel(_MapIntToBytes[_<-undef]), symbol
                  ]
   syntax MapIntToBytes ::= MapIntToBytes "-Map" MapIntToBytes
-                 [ function, total, hook(MAP.difference), ]
+                 [ function, total, hook(MAP.difference) ]
   syntax MapIntToBytes ::= updateMap(MapIntToBytes, MapIntToBytes)
                  [function, total, hook(MAP.updateAll)]
 

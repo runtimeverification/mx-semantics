@@ -38,7 +38,7 @@ jobs:
       - name: 'Update poetry files'
         run: |
           pykwasm_version="$(cat deps/kwasm_release)"
-          sed -i 's!pykwasm = { git = "https://github.com/runtimeverification/wasm-semantics.git", tag = "[v0-9\.]*", subdirectory = "pykwasm" }!pykwasm = { git = "https://github.com/runtimeverification/wasm-semantics.git", tag = "'${pykwasm_version}'", subdirectory = "pykwasm" }!' kmultiversx/pyproject.toml
+          sed -i 's!pykwasm = { git = "https://github.com/runtimeverification/wasm-semantics.git", tag = "[v0-9\.]*", subdirectory = "pykwasm" }!pykwasm = { git = "https://github.com/runtimeverification/wasm-semantics.git", tag = "v'${pykwasm_version}'", subdirectory = "pykwasm" }!' kmultiversx/pyproject.toml
           poetry -C kmultiversx update
           git add kmultiversx/ && git commit -m "kmultiversx/: sync poetry files ${pykwasm_version}" || true
       - name: 'Push updates'

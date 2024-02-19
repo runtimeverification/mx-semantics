@@ -1010,8 +1010,11 @@ py-wasm = {url = "https://github.com/runtimeverification/py-wasm/archive/refs/ta
 pyk = {git = "https://github.com/runtimeverification/pyk.git", tag = "v0.1.635"}
 
 [package.source]
-type = "directory"
-url = "../deps/wasm-semantics/pykwasm"
+type = "git"
+url = "https://github.com/runtimeverification/wasm-semantics.git"
+reference = "v0.1.1"
+resolved_reference = "8dfc2abcb485287d35feabf4e3afee959880360c"
+subdirectory = "pykwasm"
 
 [[package]]
 name = "pyperclip"
@@ -1288,4 +1291,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "6c0e5af7322663a42ee17a19fc09989375d2177e743c67852a2a75e17fb2755c"
+content-hash = "1c24221725cffa2481f96b4aabfd81c434e739070259e2768f9e32a1335411e6"

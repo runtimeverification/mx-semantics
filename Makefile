@@ -2,11 +2,10 @@
 .PHONY: all clean deps wasm-deps                                                 \
         build build-llvm build-haskell build-kasmer                              \
         plugin-deps libff libcryptopp libsecp256k1                               \
-        elrond-clean-sources elrond-loaded                                       \
         test unittest-python mandos-test test-elrond-contracts                   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
         test-elrond-multisig test-elrond-basic-features                          \
-				test-elrond-alloc-features                                               \
+        test-elrond-alloc-features                                               \
         test-elrond-addercaller test-elrond-callercallee test-custom-contracts   \
         rule-coverage clean-coverage                                             \
 
@@ -261,7 +260,7 @@ elrond-contract-deps := test-elrond-adder             \
                         test-elrond-crowdfunding-esdt \
                         test-elrond-multisig          \
                         test-elrond-basic-features    \
-												test-elrond-alloc-features
+                        test-elrond-alloc-features
 test-elrond-contracts: $(elrond-contract-deps)
 
 test: test-simple mandos-test test-elrond-contracts test-custom-contracts
@@ -281,20 +280,6 @@ tests/%.run: tests/%
 simple_tests := $(wildcard tests/simple/*.wast)
 
 test-simple: $(simple_tests:=.run)
-
-# Elrond Wasm Definitions
-# -----------------------
-
-ELROND_LOADED_JSON  := src/elrond-runtime.loaded.json
-ELROND_RUNTIME      := src/elrond-runtime.wat
-
-elrond-loaded: $(ELROND_LOADED_JSON)
-
-elrond-clean-sources:
-	rm $(ELROND_LOADED_JSON)
-
-$(ELROND_LOADED_JSON): $(ELROND_RUNTIME)
-	$(TEST) run --backend $(TEST_CONCRETE_BACKEND) $< --output json > $@
 
 # Elrond Tests
 # ------------

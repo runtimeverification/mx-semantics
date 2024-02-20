@@ -249,6 +249,7 @@ module BIGINTOPS
       //  - +Int is total
       //  - in_keys is total
       //  - _{{_ <- _}} is total
+      //  - _{{_}} orDefault _ is total
 
    // TODO a lot of code duplication in the error cases. 
    // use sth like #getBigInt that checks existence
@@ -273,6 +274,7 @@ module BIGINTOPS
       //  - -Int is total
       //  - in_keys is total
       //  - _{{_ <- _}} is total
+      //  - _{{_}} orDefault _ is total
 
     rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
@@ -295,6 +297,7 @@ module BIGINTOPS
       //  - *Int is total
       //  - in_keys is total
       //  - _{{_ <- _}} is total
+      //  - _{{_}} orDefault _ is total
 
     rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
@@ -316,7 +319,8 @@ module BIGINTOPS
       [preserves-definedness]
       // Preserving definedness:
       //  - we checked that /Int is defined
-      //  - MapIntToInt{{Int <- Int}} is total
+      //  - _{{_ <- _}} is total
+      //  - _{{_}} orDefault _ is total
 
     rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
@@ -370,6 +374,7 @@ module BIGINTOPS
       //  - #cmpInt is total
       //  - in_keys is total
       //  - _{{_ <- _}} is total
+      //  - _{{_}} orDefault _ is total
 
     rule <instrs> hostCall("env", "bigIntCmp", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle")
@@ -432,6 +437,7 @@ module BIGINTOPS
       requires #validArgIdx(ARG_IDX, ARGS)
       [preserves-definedness]
       // Preserving definedness:
+      //  - ARGS {{ ARG_IDX }} is defined because #validArgIdx(ARG_IDX, ARGS)
       //  - #cmpInt is total
       //  - Bytes2Int is total
       //  - _{{_ <- _}} is total

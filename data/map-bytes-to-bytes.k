@@ -24,12 +24,12 @@ module MAP-BYTES-TO-BYTES
          ]
   syntax MapBytesToBytes ::= ".MapBytesToBytes"
          [ function, total, hook(MAP.unit),
-           klabel(.MapBytesToBytes), symbol, latex(\dotCt{MapBytesToBytes})
+           klabel(.MapBytesToBytes), symbol
          ]
   syntax MapBytesToBytes ::= WrappedBytes "Bytes2Bytes|->" WrappedBytes
          [ function, total, hook(MAP.element),
            klabel(_Bytes2Bytes|->_), symbol,
-           latex({#1}\mapsto{#2}), injective
+           injective
          ]
 
   syntax priorities _Bytes2Bytes|->_ > _MapBytesToBytes_ .MapBytesToBytes
@@ -49,9 +49,7 @@ module MAP-BYTES-TO-BYTES
                    klabel(_MapBytesToBytes[_<-undef]), symbol
                  ]
   syntax MapBytesToBytes ::= MapBytesToBytes "-Map" MapBytesToBytes
-                 [ function, total, hook(MAP.difference),
-                   latex({#1}-_{\it MapBytesToBytesMap}{#2})
-                 ]
+                 [ function, total, hook(MAP.difference) ]
   syntax MapBytesToBytes ::= updateMap(MapBytesToBytes, MapBytesToBytes)
                  [function, total, hook(MAP.updateAll)]
 

@@ -33,13 +33,6 @@ Then the tests can be run with:
 $ make test
 ```
 
-If you modify the K files, you should re-build the pre-made sources:
-
-```shell
-$ make elrond-clean-sources
-$ make elrond-loaded
-```
-
 ### Installing `kmultiversx`
 
 `kmultiversx` is a Python package providing libraries and CLI tools to interact with the semantics.

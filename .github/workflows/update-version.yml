@@ -1,0 +1,45 @@
+name: 'Update Versions'
+on:
+  push:
+    branches:
+      - '_update-deps/runtimeverification/wasm-semantics'
+# Stop in progress workflows on the same branch and same workflow to use latest committed code
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update-submodule:
+    name: 'Update poetry'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Check out code'
+        uses: actions/checkout@v3
+        with:    
+          submodules: recursive
+          token: ${{ secrets.JENKINS_GITHUB_PAT }}
+      - name: 'Configure GitHub user'
+        run: |
+          git config user.name devops
+          git config user.email devops@runtimeverification.com
+      - name: 'Install Poetry'
+        uses: Gr1N/setup-poetry@v8
+      - name: 'Update KWasm submodule, pyk/K releases'
+        run: |
+          kwasm_version=$(cat deps/kwasm_release)
+          cd deps/wasm-semantics/
+          git fetch --tags
+          git checkout v${kwasm_version}
+          cd ../..
+          git add deps/wasm-semantics && git commit -m "deps/wasm-semantics: update submodule v${kwasm_version}" || true
+          cat deps/wasm-semantics/deps/k_release > deps/k_release
+          cat deps/wasm-semantics/deps/pyk_release > deps/pyk_release
+          git add deps/k_release deps/pyk_release && git commit -m 'deps/{k_release,pyk_release}: update versions' || true
+      - name: 'Update poetry files'
+        run: |
+          pykwasm_version="$(cat deps/kwasm_release)"
+          sed -i 's!pykwasm = { git = "https://github.com/runtimeverification/wasm-semantics.git", tag = "[v0-9\.]*", subdirectory = "pykwasm" }!pykwasm = { git = "https://github.com/runtimeverification/wasm-semantics.git", tag = "v'${pykwasm_version}'", subdirectory = "pykwasm" }!' kmultiversx/pyproject.toml
+          poetry -C kmultiversx update
+          git add kmultiversx/ && git commit -m "kmultiversx/: sync poetry files ${pykwasm_version}" || true
+      - name: 'Push updates'
+        run: git push

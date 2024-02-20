@@ -21,18 +21,25 @@ runs:
       GROUP=$(id -gn)
       GROUP_ID=$(id -g)
 
-      docker build . --tag ${TAG} --build-arg K_COMMIT="$(cat deps/wasm-semantics/deps/k_release)" --build-arg USER_ID=${USER_ID} --build-arg GROUP_ID=${GROUP_ID} --build-arg USER=${USER} --build-arg GROUP=${GROUP}
+      K_COMMIT=$(cat deps/k_release)
 
-      docker run                 \
-        --name ${CONTAINER_NAME} \
-        --rm                     \
-        --interactive            \
-        --tty                    \
-        --detach                 \
-        --user ${USER}:${GROUP}  \
-        --workdir /home/${USER}   \
-        -v "/etc/passwd:/etc/passwd:ro"    \
-        -v "/etc/group:/etc/group:ro"      \
+      docker build . --tag ${TAG}        \
+        --build-arg K_COMMIT=${K_COMMIT} \
+        --build-arg USER_ID=${USER_ID}   \
+        --build-arg GROUP_ID=${GROUP_ID} \
+        --build-arg USER=${USER}         \
+        --build-arg GROUP=${GROUP}
+
+      docker run                        \
+        --name ${CONTAINER_NAME}        \
+        --rm                            \
+        --interactive                   \
+        --tty                           \
+        --detach                        \
+        --user ${USER}:${GROUP}         \
+        --workdir /home/${USER}         \
+        -v "/etc/passwd:/etc/passwd:ro" \
+        -v "/etc/group:/etc/group:ro"   \
         ${TAG}
 
       docker cp . ${CONTAINER_NAME}:/home/${USER}

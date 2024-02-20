@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from __future__ import annotations
 
 import argparse
 import json
@@ -7,17 +7,20 @@ import resource
 import subprocess
 import sys
 import tempfile
-from typing import Iterable, Optional
+from typing import TYPE_CHECKING, Iterable, Optional
 
 from Cryptodome.Hash import keccak
 from pyk.cli.utils import dir_path
-from pyk.kast.inner import KApply, KInner, KSequence, KToken, Subst
+from pyk.kast.inner import KApply, KSequence, KToken, Subst
 from pyk.kast.manip import split_config_from
 from pyk.ktool.krun import KRun
 from pyk.prelude.collections import set_of
 from pykwasm.kwasm_ast import KBytes, KInt, KString
 
-from kmultiversx.utils import flatten, kast_to_json_str, krun_config, load_wasm
+from kmultiversx.utils import GENERATED_TOP_CELL, flatten, kast_to_json_str, krun_config, load_wasm
+
+if TYPE_CHECKING:
+    from pyk.kast.inner import KInner
 
 
 def wrapBytes(bs: KInner) -> KInner:  # noqa: N802
@@ -781,13 +784,7 @@ def run_tests() -> None:
 
     krun = KRun(args.definition_dir)
 
-    with open('src/elrond-runtime.loaded.json', 'r') as f:
-        runtime_json = json.load(f)
-        template_wasm_config = KInner.from_dict(runtime_json['term'])
-
-    _, cells = split_config_from(template_wasm_config)
-    assert isinstance(cells['K_CELL'], KSequence)
-    assert cells['K_CELL'].arity == 0
+    template_wasm_config = krun.definition.init_config(GENERATED_TOP_CELL)
 
     for test in tests:
         if args.verbose:

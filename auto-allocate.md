@@ -18,7 +18,7 @@ module WASM-AUTO-ALLOCATE
 
     syntax Stmt ::= "newEmptyModule" WasmString
  // -------------------------------------------
-    rule <instrs> newEmptyModule MODNAME => . ... </instrs>
+    rule <instrs> newEmptyModule MODNAME => .K ... </instrs>
          <moduleRegistry> MR => MR [ MODNAME <- NEXT ] </moduleRegistry>
          <nextModuleIdx> NEXT => NEXT +Int 1 </nextModuleIdx>
          <moduleInstances> ( .Bag => <moduleInst> <modIdx> NEXT </modIdx> ... </moduleInst>) ... </moduleInstances>
@@ -50,7 +50,7 @@ It is treated purely as a key set -- the actual stored values are not used or st
 
     syntax Instr ::= hostCall(String, String, FuncType)
  // ---------------------------------------------------
-    rule <instrs> (. => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(wasmString2StringStripped(MOD), wasmString2StringStripped(NAME), TYPE) .Instrs, #meta(... id: String2Identifier("$auto-alloc:" +String #parseWasmString(MOD) +String ":" +String #parseWasmString(NAME) ), localIds: .Map )))
+    rule <instrs> (.K => allocfunc(HOSTMOD, NEXTADDR, TYPE, [ .ValTypes ], hostCall(wasmString2StringStripped(MOD), wasmString2StringStripped(NAME), TYPE) .Instrs, #meta(... id: String2Identifier("$auto-alloc:" +String #parseWasmString(MOD) +String ":" +String #parseWasmString(NAME) ), localIds: .Map )))
                ~> #import(MOD, NAME, #funcDesc(... type: TIDX))
               ...
          </instrs>

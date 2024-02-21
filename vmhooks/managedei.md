@@ -29,7 +29,7 @@ module MANAGEDEI
     // TODO implement managedWriteLog
     // extern void      managedWriteLog(void* context, int32_t topicsHandle, int32_t dataHandle);
     rule <instrs> hostCall ( "env" , "managedWriteLog" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
-               => .
+               => .K
                   ...
          </instrs>
 

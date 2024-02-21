@@ -32,7 +32,7 @@ module MANBUFOPS
     syntax InternalInstr ::= #getBuffer ( idx : Int )
  // ---------------------------------------------------------------
     rule [getBuffer]:
-        <instrs> #getBuffer(BUFFER_IDX) => . ... </instrs>
+        <instrs> #getBuffer(BUFFER_IDX) => .K ... </instrs>
         <bytesStack> STACK => HEAP{{BUFFER_IDX}} orDefault .Bytes : STACK </bytesStack>
         <bufferHeap> HEAP </bufferHeap>
       requires #validBufferId(BUFFER_IDX, HEAP)
@@ -51,7 +51,7 @@ module MANBUFOPS
     rule <instrs> #setBufferFromBytesStack(BUFFER_IDX) => #setBuffer(BUFFER_IDX, BS) ... </instrs>
          <bytesStack> BS : _ </bytesStack>
 
-    rule <instrs> #setBuffer(BUFFER_IDX, BS) => . ... </instrs>
+    rule <instrs> #setBuffer(BUFFER_IDX, BS) => .K ... </instrs>
          <bufferHeap> HEAP => HEAP {{ BUFFER_IDX <- BS }} </bufferHeap>
 
     syntax InternalInstr ::= #appendBytesToBuffer( Int )
@@ -64,12 +64,12 @@ module MANBUFOPS
                   ... 
          </instrs>
 
-    rule <instrs> #appendBytes => . ... </instrs>
+    rule <instrs> #appendBytes => .K ... </instrs>
          <bytesStack> BS1 : BS2 : BSS => (BS1 +Bytes BS2) : BSS </bytesStack>
 
     syntax InternalInstr ::= #sliceBytes( Int , Int )
  // ------------------------------------------------------------------
-    rule <instrs> #sliceBytes(OFFSET, LENGTH) => . ... </instrs>
+    rule <instrs> #sliceBytes(OFFSET, LENGTH) => .K ... </instrs>
          <bytesStack> (BS => substrBytes(BS, OFFSET, OFFSET +Int LENGTH)) : _ </bytesStack>
          requires #sliceBytesInBounds( BS , OFFSET , LENGTH )
 

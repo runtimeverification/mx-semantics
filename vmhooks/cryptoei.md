@@ -17,12 +17,12 @@ module CRYPTOEI-HELPERS
 
     syntax HashBytesStackInstr ::= "#sha256FromBytesStack"
  // ------------------------------------------------------
-    rule <instrs> #sha256FromBytesStack => . ... </instrs>
+    rule <instrs> #sha256FromBytesStack => .K ... </instrs>
          <bytesStack> (DATA => #parseHexBytes(Sha256(DATA))) : _STACK </bytesStack>
 
     syntax HashBytesStackInstr ::= "#keccakFromBytesStack"
  // ------------------------------------------------------
-    rule <instrs> #keccakFromBytesStack => . ... </instrs>
+    rule <instrs> #keccakFromBytesStack => .K ... </instrs>
          <bytesStack> (DATA => #parseHexBytes(Keccak256(DATA))) : _STACK </bytesStack>
 
     syntax InternalInstr ::= #hashMemory ( Int , Int , Int ,  HashBytesStackInstr )

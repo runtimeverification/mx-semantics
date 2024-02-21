@@ -38,7 +38,7 @@ module ESDT
     syntax InternalCmd ::= checkESDTBalance(account: Bytes, token: Bytes, value: Int)
  // ------------------------------------------------------
     rule [checkESDTBalance]:
-        <commands> checkESDTBalance(ACCT, TOKEN, VALUE) => . ... </commands>
+        <commands> checkESDTBalance(ACCT, TOKEN, VALUE) => .K ... </commands>
         <account>
           <address> ACCT </address>
           <esdtData>
@@ -64,7 +64,7 @@ module ESDT
     syntax InternalCmd ::= addToESDTBalance(account: Bytes, token: Bytes, delta: Int)
  // ------------------------------------------------------
     rule [addToESDTBalance]:
-        <commands> addToESDTBalance(ACCT, TOKEN, DELTA) => . ... </commands>
+        <commands> addToESDTBalance(ACCT, TOKEN, DELTA) => .K ... </commands>
         <account>
           <address> ACCT </address>
           <esdtData>
@@ -77,7 +77,7 @@ module ESDT
       [priority(60)]
 
     rule [addToESDTBalance-new-esdtData]:
-        <commands> addToESDTBalance(ACCT, TOKEN, DELTA) => . ... </commands>
+        <commands> addToESDTBalance(ACCT, TOKEN, DELTA) => .K ... </commands>
         <account>
           <address> ACCT </address>
           (.Bag => <esdtData>
@@ -222,7 +222,7 @@ module ESDT
 
     rule [determineIsSCCallAfter-nocall]:
         <commands> determineIsSCCallAfter(_SND, _DST, _FUNC, _VMINPUT)
-                => . ...
+                => .K ...
         </commands>
       [owise]
 
@@ -320,7 +320,7 @@ module ESDT
         [klabel(checkAllowedToExecute), symbol]
  // ----------------------------------------------------------------------------------------
     rule [checkAllowedToExecute-pass]:
-        <commands> checkAllowedToExecute(ADDR, TOK, ROLE) => . ... </commands>
+        <commands> checkAllowedToExecute(ADDR, TOK, ROLE) => .K ... </commands>
         <account>
           <address> ADDR </address>
           <esdtData>

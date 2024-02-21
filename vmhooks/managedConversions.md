@@ -22,7 +22,7 @@ module MANAGEDCONVERSIONS
                ~> #writeEsdtsToBytesH(L) ...
          </instrs>
     
-    rule <instrs> #writeEsdtsToBytesH(.List) => . ... </instrs>
+    rule <instrs> #writeEsdtsToBytesH(.List) => .K ... </instrs>
 
     rule <instrs> #writeEsdtsToBytesH(Ts ListItem(T))
                => #writeEsdtToBytes(T)
@@ -131,7 +131,7 @@ module MANAGEDCONVERSIONS
         </instrs>
     
     rule [writeListBytesToBuffersH-nil]:
-        <instrs> #writeListBytesToBuffersH(.ListBytes) => . ... </instrs>
+        <instrs> #writeListBytesToBuffersH(.ListBytes) => .K ... </instrs>
 
     rule [writeListBytesToBuffersH-cons]:
         <instrs> #writeListBytesToBuffersH(Ts ListItem(wrap(T)))

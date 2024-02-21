@@ -2,8 +2,8 @@ Mandos Testing Framework
 ========================
 
 ```k
-require "wasm-semantics/wasm-text.md"
-require "elrond.md"
+requires "wasm-semantics/wasm-text.md"
+requires "elrond.md"
 
 module MANDOS-SYNTAX
     imports MANDOS

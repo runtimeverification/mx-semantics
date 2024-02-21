@@ -4,11 +4,11 @@ Elrond Configuration
 Combine Elrond node with Wasm.
 
 ```k
-require "auto-allocate.md"
-require "deps/plugin/plugin/krypto.md"
-require "elrond-node.md"
-require "esdt.md"
-require "wasm-semantics/wasm-text.md"
+requires "auto-allocate.md"
+requires "deps/plugin/plugin/krypto.md"
+requires "elrond-node.md"
+requires "esdt.md"
+requires "wasm-semantics/wasm-text.md"
 
 module ELROND-CONFIG
     imports KRYPTO

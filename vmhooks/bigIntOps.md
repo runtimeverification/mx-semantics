@@ -4,9 +4,9 @@ Big Integers
 Go implementation: [mx-chain-vm-go/vmhost/vmhooks/bigIntOps.go](https://github.com/multiversx/mx-chain-vm-go/blob/ea3d78d34c35f7ef9c1a9ea4fce8288608763229/vmhost/vmhooks/bigIntOps.go)
 
 ```k
-require "../elrond-config.md"
-require "../data/map-int-to-bytes.k"
-require "baseOps.md"
+requires "../elrond-config.md"
+requires "../data/map-int-to-bytes.k"
+requires "baseOps.md"
 
 module BIGINT-HELPERS
     imports ELROND-CONFIG

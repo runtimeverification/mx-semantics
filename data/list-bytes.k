@@ -1,4 +1,4 @@
-require "bytes-type.k"
+requires "bytes-type.k"
 
 module LIST-BYTES
   imports private INT-SYNTAX

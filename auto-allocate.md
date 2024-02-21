@@ -10,7 +10,7 @@ Currently, only function imports are supported.
 Calling an imported host function will result in `hostCall(MODULE_NAME, FUNCTION_NAME, FUNCTION_TYPE)` being left on the `instrs` cell.
 
 ```k
-require "wasm-semantics/wasm-text.md"
+requires "wasm-semantics/wasm-text.md"
 
 module WASM-AUTO-ALLOCATE
     imports WASM-DATA-TOOLS

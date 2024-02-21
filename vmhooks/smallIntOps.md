@@ -4,7 +4,7 @@ Small Integers
 Go implementation: [mx-chain-vm-go/vmhost/vmhooks/smallIntOps.go](https://github.com/multiversx/mx-chain-vm-go/blob/ea3d78d34c35f7ef9c1a9ea4fce8288608763229/vmhost/vmhooks/smallIntOps.go)
 
 ```k
-require "../elrond-config.md"
+requires "../elrond-config.md"
 
 module SMALLINTOPS
     imports BASEOPS

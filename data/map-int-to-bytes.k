@@ -1,6 +1,6 @@
 
-require "int-type.k"
-require "bytes-type.k"
+requires "int-type.k"
+requires "bytes-type.k"
 
 module MAP-INT-TO-BYTES
   imports private BOOL-SYNTAX
@@ -32,7 +32,7 @@ module MAP-INT-TO-BYTES
            injective
          ]
 
-  syntax priorities _Int2Bytes|->_ > _MapIntToBytes_ .MapIntToBytes
+  syntax priority _Int2Bytes|->_ > _MapIntToBytes_ .MapIntToBytes
   syntax non-assoc _Int2Bytes|->_
   syntax WrappedBytes ::= MapIntToBytes "[" WrappedInt "]"
                  [function, hook(MAP.lookup), klabel(MapIntToBytes:lookup), symbol]

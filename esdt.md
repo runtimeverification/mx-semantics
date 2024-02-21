@@ -4,7 +4,7 @@ TODO ESDT transfer should be a builtin function
 TODO check token settings: frozen, paused, limited transfer...
 
 ```k
-require "elrond-node.md"
+requires "elrond-node.md"
 
 module ESDT
     imports ELROND-NODE

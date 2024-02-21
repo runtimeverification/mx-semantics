@@ -1,6 +1,6 @@
 
 module BYTES-TYPE
-  import BYTES
+  imports BYTES
 
   syntax WrappedBytes
   syntax BYTES

@@ -22,7 +22,7 @@ module BIGINT-HELPERS
 
     syntax InternalInstr ::= #getBigInt ( idx : Int ,  Signedness )
  // ---------------------------------------------------------------
-    rule <instrs> #getBigInt(BIGINT_IDX, SIGN) => . ... </instrs>
+    rule <instrs> #getBigInt(BIGINT_IDX, SIGN) => .K ... </instrs>
          <bytesStack> STACK => Int2Bytes(HEAP {{ BIGINT_IDX }} orDefault 0, BE, SIGN) : STACK </bytesStack>
          <bigIntHeap> HEAP </bigIntHeap>
       requires BIGINT_IDX in_keys{{ HEAP }}
@@ -39,7 +39,7 @@ module BIGINT-HELPERS
     syntax InternalInstr ::= #getBigIntOrCreate ( idx : Int ,  Signedness )
  // ---------------------------------------------------------------
     rule [getBigIntOrCreate-get]:
-        <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => . ... </instrs>
+        <instrs> #getBigIntOrCreate(BIGINT_IDX, SIGN) => .K ... </instrs>
         <bytesStack> STACK => Int2Bytes(HEAP {{ BIGINT_IDX }} orDefault 0, BE, SIGN) : STACK </bytesStack>
         <bigIntHeap> HEAP </bigIntHeap>
       requires BIGINT_IDX in_keys{{ HEAP }}
@@ -62,10 +62,10 @@ module BIGINT-HELPERS
     rule <instrs> #setBigIntFromBytesStack(BIGINT_IDX, SIGN) => #setBigInt(BIGINT_IDX, BS, SIGN) ... </instrs>
          <bytesStack> BS : _ </bytesStack>
 
-    rule <instrs> #setBigInt(BIGINT_IDX, BS, SIGN) => . ... </instrs>
+    rule <instrs> #setBigInt(BIGINT_IDX, BS, SIGN) => .K ... </instrs>
          <bigIntHeap> HEAP => HEAP {{ BIGINT_IDX <- Bytes2Int(BS, BE, SIGN) }} </bigIntHeap>
 
-    rule <instrs> #setBigIntValue(BIGINT_IDX, VALUE) => . ... </instrs>
+    rule <instrs> #setBigIntValue(BIGINT_IDX, VALUE) => .K ... </instrs>
          <bigIntHeap> HEAP => HEAP {{ BIGINT_IDX <- VALUE }} </bigIntHeap>
 
     syntax Int ::= #newKey(Map)                    [function, total]
@@ -237,7 +237,7 @@ module BIGINTOPS
       //    check for its definedness separately.
 
     // extern void bigIntAdd(void* context, int32_t destination, int32_t op1, int32_t op2);
-    rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => .K ... </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
          <bigIntHeap> HEAP
                    => HEAP {{ DST <- (HEAP{{OP1_IDX}} orDefault 0) +Int (HEAP{{OP2_IDX}} orDefault 0) }}
@@ -262,7 +262,7 @@ module BIGINTOPS
         orBool notBool (OP2_IDX in_keys{{HEAP}})
 
     // extern void bigIntSub(void* context, int32_t destination, int32_t op1, int32_t op2);
-    rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => .K ... </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
          <bigIntHeap> HEAP
                    => HEAP {{ DST <- (HEAP{{OP1_IDX}} orDefault 0) -Int (HEAP{{OP2_IDX}} orDefault 0) }}
@@ -285,7 +285,7 @@ module BIGINTOPS
         orBool notBool (OP2_IDX in_keys{{HEAP}})
 
     // extern void bigIntMul(void* context, int32_t destination, int32_t op1, int32_t op2);
-    rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => .K ... </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
          <bigIntHeap> HEAP
                    => HEAP {{ DST <- (HEAP{{OP1_IDX}} orDefault 0) *Int (HEAP{{OP2_IDX}} orDefault 0) }}
@@ -308,7 +308,7 @@ module BIGINTOPS
         orBool notBool (OP2_IDX in_keys{{HEAP}})
 
     // extern void bigIntTDiv(void* context, int32_t destination, int32_t op1, int32_t op2);
-    rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => .K ... </instrs>
          <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
          <bigIntHeap> HEAP
                    => HEAP {{ DST <- (HEAP{{OP1_IDX}} orDefault 0) /Int (HEAP{{OP2_IDX}} orDefault 0) }}
@@ -430,7 +430,7 @@ module BIGINTOPS
          </locals>
 
     // extern void bigIntGetUnsignedArgument(void *context, int32_t id, int32_t destination);
-    rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  .K ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
          <callArgs> ARGS </callArgs>
          <bigIntHeap> HEAP => HEAP {{ BIG_IDX <- Bytes2Int(ARGS {{ ARG_IDX }}, BE, Unsigned) }} </bigIntHeap>
@@ -444,13 +444,13 @@ module BIGINTOPS
 
     // If ARG_IDX is invalid (out of bounds) just ignore
     // https://github.com/multiversx/mx-chain-vm-go/blob/ea3d78d34c35f7ef9c1a9ea4fce8288608763229/vmhost/vmhooks/bigIntOps.go#L68
-    rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  .K ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> _BIG_IDX </locals>
          <callArgs> ARGS </callArgs>
       requires notBool #validArgIdx(ARG_IDX, ARGS)
 
     // extern void bigIntGetSignedArgument(void *context, int32_t id, int32_t destination);
-    rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  .K ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
          <callArgs> ARGS </callArgs>
          <bigIntHeap> HEAP => HEAP {{ BIG_IDX <- Bytes2Int(ARGS {{ ARG_IDX }}, BE, Signed) }} </bigIntHeap>
@@ -461,13 +461,13 @@ module BIGINTOPS
       //  - Bytes2Int is total
       //  - _{{_ <- _}} is total
 
-    rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  .K ... </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> _BIG_IDX </locals>
          <callArgs> ARGS </callArgs>
       requires notBool #validArgIdx(ARG_IDX, ARGS)
 
     // extern void bigIntGetCallValue(void *context, int32_t destination);
-    rule <instrs> hostCall("env", "bigIntGetCallValue", [ i32 .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+    rule <instrs> hostCall("env", "bigIntGetCallValue", [ i32 .ValTypes ] -> [ .ValTypes ]) => .K ... </instrs>
          <locals> 0 |-> <i32> IDX </locals>
          <bigIntHeap> HEAP => HEAP {{ IDX <- VALUE }} </bigIntHeap>
          <callValue> VALUE </callValue>

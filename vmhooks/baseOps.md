@@ -70,7 +70,7 @@ module BASEOPS
 
     syntax InternalInstr ::= "#getExternalBalance"
  // ----------------------------------------------
-    rule <instrs> #getExternalBalance => . ... </instrs>
+    rule <instrs> #getExternalBalance => .K ... </instrs>
          <bytesStack> ADDR : STACK => Int2Bytes(BAL, BE, Unsigned) : STACK </bytesStack>
          <account>
            <address> ADDR </address>
@@ -79,7 +79,7 @@ module BASEOPS
          </account>
 
     // return 0 if account does not exist (see the priority)
-    rule <instrs> #getExternalBalance => . ... </instrs>
+    rule <instrs> #getExternalBalance => .K ... </instrs>
          <bytesStack> _ADDR : STACK => Int2Bytes(0, BE, Unsigned) : STACK </bytesStack>
       [priority(201)]
          
@@ -101,14 +101,14 @@ module BASEOPS
     syntax InternalInstr ::= "#transferValue"
                            | "#waitForTransfer"
  // -------------------------------------------
-    rule <commands> (. => transferFunds(CALLEE, DEST, Bytes2Int(VALUE, BE, Unsigned))) ... </commands>
+    rule <commands> (.K => transferFunds(CALLEE, DEST, Bytes2Int(VALUE, BE, Unsigned))) ... </commands>
          <instrs> #transferValue => #waitForTransfer ~> i32.const 0 ... </instrs>
          <callee> CALLEE </callee>
          <bytesStack> _DATA : VALUE : DEST : STACK => STACK </bytesStack>
 
     // switch to wasm execution after the transfer
-    rule <commands> (#transferSuccess => .) ~> #endWasm ... </commands>
-         <instrs> #waitForTransfer => . ... </instrs>
+    rule <commands> (#transferSuccess => .K) ~> #endWasm ... </commands>
+         <instrs> #waitForTransfer => .K ... </instrs>
 
     syntax Bool ::= #validArgIdx( Int , ListBytes )        [function, total]
  // -------------------------------------------------------------------
@@ -212,7 +212,7 @@ module BASEOPS
     // extern void checkNoPayment(void *context);
     // Call value is not positive (it can be negative), and the ESDT transfer list is empty
     rule [checkNoPayment-pass]:
-        <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) => . ... </instrs>
+        <instrs> hostCall("env", "checkNoPayment", [ .ValTypes ] -> [ .ValTypes ]) => .K ... </instrs>
         <callValue> VAL </callValue>
         <esdtTransfers> T:List </esdtTransfers>
       requires VAL <=Int 0 andBool size(T) ==K 0
@@ -388,7 +388,7 @@ module BASEOPS
                   ...
          </instrs>
          <callee> Callee </callee>
-         <commands> (. => transferESDTs(Callee, Dest, Transfers)) ... </commands>
+         <commands> (.K => transferESDTs(Callee, Dest, Transfers)) ... </commands>
 
     rule [transfer-esdt-and-execute]:
         <instrs> #transferESDTNFTExecuteWithTypedArgs(Dest, Transfers, GasLimit, Func, Args)
@@ -406,7 +406,7 @@ module BASEOPS
                   ...
          </instrs>
          <callee> Callee </callee>
-         <commands> (. => transferFunds(Callee, Dest, Value)) ... </commands>
+         <commands> (.K => transferFunds(Callee, Dest, Value)) ... </commands>
 
     rule [transfer-and-execute]:
         <instrs> #transferValueExecuteWithTypedArgs(Dest, Value, GasLimit, Func, Args)
@@ -434,7 +434,7 @@ module BASEOPS
         </instrs>
         <callee> Callee </callee>
         <commands> 
-          (. => callContract( Dest, Bytes2String(Func), prepareIndirectContractCallInput(Callee, Value, Esdt, GasLimit, Args))) ... 
+          (.K => callContract( Dest, Bytes2String(Func), prepareIndirectContractCallInput(Callee, Value, Esdt, GasLimit, Args))) ... 
         </commands>
         // TODO requires not IsOutOfVMFunctionExecution
         // TODO requires not IsBuiltinFunctionName
@@ -486,7 +486,7 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
         </vmOutput>
 
     // keep running other commands after transfers
-    rule <commands> (#transferSuccess => .) ... </commands>
+    rule <commands> (#transferSuccess => .K) ... </commands>
          <instrs> #finishExecuteOnDestContext ... </instrs>
 
     syntax InternalInstr ::= resolveErrorFromOutput(ExceptionCode, Bytes) [function, total]
@@ -508,7 +508,7 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
         [owise]
     
     rule [cleanReturnData]:
-        <instrs> hostCall ( "env" , "cleanReturnData" , [ .ValTypes ] -> [ .ValTypes ] ) => . ... </instrs>
+        <instrs> hostCall ( "env" , "cleanReturnData" , [ .ValTypes ] -> [ .ValTypes ] ) => .K ... </instrs>
         <out> _ => .ListBytes </out>
 
 ```
@@ -517,7 +517,7 @@ The (incorrect) default implementation of a host call is to just return zero val
 
 ```k
     // TODO implement asyncCall
-    rule <instrs> hostCall("env", "asyncCall", [ DOM ] -> [ CODOM ]) => . ... </instrs>
+    rule <instrs> hostCall("env", "asyncCall", [ DOM ] -> [ CODOM ]) => .K ... </instrs>
          <valstack> VS => #zero(CODOM) ++ #drop(lengthValTypes(DOM), VS) </valstack>
 endmodule
 ```

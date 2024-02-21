@@ -137,10 +137,10 @@ Storage maps byte arrays to byte arrays.
     syntax BytesOp ::= #pushBytes ( Bytes )
                      | "#dropBytes"
  // ---------------------------------------
-    rule <instrs> #pushBytes(BS) => . ... </instrs>
+    rule <instrs> #pushBytes(BS) => .K ... </instrs>
          <bytesStack> STACK => BS : STACK </bytesStack>
 
-    rule <instrs> #dropBytes => . ... </instrs>
+    rule <instrs> #dropBytes => .K ... </instrs>
          <bytesStack> _ : STACK => STACK </bytesStack>
 
     syntax InternalInstr ::= "#returnLength"
@@ -163,7 +163,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax InternalCmd ::= "pushCallState"  [klabel(pushCallState), symbol]
  // ---------------------------------------
     rule [pushCallState]:
-         <commands> pushCallState => . ... </commands>
+         <commands> pushCallState => .K ... </commands>
          <callStack> (.List => ListItem(CALLSTATE)) ... </callStack>
          <callState> CALLSTATE </callState>
       [priority(60)]
@@ -171,7 +171,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax InternalCmd ::= "popCallState"  [klabel(popCallState), symbol]
  // --------------------------------------
     rule [popCallState]:
-         <commands> popCallState => . ... </commands>
+         <commands> popCallState => .K ... </commands>
          <callStack> (ListItem(CALLSTATE) => .List) ... </callStack>
          <callState> _ => CALLSTATE </callState>
       [priority(60)]
@@ -179,7 +179,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax InternalCmd ::= "dropCallState"  [klabel(dropCallState), symbol]
  // ---------------------------------------
     rule [dropCallState]:
-         <commands> dropCallState => . ... </commands>
+         <commands> dropCallState => .K ... </commands>
          <callStack> (ListItem(_) => .List) ... </callStack>
       [priority(60)]
 ```
@@ -195,7 +195,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax InternalCmd ::= "pushWorldState"  [klabel(pushWorldState), symbol]
  // ---------------------------------------
     rule [pushWorldState]:
-         <commands> pushWorldState => . ... </commands>
+         <commands> pushWorldState => .K ... </commands>
          <interimStates> (.List => ListItem({ ACCTDATA })) ... </interimStates>
          <accounts>       ACCTDATA </accounts>
       [priority(60)]
@@ -203,7 +203,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax InternalCmd ::= "popWorldState"  [klabel(popWorldState), symbol]
  // --------------------------------------
     rule [popWorldState]:
-         <commands> popWorldState => . ... </commands>
+         <commands> popWorldState => .K ... </commands>
          <interimStates> (ListItem({ ACCTDATA }) => .List) ... </interimStates>
          <accounts>       _ => ACCTDATA </accounts>
       [priority(60)]
@@ -211,7 +211,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax InternalCmd ::= "dropWorldState"  [klabel(dropWorldState), symbol]
  // ---------------------------------------
     rule [dropWorldState]:
-         <commands> dropWorldState => . ... </commands>
+         <commands> dropWorldState => .K ... </commands>
          <interimStates> (ListItem(_) => .List) ... </interimStates>
       [priority(60)]
 ```
@@ -224,7 +224,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax InternalCmd ::= checkAccountExists( Bytes )
  // ------------------------------------------------------
     rule [checkAccountExists-pass]:
-        <commands> checkAccountExists(ADDR) => . ... </commands>
+        <commands> checkAccountExists(ADDR) => .K ... </commands>
         <account>
           <address> ADDR </address>
           ...
@@ -256,7 +256,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax InternalCmd ::= checkBool(Bool, String)    [klabel(checkBool), symbol]
  // -----------------------------------------------------------------------------------
     rule [checkBool-t]:
-        <commands> checkBool(true, _)    => . ... </commands>
+        <commands> checkBool(true, _)    => .K ... </commands>
     rule [checkBool-f]:
         <commands> checkBool(false, ERR) => #throwExceptionBs(ExecutionFailed, String2Bytes(ERR)) ... </commands>
 
@@ -267,8 +267,8 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax InternalCmd ::= "resetCallstate"      [klabel(resetCallState), symbol]
  // --------------------------------------------------------------------------- 
     rule [resetCallstate]:
-        <commands> resetCallstate => . ... </commands>
-        (_:CallStateCell => <callState> <instrs> . </instrs> ... </callState>)
+        <commands> resetCallstate => .K ... </commands>
+        (_:CallStateCell => <callState> <instrs> .K </instrs> ... </callState>)
 
 endmodule
 ```

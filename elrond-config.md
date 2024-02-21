@@ -72,7 +72,7 @@ module ELROND-CONFIG
       requires 0 <=Int #signed(i32 , OFFSET)
        andBool #signed(i32 , OFFSET) +Int lengthBytes(BS) >Int (SIZE *Int #pageSize())
 
-    rule <instrs> #memStore(OFFSET, BS) => . ... </instrs>
+    rule <instrs> #memStore(OFFSET, BS) => .K ... </instrs>
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
@@ -100,7 +100,7 @@ module ELROND-CONFIG
       requires #signed(i32 , LENGTH) <Int 0
 
     rule [memLoad-zero-length]:
-        <instrs> #memLoad(_, 0) => . ... </instrs>
+        <instrs> #memLoad(_, 0) => .K ... </instrs>
         <bytesStack> STACK => .Bytes : STACK </bytesStack>
 
     rule [memLoad-bad-bounds]:
@@ -121,7 +121,7 @@ module ELROND-CONFIG
          orBool #signed(i32 , OFFSET) +Int #signed(i32 , LENGTH) >Int (SIZE *Int #pageSize()))
 
     rule [memLoad]:
-         <instrs> #memLoad(OFFSET, LENGTH) => . ... </instrs>
+         <instrs> #memLoad(OFFSET, LENGTH) => .K ... </instrs>
          <bytesStack> STACK => #getBytesRange(DATA, OFFSET, LENGTH) : STACK </bytesStack>
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
@@ -189,7 +189,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 
     syntax InternalInstr ::= #isReservedKey ( String )
  // --------------------------------------------------
-    rule <instrs> #isReservedKey(KEY) => . ... </instrs>
+    rule <instrs> #isReservedKey(KEY) => .K ... </instrs>
       requires notBool #hasPrefix(KEY, "ELROND")
 
     rule <instrs> #isReservedKey(KEY)
@@ -205,7 +205,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <callee> CALLEE </callee>
 
     rule [storageLoadFromAddress]:
-        <instrs> #storageLoadFromAddress => . ... </instrs>
+        <instrs> #storageLoadFromAddress => .K ... </instrs>
         <bytesStack> ADDR : KEY : STACK => #lookupStorage(STORAGE, KEY) : STACK </bytesStack>
         <account>
           <address> ADDR </address>
@@ -312,11 +312,11 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     syntax InternalInstr ::= "#appendToOutFromBytesStack"
                            | #appendToOut ( Bytes )
  // -----------------------------------------------
-    rule <instrs> #appendToOutFromBytesStack => . ... </instrs>
+    rule <instrs> #appendToOutFromBytesStack => .K ... </instrs>
          <bytesStack> OUT : STACK => STACK </bytesStack>
          <out> ... (.ListBytes => ListItem(wrap(OUT))) </out>
 
-    rule <instrs> #appendToOut(OUT) => . ... </instrs>
+    rule <instrs> #appendToOut(OUT) => .K ... </instrs>
          <out> ... (.ListBytes => ListItem(wrap(OUT))) </out>
 ```
 
@@ -393,7 +393,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <bytesStack> DATA : STACK => STACK </bytesStack>
          <valstack> <i32> NUMTOPICS : <i32> _ : VALSTACK => VALSTACK </valstack>
 
-    rule <instrs> #writeLogAux(1, TOPICS, DATA) => . ... </instrs>
+    rule <instrs> #writeLogAux(1, TOPICS, DATA) => .K ... </instrs>
          <bytesStack> IDENTIFIER : STACK => STACK </bytesStack>
          <callee> CALLEE </callee>
          <logs> ... (.List => ListItem(logEntry(CALLEE, IDENTIFIER, TOPICS, DATA))) </logs>
@@ -415,7 +415,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     syntax InternalCmd ::= "#endWasm"
  // ---------------------------------
     rule <commands> #endWasm => popCallState ~> dropWorldState ... </commands>
-         <instrs> . </instrs>
+         <instrs> .K </instrs>
          <out> OUT </out>
          <logs> LOGS </logs>
          <vmOutput> _ => VMOutput( OK , .Bytes , OUT , LOGS) </vmOutput>
@@ -423,8 +423,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 
     syntax InternalCmd ::= "#waitWasm"  [klabel(#waitWasm), symbol]
  // ----------------------------------
-    rule <commands> #waitWasm => . ... </commands>
-         <instrs> . </instrs>
+    rule <commands> #waitWasm => .K ... </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 ```
 
@@ -441,7 +441,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         <vmOutput> .VMOutput => VMOutput( EC , MSG , .ListBytes , .List) </vmOutput>
 
     rule [exception-skip]:
-        <commands> #exception(_,_) ~> (CMD:InternalCmd => . ) ... </commands>
+        <commands> #exception(_,_) ~> (CMD:InternalCmd => .K ) ... </commands>
       requires CMD =/=K #endWasm
 
 ```
@@ -462,8 +462,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         </commands>
 
     rule [throwExceptionBs]:
-        <instrs> (#throwExceptionBs( EC , MSG ) ~> _ ) => . </instrs>
-        <commands> (. => #exception(EC,MSG)) ... </commands>
+        <instrs> (#throwExceptionBs( EC , MSG ) ~> _ ) => .K </instrs>
+        <commands> (.K => #exception(EC,MSG)) ... </commands>
         <logging> S => S +String " -- Exception: " +String Bytes2String(MSG) </logging>
     rule [throwExceptionBs-cmd]:
         <commands> (#throwExceptionBs( EC , MSG ) => #exception(EC,MSG)) ... </commands>
@@ -489,7 +489,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
  // ------------------------------------------------------------------------------
     // ignore if the account already exists
     rule [createAccount-existing]:
-         <commands> createAccount(ADDR) => . ... </commands>
+         <commands> createAccount(ADDR) => .K ... </commands>
          <account>
            <address> ADDR </address>
            ...
@@ -498,7 +498,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       [priority(60)]
 
     rule [createAccount-new]:
-         <commands> createAccount(ADDR) => . ... </commands>
+         <commands> createAccount(ADDR) => .K ... </commands>
          <accounts>
            ( .Bag
           => <account>
@@ -516,7 +516,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                          | setAccountOwner     ( Bytes, Bytes )
  // ---------------------------------------------------------------
     rule [setAccountFields]:
-         <commands> setAccountFields(ADDR, NONCE, BALANCE, CODE, OWNER_ADDR, STORAGE) => . ... </commands>
+         <commands> setAccountFields(ADDR, NONCE, BALANCE, CODE, OWNER_ADDR, STORAGE) => .K ... </commands>
          <account>
            <address> ADDR </address>
            <nonce> _ => NONCE </nonce>
@@ -529,7 +529,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       [priority(60)]
 
     rule [setAccountCode]:
-         <commands> setAccountCode(ADDR, CODE) => . ... </commands>
+         <commands> setAccountCode(ADDR, CODE) => .K ... </commands>
          <account>
            <address> ADDR </address>
            <code> _ => CODE </code>
@@ -537,7 +537,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          </account>
       [priority(60)]
 
-    rule <commands> setAccountOwner(ADDR, OWNER) => . ... </commands>
+    rule <commands> setAccountOwner(ADDR, OWNER) => .K ... </commands>
          <account>
            <address> ADDR </address>
            <ownerAddress> _ => OWNER </ownerAddress>
@@ -603,8 +603,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       requires VALUE >Int ORIGFROM
       [priority(60)]
 
-    rule <commands> #transferSuccess => . ... </commands>
-         <instrs> . </instrs>
+    rule <commands> #transferSuccess => .K ... </commands>
+         <instrs> .K </instrs>
 ```
 
 ## Calling Contract
@@ -706,7 +706,7 @@ Every contract call runs in its own Wasm instance initialized with the contract'
       // clause.
 
     rule [setContractModIdx]:
-        <commands> setContractModIdx => . ... </commands>
+        <commands> setContractModIdx => .K ... </commands>
         <contractModIdx> _ => NEXTIDX -Int 1 </contractModIdx>
         <nextModuleIdx> NEXTIDX </nextModuleIdx>
 
@@ -722,13 +722,13 @@ Initialize the call state and invoke the endpoint function:
 
 ```k
     rule [mkCall]:
-        <commands> mkCall(TO, FUNCNAME:WasmStringToken, VMINPUT) => . ... </commands>
+        <commands> mkCall(TO, FUNCNAME:WasmStringToken, VMINPUT) => .K ... </commands>
         <callState>
           <callee> _ => TO   </callee>
           (_:VmInputCell => VMINPUT)
           // executional
           <wasm>
-            <instrs> . => ( invoke FUNCADDRS {{ FUNCIDX }} orDefault -1 ) </instrs>
+            <instrs> .K => ( invoke FUNCADDRS {{ FUNCIDX }} orDefault -1 ) </instrs>
             <moduleInst>
               <modIdx> MODIDX </modIdx>
               <exports> ... FUNCNAME |-> FUNCIDX:Int </exports>
@@ -749,14 +749,14 @@ Initialize the call state and invoke the endpoint function:
       [priority(60)]
 
     rule [mkCall-func-not-found]:
-        <commands> mkCall(_TO, FUNCNAME:WasmStringToken, _VMINPUT) => . ... </commands>
+        <commands> mkCall(_TO, FUNCNAME:WasmStringToken, _VMINPUT) => .K ... </commands>
         <contractModIdx> MODIDX:Int </contractModIdx>
         <moduleInst>
           <modIdx> MODIDX </modIdx>
           <exports> EXPORTS </exports>
           ...
         </moduleInst>
-        <instrs> . => #throwException(FunctionNotFound, "invalid function (not found)") </instrs>
+        <instrs> .K => #throwException(FunctionNotFound, "invalid function (not found)") </instrs>
         <logging> S => S +String " -- callContract not found " +String #parseWasmString(FUNCNAME) </logging>
       requires notBool( FUNCNAME in_keys(EXPORTS) )
       [priority(60)]

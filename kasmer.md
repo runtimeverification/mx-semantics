@@ -1,7 +1,7 @@
 # Kasmer Semantics
 
 ```k
-require "mandos.md"
+requires "mandos.md"
 
 module KASMER-SYNTAX
     imports KASMER

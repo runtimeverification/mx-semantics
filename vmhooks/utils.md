@@ -2,8 +2,8 @@
 # Utils
 
 ```k
-require "../data/bytes-type.k"
-require "../data/list-bytes.k"
+requires "../data/bytes-type.k"
+requires "../data/list-bytes.k"
 
 module UTILS
     imports STRING

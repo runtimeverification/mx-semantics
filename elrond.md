@@ -2,8 +2,8 @@ Elrond Semantics
 ================
 
 ```k
-require "elrond-config.md"
-require "vmhooks/vmhooks.md"
+requires "elrond-config.md"
+requires "vmhooks/vmhooks.md"
 
 module ELROND
    imports ELROND-CONFIG

@@ -970,7 +970,7 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pyk"
-version = "0.1.661"
+version = "0.1.662"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -991,12 +991,12 @@ xdg-base-dirs = "^6.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/pyk.git"
-reference = "v0.1.661"
-resolved_reference = "21af7b6f77142694193ac9a772a08e9edebac9f1"
+reference = "v0.1.662"
+resolved_reference = "975f9d0e8d5ebe28fbda58b56325ef5aee9a075b"
 
 [[package]]
 name = "pykwasm"
-version = "0.1.10"
+version = "0.1.11"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -1007,13 +1007,13 @@ develop = false
 cytoolz = "^0.12.1"
 numpy = "^1.24.2"
 py-wasm = {url = "https://github.com/runtimeverification/py-wasm/archive/refs/tags/0.2.0.tar.gz"}
-pyk = {git = "https://github.com/runtimeverification/pyk.git", tag = "v0.1.661"}
+pyk = {git = "https://github.com/runtimeverification/pyk.git", tag = "v0.1.662"}
 
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/wasm-semantics.git"
-reference = "v0.1.10"
-resolved_reference = "dc08dda5048488663814a8419435b9f56d99641a"
+reference = "v0.1.11"
+resolved_reference = "c29dcba3730a3d35b6027de9a61948380910f84a"
 subdirectory = "pykwasm"
 
 [[package]]
@@ -1130,13 +1130,13 @@ tokenize-rt = ">=5.2.0"
 
 [[package]]
 name = "rich"
-version = "13.7.0"
+version = "13.7.1"
 description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
 optional = false
 python-versions = ">=3.7.0"
 files = [
-    {file = "rich-13.7.0-py3-none-any.whl", hash = "sha256:6da14c108c4866ee9520bbffa71f6fe3962e193b7da68720583850cd4548e235"},
-    {file = "rich-13.7.0.tar.gz", hash = "sha256:5cb5123b5cf9ee70584244246816e9114227e0b98ad9176eede6ad54bf5403fa"},
+    {file = "rich-13.7.1-py3-none-any.whl", hash = "sha256:4edbae314f59eb482f54e9e30bf00d33350aaa94f4bfcd4e9e3110e64d0d7222"},
+    {file = "rich-13.7.1.tar.gz", hash = "sha256:9be308cb1fe2f1f57d67ce99e95af38a1e2bc71ad9813b0e247cf7ffbcc3a432"},
 ]
 
 [package.dependencies]
@@ -1291,4 +1291,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "7efb6d6dca1d5f78d999f9f496b3e5afeb75a3e63e7232d51839293a9741cae4"
+content-hash = "caa0733bd2288f44a6c247c602d4d20a99204c2b6e8c5cbd13e456bf28ad9095"

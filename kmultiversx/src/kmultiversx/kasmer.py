@@ -37,8 +37,8 @@ from kmultiversx.utils import GENERATED_TOP_CELL, KasmerRunError, kast_to_json_s
 
 if TYPE_CHECKING:
     from hypothesis.strategies import SearchStrategy
-    from pyk.cterm import KClaim
     from pyk.kast.inner import KInner
+    from pyk.kast.outer import KClaim
     from pyk.ktool.krun import KPrint
 
 INPUT_FILE_NAME = 'foundry.json'

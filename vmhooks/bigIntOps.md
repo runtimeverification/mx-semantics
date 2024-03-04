@@ -315,7 +315,7 @@ module BIGINTOPS
          </bigIntHeap>
       requires OP1_IDX in_keys{{HEAP}}
        andBool OP2_IDX in_keys{{HEAP}}
-       andBool HEAP{{OP1_IDX}} orDefault 0 =/=Int 0
+       andBool HEAP{{OP2_IDX}} orDefault 0 =/=Int 0
       [preserves-definedness]
       // Preserving definedness:
       //  - we checked that /Int is defined
@@ -337,7 +337,7 @@ module BIGINTOPS
          <bigIntHeap> HEAP </bigIntHeap>
       requires OP1_IDX in_keys{{HEAP}}
        andBool OP2_IDX in_keys{{HEAP}}
-       andBool HEAP{{OP1_IDX}} orDefault 0 ==Int 0
+       andBool HEAP{{OP2_IDX}} orDefault 0 ==Int 0
 
     // extern int32_t bigIntSign(void* context, int32_t op);
     rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])

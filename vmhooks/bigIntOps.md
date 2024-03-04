@@ -331,7 +331,7 @@ module BIGINTOPS
         orBool notBool (OP2_IDX in_keys{{HEAP}})
 
     rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
-               => #throwException(ExecutionFailed, "bigInt division by 0") ...
+               => #throwException(ExecutionFailed, "division by 0") ...
          </instrs>
          <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
          <bigIntHeap> HEAP </bigIntHeap>

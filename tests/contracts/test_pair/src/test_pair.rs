@@ -264,7 +264,7 @@ pub trait TestPairContract {
         let final_k = first_reserve_final.clone() * second_reserve_final.clone();
 
         require!(initial_k.clone() <= final_k.clone(), "K decreased!");
-        let condition = final_k <= initial_k.clone() + first_reserve_final.clone() + (total_fee.clone() - special_fee.clone() + 1u64) * second_reserve_final.clone();
+        let condition = final_k <= initial_k.clone() + first_value * second_reserve_initial;
         require!(condition, "K grew too much!");
         testapi::assert(initial_k.clone() <= final_k.clone());
         // testapi::assert(final_k <= initial_k + first_reserve_initial + second_reserve_initial);

@@ -26,3 +26,8 @@ mxpy contract build --path deps/mx-exchange-sc/dex/pair --wasm-symbols --no-wasm
 mxpy contract build --path tests/contracts/test_pair --wasm-symbols --no-wasm-opt
 K_OPTS="-Xmx8192m" kbuild kompile llvm-kasmer && poetry -C kmultiversx run -- kasmer --definition-dir $(kbuild which llvm-kasmer) --directory "tests/contracts/test_pair" --gen-claims 2>&1 | tee kasmer.log
 
+# Multisig
+
+mxpy contract build --path deps/mx-sdk-rs/contracts/examples/multisig --wasm-symbols --no-wasm-opt
+mxpy contract build --path tests/contracts/test_multisig --wasm-symbols --no-wasm-opt
+K_OPTS="-Xmx8192m" kbuild kompile llvm-kasmer && poetry -C kmultiversx run -- kasmer --definition-dir $(kbuild which llvm-kasmer) --directory "tests/contracts/test_multisig" --gen-claims 2>&1 | tee kasmer.log

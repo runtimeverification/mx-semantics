@@ -315,7 +315,7 @@ module BIGINTOPS
          </bigIntHeap>
       requires OP1_IDX in_keys{{HEAP}}
        andBool OP2_IDX in_keys{{HEAP}}
-       andBool HEAP{{OP1_IDX}} orDefault 0 =/=Int 0
+       andBool HEAP{{OP2_IDX}} orDefault 0 =/=Int 0
       [preserves-definedness]
       // Preserving definedness:
       //  - we checked that /Int is defined
@@ -331,13 +331,13 @@ module BIGINTOPS
         orBool notBool (OP2_IDX in_keys{{HEAP}})
 
     rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
-               => #throwException(ExecutionFailed, "bigInt division by 0") ...
+               => #throwException(ExecutionFailed, "division by 0") ...
          </instrs>
          <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
          <bigIntHeap> HEAP </bigIntHeap>
       requires OP1_IDX in_keys{{HEAP}}
        andBool OP2_IDX in_keys{{HEAP}}
-       andBool HEAP{{OP1_IDX}} orDefault 0 ==Int 0
+       andBool HEAP{{OP2_IDX}} orDefault 0 ==Int 0
 
     // extern int32_t bigIntSign(void* context, int32_t op);
     rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])

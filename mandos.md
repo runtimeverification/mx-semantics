@@ -43,7 +43,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <commands> .K </commands>
          <instrs> .K </instrs>
 
-    syntax Steps ::= List{Step, ""} [klabel(mandosSteps), symbol]
+    syntax Steps ::= List{Step, ""} [symbol(mandosSteps)]
  // -------------------------------------------------------------
     rule [steps-empty]:
         <k> .Steps => .K </k>

@@ -13,7 +13,7 @@ from hypothesis import Phase, Verbosity, given, settings
 from hypothesis.errors import HypothesisWarning
 from hypothesis.strategies import integers, tuples
 from pyk.cli.utils import dir_path
-from pyk.cterm import CTerm, build_claim
+from pyk.cterm import CTerm, cterm_build_claim
 from pyk.kast.inner import KApply, KSequence, KSort, KVariable, Subst
 from pyk.kast.manip import split_config_from
 from pyk.ktool.krun import KRun
@@ -343,7 +343,7 @@ def generate_claim(
     conf_rhs = Subst(rhs_subst)(sym_conf)
     rhs = CTerm(conf_rhs)
 
-    claim, _ = build_claim(f'{func}', lhs, rhs)
+    claim, _ = cterm_build_claim(f'{func}', lhs, rhs)
 
     return claim, lhs, rhs
 

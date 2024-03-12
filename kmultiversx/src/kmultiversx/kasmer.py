@@ -216,6 +216,8 @@ def type_to_strategy(typ: str) -> SearchStrategy[str]:
         return integers(min_value=0).map(str)
     if typ == 'u32':
         return integers(min_value=0, max_value=4294967295).map(str)
+    if typ == 'u64':
+        return integers(min_value=0, max_value=18446744073709551615).map(str)
     raise TypeError(f'Cannot create random {typ}')
 
 
@@ -446,6 +448,8 @@ def type_to_sort(typ: str) -> KSort:
         return KSort('Int')
     if typ == 'u32':
         return KSort('Int')
+    if typ == 'u64':
+        return KSort('Int')
     raise TypeError(f'Unsupported type {typ}')
 
 
@@ -454,6 +458,8 @@ def type_to_constraint(typ: str, var: KVariable) -> tuple[KInner, ...]:
         return (leInt(KInt(0), var),)
     if typ == 'u32':
         return (leInt(KInt(0), var), leInt(var, KInt(4294967295)))
+    if typ == 'u64':
+        return (leInt(KInt(0), var), leInt(var, KInt(18446744073709551615)))
     raise TypeError(f'Unsupported type {typ}')
 
 

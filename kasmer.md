@@ -23,7 +23,7 @@ module KASMER
 
     syntax Bytes ::= "#foundryRunner"      [macro]
  // --------------------------------------------------------
-    rule #foundryRunner 
+    rule #foundryRunner
       => b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00k-test________________"
 ```
 
@@ -53,9 +53,9 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               => #waitCommands
                  ...
         </instrs>
-        <commands> (. => createAccount(ADDR)
+        <commands> (.K => createAccount(ADDR)
                       ~> setAccountFields(ADDR, NONCE, BALANCE, .Code, .Bytes, .MapBytesToBytes )
-                    ) ... 
+                    ) ...
         </commands>
 
     rule [foundryCreateAccount-err]:
@@ -86,7 +86,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
  // ----------------------------------------------------------------------------
     rule [foundryRegisterNewAddress]:
         <instrs> foundryRegisterNewAddress(CREATOR:Bytes, NONCE, NEW:Bytes)
-              => . ...
+              => .K ...
         </instrs>
         <newAddresses> NEWADDRESSES => NEWADDRESSES [tuple(CREATOR, NONCE) <- NEW] </newAddresses>
 
@@ -104,7 +104,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
     rule [testapi-deployContract]:
         <instrs> hostCall("env", "deployContract", [i32 i64 i32 i32 i32 i32 .ValTypes] -> [.ValTypes])
               => foundryDeployContract(
-                    getBuffer(OWNER_HANDLE), 
+                    getBuffer(OWNER_HANDLE),
                     GAS_LIMIT,
                     getBigInt(VALUE_HANDLE),
                     getBuffer(CODE_PATH_HANDLE),
@@ -131,7 +131,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               ~> #setBuffer(RESULT_ADDR_HANDLE, NEWADDR)
                  ...
         </instrs>
-        <commands> (. 
+        <commands> (.K
                 => createAccount(NEWADDR)
                 ~> setAccountOwner(NEWADDR, OWNER)
                 ~> setAccountCode(NEWADDR, MODULE)
@@ -195,7 +195,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
     syntax InternalInstr ::= "foundryWriteToStorage"
  // -------------------------------------------------
     rule [foundryWriteToStorage-empty]:
-        <instrs> foundryWriteToStorage => . ... </instrs>
+        <instrs> foundryWriteToStorage => .K ... </instrs>
         <bytesStack> ADDR : KEY : VALUE : _ </bytesStack>
          <account>
            <address> ADDR </address>
@@ -205,7 +205,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
          requires VALUE ==K .Bytes
 
     rule [foundryWriteToStorage]:
-        <instrs> foundryWriteToStorage => . ... </instrs>
+        <instrs> foundryWriteToStorage => .K ... </instrs>
         <bytesStack> ADDR : KEY : VALUE : _ </bytesStack>
          <account>
            <address> ADDR </address>
@@ -234,7 +234,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
     syntax InternalInstr ::= #setBalance(BytesResult, IntResult)
  // ------------------------------------------------------------
     rule [setBalance]:
-        <instrs> #setBalance(ADDR:Bytes, VALUE:Int) => . ... </instrs>
+        <instrs> #setBalance(ADDR:Bytes, VALUE:Int) => .K ... </instrs>
         <account>
           <address> ADDR </address>
           <balance> _ => VALUE </balance>
@@ -266,7 +266,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <instrs> #setBalance(_:Bytes, Err(MSG))
               => #throwException(ExecutionFailed, MSG) ...
         </instrs>
-    
+
 ```
 
 #### ESDT
@@ -299,18 +299,18 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <instrs> #setESDTBalance(Err(MSG))
               => #throwException(ExecutionFailed, MSG) ...
         </instrs>
-    
+
     // ERROR: value is negative
     rule [setESDTBalance-neg]:
         <instrs> #setESDTBalance(VALUE:Int)
               => #throwException(UserError, "Cannot set negative balance") ...
         </instrs>
       requires 0 >Int VALUE
-    
-    
+
+
     // change an existing ESDT balance
     rule [setESDTBalance]:
-        <instrs> #setESDTBalance(VALUE:Int) => . ... </instrs>
+        <instrs> #setESDTBalance(VALUE:Int) => .K ... </instrs>
         <bytesStack> ADDR : TOK_ID : _ </bytesStack>
         <account>
           <address> ADDR </address>
@@ -322,15 +322,15 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           ...
         </account>
         <logging> S
-               => S +String " -- setESDTBalance " 
-                    +String Bytes2String(ADDR) +String " " 
+               => S +String " -- setESDTBalance "
+                    +String Bytes2String(ADDR) +String " "
                     +String Bytes2String(TOK_ID)
         </logging>
       requires 0 <=Int VALUE
 
     // add new ESDT data
     rule [setESDTBalance-new-token]:
-        <instrs> #setESDTBalance(VALUE:Int) => . ... </instrs>
+        <instrs> #setESDTBalance(VALUE:Int) => .K ... </instrs>
         <bytesStack> ADDR : TOK_ID : _ </bytesStack>
         <account>
           <address> ADDR </address>
@@ -342,18 +342,18 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           ...
         </account>
         <logging> S
-               => S +String " -- setESDTBalance " 
-                    +String Bytes2String(ADDR) +String " " 
+               => S +String " -- setESDTBalance "
+                    +String Bytes2String(ADDR) +String " "
                     +String Bytes2String(TOK_ID)
         </logging>
       requires 0 <=Int VALUE
       [priority(60)]
-    
+
     // ERROR: account not found
     rule [setESDTBalance-acct-not-found]:
-        <instrs> #setESDTBalance(VALUE:Int) 
+        <instrs> #setESDTBalance(VALUE:Int)
               => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes ADDR)
-                 ... 
+                 ...
         </instrs>
         <bytesStack> ADDR : _ : _ </bytesStack>
       requires 0 <=Int VALUE
@@ -385,7 +385,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
  // -------------------------------------------------------------
     // account and ESDT exist
     rule [setESDTRole-set-existing]:
-        <instrs> #setESDTRole(ROLE, P) => . ... </instrs>
+        <instrs> #setESDTRole(ROLE, P) => .K ... </instrs>
         <bytesStack> ADDR : TOK_ID : _ </bytesStack>
         <account>
           <address> ADDR </address>
@@ -399,7 +399,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
     // ESDT doesn't exist, P = true => add
     rule [setESDTRole-add-new]:
-        <instrs> #setESDTRole(ROLE, true) => . ... </instrs>
+        <instrs> #setESDTRole(ROLE, true) => .K ... </instrs>
         <bytesStack> ADDR : TOK_ID : _ </bytesStack>
         <account>
           <address> ADDR </address>
@@ -414,7 +414,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
     // ESDT doesn't exist, P = false => skip
     rule [setESDTRole-remove-skip]:
-        <instrs> #setESDTRole(_ROLE, false) => . ... </instrs>
+        <instrs> #setESDTRole(_ROLE, false) => .K ... </instrs>
         <bytesStack> ADDR : _TOK_ID : _ </bytesStack>
         <account>
           <address> ADDR </address>
@@ -425,7 +425,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
     // account not found
     rule [setESDTRole-not-found]:
         <instrs> #setESDTRole(_, _)
-              => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes ADDR) ... 
+              => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes ADDR) ...
         </instrs>
         <bytesStack> ADDR : _TOK_ID : _ </bytesStack>
       [priority(62)]
@@ -488,7 +488,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
     rule [checkESDTRole-not-found]:
         <instrs> #checkESDTRole(_ROLE)
-              => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes ADDR) ... 
+              => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes ADDR) ...
         </instrs>
         <bytesStack> ADDR : _TOK_ID : _ </bytesStack>
       [priority(61)]
@@ -499,15 +499,15 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
 ```k
     rule [testapi-setBlockTimestamp]:
-        <instrs> hostCall("env", "setBlockTimestamp", [i64 .ValTypes ] -> [.ValTypes ]) 
-              => . ...
+        <instrs> hostCall("env", "setBlockTimestamp", [i64 .ValTypes ] -> [.ValTypes ])
+              => .K ...
         </instrs>
         <locals>
           0 |-> <i64> TIMESTAMP
         </locals>
         <curBlockTimestamp> _ => TIMESTAMP </curBlockTimestamp>
         <logging> S
-               => S +String " -- setBlockTimestamp " 
+               => S +String " -- setBlockTimestamp "
                     +String Int2String(TIMESTAMP)
         </logging>
         <callee> #foundryRunner </callee>
@@ -528,12 +528,12 @@ Only the `#foundryRunner` account can execute these commands/host functions.
     syntax InternalInstr ::= #assert(Int)     [symbol, klabel(foundryAssert)]
  // -------------------------------------------------------------------------
     rule [foundryAssert-true]:
-        <instrs> #assert( I ) => . ... </instrs>    
+        <instrs> #assert( I ) => .K ... </instrs>
       requires I =/=Int 0
 
     rule [foundryAssert-false]:
-        <instrs> #assert( I ) 
-             => #throwException(ExecutionFailed, "assertion failed") ... 
+        <instrs> #assert( I )
+             => #throwException(ExecutionFailed, "assertion failed") ...
         </instrs>
       requires I ==Int 0
 
@@ -549,7 +549,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
     syntax IternalInstr ::= #assume(Int)     [symbol, klabel(foundryAssume)]
  // ------------------------------------------------------------------------
     rule [foundryAssume-true]:
-        <instrs> #assume(P) => . ... </instrs>
+        <instrs> #assume(P) => .K ... </instrs>
       requires P =/=Int 0
 
     rule [foundryAssume-false]:
@@ -563,16 +563,16 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         (<callState>
           <instrs> #endFoundryImmediately ... </instrs>
           ...
-        </callState> 
-          => 
-        <callState> 
-          <instrs> . </instrs>
+        </callState>
+          =>
+        <callState>
+          <instrs> .K </instrs>
           ...
         </callState>)
         <callStack> _ => .List </callStack>
         <interimStates> _ => .List </interimStates>
-        <k> _ => . </k>
-        <commands> _ => . </commands>
+        <k> _ => .K </k>
+        <commands> _ => .K </commands>
         <checkedAccounts> _ => .Set </checkedAccounts>
         <prank> _ => false </prank>
         <exit-code> _ => 0 </exit-code>
@@ -594,13 +594,13 @@ Only the `#foundryRunner` account can execute these commands/host functions.
     syntax InternalInstr ::= #startPrank(BytesResult)
  // -------------------------------------------------
     rule [startPrank]:
-        <instrs> #startPrank(ADDR:Bytes) => . ... </instrs>
+        <instrs> #startPrank(ADDR:Bytes) => .K ... </instrs>
         <callee> #foundryRunner => ADDR </callee>
         <prank> false => true </prank>
 
     rule [startPrank-not-allowed]:
         <instrs> #startPrank(_:Bytes)
-              => #throwException(ExecutionFailed, "Only the test contract can start a prank and the test contract can't start a prank while already pranking") 
+              => #throwException(ExecutionFailed, "Only the test contract can start a prank and the test contract can't start a prank while already pranking")
                  ...
         </instrs>
         <callee> ADDR </callee>
@@ -610,13 +610,13 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 
     rule [startPrank-err]:
         <instrs> #startPrank(Err(MSG))
-              => #throwException(ExecutionFailed, MSG) 
+              => #throwException(ExecutionFailed, MSG)
                  ...
         </instrs>
 
     rule [testapi-stopPrank]:
         <instrs> hostCall ( "env" , "stopPrank" , [ .ValTypes ] -> [ .ValTypes ] )
-              => . ...
+              => .K ...
         </instrs>
         <locals> .Map </locals>
         <callee> _ => #foundryRunner </callee>
@@ -638,11 +638,11 @@ Only the `#foundryRunner` account can execute these commands/host functions.
     syntax InternalInstr ::= "#waitCommands"
  // ---------------------------------------
     rule [waitCommands]:
-        <instrs> #waitCommands => . ... </instrs>
+        <instrs> #waitCommands => .K ... </instrs>
         <commands> #endWasm ... </commands>
       [priority(200)]
 
-    rule <commands> #transferSuccess => . ... </commands>
+    rule <commands> #transferSuccess => .K ... </commands>
          <instrs> #waitCommands ... </instrs>
 
 endmodule

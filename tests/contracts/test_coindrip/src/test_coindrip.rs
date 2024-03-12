@@ -239,8 +239,8 @@ pub trait TestCoindripContract {
 
         for i in 1u64..last_stream_id + 1 {
             let stream = self.stream_by_id(i);
-            testapi::assert(stream.claimed_amount.clone() < stream.deposit.clone() + 1u64);
-            let current_available = stream.deposit - stream.claimed_amount.clone();
+            testapi::assert(&stream.claimed_amount < &(&stream.deposit + 1u64));
+            let current_available = stream.deposit - &stream.claimed_amount;
             match stream.balances_after_cancel {
                 Some(balances) => {
                     testapi::assert(stream.can_cancel);
@@ -258,7 +258,7 @@ pub trait TestCoindripContract {
                     let mut token_summary = available.get(j);
                     if token_summary.token_id == stream.payment_token && token_summary.nonce == stream.payment_nonce {
                         found = true;
-                        token_summary.amount += current_available.clone();
+                        token_summary.amount += &current_available;
                         available.set(j, &token_summary).unwrap();
                         break;
                     }

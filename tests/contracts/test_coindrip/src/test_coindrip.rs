@@ -182,9 +182,9 @@ pub trait TestCoindripContract {
             &self.alice().get(), &self.first_token().get(), &value
         );
 
-        testapi::assert(self.get_alice_balance(first_token.clone(), 0) == value);
-        testapi::assert(self.get_bob_balance(first_token.clone(), 0) == 0);
-        testapi::assert(self.get_coindrip_balance(first_token.clone(), 0) == 0);
+        testapi::assert(self.get_alice_balance(&first_token, 0) == value);
+        testapi::assert(self.get_bob_balance(&first_token, 0) == 0);
+        testapi::assert(self.get_coindrip_balance(&first_token, 0) == 0);
 
         testapi::set_block_timestamp(create_timestamp);
         self.create_stream(
@@ -197,9 +197,9 @@ pub trait TestCoindripContract {
             true
         );
 
-        testapi::assert(self.get_alice_balance(first_token.clone(), 0) == 0);
-        testapi::assert(self.get_bob_balance(first_token.clone(), 0) == 0);
-        testapi::assert(&self.get_coindrip_balance(first_token.clone(), 0) == &value);
+        testapi::assert(self.get_alice_balance(&first_token, 0) == 0);
+        testapi::assert(self.get_bob_balance(&first_token, 0) == 0);
+        testapi::assert(&self.get_coindrip_balance(&first_token, 0) == &value);
 
         testapi::set_block_timestamp(first_claim_timestamp);
 
@@ -209,12 +209,12 @@ pub trait TestCoindripContract {
             self.claim_from_stream(&self.bob().get(), self.last_stream_id());
         }
 
-        let first_claim_value = self.get_bob_balance(first_token.clone(), 0);
+        let first_claim_value = self.get_bob_balance(&first_token, 0);
 
         testapi::assert(expected_first_claim_value == first_claim_value);
-        testapi::assert(self.get_alice_balance(first_token.clone(), 0) == 0);
-        testapi::assert(self.get_bob_balance(first_token.clone(), 0) == first_claim_value);
-        testapi::assert(self.get_coindrip_balance(first_token.clone(), 0) == &value - &first_claim_value);
+        testapi::assert(self.get_alice_balance(&first_token, 0) == 0);
+        testapi::assert(self.get_bob_balance(&first_token, 0) == first_claim_value);
+        testapi::assert(self.get_coindrip_balance(&first_token, 0) == &value - &first_claim_value);
 
         testapi::set_block_timestamp(last_claim_timestamp);
         // do not claim if the expected value is 0
@@ -223,9 +223,9 @@ pub trait TestCoindripContract {
             self.claim_from_stream(&self.bob().get(), self.last_stream_id());
         }
 
-        testapi::assert(self.get_alice_balance(first_token.clone(), 0) == 0);
-        testapi::assert(self.get_bob_balance(first_token.clone(), 0) == value);
-        testapi::assert(self.get_coindrip_balance(first_token, 0) == 0);
+        testapi::assert(self.get_alice_balance(&first_token, 0) == 0);
+        testapi::assert(self.get_bob_balance(&first_token, 0) == value);
+        testapi::assert(self.get_coindrip_balance(&first_token, 0) == 0);
     }
 
     // #[endpoint(test_preserves_invariant)]
@@ -275,7 +275,7 @@ pub trait TestCoindripContract {
         }
 
         for summary in available.iter() {
-            let actual = self.get_coindrip_balance(summary.token_id, summary.nonce);
+            let actual = self.get_coindrip_balance(&summary.token_id, summary.nonce);
             testapi::assert(actual == summary.amount);
         }
     }
@@ -320,23 +320,23 @@ pub trait TestCoindripContract {
             .execute_on_dest_context()
     }
 
-    fn get_coindrip_balance(&self, token_id: EgldOrEsdtTokenIdentifier, nonce: u64) -> BigUint {
+    fn get_coindrip_balance(&self, token_id: &EgldOrEsdtTokenIdentifier, nonce: u64) -> BigUint {
         self.get_balance(&ManagedAddress::from(COINDRIP), token_id, nonce)
     }
 
-    fn get_alice_balance(&self, token_id: EgldOrEsdtTokenIdentifier, nonce: u64) -> BigUint {
+    fn get_alice_balance(&self, token_id: &EgldOrEsdtTokenIdentifier, nonce: u64) -> BigUint {
         self.get_balance(&self.alice().get(), token_id, nonce)
     }
 
-    fn get_bob_balance(&self, token_id: EgldOrEsdtTokenIdentifier, nonce: u64) -> BigUint {
+    fn get_bob_balance(&self, token_id: &EgldOrEsdtTokenIdentifier, nonce: u64) -> BigUint {
         self.get_balance(&self.bob().get(), token_id, nonce)
     }
 
-    fn get_balance(&self, address: &ManagedAddress, token_id: EgldOrEsdtTokenIdentifier, nonce: u64) -> BigUint {
-        if token_id == EgldOrEsdtTokenIdentifier::egld() {
-            self.blockchain().get_balance(address)
+    fn get_balance(&self, address: &ManagedAddress, token_id: &EgldOrEsdtTokenIdentifier, nonce: u64) -> BigUint {
+        if let Some(esdt_id) = token_id.as_esdt_option() {
+            self.blockchain().get_esdt_balance(address, &esdt_id, nonce)
         } else {
-            self.blockchain().get_esdt_balance(address, &(token_id.unwrap_esdt()), nonce)
+            self.blockchain().get_balance(address)    
         }
     }
 

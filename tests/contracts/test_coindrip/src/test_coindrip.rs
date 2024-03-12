@@ -196,6 +196,7 @@ pub trait TestCoindripContract {
             end_time,
             true
         );
+        let stream_id = self.last_stream_id();
 
         testapi::assert(self.get_alice_balance(&first_token, 0) == 0);
         testapi::assert(self.get_bob_balance(&first_token, 0) == 0);
@@ -206,7 +207,7 @@ pub trait TestCoindripContract {
         // do not claim if the expected value is 0
         let expected_first_claim_value = &value * (first_claim_timestamp - start_time) / (end_time - start_time);
         if expected_first_claim_value > 0u64 {
-            self.claim_from_stream(&self.bob().get(), self.last_stream_id());
+            self.claim_from_stream(&self.bob().get(), stream_id);
         }
 
         let first_claim_value = self.get_bob_balance(&first_token, 0);
@@ -220,7 +221,7 @@ pub trait TestCoindripContract {
         // do not claim if the expected value is 0
         let expected_last_claim_value = &value - &first_claim_value;
         if expected_last_claim_value > 0u64 {
-            self.claim_from_stream(&self.bob().get(), self.last_stream_id());
+            self.claim_from_stream(&self.bob().get(), stream_id);
         }
 
         testapi::assert(self.get_alice_balance(&first_token, 0) == 0);

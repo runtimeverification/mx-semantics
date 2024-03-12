@@ -199,18 +199,29 @@ pub trait TestCoindripContract {
 
         testapi::assert(self.get_alice_balance(first_token.clone(), 0) == 0);
         testapi::assert(self.get_bob_balance(first_token.clone(), 0) == 0);
-        testapi::assert(self.get_coindrip_balance(first_token.clone(), 0) == value);
+        testapi::assert(&self.get_coindrip_balance(first_token.clone(), 0) == &value);
 
         testapi::set_block_timestamp(first_claim_timestamp);
-        self.claim_from_stream(&self.bob().get(), self.last_stream_id());
+
+        // do not claim if the expected value is 0
+        let expected_first_claim_value = &value * (first_claim_timestamp - start_time) / (end_time - start_time);
+        if expected_first_claim_value > 0u64 {
+            self.claim_from_stream(&self.bob().get(), self.last_stream_id());
+        }
+
         let first_claim_value = self.get_bob_balance(first_token.clone(), 0);
 
+        testapi::assert(expected_first_claim_value == first_claim_value);
         testapi::assert(self.get_alice_balance(first_token.clone(), 0) == 0);
         testapi::assert(self.get_bob_balance(first_token.clone(), 0) == first_claim_value);
-        testapi::assert(self.get_coindrip_balance(first_token.clone(), 0) == value.clone() - first_claim_value);
+        testapi::assert(self.get_coindrip_balance(first_token.clone(), 0) == &value - &first_claim_value);
 
         testapi::set_block_timestamp(last_claim_timestamp);
-        self.claim_from_stream(&self.bob().get(), self.last_stream_id());
+        // do not claim if the expected value is 0
+        let expected_last_claim_value = &value - &first_claim_value;
+        if expected_last_claim_value > 0u64 {
+            self.claim_from_stream(&self.bob().get(), self.last_stream_id());
+        }
 
         testapi::assert(self.get_alice_balance(first_token.clone(), 0) == 0);
         testapi::assert(self.get_bob_balance(first_token.clone(), 0) == value);

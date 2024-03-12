@@ -9,6 +9,7 @@ tmp
 .krun*
 .kprove*
 .kompile*
+kdist
 
 *.pyc
 venv

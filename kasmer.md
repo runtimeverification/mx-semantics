@@ -321,6 +321,11 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           </esdtData>
           ...
         </account>
+        <logging> S
+               => S +String " -- setESDTBalance " 
+                    +String Bytes2String(ADDR) +String " " 
+                    +String Bytes2String(TOK_ID)
+        </logging>
       requires 0 <=Int VALUE
 
     // add new ESDT data
@@ -336,6 +341,11 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           </esdtData>)
           ...
         </account>
+        <logging> S
+               => S +String " -- setESDTBalance " 
+                    +String Bytes2String(ADDR) +String " " 
+                    +String Bytes2String(TOK_ID)
+        </logging>
       requires 0 <=Int VALUE
       [priority(60)]
     
@@ -496,6 +506,10 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           0 |-> <i64> TIMESTAMP
         </locals>
         <curBlockTimestamp> _ => TIMESTAMP </curBlockTimestamp>
+        <logging> S
+               => S +String " -- setBlockTimestamp " 
+                    +String Int2String(TIMESTAMP)
+        </logging>
         <callee> #foundryRunner </callee>
 
 ```

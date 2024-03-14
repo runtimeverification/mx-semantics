@@ -9,7 +9,7 @@ edition = "2021"
 num-bigint = "0.4.2"
 
 [dependencies.multiversx-sc]
-version = "0.43.3"
+version = "0.47.4"
 
 [lib]
 path = "src/testapi.rs"

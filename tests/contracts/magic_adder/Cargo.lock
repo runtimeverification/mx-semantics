@@ -1003,7 +1003,7 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc"
-version = "0.42.0"
+version = "0.47.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c22c2d1e82a357b6f397f87d475314628473b8a88882aa407234197f596786aa"
 dependencies = [
@@ -1040,7 +1040,7 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-derive"
-version = "0.42.0"
+version = "0.47.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6d77a125ea6985b2fa5cf1a297cdb9202c5a528eebb22652cc68ab1a9305e11"
 dependencies = [
@@ -1053,7 +1053,7 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-meta"
-version = "0.42.0"
+version = "0.47.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "980378ddeed12b646490d8b86d8603a10348cc511160d9124568ca87e36560a2"
 dependencies = [
@@ -1074,7 +1074,7 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-scenario"
-version = "0.42.0"
+version = "0.47.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c260b2c7f1ba4bbdbaf965865de25205f46c850bd294acbe4834200dba83804c"
 dependencies = [

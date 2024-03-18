@@ -38,4 +38,6 @@ RUN wget -O rustup.sh https://sh.rustup.rs && \
     chmod +x rustup.sh && \
     ./rustup.sh --verbose --default-toolchain nightly-2023-12-11 --target wasm32-unknown-unknown -y
 
-RUN /home/${USER}/.cargo/bin/cargo install multiversx-sc-meta --version ~0.47 --locked
+ENV PATH="/home/${USER}/.cargo/bin:${PATH}"
+
+RUN cargo install multiversx-sc-meta --version ~0.47 --locked

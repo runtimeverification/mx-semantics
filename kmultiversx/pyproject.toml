@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "kmultiversx"
-version = "0.1.15"
+version = "0.1.16"
 description = "Python tools for Elrond semantics"
 authors = [
     "Runtime Verification, Inc. <contact@runtimeverification.com>",
@@ -12,7 +12,7 @@ authors = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-pykwasm = { git = "https://github.com/runtimeverification/wasm-semantics.git", tag = "v0.1.15", subdirectory = "pykwasm" }
+pykwasm = { git = "https://github.com/runtimeverification/wasm-semantics.git", tag = "v0.1.16", subdirectory = "pykwasm" }
 pycryptodomex = "^3.18.0"
 hypothesis = "^6.82.6"
 

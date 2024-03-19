@@ -34,10 +34,10 @@ WORKDIR /home/$USER
 
 RUN python3 -m pip install --upgrade pip
 
-RUN    wget -O mxpy-up.py https://raw.githubusercontent.com/multiversx/mx-sdk-py-cli/main/mxpy-up.py    \
-    && python3 mxpy-up.py --not-interactive --exact-version 8.1.5
+RUN wget -O rustup.sh https://sh.rustup.rs && \
+    chmod +x rustup.sh && \
+    ./rustup.sh --verbose --default-toolchain nightly-2023-12-11 --target wasm32-unknown-unknown -y
 
-ENV PATH=/home/$USER/multiversx-sdk:/home/$USER/wabt/build:/home/$USER/.local/bin:$PATH
+ENV PATH="/home/${USER}/.cargo/bin:${PATH}"
 
-RUN mxpy config set "dependencies.rust.tag" nightly-2023-12-11 && \
-    mxpy deps install rust
+RUN cargo install multiversx-sc-meta --version ~0.47 --locked

@@ -20,12 +20,13 @@ module ESDT
                     ... 
          </commands>
 
-    rule <commands> transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, _)) 
+    rule <commands> transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, _) #as T) 
                  => checkAccountExists(FROM)
                  ~> checkAccountExists(TO)
                  ~> checkESDTBalance(FROM, TOKEN, VALUE)
                  ~> addToESDTBalance(FROM, TOKEN, 0 -Int VALUE)
                  ~> addToESDTBalance(TO,   TOKEN, VALUE)
+                 ~> appendToOutAccount(TO, OutputTransfer(FROM, T))
                     ... 
          </commands>
 ```
@@ -97,7 +98,10 @@ module ESDT
 
 ```k
     syntax BuiltinFunction ::= "#ESDTLocalMint"        [klabel(#ESDTLocalMint), symbol]
-    rule toBuiltinFunction(F) => #ESDTLocalMint requires F ==K #token("\"ESDTLocalMint\"", "WasmStringToken")
+
+    rule toBuiltinFunction(F) => #ESDTLocalMint requires F ==String "\"ESDTLocalMint\""
+
+    rule BuiltinFunction2Bytes(#ESDTLocalMint) => b"ESDTLocalMint"
 
     rule [ESDTLocalMint]:
         <commands> processBuiltinFunction(#ESDTLocalMint, SND, DST, <vmInput> 
@@ -132,7 +136,10 @@ module ESDT
 
 ```k
     syntax BuiltinFunction ::= "#ESDTLocalBurn"        [klabel(#ESDTLocalBurn), symbol]
-    rule toBuiltinFunction(F) => #ESDTLocalBurn requires F ==K #token("\"ESDTLocalBurn\"", "WasmStringToken")
+
+    rule toBuiltinFunction(F) => #ESDTLocalBurn requires F ==String "\"ESDTLocalBurn\""
+
+    rule BuiltinFunction2Bytes(#ESDTLocalBurn) => b"ESDTLocalBurn"
 
     rule [ESDTLocalBurn]:
         <commands> processBuiltinFunction(#ESDTLocalBurn, SND, DST, <vmInput> 
@@ -171,7 +178,10 @@ module ESDT
 
 ```k
     syntax BuiltinFunction ::= "#ESDTTransfer"        [klabel(#ESDTTransfer), symbol]
-    rule toBuiltinFunction(F) => #ESDTTransfer requires F ==K #token("\"ESDTTransfer\"", "WasmStringToken")
+
+    rule toBuiltinFunction(F) => #ESDTTransfer requires F ==String "\"ESDTTransfer\""
+
+    rule BuiltinFunction2Bytes(#ESDTTransfer) => b"ESDTTransfer"
 
     rule [ESDTTransfer]:
         <commands> processBuiltinFunction(#ESDTTransfer, SND, DST, 
@@ -208,7 +218,7 @@ module ESDT
                                                           </vmInput>)
                 => newWasmInstance(DST, CODE)
                 ~> mkCall( DST
-                         , #unparseWasmString("\"" +String Bytes2String(getCallFunc(FUNC, ARGS)) +String "\"")
+                         , #quoteUnparseWasmString(Bytes2String(getCallFunc(FUNC, ARGS)))
                          , mkVmInputEsdtExec(SND, FUNC, ARGS, GAS, GAS_PRICE)
                          )
                    ...
@@ -234,6 +244,7 @@ module ESDT
             <caller> FROM </caller>
             <callArgs> getCallArgs(BIFUNC, ARGS) </callArgs>
             <callValue> 0 </callValue>
+            <callType> DirectCall </callType>
             <esdtTransfers>
               parseESDTTransfers(BIFUNC, ARGS)
             </esdtTransfers>
@@ -247,8 +258,10 @@ module ESDT
 
 ```k
     syntax BuiltinFunction ::= "#MultiESDTNFTTransfer"        [klabel(#MultiESDTNFTTransfer), symbol]
-    rule toBuiltinFunction(F) => #MultiESDTNFTTransfer
-      requires F ==K #token("\"MultiESDTNFTTransfer\"", "WasmStringToken")
+
+    rule toBuiltinFunction(F) => #MultiESDTNFTTransfer requires F ==String "\"MultiESDTNFTTransfer\""
+
+    rule BuiltinFunction2Bytes(#MultiESDTNFTTransfer) => b"MultiESDTNFTTransfer"
 
     rule [MultiESDTNFTTransfer]:
         <commands> processBuiltinFunction(#MultiESDTNFTTransfer, SND, DST, 

@@ -5,6 +5,7 @@ Go implementation: [mx-chain-vm-go/vmhost/vmhooks/baseOps.go](https://github.com
 
 ```k
 requires "../elrond-config.md"
+requires "async.md"
 requires "eei-helpers.md"
 requires "utils.md"
 
@@ -12,6 +13,8 @@ module BASEOPS
     imports ELROND-CONFIG
     imports EEI-HELPERS
     imports UTILS
+    imports ASYNC-HELPERS
+
     imports private LIST-BYTES-EXTENSIONS
 
     // extern void getSCAddress(void *context, int32_t resultOffset);
@@ -447,6 +450,7 @@ module BASEOPS
             <caller> SENDER </caller>
             <callArgs> ARGS </callArgs>
             <callValue> VALUE </callValue>
+            <callType> DirectCall </callType>
             <esdtTransfers> ESDT </esdtTransfers>
             // gas
             <gasProvided> GASLIMIT </gasProvided>
@@ -469,12 +473,13 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
                  ...
         </instrs>
         <vmOutput>
-          VMOutput ( OK , _ , OUTPUT , LOGS ) => .VMOutput
+          VMOutput( ... returnCode: OK , out: OUTPUT, logs: LOGS, outputAccounts: OA2 ) => .VMOutput
         </vmOutput>
         // merge outputs
         <out> ... (.ListBytes => OUTPUT) </out>
         <logs> ... (.List => LOGS) </logs>
-
+        <outputAccounts> OA => updateMap(OA, OA2) </outputAccounts> // TODO concat common items
+ 
     rule [finishExecuteOnDestContext-exception]:
         <commands> #endWasm ... </commands>
         <instrs> #finishExecuteOnDestContext
@@ -482,7 +487,7 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
                  ...
         </instrs>
         <vmOutput>
-          VMOutput ( EC:ExceptionCode , MSG , _ , _ ) => .VMOutput
+          VMOutput( ... returnCode: EC:ExceptionCode, returnMessage: MSG ) => .VMOutput
         </vmOutput>
 
     // keep running other commands after transfers
@@ -513,11 +518,44 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
 
 ```
 
-The (incorrect) default implementation of a host call is to just return zero values of the correct type.
+## Async Calls
 
 ```k
-    // TODO implement asyncCall
-    rule <instrs> hostCall("env", "asyncCall", [ DOM ] -> [ CODOM ]) => .K ... </instrs>
-         <valstack> VS => #zero(CODOM) ++ #drop(lengthValTypes(DOM), VS) </valstack>
+    syntax InternalInstr ::= #createAsyncCallWithTypedArgs(
+                                dest: BytesResult,
+                                value: IntResult,
+                                func: BytesResult,
+                                args: ListBytesResult,
+                                gas: Int,
+                                extraGasForCallBack: Int,
+                                callbackClosure: BytesResult)
+ // ----------------------------------------------------------------------------
+    rule [createAsyncCallWithTypedArgs]:
+        <instrs> #createAsyncCallWithTypedArgs(
+                    DEST:Bytes,
+                    VALUE:Int,
+                    FUNC:Bytes,
+                    ARGS:ListBytes,
+                    GAS:Int,
+                    _GAS_CB:Int,
+                    CB_CLOSURE:Bytes)
+              => #waitCommands
+              ~> i32.const 0
+                 ...
+        </instrs>
+        <bytesStack> ERROR_CB : SUCC_CB : S => S </bytesStack>
+        <commands>
+          (.K => #registerAsyncCall("", #asyncCall( ...
+                      status: AsyncCallPending,
+                      dest: DEST,
+                      data: ListItem(wrap(FUNC)) ARGS,
+                      valueBytes: Int2Bytes(VALUE, BE, Unsigned),
+                      successCallback: Bytes2String(SUCC_CB),
+                      errorCallback: Bytes2String(ERROR_CB),
+                      gas: GAS,
+                      closure: CB_CLOSURE
+                    ) ) ) ...
+        </commands>
+
 endmodule
 ```

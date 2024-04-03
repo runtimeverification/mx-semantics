@@ -6,11 +6,10 @@ requires "managedConversions.md"
 
 module ASYNC-HELPERS
     imports ASYNC-CALL
-    imports STRING
     imports ELROND-NODE
 
-    syntax InternalCmd ::= "#asyncExecute"                         [symbol(asyncExecute)]
-                         | #registerAsyncCall(String, AsyncCall)   [symbol(registerAsyncCall)]
+    syntax InternalCmd ::= "#asyncExecute"                    [symbol(asyncExecute)]
+                         | #registerAsyncCall(AsyncCall)      [symbol(registerAsyncCall)]
 
     syntax Bool ::= isCallAsync(CallType)   [function, total]
  // ---------------------------------------------
@@ -25,7 +24,7 @@ module ASYNC
     imports ASYNC-HELPERS
 
     rule [registerAsyncCall]:
-        <commands> #registerAsyncCall(GROUP, #asyncCall(... successCallback: CB1, errorCallback: CB2 ) #as CALL)
+        <commands> #registerAsyncCall(#asyncCall(... successCallback: CB1, errorCallback: CB2 ) #as CALL)
                 // TODO calculate GasLocked
                 => checkBool( CB1 =/=K b"init", "invalid function (invalid name)")
                 ~> checkBool( notBool(isBuiltin(CB1))
@@ -37,19 +36,21 @@ module ASYNC
                             , "async call is not allowed at this location")
                 ~> checkBool( notBool isMultilevelAsync(CALLTYPE, CALLSTACK)
                             , "multi-level async calls are not allowed yet")
-                ~> #addAsyncCall(GROUP, CALL)
+                ~> #addAsyncCall(CALL)
                    ...
         </commands>
         <function> FUNC </function>
         <callType> CALLTYPE </callType>
         <callStack> CALLSTACK </callStack>
 
-    syntax InternalCmd ::= #addAsyncCall(String, AsyncCall)    [symbol(addAsyncCall)]
+    syntax InternalCmd ::= #addAsyncCall(AsyncCall)    [symbol(addAsyncCall)]
  // -----------------------------------------------------------------------------------
     rule [addAsyncCall]:
-        <commands> #addAsyncCall(GROUP, CALL) => .K ... </commands>
+        <commands> #addAsyncCall(#asyncCall(... dest: TO, func: FUNC) #as CALL) => .K ... </commands>
         <asyncCalls> L => L ListItem(CALL) </asyncCalls>
-        <logging> S => S +String " -- addAsyncCall " +String GROUP </logging>
+        <logging>
+          S => S +String " -- addAsyncCall " +String Bytes2String(TO) +String " " +String FUNC
+        </logging>
 
 
     syntax Bool ::= isMultilevelAsync(CallType, List)   [function, total]
@@ -114,7 +115,7 @@ module ASYNC
  // ---------------------------------------------------------------------------------------------
     rule [executeAsyncLocalCall]:
         <commands> #executeAsyncLocalCall
-                => callContract(CHILD, Bytes2String(FUNC),
+                => callContract(CHILD, FUNC,
                                 <vmInput>
                                   <caller> PARENT </caller>
                                   <callArgs> ARGS </callArgs>
@@ -132,7 +133,7 @@ module ASYNC
         <asyncCalls> 
           ListItem(
             #asyncCall( ...
-              dest: CHILD, data: ListItem(wrap(FUNC)) ARGS, valueBytes: VALUE, gas: GAS
+              dest: CHILD, func: FUNC, args: ARGS, valueBytes: VALUE, gas: GAS
             )
           )
           ...
@@ -224,9 +225,10 @@ module ASYNC
 
     syntax ListBytes ::= argsForCallback(ReturnCode, Bytes, ListBytes)    [function, total]
  // -------------------------------------------------------------------
-    rule argsForCallback(OK, _, OUT) => ListItem(wrap(Int2Bytes(0, BE, Unsigned))) OUT
-    rule argsForCallback(_:ExceptionCode, MSG, _)
-      => ListItem(wrap(Int2Bytes(1, BE, Unsigned))) ListItem(wrap(MSG)) // TODO use actual error codes
+    rule argsForCallback(OK, _, OUT) 
+      => ListItem(wrap(Int2Bytes(0, BE, Unsigned))) OUT
+    rule argsForCallback(EC:ExceptionCode, MSG, _) 
+      => ListItem(wrap(Int2Bytes(ReturnCode2Int(EC), BE, Unsigned))) ListItem(wrap(MSG))
 
     syntax Int ::= extractLastValue   (Bytes, VMOutput)       [function, total]
                  | extractLastValueAux(TransferValue)         [function, total]

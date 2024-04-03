@@ -442,8 +442,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <commands> #setVMOutput => .K ... </commands>
          <out> OUT </out>
          <logs> LOGS </logs>
-         <outputAccounts> OUT_ACCS</outputAccounts>
-         <vmOutput> _ => VMOutput( OK , .Bytes , OUT , LOGS , OUT_ACCS) </vmOutput>
+         <outputAccounts> OUT_ACCS </outputAccounts>
+         <vmOutput> _ => VMOutput(OK , .Bytes , OUT , LOGS , OUT_ACCS) </vmOutput>
       [priority(60)]
 
 ```

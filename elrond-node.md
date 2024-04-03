@@ -113,6 +113,23 @@ Storage maps byte arrays to byte arrays.
                            | "UpgradeFailed"            [klabel(UpgradeFailed), symbol]
                            | "SimulateFailed"           [klabel(SimulateFailed), symbol]
 
+    syntax Int ::= ReturnCode2Int( ReturnCode )     [function, total]
+ // -----------------------------------------------------------------
+    rule ReturnCode2Int( OK                     ) => 0
+    rule ReturnCode2Int( FunctionNotFound       ) => 1
+    rule ReturnCode2Int( FunctionWrongSignature ) => 2
+    rule ReturnCode2Int( ContractNotFound       ) => 3
+    rule ReturnCode2Int( UserError              ) => 4
+    rule ReturnCode2Int( OutOfGas               ) => 5
+    rule ReturnCode2Int( AccountCollision       ) => 6 
+    rule ReturnCode2Int( OutOfFunds             ) => 7
+    rule ReturnCode2Int( CallStackOverFlow      ) => 8
+    rule ReturnCode2Int( ContractInvalid        ) => 9
+    rule ReturnCode2Int( ExecutionFailed        ) => 10
+    rule ReturnCode2Int( UpgradeFailed          ) => 11
+    rule ReturnCode2Int( SimulateFailed         ) => 12
+
+
     syntax VMOutput ::= ".VMOutput"  [klabel(.VMOutput), symbol]
                       | VMOutput( returnCode: ReturnCode , returnMessage: Bytes , out: ListBytes, logs: List, outputAccounts: Map )
                         [klabel(VMOutput), symbol]

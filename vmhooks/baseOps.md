@@ -545,10 +545,10 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
         </instrs>
         <bytesStack> ERROR_CB : SUCC_CB : S => S </bytesStack>
         <commands>
-          (.K => #registerAsyncCall("", #asyncCall( ...
-                      status: AsyncCallPending,
+          (.K => #registerAsyncCall(#asyncCall( ...
                       dest: DEST,
-                      data: ListItem(wrap(FUNC)) ARGS,
+                      func: Bytes2String(FUNC),
+                      args: ARGS,
                       valueBytes: Int2Bytes(VALUE, BE, Unsigned),
                       successCallback: Bytes2String(SUCC_CB),
                       errorCallback: Bytes2String(ERROR_CB),

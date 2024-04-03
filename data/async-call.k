@@ -5,11 +5,12 @@ module ASYNC-CALL
   imports private LIST-BYTES
   imports private INT-SYNTAX
   imports private BASIC-K
+  imports private STRING
 
   syntax AsyncCall ::= #asyncCall(
-                          status: AsyncCallStatus,
                           dest: Bytes,
-                          data: ListBytes,
+                          func: String,
+                          args: ListBytes,
                           valueBytes: Bytes,
                           successCallback: String,
                           errorCallback: String,

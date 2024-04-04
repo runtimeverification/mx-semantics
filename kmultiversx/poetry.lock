@@ -971,7 +971,7 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pyk"
-version = "0.1.767"
+version = "0.1.771"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -992,12 +992,12 @@ xdg-base-dirs = "^6.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/pyk.git"
-reference = "v0.1.767"
-resolved_reference = "291d66d5b8bc2037d73982aa80c681c920f86f12"
+reference = "v0.1.771"
+resolved_reference = "798f63f027dac4c88041e15d8e3b7b61dd2c9b0d"
 
 [[package]]
 name = "pykwasm"
-version = "0.1.22"
+version = "0.1.23"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -1008,13 +1008,13 @@ develop = false
 cytoolz = "^0.12.1"
 numpy = "^1.24.2"
 py-wasm = {url = "https://github.com/runtimeverification/py-wasm/archive/refs/tags/0.2.0.tar.gz"}
-pyk = {git = "https://github.com/runtimeverification/pyk.git", tag = "v0.1.767"}
+pyk = {git = "https://github.com/runtimeverification/pyk.git", tag = "v0.1.771"}
 
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/wasm-semantics.git"
-reference = "v0.1.22"
-resolved_reference = "bfea8c112218ab90d8ac6f21557d7dbbb0fb08b9"
+reference = "v0.1.23"
+resolved_reference = "4334061b2e9c22b517da4079a7463056420c8239"
 subdirectory = "pykwasm"
 
 [[package]]
@@ -1292,4 +1292,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "6de0aa1c32a2a2a01247a2b6e105f136bf77ab6e46d8343552b2bb29729133f4"
+content-hash = "f630e9920ac7f282ffe7602c099c544c8b2dc3d25625d5c76fe7436b05a11e59"

@@ -9,6 +9,7 @@ requires "auto-allocate.md"
 requires "deps/plugin/plugin/krypto.md"
 requires "elrond-node.md"
 requires "esdt.md"
+requires "switch.md"
 requires "wasm-semantics/wasm-text.md"
 
 module ELROND-CONFIG
@@ -19,6 +20,7 @@ module ELROND-CONFIG
     imports ESDT
     imports LIST-BYTES
     imports MAP-BYTES-TO-BYTES-PRIMITIVE
+    imports SWITCH
 
     configuration
       <elrond>
@@ -408,45 +410,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
        requires 1 <Int NUMTOPICS
 ```
 
-## Node And Wasm VM Synchronization
 
-- `#endWasm` waits for the Wasm VM to finish the execution and creates the VM output.
-- `#waitWasm` waits for the Wasm VM to finish
-
-```k
-    syntax InternalCmd ::= "#endWasm"
- // ---------------------------------
-    rule <commands> #endWasm => #asyncExecute ~> #setVMOutput ~> popCallState ~> dropWorldState ... </commands>
-         <instrs> .K </instrs>
-      [priority(60)]
-
-    syntax InternalCmd ::= "#waitWasm"  [klabel(#waitWasm), symbol]
- // ----------------------------------
-    rule <commands> #waitWasm => .K ... </commands>
-         <instrs> .K </instrs>
-      [priority(60)]
-
-    syntax InternalInstr ::= "#waitCommands"
- // ---------------------------------------
-    rule [waitCommands]:
-        <instrs> #waitCommands => .K ... </instrs>
-        <commands> #endWasm ... </commands>
-      [priority(200)]
-
-    rule <commands> #transferSuccess => .K ... </commands>
-         <instrs> #waitCommands ... </instrs>
-    
-
-    syntax InternalCmd ::= "#setVMOutput"
- // -------------------------------------
-    rule <commands> #setVMOutput => .K ... </commands>
-         <out> OUT </out>
-         <logs> LOGS </logs>
-         <outputAccounts> OUT_ACCS </outputAccounts>
-         <vmOutput> _ => VMOutput(OK , .Bytes , OUT , LOGS , OUT_ACCS) </vmOutput>
-      [priority(60)]
-
-```
 
 
 ## Exception Handling
@@ -588,7 +552,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule [transferFundsH-self]:
         <commands> transferFundsH(ACCT, ACCT, VALUE)
                 => appendToOutAccount(ACCT, OutputTransfer(ACCT, VALUE))
-                ~> #transferSuccess 
                    ...
         </commands>
         <account>
@@ -602,7 +565,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule [transferFundsH]:
         <commands> transferFundsH(ACCTFROM, ACCTTO, VALUE) 
                 => appendToOutAccount(ACCTTO, OutputTransfer(ACCTFROM, VALUE))
-                ~> #transferSuccess 
                    ... 
         </commands>
         <account>
@@ -631,8 +593,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       requires VALUE >Int ORIGFROM
       [priority(60)]
 
-    rule <commands> #transferSuccess => .K ... </commands>
-         <instrs> .K </instrs>
 ```
 
 ## Calling Contract

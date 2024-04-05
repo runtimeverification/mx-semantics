@@ -102,16 +102,11 @@ module BASEOPS
          </locals>
 
     syntax InternalInstr ::= "#transferValue"
-                           | "#waitForTransfer"
  // -------------------------------------------
-    rule <commands> (.K => transferFunds(CALLEE, DEST, Bytes2Int(VALUE, BE, Unsigned))) ... </commands>
-         <instrs> #transferValue => #waitForTransfer ~> i32.const 0 ... </instrs>
+    rule <instrs> #transferValue => #waitCommands ~> i32.const 0 ... </instrs>
+         <commands> (.K => transferFunds(CALLEE, DEST, Bytes2Int(VALUE, BE, Unsigned))) ... </commands>
          <callee> CALLEE </callee>
          <bytesStack> _DATA : VALUE : DEST : STACK => STACK </bytesStack>
-
-    // switch to wasm execution after the transfer
-    rule <commands> (#transferSuccess => .K) ~> #endWasm ... </commands>
-         <instrs> #waitForTransfer => .K ... </instrs>
 
     syntax Bool ::= #validArgIdx( Int , ListBytes )        [function, total]
  // -------------------------------------------------------------------
@@ -386,7 +381,7 @@ module BASEOPS
     syntax InternalInstr ::= #transferESDTNFTExecuteWithTypedArgs(BytesResult, ListResult, Int, BytesResult, ListBytesResult)
  // -------------------------------------------------------------------------------------------
     rule <instrs> #transferESDTNFTExecuteWithTypedArgs(Dest, Transfers, _GasLimit, b"", _Args)
-               => #waitForTransfer
+               => #waitCommands
                ~> i32.const 0
                   ...
          </instrs>
@@ -404,7 +399,7 @@ module BASEOPS
     syntax InternalInstr ::= #transferValueExecuteWithTypedArgs(BytesResult, IntResult, Int, BytesResult, ListBytesResult)
  // -------------------------------------------------------------------------------------------
     rule <instrs> #transferValueExecuteWithTypedArgs(Dest, Value, _GasLimit, b"", _Args)
-               => #waitForTransfer
+               => #waitCommands
                ~> i32.const 0
                   ...
          </instrs>
@@ -432,7 +427,8 @@ module BASEOPS
  // -----------------------------------------------------------------------------------------
     rule [executeOnDestContext]:
         <instrs> #executeOnDestContext(Dest, Value, Esdt, GasLimit, Func, Args)
-              => #finishExecuteOnDestContext
+              => #waitCommands
+              ~> #finishExecuteOnDestContext
                  ...
         </instrs>
         <callee> Callee </callee>
@@ -440,7 +436,6 @@ module BASEOPS
           (.K => callContract( Dest, Bytes2String(Func), prepareIndirectContractCallInput(Callee, Value, Esdt, GasLimit, Args))) ... 
         </commands>
         // TODO requires not IsOutOfVMFunctionExecution
-        // TODO requires not IsBuiltinFunctionName
         
 
     syntax VmInputCell ::= prepareIndirectContractCallInput(Bytes, Int, List, Int, ListBytes)    [function, total]
@@ -467,7 +462,6 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
     syntax InternalInstr ::= "#finishExecuteOnDestContext"  [klabel(finishExecuteOnDestContext), symbol]
  // ------------------------------------------------------
     rule [finishExecuteOnDestContext-ok]:
-        <commands> #endWasm ... </commands>
         <instrs> #finishExecuteOnDestContext
               => i32.const 0
                  ...
@@ -481,7 +475,6 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
         <outputAccounts> OA => updateMap(OA, OA2) </outputAccounts> // TODO concat common items
  
     rule [finishExecuteOnDestContext-exception]:
-        <commands> #endWasm ... </commands>
         <instrs> #finishExecuteOnDestContext
               => resolveErrorFromOutput(EC, MSG)
                  ...
@@ -489,10 +482,6 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
         <vmOutput>
           VMOutput( ... returnCode: EC:ExceptionCode, returnMessage: MSG ) => .VMOutput
         </vmOutput>
-
-    // keep running other commands after transfers
-    rule <commands> (#transferSuccess => .K) ... </commands>
-         <instrs> #finishExecuteOnDestContext ... </instrs>
 
     syntax InternalInstr ::= resolveErrorFromOutput(ExceptionCode, Bytes) [function, total]
  // -----------------------------------------------------------------------

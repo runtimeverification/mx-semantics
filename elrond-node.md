@@ -283,8 +283,6 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
 ## Misc
 
 ```k
-    syntax InternalCmd ::= "#transferSuccess"
-
     syntax InternalCmd ::= checkAccountExists( Bytes )
  // ------------------------------------------------------
     rule [checkAccountExists-pass]:

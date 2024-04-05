@@ -13,7 +13,7 @@ module ESDT
     syntax InternalCmd ::= transferESDT  ( Bytes , Bytes , ESDTTransfer )
                          | transferESDTs ( Bytes , Bytes , List )
 
-    rule <commands> transferESDTs(_, _, .List) => #transferSuccess ... </commands>
+    rule <commands> transferESDTs(_, _, .List) => .K ... </commands>
     rule <commands> transferESDTs(FROM, TO, ListItem(T:ESDTTransfer) Ls) 
                  => transferESDT(FROM, TO, T) 
                  ~> transferESDTs(FROM, TO, Ls)

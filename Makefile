@@ -1,7 +1,7 @@
 
 .PHONY: all clean deps wasm-deps                                                 \
         build build-llvm build-haskell build-kasmer                              \
-        plugin-deps libff libcryptopp libsecp256k1                               \
+        plugin-deps                                                              \
         test unittest-python mandos-test test-elrond-contracts                   \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
         test-elrond-multisig test-elrond-basic-features                          \
@@ -62,58 +62,13 @@ all: build
 
 clean:
 	rm -rf $(BUILD_DIR)
+	$(MAKE) -C $(PLUGIN_SUBMODULE) clean
 
 # Non-K Dependencies
 # ------------------
 
-# libff
-# =====
-
-libff_out := $(LOCAL_LIB)/libff.a
-
-libff: $(libff_out)
-
-ifeq ($(UNAME_S),Linux)
-    LIBFF_CMAKE_FLAGS=
-else
-    LIBFF_CMAKE_FLAGS=-DWITH_PROCPS=OFF
-endif
-
-$(libff_out): $(PLUGIN_SUBMODULE)/deps/libff/CMakeLists.txt
-	@mkdir -p $(PLUGIN_SUBMODULE)/deps/libff/build
-	cd $(PLUGIN_SUBMODULE)/deps/libff/build                                                               \
-	    && cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(BUILD_LOCAL) $(LIBFF_CMAKE_FLAGS) \
-	    && make -s -j4                                                                                    \
-	    && make install
-
-# libcryptopp
-# ===========
-
-libcryptopp_out := $(LOCAL_LIB)/libcryptopp.a
-
-libcryptopp : $(libcryptopp_out)
-
-$(libcryptopp_out): $(PLUGIN_SUBMODULE)/deps/cryptopp/GNUmakefile
-	cd $(PLUGIN_SUBMODULE)/deps/cryptopp                            \
-	    && $(MAKE) install DESTDIR=$(BUILD_LOCAL) PREFIX=/
-
-# libsecp256k1
-# ============
-
-libsecp256k1_out := $(LOCAL_LIB)/libsecp256k1.a
-
-libsecp256k1 : $(libsecp256k1_out)
-
-$(libsecp256k1_out): $(PLUGIN_SUBMODULE)/deps/secp256k1/autogen.sh
-	cd $(PLUGIN_SUBMODULE)/deps/secp256k1                                 \
-	    && ./autogen.sh                                                   \
-	    && ./configure --enable-module-recovery --prefix="$(BUILD_LOCAL)" \
-	    && $(MAKE)                                                        \
-	    && $(MAKE) install
-
-PLUGIN_DEPS := $(libff_out) $(libcryptopp_out) $(libsecp256k1_out)
-
-plugin-deps: $(PLUGIN_DEPS)
+plugin-deps:
+	$(MAKE) -C $(PLUGIN_SUBMODULE) blake2 libcryptopp libff -j8
 
 # Build Dependencies (K Submodule)
 # --------------------------------
@@ -135,15 +90,16 @@ ifneq (,$(K_COVERAGE))
     KOMPILE_OPTS += --coverage
 endif
 
-LLVM_KOMPILE_OPTS  := -L$(LOCAL_LIB)                               \
-                      -I$(LOCAL_INCLUDE)                           \
-                      -I/usr/include                               \
-                      $(PLUGIN_SUBMODULE)/plugin-c/plugin_util.cpp \
-                      $(PLUGIN_SUBMODULE)/plugin-c/crypto.cpp      \
-                      $(PLUGIN_SUBMODULE)/plugin-c/blake2.cpp      \
-                      $(PLUGIN_SUBMODULE)/plugin-c/blake2-generic.cpp \
-                      -g -std=c++17 -lff -lcryptopp -lsecp256k1    \
-                      -lssl -lcrypto -lprocps
+LLVM_KOMPILE_OPTS  := -std=c++17 -g                                           \
+                      $(PLUGIN_SUBMODULE)/build/blake2/lib/blake2.a           \
+                      -I$(PLUGIN_SUBMODULE)/build/blake2/include              \
+                      $(PLUGIN_SUBMODULE)/build/libcryptopp/lib/libcryptopp.a \
+                      -I$(PLUGIN_SUBMODULE)/build/libcryptopp/include         \
+                      $(PLUGIN_SUBMODULE)/build/libff/lib/libff.a             \
+                      -I$(PLUGIN_SUBMODULE)/build/libff/include               \
+                      $(PLUGIN_SUBMODULE)/plugin-c/crypto.cpp                 \
+                      $(PLUGIN_SUBMODULE)/plugin-c/plugin_util.cpp            \
+                      -lcrypto -lprocps -lsecp256k1 -lssl
 
 MAIN_MODULE        := MANDOS
 MAIN_SYNTAX_MODULE := MANDOS-SYNTAX
@@ -177,7 +133,7 @@ llvm_kompiled := $(llvm_dir)/mandos-kompiled/interpreter
 
 build-llvm: $(llvm_kompiled)
 
-$(llvm_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_DEPS)
+$(llvm_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) plugin-deps
 	$(KWASM_MAKE) build-llvm                             \
 	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)            \
 	    llvm_main_module=$(MAIN_MODULE)                  \
@@ -209,7 +165,7 @@ kasmer_kompiled := $(llvm_dir)/kasmer-kompiled/interpreter
 build-kasmer: $(kasmer_kompiled)
 
 # runs llvm-kompile separately to reduce max memory usage
-$(kasmer_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_DEPS)
+$(kasmer_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) plugin-deps
 	$(KWASM_MAKE) build-llvm                             \
 	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)            \
 	    llvm_main_module=KASMER                          \
@@ -231,7 +187,7 @@ build-haskell: $(haskell_kompiled)
 
 build-haskell-kasmer: $(haskell_kasmer_kompiled)
 
-$(haskell_kasmer_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_DEPS)
+$(haskell_kasmer_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) plugin-deps
 	$(KWASM_MAKE) build-haskell                             \
 	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)               \
 	    haskell_main_module=$(KASMER_MODULE)                  \
@@ -241,7 +197,7 @@ $(haskell_kasmer_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) 
 	    KOMPILE_OPTS="$(KOMPILE_OPTS) --warnings-to-errors" \
 	    K_INCLUDE_DIR=$(K_INCLUDE_DIR)
 
-$(haskell_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) $(PLUGIN_DEPS)
+$(haskell_kompiled): $(ELROND_FILES_KWASM_DIR) $(PLUGIN_FILES_KWASM_DIR) plugin-deps
 	$(KWASM_MAKE) build-haskell                             \
 	    DEFN_DIR=../../$(DEFN_DIR)/$(SUBDEFN)               \
 	    haskell_main_module=$(MAIN_MODULE)                  \

@@ -1,8 +1,14 @@
-from pathlib import Path
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import pytest
 from pyk.cli.utils import dir_path
+from pyk.kdist import kdist
 from pyk.ktool.krun import KRun
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -15,12 +21,19 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 
 @pytest.fixture(scope='session')
-def kasmer_llvm_dir(pytestconfig: pytest.Config) -> Path:
-    ldir = pytestconfig.getoption('kasmer_llvm_dir')
-    assert isinstance(ldir, Path)
-    return ldir
+def kasmer_llvm_dir(pytestconfig: pytest.Config) -> Path | None:
+    return pytestconfig.getoption('kasmer_llvm_dir')
 
 
 @pytest.fixture(scope='session')
-def kasmer_llvm_krun(kasmer_llvm_dir: Path) -> KRun:
+def kasmer_llvm_krun(kasmer_llvm_dir: Path | None) -> KRun:
+    if kasmer_llvm_dir is not None:
+        return KRun(kasmer_llvm_dir)
+
+    kasmer_llvm_dir = kdist.which('mx-semantics.llvm-kasmer')
+    if not kasmer_llvm_dir.is_dir():
+        raise ValueError(
+            'Kasmer LLVM definition not found. Run make from the repository root, or pass --kasmer-llvm-dir'
+        )
+
     return KRun(kasmer_llvm_dir)

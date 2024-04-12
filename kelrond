@@ -8,7 +8,8 @@ fatal() { echo "[FATAL] $@" ; exit 1 ; }
 
 kelrond_dir="${KELROND_DIR:-$(dirname $0)}"
 build_dir="$kelrond_dir/.build"
-defn_dir="${KELROND_DEFN_DIR:-$build_dir/defn}"
+kdist_dir="$(poetry -C kmultiversx run -- kdist which)"
+defn_dir="${KELROND_DEFN_DIR:-$kdist_dir}/mx-semantics"
 
 kwasm_dir=$kelrond_dir/deps/wasm-semantics
 
@@ -116,10 +117,7 @@ while [[ $# -gt 0 ]]; do
 done
 set -- "${args[@]}"
 
-backend_dir="$defn_dir/$backend"
-
-# kompiled_dir = .build/defn/<backend>/<main_file>-kompiled
-kompiled_dir="$backend_dir/$main_file-kompiled"
+kompiled_dir="$defn_dir/$backend-$main_file"
 
 # get the run file
 [[ ! -z ${1:-} ]] || usage_fatal "Must supply a file to run on."

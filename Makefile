@@ -86,7 +86,7 @@ test: test-simple mandos-test test-elrond-contracts test-custom-contracts
 # Unit Tests
 # ----------
 
-TEST  := ./kelrond
+TEST  := $(POETRY) run -- kelrond
 CHECK := git --no-pager diff --no-index --ignore-all-space -R
 
 TEST_CONCRETE_BACKEND:= llvm

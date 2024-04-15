@@ -1,17 +1,11 @@
-#!/usr/bin/env bash
-
 set -euo pipefail
 shopt -s extglob
 
 notif() { echo "== $@" >&2 ; }
 fatal() { echo "[FATAL] $@" ; exit 1 ; }
 
-kelrond_dir="${KELROND_DIR:-$(dirname $0)}"
-build_dir="$kelrond_dir/.build"
-kdist_dir="$(poetry -C kmultiversx run -- kdist which)"
+kdist_dir="$(kdist which)"
 defn_dir="${KELROND_DEFN_DIR:-$kdist_dir}/mx-semantics"
-
-kwasm_dir=$kelrond_dir/deps/wasm-semantics
 
 export K_OPTS="${K_OPTS:--Xmx16G -Xss512m}"
 
@@ -24,7 +18,7 @@ preprocess() {
     tmp_dir="$(mktemp -d)"
     tmp_input="$tmp_dir/$(basename $run_file))"
     touch "$tmp_input"
-    poetry -C kmultiversx run kwasm-preprocess "$run_file" > "$tmp_input"
+    kwasm-preprocess "$run_file" > "$tmp_input"
     run_file="$tmp_input"
 }
 

@@ -10,6 +10,11 @@ authors = [
     "Runtime Verification, Inc. <contact@runtimeverification.com>",
 ]
 
+[tool.poetry.scripts]
+mandos = "kmultiversx.scenario:run_tests"
+kasmer = "kmultiversx.kasmer:main"
+kelrond = "kmultiversx.scripts.kelrond:main"
+
 [tool.poetry.plugins.kdist]
 mx-semantics = "kmultiversx.kdist.plugin"
 
@@ -54,7 +59,3 @@ skip-string-normalization = true
 
 [tool.mypy]
 disallow_untyped_defs = true
-
-[tool.poetry.scripts]
-mandos = "kmultiversx.scenario:run_tests"
-kasmer = "kmultiversx.kasmer:main"

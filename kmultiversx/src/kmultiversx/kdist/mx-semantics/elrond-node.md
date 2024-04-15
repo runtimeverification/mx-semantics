@@ -2,10 +2,10 @@ Elrond Node
 ===========
 
 ```k
+requires "wasm-semantics/wasm.md"
 requires "data/list-bytes.k"
 requires "data/map-bytes-to-bytes.k"
 requires "data/map-int-to-bytes.k"
-requires "wasm-semantics/wasm.md"
 
 module ELROND-NODE
     imports DOMAINS

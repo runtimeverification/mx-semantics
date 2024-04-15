@@ -39,7 +39,7 @@ jobs:
     steps:
       - name: 'Check out code'
         uses: actions/checkout@v3
-        with:    
+        with:
           submodules: recursive
       - name: 'Install Poetry'
         uses: Gr1N/setup-poetry@v8
@@ -53,16 +53,14 @@ jobs:
     steps:
       - name: 'Check out code'
         uses: actions/checkout@v3
-        with:    
+        with:
           submodules: recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build Haskell'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build-haskell RELEASE=true -j4'
-      - name: 'Build Haskell'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build-haskell-kasmer RELEASE=true -j4'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build-haskell'
       - name: 'Tear down Docker'
         if: always()
         run: |
@@ -76,22 +74,20 @@ jobs:
     steps:
       - name: 'Check out code'
         uses: actions/checkout@v3
-        with:    
+        with:
           submodules: recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build RELEASE=true -j4'
-      - name: 'Install Kmultiversx'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build'
       - name: 'Run Python Unit Tests'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm unittest-python'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make unittest-python'
       - name: 'Run Simple Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-simple -j6'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-simple -j6'
       - name: 'Run Mandos Tests'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm mandos-test -j6'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make mandos-test -j6'
       - name: 'Tear down Docker'
         if: always()
         run: |
@@ -105,20 +101,18 @@ jobs:
     steps:
       - name: 'Check out code'
         uses: actions/checkout@v3
-        with:    
+        with:
           submodules: recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
-      - name: 'Install Kmultiversx'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build'
       - name: 'Run Basic Feature Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-basic-features -j6'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-elrond-basic-features -j6'
       - name: 'Run Alloc Feature Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-alloc-features -j6'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-elrond-alloc-features -j6'
       - name: 'Tear down Docker'
         if: always()
         run: |
@@ -132,22 +126,20 @@ jobs:
     steps:
       - name: 'Check out code'
         uses: actions/checkout@v3
-        with:    
+        with:
           submodules: recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
-      - name: 'Install Kmultiversx'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build'
       - name: 'Run Adder Contract Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-adder'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-elrond-adder'
       - name: 'Run Crowdfunding ESDT Contract Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-crowdfunding-esdt'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-elrond-crowdfunding-esdt'
       - name: 'Run Multisig Contract Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-elrond-multisig'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-elrond-multisig'
       - name: 'Tear down Docker'
         if: always()
         run: |
@@ -161,18 +153,16 @@ jobs:
     steps:
       - name: 'Check out code'
         uses: actions/checkout@v3
-        with:    
+        with:
           submodules: recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build RELEASE=true -j4'
-      - name: 'Install Kmultiversx'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build'
       - name: 'Run Custom Contract Tests'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make TEST_CONCRETE_BACKEND=llvm test-custom-contracts'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-custom-contracts'
       - name: 'Tear down Docker'
         if: always()
         run: |
@@ -185,22 +175,18 @@ jobs:
     steps:
       - name: 'Check out code'
         uses: actions/checkout@v3
-        with:    
+        with:
           submodules: recursive
       - name: 'Set up Docker'
         uses: ./.github/actions/with-docker
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build Kasmer'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build-kasmer -j4'
-      - name: 'Install Kmultiversx'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make poetry-install'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build-kasmer'
       - name: 'Run tests'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c \
-              'make -C kmultiversx test TEST_ARGS="--kasmer-llvm-dir ../.build/defn/llvm/kasmer-kompiled/"'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make -C kmultiversx test'
       - name: 'Run TestApi tests'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c \
-              'make test-testapi'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-testapi'
       - name: 'Tear down Docker'
         if: always()
         run: |

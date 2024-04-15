@@ -13,6 +13,7 @@ from Cryptodome.Hash import keccak
 from pyk.cli.utils import dir_path
 from pyk.kast.inner import KApply, KSequence, KToken, Subst
 from pyk.kast.manip import split_config_from
+from pyk.kdist import kdist
 from pyk.ktool.krun import KRun
 from pyk.prelude.collections import set_of
 from pykwasm.kwasm_ast import KBytes, KInt, KString
@@ -761,28 +762,25 @@ def log_intermediate_state(krun: KRun, name: str, config: KInner, output_dir: st
         f.write(pretty)
 
 
-# Main Script
-args = None
-
-
 def run_tests() -> None:
-    global args
     test_args = argparse.ArgumentParser(description='')
     test_args.add_argument('files', metavar='N', type=str, nargs='+', help='')
     test_args.add_argument('--log-level', choices=['none', 'per-file', 'per-step'], default='per-file')
     test_args.add_argument('--verbose', action='store_true', help='')
     test_args.add_argument(
         '--definition-dir',
-        default=None,
-        required=True,
         dest='definition_dir',
         type=dir_path,
         help='Path to Mandos LLVM definition to use.',
     )
     args = test_args.parse_args()
-    tests = args.files
 
-    krun = KRun(args.definition_dir)
+    definition_dir = args.definition_dir
+    if definition_dir is None:
+        definition_dir = kdist.get('mx-semantics.llvm-mandos')
+    krun = KRun(definition_dir)
+
+    tests = args.files
 
     template_wasm_config = krun.definition.init_config(GENERATED_TOP_CELL)
 

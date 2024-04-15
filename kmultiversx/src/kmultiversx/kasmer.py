@@ -16,6 +16,7 @@ from pyk.cli.utils import dir_path
 from pyk.cterm import CTerm, cterm_build_claim
 from pyk.kast.inner import KApply, KSequence, KSort, KVariable, Subst
 from pyk.kast.manip import split_config_from
+from pyk.kdist import kdist
 from pyk.ktool.krun import KRun
 from pyk.prelude.collections import list_of, map_of, set_of
 from pyk.prelude.kint import leInt
@@ -473,7 +474,6 @@ def main() -> None:
     parser = argparse.ArgumentParser(description='Symbolic testing for MultiversX contracts')
     parser.add_argument(
         '--definition-dir',
-        default=None,
         dest='definition_dir',
         type=dir_path,
         help='Path to Foundry LLVM definition to use.',
@@ -509,6 +509,11 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    definition_dir = args.definition_dir
+    if definition_dir is None:
+        definition_dir = kdist.get('mx-semantics.llvm-kasmer')
+    krun = KRun(definition_dir)
+
     test_dir = args.directory
 
     # Load test parameters in JSON
@@ -521,8 +526,6 @@ def main() -> None:
     # Load dependency contracts' wasm modules
     wasm_paths = (join(test_dir, p) for p in input_json['contract_paths'])
     contract_wasms = load_contract_wasms(wasm_paths)
-
-    krun = KRun(args.definition_dir)
 
     print('Initializing the test...')
     sym_conf, init_subst = deploy_test(krun, test_wasm, contract_wasms)

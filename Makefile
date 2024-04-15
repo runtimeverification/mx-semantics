@@ -186,10 +186,10 @@ test-elrond-composability-features: $(elrond_composability_features_tests:=.mand
 
 ELROND_COMPOSABILITY_FEATURES_DIR=$(ELROND_CONTRACT)/feature-tests/composability
 
-$(ELROND_COMPOSABILITY_FEATURES_DIR)/scenarios-promises/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_VAULT_WASM) $(ELROND_PROMISES_WASM) poetry-install
+$(ELROND_COMPOSABILITY_FEATURES_DIR)/scenarios-promises/%.scen.json.mandos: build $(ELROND_VAULT_WASM) $(ELROND_PROMISES_WASM)
 	$(TEST_MANDOS) $(ELROND_COMPOSABILITY_FEATURES_DIR)/scenarios-promises/$*.scen.json --log-level none
 
-tests/custom-scenarios/composability-features/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_VAULT_WASM) $(ELROND_PROMISES_WASM) poetry-install
+tests/custom-scenarios/composability-features/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_VAULT_WASM) $(ELROND_PROMISES_WASM)
 	$(TEST_MANDOS) tests/custom-scenarios/composability-features/$*.scen.json --log-level none
 
 # Custom contract tests

@@ -633,6 +633,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         <vmOutput> _ => .VMOutput </vmOutput>
         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
       requires notBool(isBuiltin(FUNCNAME))
+       andBool #token("\"callBack\"", "WasmStringToken") =/=K FUNCNAME
       [priority(60)]
 
     rule [callContract-builtin]:
@@ -655,6 +656,13 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         <vmOutput> _ => .VMOutput </vmOutput>
         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNC) </logging>
       requires isBuiltin(FUNC)
+      [priority(60)]
+
+    rule [callContract-err-callback]:
+        <commands> callContract(TO, FUNCNAME:WasmString, _)
+                => #throwExceptionBs(ExecutionFailed, b"invalid function (calling callBack() directly is forbidden)") ...
+        </commands>
+      requires #token("\"callBack\"", "WasmStringToken") ==K FUNCNAME
       [priority(60)]
 
     rule [callContract-not-contract]:

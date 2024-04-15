@@ -184,6 +184,7 @@ module MANAGEDEI
         <locals>
           0 |-> <i32> DEST_IDX
         </locals>
+        <callType> AsynchronousCallBack </callType>
         <callStack>
           ListItem(
             <callState>

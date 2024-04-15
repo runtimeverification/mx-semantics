@@ -236,7 +236,6 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
  // --------------------------------------
     rule [popCallState]:
          <commands> popCallState => .K ... </commands>
-
          <callStack> (ListItem(CALLSTATE:CallStateCell) => .List) ... </callStack>
          (_:CallStateCell => CALLSTATE)
       [priority(60)]

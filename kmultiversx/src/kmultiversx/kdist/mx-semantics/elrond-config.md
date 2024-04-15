@@ -658,7 +658,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       [priority(60)]
 
     rule [callContract-err-callback]:
-        <commands> callContract(TO, FUNCNAME:WasmString, _)
+        <commands> callContract(_, FUNCNAME:WasmString, _)
                 => #throwExceptionBs(ExecutionFailed, b"invalid function (calling callBack() directly is forbidden)") ...
         </commands>
       requires #token("\"callBack\"", "WasmStringToken") ==K FUNCNAME

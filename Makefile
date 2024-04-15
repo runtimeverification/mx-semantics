@@ -366,7 +366,7 @@ ELROND_VAULT_WASM=$(ELROND_VAULT_DIR)/output/vault.wasm
 $(ELROND_VAULT_WASM): sc-build/$(ELROND_VAULT_DIR)
 
 ELROND_PROMISES_DIR=$(ELROND_CONTRACT)/feature-tests/composability/promises-features
-ELROND_PROMISES_WASM=$(ELROND_PROMISES_DIR)/output/vault.wasm
+ELROND_PROMISES_WASM=$(ELROND_PROMISES_DIR)/output/promises-features.wasm
 $(ELROND_PROMISES_WASM): sc-build/$(ELROND_PROMISES_DIR)
 
 elrond_composability_features_tests=$(shell cat tests/composability_features.test)

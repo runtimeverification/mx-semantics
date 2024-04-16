@@ -8,7 +8,7 @@ poetry -C kmultiversx install
 
 sc-meta all build --path deps/mx-sdk-rs/contracts/examples/adder --wasm-symbols --no-wasm-opt
 sc-meta all build --path tests/contracts/foundrylike --wasm-symbols --no-wasm-opt
-K_OPTS="-Xmx8192m" kbuild kompile llvm-kasmer && poetry -C kmultiversx run -- kasmer --directory "tests/contracts/foundrylike" --gen-claims 2>&1 | tee kasmer.log
+poetry -C kmultiversx run -- kasmer --directory "tests/contracts/foundrylike" --gen-claims 2>&1 | tee kasmer.log
 
 # Coindrip
 
@@ -19,13 +19,13 @@ do
 done
 sc-meta all build --path deps/coindrip-protocol-sc --wasm-symbols --no-wasm-opt
 sc-meta all build --path tests/contracts/test_coindrip --wasm-symbols --no-wasm-opt
-K_OPTS="-Xmx8192m" kbuild kompile llvm-kasmer && poetry -C kmultiversx run -- kasmer --directory "tests/contracts/test_coindrip" --gen-claims 2>&1 | tee kasmer.log
+poetry -C kmultiversx run -- kasmer --directory "tests/contracts/test_coindrip" --gen-claims 2>&1 | tee kasmer.log
 
 # Crowdfunding
 
 sc-meta all build --path deps/mx-sdk-rs/contracts/examples/crowdfunding-esdt --wasm-symbols --no-wasm-opt
 sc-meta all build --path tests/contracts/test_crowdfunding-esdt --wasm-symbols --no-wasm-opt
-K_OPTS="-Xmx8192m" kbuild kompile llvm-kasmer && poetry -C kmultiversx run -- kasmer --directory "tests/contracts/test_crowdfunding-esdt" --gen-claims 2>&1 | tee kasmer.log
+poetry -C kmultiversx run -- kasmer --directory "tests/contracts/test_crowdfunding-esdt" --gen-claims 2>&1 | tee kasmer.log
 
 # Pair
 
@@ -37,4 +37,4 @@ K_OPTS="-Xmx8192m" kbuild kompile llvm-kasmer && poetry -C kmultiversx run -- ka
 
 sc-meta all build --path deps/mx-sdk-rs/contracts/examples/multisig --wasm-symbols --no-wasm-opt
 sc-meta all build --path tests/contracts/test_multisig --wasm-symbols --no-wasm-opt
-K_OPTS="-Xmx8192m" kbuild kompile llvm-kasmer && poetry -C kmultiversx run -- kasmer --directory "tests/contracts/test_multisig" --gen-claims 2>&1 | tee kasmer.log
+poetry -C kmultiversx run -- kasmer --directory "tests/contracts/test_multisig" --gen-claims 2>&1 | tee kasmer.log

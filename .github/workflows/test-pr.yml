@@ -113,6 +113,8 @@ jobs:
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-elrond-basic-features -j6'
       - name: 'Run Alloc Feature Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-elrond-alloc-features -j6'
+      - name: 'Run Composability Feature Test'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-elrond-composability-features -j6'
       - name: 'Tear down Docker'
         if: always()
         run: |

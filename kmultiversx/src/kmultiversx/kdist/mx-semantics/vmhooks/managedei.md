@@ -140,6 +140,70 @@ module MANAGEDEI
         <out> OUT </out>
       requires OldLen >=Int size(OUT)
 
+ // extern int32 managedCreateAsyncCall(void* context, int32_t destHandle, int32_t valueHandle, int32_t functionHandle,
+ //                                     int32_t argumentsHandle, int32_t successOffset, int32_t successLength,
+ //                                     int32_t errorOffset, int32_t errorLength, long long gas, long long extraGasForCallback,
+ //                                     int32_t callbackClosureHandle);
+    rule [managedCreateAsyncCall]:
+        <instrs> hostCall ( "env" , "managedCreateAsyncCall" , [i32 i32 i32 i32 i32 i32 i32 i32 i64 i64 i32 .ValTypes ] -> [ i32  .ValTypes ] )
+              => #memLoad(SUCC_OFF, SUCC_LEN)
+              ~> #memLoad(ERR_OFF, ERR_LEN)
+              ~> #createAsyncCallWithTypedArgs(
+                  getBuffer(DEST_IDX), 
+                  getBigInt(VALUE_IDX),
+                  getBuffer(FUNC_IDX), 
+                  readManagedVecOfManagedBuffers(ARGS_IDX),
+                  GAS,
+                  CB_GAS,
+                  getBuffer(CB_CLOSURE_IDX)
+                 )
+                 ...
+        </instrs>
+        <locals>
+          0 |-> <i32> DEST_IDX
+          1 |-> <i32> VALUE_IDX
+          2 |-> <i32> FUNC_IDX
+          3 |-> <i32> ARGS_IDX
+          4 |-> <i32> SUCC_OFF
+          5 |-> <i32> SUCC_LEN
+          6 |-> <i32> ERR_OFF
+          7 |-> <i32> ERR_LEN
+          8 |-> <i64> GAS
+          9 |-> <i64> CB_GAS
+          10 |-> <i32> CB_CLOSURE_IDX
+        </locals>
+
+  // extern void managedCreateAsyncCall(void* context, int32_t destHandle);
+  // Ideally, every call should have a call ID and parent call ID, and this should consider the parent call ID to locate the parent call.
+  // Since we only handle local async calls for now, the parent async call is always the first one in the list.
+    rule [managedGetCallbackClosure]:
+        <instrs> hostCall ( "env" , "managedGetCallbackClosure" , [ i32 .ValTypes ] -> [ .ValTypes ] )
+              => #setBuffer(DEST_IDX, CLOSURE)
+                 ...
+        </instrs>
+        <locals>
+          0 |-> <i32> DEST_IDX
+        </locals>
+        <callType> AsynchronousCallBack </callType>
+        <callStack>
+          ListItem(
+            <callState>
+              <asyncCalls> ListItem( #asyncCall( ... closure: CLOSURE )) ... </asyncCalls>
+              ...
+            </callState>
+          ) ...
+        </callStack>
+
+    rule [managedGetCallbackClosure-err]:
+        <instrs> hostCall ( "env" , "managedGetCallbackClosure" , [ i32 .ValTypes ] -> [ .ValTypes ] )
+              => #throwException(ExecutionFailed, "no callback for closure, cannot call callback directly")
+                 ...
+        </instrs>
+        <locals>
+          0 |-> <i32> _DEST_IDX
+        </locals>
+      [owise]
+
  // extern void managedGetBlockRandomSeed(void *context, int32_t resultHandle);
     rule <instrs> hostCall("env", "managedGetBlockRandomSeed", [i32  .ValTypes] -> [ .ValTypes ] )
                => #setBuffer(BUF_IDX, SEED)

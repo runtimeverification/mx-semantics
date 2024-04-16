@@ -461,6 +461,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             <caller> FROM </caller>
             <callArgs> ARGS </callArgs>
             <callValue> VALUE </callValue>
+            <callType> DirectCall </callType>
             <esdtTransfers> ESDT </esdtTransfers>
             // gas
             <gasProvided> GAS </gasProvided>
@@ -523,6 +524,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
             <caller> TO </caller>
             <callArgs> ARGS </callArgs>
             <callValue> 0 </callValue>
+            <callType> DirectCall </callType>
             <esdtTransfers> .List </esdtTransfers>
             // gas
             <gasProvided> maxUInt64 </gasProvided>
@@ -566,6 +568,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
             <caller> FROM </caller>
             <callArgs> ARGS </callArgs>
             <callValue> VALUE </callValue>
+            <callType> DirectCall </callType>
             <esdtTransfers> .List </esdtTransfers>
             // gas
             <gasProvided> GASLIMIT </gasProvided>

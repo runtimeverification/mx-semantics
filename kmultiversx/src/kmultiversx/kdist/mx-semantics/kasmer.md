@@ -630,20 +630,5 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <prank> false </prank>
       [owise]
 
-```
-
-## Misc
-
- ```k
-    syntax InternalInstr ::= "#waitCommands"
- // ---------------------------------------
-    rule [waitCommands]:
-        <instrs> #waitCommands => .K ... </instrs>
-        <commands> #endWasm ... </commands>
-      [priority(200)]
-
-    rule <commands> #transferSuccess => .K ... </commands>
-         <instrs> #waitCommands ... </instrs>
-
 endmodule
 ```

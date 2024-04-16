@@ -3,12 +3,14 @@ Elrond Node
 
 ```k
 requires "wasm-semantics/wasm.md"
+requires "data/async-call.k"
 requires "data/list-bytes.k"
 requires "data/map-bytes-to-bytes.k"
 requires "data/map-int-to-bytes.k"
 
 module ELROND-NODE
     imports DOMAINS
+    imports ASYNC-CALL
     imports LIST-BYTES
     imports MAP-BYTES-TO-BYTES
     imports MAP-INT-TO-BYTES
@@ -20,10 +22,12 @@ module ELROND-NODE
         <callState>
           // input
           <callee> .Bytes </callee>
+          <function> .String </function>
           <vmInput>
             <caller> .Bytes </caller>
             <callArgs> .ListBytes </callArgs>
             <callValue> 0 </callValue>
+            <callType> DirectCall </callType>
             <esdtTransfers> .List </esdtTransfers>
             // gas
             <gasProvided> 0 </gasProvided>
@@ -36,9 +40,10 @@ module ELROND-NODE
           <bufferHeap> .MapIntToBytes </bufferHeap>
           <bytesStack> .BytesStack </bytesStack>
           <contractModIdx> .Int </contractModIdx>
-          // output
+          <asyncCalls> .ListAsyncCall </asyncCalls>
           <out> .ListBytes </out>
           <logs> .List </logs>
+          <outputAccounts> .Map </outputAccounts>
         </callState>
         <callStack> .List </callStack>
         <interimStates> .List </interimStates>
@@ -87,6 +92,10 @@ Storage maps byte arrays to byte arrays.
          </currentBlockInfo>
        </node>
 
+    syntax CallType ::= "DirectCall"                [symbol(DirectCall)]
+                      | "AsynchronousCall"          [symbol(AsynchronousCall)]
+                      | "AsynchronousCallBack"      [symbol(AsynchronousCallBack)]
+
     syntax VmInputCell
 
     syntax ReturnCode    ::= "OK"          [klabel(OK), symbol]
@@ -104,16 +113,71 @@ Storage maps byte arrays to byte arrays.
                            | "UpgradeFailed"            [klabel(UpgradeFailed), symbol]
                            | "SimulateFailed"           [klabel(SimulateFailed), symbol]
 
+    syntax Int ::= ReturnCode2Int( ReturnCode )     [function, total]
+ // -----------------------------------------------------------------
+    rule ReturnCode2Int( OK                     ) => 0
+    rule ReturnCode2Int( FunctionNotFound       ) => 1
+    rule ReturnCode2Int( FunctionWrongSignature ) => 2
+    rule ReturnCode2Int( ContractNotFound       ) => 3
+    rule ReturnCode2Int( UserError              ) => 4
+    rule ReturnCode2Int( OutOfGas               ) => 5
+    rule ReturnCode2Int( AccountCollision       ) => 6 
+    rule ReturnCode2Int( OutOfFunds             ) => 7
+    rule ReturnCode2Int( CallStackOverFlow      ) => 8
+    rule ReturnCode2Int( ContractInvalid        ) => 9
+    rule ReturnCode2Int( ExecutionFailed        ) => 10
+    rule ReturnCode2Int( UpgradeFailed          ) => 11
+    rule ReturnCode2Int( SimulateFailed         ) => 12
+
+
     syntax VMOutput ::= ".VMOutput"  [klabel(.VMOutput), symbol]
-                      | VMOutput( returnCode: ReturnCode , returnMessage: Bytes , out: ListBytes, logs: List )
+                      | VMOutput( returnCode: ReturnCode , returnMessage: Bytes , out: ListBytes, logs: List, outputAccounts: Map )
                         [klabel(VMOutput), symbol]
 
- // ------------------------------------------------------------------
+    syntax OutputAccount ::= OutputAccount ( addr: Bytes, transfers: List )             [klabel(OutputAccount), symbol]
+    syntax OutputTransfer ::= OutputTransfer ( sender: Bytes, value: TransferValue )    [klabel(OutputTransfer), symbol]
+
+    syntax Bool ::= nonZeroOutputTransfer(OutputTransfer)      [function, total]
+ // ---------------------------------------------------------------------------
+    rule nonZeroOutputTransfer(OutputTransfer(_, I:Int))                 => I =/=Int 0
+    rule nonZeroOutputTransfer(OutputTransfer(_, esdtTransfer(_, I, _))) => I =/=Int 0
+
+    syntax OutputAccount ::= appendToOutTransfers(OutputAccount, OutputTransfer)    [function, total]
+ // -------------------------------------------------------------------------------------------------
+    rule appendToOutTransfers(OutputAccount( A, Ts ), T) => OutputAccount(A, Ts ListItem(T))
+
+    syntax InternalCmd ::= appendToOutAccount(Bytes, OutputTransfer)    [klabel(appendToOutAccount), symbol]
+ // -------------------------------------------------------------------------------------------------
+    rule [appendToOutAccount]:
+        <commands> appendToOutAccount(ACC, T) => .K ... </commands>
+        <outputAccounts>
+          ...
+          ACC |-> (OA => appendToOutTransfers(OA, T))
+          ...
+        </outputAccounts>
+      requires nonZeroOutputTransfer(T)
+      [priority(60)]
+
+    rule [appendToOutAccount-new-item]:
+        <commands> appendToOutAccount(ACC, T) => .K ... </commands>
+        <outputAccounts> OAs => OAs [ ACC <- OutputAccount(ACC, ListItem(T))] </outputAccounts>
+      requires nonZeroOutputTransfer(T)
+      [priority(61)]
+
+    rule [appendToOutAccount-zero]:
+        <commands> appendToOutAccount(_, T) => .K ... </commands>
+      requires notBool nonZeroOutputTransfer(T)
+      [priority(61)]
+
+    syntax TransferValue ::= Int            // EGLD transfer
+                           | ESDTTransfer
 
     syntax Address ::= Bytes
                      | WasmStringToken
 
-    syntax WasmStringToken ::= #unparseWasmString ( String          ) [function, total, hook(STRING.string2token)]
+    syntax WasmStringToken ::= #unparseWasmString ( String )         [function, total, hook(STRING.string2token)]
+                             | #quoteUnparseWasmString ( String )   [function, total]
+    rule #quoteUnparseWasmString(S) => #unparseWasmString("\"" +String S +String "\"")
 
     syntax Bytes ::= #address2Bytes ( Address ) [function, total]
  // ------------------------------------------------------------------
@@ -165,15 +229,15 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     rule [pushCallState]:
          <commands> pushCallState => .K ... </commands>
          <callStack> (.List => ListItem(CALLSTATE)) ... </callStack>
-         <callState> CALLSTATE </callState>
+         CALLSTATE:CallStateCell
       [priority(60)]
 
     syntax InternalCmd ::= "popCallState"  [klabel(popCallState), symbol]
  // --------------------------------------
     rule [popCallState]:
          <commands> popCallState => .K ... </commands>
-         <callStack> (ListItem(CALLSTATE) => .List) ... </callStack>
-         <callState> _ => CALLSTATE </callState>
+         <callStack> (ListItem(CALLSTATE:CallStateCell) => .List) ... </callStack>
+         (_:CallStateCell => CALLSTATE)
       [priority(60)]
 
     syntax InternalCmd ::= "dropCallState"  [klabel(dropCallState), symbol]
@@ -219,8 +283,6 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
 ## Misc
 
 ```k
-    syntax InternalCmd ::= "#transferSuccess"
-
     syntax InternalCmd ::= checkAccountExists( Bytes )
  // ------------------------------------------------------
     rule [checkAccountExists-pass]:
@@ -246,9 +308,21 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
  // ---------------------------------------------------
 
     syntax BuiltinFunction ::= "#notBuiltin"                           [klabel(#notBuiltin),symbol]
-                             | toBuiltinFunction(WasmStringToken)       [function, total]
+                             | toBuiltinFunction(String)               [function, total]
+                             | toBuiltinFunction(WasmStringToken)      [function, total]
  // --------------------------------------------------------------------------
-    rule toBuiltinFunction(_) => #notBuiltin                          [owise]
+    rule toBuiltinFunction(_:String)          => #notBuiltin           [owise]
+    rule toBuiltinFunction(S:WasmStringToken) => toBuiltinFunction(#parseWasmString(S))
+
+    syntax Bool ::= isBuiltin(String)                        [function, total]
+                  | isBuiltin(WasmStringToken)               [function, total]
+ // --------------------------------------------------------------------------
+    rule isBuiltin(S:String)          => toBuiltinFunction(S) =/=K #notBuiltin
+    rule isBuiltin(S:WasmStringToken) => toBuiltinFunction(S) =/=K #notBuiltin
+
+    syntax Bytes ::= BuiltinFunction2Bytes(BuiltinFunction)           [function, total]
+ // -----------------------------------------------------------------------------------
+    rule BuiltinFunction2Bytes(#notBuiltin) => b""
 
     syntax InternalCmd ::= processBuiltinFunction(BuiltinFunction, Bytes, Bytes, VmInputCell)
       [klabel(processBuiltinFunction),symbol]

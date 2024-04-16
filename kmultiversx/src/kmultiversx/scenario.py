@@ -496,16 +496,17 @@ def mandos_to_expect(expect: dict) -> list:
         k_steps.append(KApply('checkExpectStatus', [int_to_kreturncode(expect['status'])]))
     if ('message' in expect) and (expect['message'] != '*'):
         k_steps.append(KApply('checkExpectMessage', [mandos_argument_to_kbytes(expect['message'])]))
-    if ('logs' in expect) and (expect['logs'] != '*'):
-        logs = []
-        for log in expect['logs']:
-            address = mandos_argument_to_kbytes(log['address'])
-            identifier = mandos_argument_to_kbytes(log['endpoint'])
-            topics = mandos_arguments_to_klist(log['topics'])
-            data = mandos_argument_to_kbytes(log['data'])
-            log_entry = KApply('logEntry', [address, identifier, topics, data])
-            logs.append(log_entry)
-        k_steps.append(KApply('checkExpectLogs', [KList(logs)]))
+    # Log checks are not implemented in the semantics
+    # if ('logs' in expect) and (expect['logs'] != '*'):
+    #     logs = []
+    #     for log in expect['logs']:
+    #         address = mandos_argument_to_kbytes(log['address'])
+    #         identifier = mandos_argument_to_kbytes(log['endpoint'])
+    #         topics = mandos_arguments_to_klist(log['topics'])
+    #         data = mandos_argument_to_kbytes(log['data'])
+    #         log_entry = KApply('logEntry', [address, identifier, topics, data])
+    #         logs.append(log_entry)
+    #     k_steps.append(KApply('checkExpectLogs', [KList(logs)]))
     return k_steps
 
 

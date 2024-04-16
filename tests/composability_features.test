@@ -1,0 +1,7 @@
+deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios-promises/promises_call_async_accept_egld.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios-promises/promises_call_async_accept_esdt.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios-promises/promises_call_async_retrieve_egld.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios-promises/promises_call_async_retrieve_esdt.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios-promises/promises_call_callback_directly.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios-promises/promises_multi_transfer.scen.json
+tests/custom-scenarios/composability-features/promises_single_transfer.scen.json

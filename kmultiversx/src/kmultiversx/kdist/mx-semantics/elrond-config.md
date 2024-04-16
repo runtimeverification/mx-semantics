@@ -4,19 +4,24 @@ Elrond Configuration
 Combine Elrond node with Wasm.
 
 ```k
+requires "vmhooks/async.md"
 requires "wasm-semantics/wasm-text.md"
 requires "plugin/krypto.md"
 requires "auto-allocate.md"
 requires "elrond-node.md"
 requires "esdt.md"
+requires "switch.md"
+requires "wasm-semantics/wasm-text.md"
 
 module ELROND-CONFIG
+    imports ASYNC-HELPERS
     imports KRYPTO
     imports WASM-AUTO-ALLOCATE
     imports ELROND-NODE
     imports ESDT
     imports LIST-BYTES
     imports MAP-BYTES-TO-BYTES-PRIMITIVE
+    imports SWITCH
 
     configuration
       <elrond>
@@ -406,28 +411,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
        requires 1 <Int NUMTOPICS
 ```
 
-## Node And Wasm VM Synchronization
-
-- `#endWasm` waits for the Wasm VM to finish the execution and creates the VM output.
-- `#waitWasm` waits for the Wasm VM to finish
-
-```k
-    syntax InternalCmd ::= "#endWasm"
- // ---------------------------------
-    rule <commands> #endWasm => popCallState ~> dropWorldState ... </commands>
-         <instrs> .K </instrs>
-         <out> OUT </out>
-         <logs> LOGS </logs>
-         <vmOutput> _ => VMOutput( OK , .Bytes , OUT , LOGS) </vmOutput>
-      [priority(60)]
-
-    syntax InternalCmd ::= "#waitWasm"  [klabel(#waitWasm), symbol]
- // ----------------------------------
-    rule <commands> #waitWasm => .K ... </commands>
-         <instrs> .K </instrs>
-      [priority(60)]
-```
-
 
 ## Exception Handling
 
@@ -438,7 +421,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ```k
     rule [exception-revert]:
         <commands> (#exception(EC, MSG) ~> #endWasm) => popCallState ~> popWorldState ... </commands>
-        <vmOutput> .VMOutput => VMOutput( EC , MSG , .ListBytes , .List) </vmOutput>
+        <vmOutput> .VMOutput => VMOutput( EC , MSG , .ListBytes , .List, .Map) </vmOutput>
 
     rule [exception-skip]:
         <commands> #exception(_,_) ~> (CMD:InternalCmd => .K ) ... </commands>
@@ -566,7 +549,10 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       [priority(60)]
 
     rule [transferFundsH-self]:
-        <commands> transferFundsH(ACCT, ACCT, VALUE) => #transferSuccess ... </commands>
+        <commands> transferFundsH(ACCT, ACCT, VALUE)
+                => appendToOutAccount(ACCT, OutputTransfer(ACCT, VALUE))
+                   ...
+        </commands>
         <account>
           <address> ACCT </address>
           <balance> ORIGFROM </balance>
@@ -576,7 +562,10 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       [priority(60)]
 
     rule [transferFundsH]:
-        <commands> transferFundsH(ACCTFROM, ACCTTO, VALUE) => #transferSuccess ... </commands>
+        <commands> transferFundsH(ACCTFROM, ACCTTO, VALUE) 
+                => appendToOutAccount(ACCTTO, OutputTransfer(ACCTFROM, VALUE))
+                   ... 
+        </commands>
         <account>
           <address> ACCTFROM </address>
           <balance> ORIGFROM => ORIGFROM -Int VALUE </balance>
@@ -603,8 +592,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       requires VALUE >Int ORIGFROM
       [priority(60)]
 
-    rule <commands> #transferSuccess => .K ... </commands>
-         <instrs> .K </instrs>
 ```
 
 ## Calling Contract
@@ -614,11 +601,10 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                          | callContract ( Bytes, WasmString, VmInputCell ) [klabel(callContractWasmString), symbol]
  // -------------------------------------------------------------------------------------
     rule <commands> callContract(TO, FUNCNAME:String, VMINPUT)
-                 => callContract(TO, #unparseWasmString("\"" +String FUNCNAME +String "\""), VMINPUT) ...
+                 => callContract(TO, #quoteUnparseWasmString(FUNCNAME), VMINPUT) ...
          </commands>
       [priority(60)]
 
-    // TODO compare with the EVM contract call implementation
     rule [callContract]:
         <commands> callContract(TO, FUNCNAME:WasmStringToken,
                                 <vmInput>
@@ -630,6 +616,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                    )
                 => pushWorldState
                 ~> pushCallState
+                ~> resetCallstate
                 ~> transferFunds(FROM, TO, VALUE)
                 ~> transferESDTs(FROM, TO, ESDT)
                 ~> newWasmInstance(TO, CODE)
@@ -644,7 +631,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         </account>
         <vmOutput> _ => .VMOutput </vmOutput>
         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
-      requires toBuiltinFunction(FUNCNAME) ==K #notBuiltin
+      requires notBool(isBuiltin(FUNCNAME))
+       andBool #token("\"callBack\"", "WasmStringToken") =/=K FUNCNAME
       [priority(60)]
 
     rule [callContract-builtin]:
@@ -666,7 +654,14 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         </commands>
         <vmOutput> _ => .VMOutput </vmOutput>
         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNC) </logging>
-      requires toBuiltinFunction(FUNC) =/=K #notBuiltin
+      requires isBuiltin(FUNC)
+      [priority(60)]
+
+    rule [callContract-err-callback]:
+        <commands> callContract(_, FUNCNAME:WasmString, _)
+                => #throwExceptionBs(ExecutionFailed, b"invalid function (calling callBack() directly is forbidden)") ...
+        </commands>
+      requires #token("\"callBack\"", "WasmStringToken") ==K FUNCNAME
       [priority(60)]
 
     rule [callContract-not-contract]:
@@ -725,6 +720,7 @@ Initialize the call state and invoke the endpoint function:
         <commands> mkCall(TO, FUNCNAME:WasmStringToken, VMINPUT) => .K ... </commands>
         <callState>
           <callee> _ => TO   </callee>
+          <function> _ => #parseWasmString(FUNCNAME) </function>
           (_:VmInputCell => VMINPUT)
           // executional
           <wasm>
@@ -741,9 +737,11 @@ Initialize the call state and invoke the endpoint function:
           <bufferHeap> _ => .MapIntToBytes </bufferHeap>
           <bytesStack> _ => .BytesStack </bytesStack>
           <contractModIdx> MODIDX:Int </contractModIdx>
+          <asyncCalls> _ => .ListAsyncCall </asyncCalls>
           // output
           <out> _ => .ListBytes </out>
           <logs> _ => .List </logs>
+          <outputAccounts> _ </outputAccounts>
         </callState>
         requires isListIndex(FUNCIDX, FUNCADDRS)
       [priority(60)]

@@ -2,7 +2,7 @@
 .PHONY: all                                                                      \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
         test-elrond-multisig test-elrond-basic-features                          \
-        test-elrond-alloc-features                                               \
+        test-elrond-alloc-features test-elrond-composability-features            \
         test-elrond-addercaller test-elrond-callercallee test-custom-contracts   \
         rule-coverage clean-coverage                                             \
 
@@ -78,7 +78,8 @@ elrond-contract-deps := test-elrond-adder             \
                         test-elrond-crowdfunding-esdt \
                         test-elrond-multisig          \
                         test-elrond-basic-features    \
-                        test-elrond-alloc-features
+                        test-elrond-alloc-features    \
+                        test-elrond-composability-features
 test-elrond-contracts: $(elrond-contract-deps)
 
 test: test-simple mandos-test test-elrond-contracts test-custom-contracts
@@ -169,6 +170,27 @@ test-elrond-alloc-features: $(elrond_alloc_features_tests:=.mandos)
 
 $(ELROND_ALLOC_FEATURES_DIR)/scenarios/%.scen.json.mandos: build $(ELROND_ALLOC_FEATURES_WASM)
 	$(TEST_MANDOS) $(ELROND_ALLOC_FEATURES_DIR)/scenarios/$*.scen.json --log-level none
+
+## Composability Features Test
+
+ELROND_VAULT_DIR=$(ELROND_CONTRACT)/feature-tests/composability/vault
+ELROND_VAULT_WASM=$(ELROND_VAULT_DIR)/output/vault.wasm
+$(ELROND_VAULT_WASM): sc-build/$(ELROND_VAULT_DIR)
+
+ELROND_PROMISES_DIR=$(ELROND_CONTRACT)/feature-tests/composability/promises-features
+ELROND_PROMISES_WASM=$(ELROND_PROMISES_DIR)/output/promises-features.wasm
+$(ELROND_PROMISES_WASM): sc-build/$(ELROND_PROMISES_DIR)
+
+elrond_composability_features_tests=$(shell cat tests/composability_features.test)
+test-elrond-composability-features: $(elrond_composability_features_tests:=.mandos)
+
+ELROND_COMPOSABILITY_FEATURES_DIR=$(ELROND_CONTRACT)/feature-tests/composability
+
+$(ELROND_COMPOSABILITY_FEATURES_DIR)/scenarios-promises/%.scen.json.mandos: build $(ELROND_VAULT_WASM) $(ELROND_PROMISES_WASM)
+	$(TEST_MANDOS) $(ELROND_COMPOSABILITY_FEATURES_DIR)/scenarios-promises/$*.scen.json --log-level none
+
+tests/custom-scenarios/composability-features/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_VAULT_WASM) $(ELROND_PROMISES_WASM)
+	$(TEST_MANDOS) tests/custom-scenarios/composability-features/$*.scen.json --log-level none
 
 # Custom contract tests
 

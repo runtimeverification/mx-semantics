@@ -5,6 +5,7 @@ Go implementation: [mx-chain-vm-go/vmhost/vmhooks/baseOps.go](https://github.com
 
 ```k
 requires "../elrond-config.md"
+requires "async.md"
 requires "eei-helpers.md"
 requires "utils.md"
 
@@ -12,6 +13,8 @@ module BASEOPS
     imports ELROND-CONFIG
     imports EEI-HELPERS
     imports UTILS
+    imports ASYNC-HELPERS
+
     imports private LIST-BYTES-EXTENSIONS
 
     // extern void getSCAddress(void *context, int32_t resultOffset);
@@ -99,16 +102,11 @@ module BASEOPS
          </locals>
 
     syntax InternalInstr ::= "#transferValue"
-                           | "#waitForTransfer"
  // -------------------------------------------
-    rule <commands> (.K => transferFunds(CALLEE, DEST, Bytes2Int(VALUE, BE, Unsigned))) ... </commands>
-         <instrs> #transferValue => #waitForTransfer ~> i32.const 0 ... </instrs>
+    rule <instrs> #transferValue => #waitCommands ~> i32.const 0 ... </instrs>
+         <commands> (.K => transferFunds(CALLEE, DEST, Bytes2Int(VALUE, BE, Unsigned))) ... </commands>
          <callee> CALLEE </callee>
          <bytesStack> _DATA : VALUE : DEST : STACK => STACK </bytesStack>
-
-    // switch to wasm execution after the transfer
-    rule <commands> (#transferSuccess => .K) ~> #endWasm ... </commands>
-         <instrs> #waitForTransfer => .K ... </instrs>
 
     syntax Bool ::= #validArgIdx( Int , ListBytes )        [function, total]
  // -------------------------------------------------------------------
@@ -383,7 +381,7 @@ module BASEOPS
     syntax InternalInstr ::= #transferESDTNFTExecuteWithTypedArgs(BytesResult, ListResult, Int, BytesResult, ListBytesResult)
  // -------------------------------------------------------------------------------------------
     rule <instrs> #transferESDTNFTExecuteWithTypedArgs(Dest, Transfers, _GasLimit, b"", _Args)
-               => #waitForTransfer
+               => #waitCommands
                ~> i32.const 0
                   ...
          </instrs>
@@ -401,7 +399,7 @@ module BASEOPS
     syntax InternalInstr ::= #transferValueExecuteWithTypedArgs(BytesResult, IntResult, Int, BytesResult, ListBytesResult)
  // -------------------------------------------------------------------------------------------
     rule <instrs> #transferValueExecuteWithTypedArgs(Dest, Value, _GasLimit, b"", _Args)
-               => #waitForTransfer
+               => #waitCommands
                ~> i32.const 0
                   ...
          </instrs>
@@ -429,7 +427,8 @@ module BASEOPS
  // -----------------------------------------------------------------------------------------
     rule [executeOnDestContext]:
         <instrs> #executeOnDestContext(Dest, Value, Esdt, GasLimit, Func, Args)
-              => #finishExecuteOnDestContext
+              => #waitCommands
+              ~> #finishExecuteOnDestContext
                  ...
         </instrs>
         <callee> Callee </callee>
@@ -437,7 +436,6 @@ module BASEOPS
           (.K => callContract( Dest, Bytes2String(Func), prepareIndirectContractCallInput(Callee, Value, Esdt, GasLimit, Args))) ... 
         </commands>
         // TODO requires not IsOutOfVMFunctionExecution
-        // TODO requires not IsBuiltinFunctionName
         
 
     syntax VmInputCell ::= prepareIndirectContractCallInput(Bytes, Int, List, Int, ListBytes)    [function, total]
@@ -447,6 +445,7 @@ module BASEOPS
             <caller> SENDER </caller>
             <callArgs> ARGS </callArgs>
             <callValue> VALUE </callValue>
+            <callType> DirectCall </callType>
             <esdtTransfers> ESDT </esdtTransfers>
             // gas
             <gasProvided> GASLIMIT </gasProvided>
@@ -463,31 +462,26 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
     syntax InternalInstr ::= "#finishExecuteOnDestContext"  [klabel(finishExecuteOnDestContext), symbol]
  // ------------------------------------------------------
     rule [finishExecuteOnDestContext-ok]:
-        <commands> #endWasm ... </commands>
         <instrs> #finishExecuteOnDestContext
               => i32.const 0
                  ...
         </instrs>
         <vmOutput>
-          VMOutput ( OK , _ , OUTPUT , LOGS ) => .VMOutput
+          VMOutput( ... returnCode: OK , out: OUTPUT, logs: LOGS, outputAccounts: OA2 ) => .VMOutput
         </vmOutput>
         // merge outputs
         <out> ... (.ListBytes => OUTPUT) </out>
         <logs> ... (.List => LOGS) </logs>
-
+        <outputAccounts> OA => updateMap(OA, OA2) </outputAccounts> // TODO concat common items
+ 
     rule [finishExecuteOnDestContext-exception]:
-        <commands> #endWasm ... </commands>
         <instrs> #finishExecuteOnDestContext
               => resolveErrorFromOutput(EC, MSG)
                  ...
         </instrs>
         <vmOutput>
-          VMOutput ( EC:ExceptionCode , MSG , _ , _ ) => .VMOutput
+          VMOutput( ... returnCode: EC:ExceptionCode, returnMessage: MSG ) => .VMOutput
         </vmOutput>
-
-    // keep running other commands after transfers
-    rule <commands> (#transferSuccess => .K) ... </commands>
-         <instrs> #finishExecuteOnDestContext ... </instrs>
 
     syntax InternalInstr ::= resolveErrorFromOutput(ExceptionCode, Bytes) [function, total]
  // -----------------------------------------------------------------------
@@ -513,11 +507,44 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
 
 ```
 
-The (incorrect) default implementation of a host call is to just return zero values of the correct type.
+## Async Calls
 
 ```k
-    // TODO implement asyncCall
-    rule <instrs> hostCall("env", "asyncCall", [ DOM ] -> [ CODOM ]) => .K ... </instrs>
-         <valstack> VS => #zero(CODOM) ++ #drop(lengthValTypes(DOM), VS) </valstack>
+    syntax InternalInstr ::= #createAsyncCallWithTypedArgs(
+                                dest: BytesResult,
+                                value: IntResult,
+                                func: BytesResult,
+                                args: ListBytesResult,
+                                gas: Int,
+                                extraGasForCallBack: Int,
+                                callbackClosure: BytesResult)
+ // ----------------------------------------------------------------------------
+    rule [createAsyncCallWithTypedArgs]:
+        <instrs> #createAsyncCallWithTypedArgs(
+                    DEST:Bytes,
+                    VALUE:Int,
+                    FUNC:Bytes,
+                    ARGS:ListBytes,
+                    GAS:Int,
+                    _GAS_CB:Int,
+                    CB_CLOSURE:Bytes)
+              => #waitCommands
+              ~> i32.const 0
+                 ...
+        </instrs>
+        <bytesStack> ERROR_CB : SUCC_CB : S => S </bytesStack>
+        <commands>
+          (.K => #registerAsyncCall(#asyncCall( ...
+                      dest: DEST,
+                      func: Bytes2String(FUNC),
+                      args: ARGS,
+                      valueBytes: Int2Bytes(VALUE, BE, Unsigned),
+                      successCallback: Bytes2String(SUCC_CB),
+                      errorCallback: Bytes2String(ERROR_CB),
+                      gas: GAS,
+                      closure: CB_CLOSURE
+                    ) ) ) ...
+        </commands>
+
 endmodule
 ```

@@ -24,7 +24,7 @@ jobs:
           git config user.email devops@runtimeverification.com
       - name: 'Install Poetry'
         uses: Gr1N/setup-poetry@v8
-      - name: 'Update KWasm submodule, pyk/K releases'
+      - name: 'Update KWasm submodule, K release'
         run: |
           kwasm_version=$(cat deps/kwasm_release)
           cd deps/wasm-semantics/
@@ -33,8 +33,7 @@ jobs:
           cd ../..
           git add deps/wasm-semantics && git commit -m "deps/wasm-semantics: update submodule v${kwasm_version}" || true
           cat deps/wasm-semantics/deps/k_release > deps/k_release
-          cat deps/wasm-semantics/deps/pyk_release > deps/pyk_release
-          git add deps/k_release deps/pyk_release && git commit -m 'deps/{k_release,pyk_release}: update versions' || true
+          git add deps/k_release && git commit -m 'deps/k_release: update versions' || true
       - name: 'Update poetry files'
         run: |
           pykwasm_version="$(cat deps/kwasm_release)"

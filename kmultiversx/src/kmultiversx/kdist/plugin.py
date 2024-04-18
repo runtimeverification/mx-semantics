@@ -80,7 +80,7 @@ def haskell_target(main_file: Path, main_module: str, syntax_module: str) -> Kom
             'include_dirs': [WASM_DIR, PLUGIN_DIR],
             'md_selector': 'k',
             'hook_namespaces': ['KRYPTO'],
-            'warning_to_error': True,
+            'warnings_to_errors': True,
         },
     )
 

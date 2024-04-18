@@ -61,6 +61,10 @@ build-kasmer: kmultiversx plugin-deps
 build-haskell: kmultiversx
 	$(POETRY) run kdist -v build mx-semantics.haskell-\* -j2
 
+.PHONY: build-all
+build-all: kmultiversx plugin-deps
+	K_OPTS='$(K_OPTS)' $(POETRY) run kdist -v build mx-semantics.\* -j4
+
 .PHONY: clean
 clean: kmultiversx
 	$(POETRY) run kdist clean

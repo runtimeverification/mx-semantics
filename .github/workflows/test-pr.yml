@@ -43,34 +43,15 @@ jobs:
           submodules: recursive
       - name: 'Install Poetry'
         uses: Gr1N/setup-poetry@v8
-      - name: 'Build and run code quality checks'
+      - name: 'Build kmultiversx'
+        run: make kmultiversx
+      - name: 'Run code quality checks'
         run: make -C kmultiversx check
-  compilation-tests:
-    runs-on: [self-hosted, linux, normal]
-    name: 'Compilation Tests'
-    needs: [python-code-quality-checks]
-    timeout-minutes: 30
-    steps:
-      - name: 'Check out code'
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - name: 'Set up Docker'
-        uses: ./.github/actions/with-docker
-        with:
-          container-name: elrond-semantics-ci-${{ github.sha }}
-      - name: 'Build Haskell'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build-haskell'
-      - name: 'Tear down Docker'
-        if: always()
-        run: |
-          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
 
-  simple-tests:
+  tests:
     runs-on: [self-hosted, linux, normal]
-    name: 'Simple Tests'
-    needs: [python-code-quality-checks]
-    timeout-minutes: 30
+    name: 'Tests'
+    timeout-minutes: 45
     steps:
       - name: 'Check out code'
         uses: actions/checkout@v3
@@ -80,12 +61,28 @@ jobs:
         uses: ./.github/actions/with-docker
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
-      - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build'
-      - name: 'Run Simple Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-simple -j6'
-      - name: 'Run Mandos Tests'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make mandos-test -j6'
+      - name: 'Build kmultiversx'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make kmultiversx
+      - name: 'Build plugin submodule'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make plugin-deps
+      - name: 'Build K definitions'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make build-all
+      - name: 'KMultiversX Tests'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make -C kmultiversx test
+      - name: 'Simple Tests'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-simple -j6
+      - name: 'Mandos Tests'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make mandos-test -j6
+      - name: 'TestApi tests'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-testapi
+      - name: 'Contract Test: Adder'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-elrond-adder
+      - name: 'Contract Test: Crowdfunding ESDT'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-elrond-crowdfunding-esdt
+      - name: 'Contract Test: Multisig'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-elrond-multisig
+      - name: 'Contract Tests: Custom'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-custom-contracts
       - name: 'Tear down Docker'
         if: always()
         run: |
@@ -94,8 +91,7 @@ jobs:
   feature-tests:
     runs-on: [self-hosted, linux, normal]
     name: 'Feature Tests'
-    needs: [simple-tests]
-    timeout-minutes: 120
+    timeout-minutes: 45
     steps:
       - name: 'Check out code'
         uses: actions/checkout@v3
@@ -105,88 +101,18 @@ jobs:
         uses: ./.github/actions/with-docker
         with:
           container-name: elrond-semantics-ci-${{ github.sha }}
-      - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build'
-      - name: 'Run Basic Feature Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-elrond-basic-features -j6'
-      - name: 'Run Alloc Feature Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-elrond-alloc-features -j6'
-      - name: 'Run Composability Feature Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-elrond-composability-features -j6'
-      - name: 'Tear down Docker'
-        if: always()
-        run: |
-          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
-
-  example-contract-tests:
-    runs-on: [self-hosted, linux, normal]
-    name: 'Example Contract Tests'
-    needs: [feature-tests]
-    timeout-minutes: 60
-    steps:
-      - name: 'Check out code'
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - name: 'Set up Docker'
-        uses: ./.github/actions/with-docker
-        with:
-          container-name: elrond-semantics-ci-${{ github.sha }}
-      - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build'
-      - name: 'Run Adder Contract Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-elrond-adder'
-      - name: 'Run Crowdfunding ESDT Contract Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-elrond-crowdfunding-esdt'
-      - name: 'Run Multisig Contract Test'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-elrond-multisig'
-      - name: 'Tear down Docker'
-        if: always()
-        run: |
-          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
-
-  custom-contract-tests:
-    runs-on: [self-hosted, linux, normal]
-    name: 'Custom Contract Tests'
-    needs: [feature-tests]
-    timeout-minutes: 30
-    steps:
-      - name: 'Check out code'
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - name: 'Set up Docker'
-        uses: ./.github/actions/with-docker
-        with:
-          container-name: elrond-semantics-ci-${{ github.sha }}
-      - name: 'Build'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build'
-      - name: 'Run Custom Contract Tests'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-custom-contracts'
-      - name: 'Tear down Docker'
-        if: always()
-        run: |
-          docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
-
-  kmultiversx-tests:
-    needs: simple-tests
-    name: 'KMultiversX Tests'
-    runs-on: [self-hosted, linux, normal]
-    steps:
-      - name: 'Check out code'
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - name: 'Set up Docker'
-        uses: ./.github/actions/with-docker
-        with:
-          container-name: elrond-semantics-ci-${{ github.sha }}
-      - name: 'Build Kasmer'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make build-kasmer'
-      - name: 'Run tests'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make -C kmultiversx test'
-      - name: 'Run TestApi tests'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-testapi'
+      - name: 'Build kmultiversx'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make kmultiversx
+      - name: 'Build plugin submodule'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make plugin-deps
+      - name: 'Build K definition'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make build
+      - name: 'Feature Test: Basic'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-elrond-basic-features -j6
+      - name: 'Feature Test: Alloc'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-elrond-alloc-features -j6
+      - name: 'Feature Test: Composability'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-elrond-composability-features -j6
       - name: 'Tear down Docker'
         if: always()
         run: |

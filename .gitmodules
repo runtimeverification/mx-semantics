@@ -1,7 +1,3 @@
-[submodule "deps/wasm-semantics"]
-	path = deps/wasm-semantics
-	url = https://github.com/kframework/wasm-semantics
-	ignore = untracked
 [submodule "deps/plugin"]
 	path = deps/plugin
 	url = https://github.com/runtimeverification/blockchain-k-plugin.git

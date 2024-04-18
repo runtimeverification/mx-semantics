@@ -61,6 +61,10 @@ build-kasmer: kmultiversx plugin-deps
 build-haskell: kmultiversx
 	$(POETRY) run kdist -v build mx-semantics.haskell-\* -j2
 
+.PHONY: build-all
+build-all: kmultiversx plugin-deps
+	K_OPTS='$(K_OPTS)' $(POETRY) run kdist -v build mx-semantics.\* -j4
+
 .PHONY: clean
 clean: kmultiversx
 	$(POETRY) run kdist clean
@@ -223,16 +227,11 @@ TEST_KASMER := $(POETRY_RUN) kasmer
 TEST_TESTAPI_DIR := tests/contracts/test_testapi
 testapi_tests=$(shell find $(TEST_TESTAPI_DIR) -name "*.scen.json")
 
-test-testapi: build sc-build/$(TEST_TESTAPI_DIR)
+test-testapi: build-kasmer sc-build/$(TEST_TESTAPI_DIR)
 	$(TEST_KASMER) -d $(TEST_TESTAPI_DIR)
 
-# Unit Tests
-# ----------
-PYTHON_UNITTEST_FILES =
-unittest-python: $(PYTHON_UNITTEST_FILES:=.unit)
-
-MANDOS_KOMPILED := $(shell $(POETRY_RUN) kdist which mx-semantics.llvm-mandos)
-KWASM_SRC_DIR   := $(shell $(POETRY_RUN) python -c 'from pykwasm.kdist.plugin import K_DIR; print(K_DIR)')
+# Coverage
+# --------
 
 ELROND_FILE_NAMES := elrond.md                   \
                      elrond-config.md            \
@@ -243,13 +242,13 @@ ELROND_FILE_NAMES := elrond.md                   \
                      kasmer.md                   \
                      $(wildcard data/*.k)        \
                      $(wildcard vmhooks/*.md)
-ELROND_FILES_KWASM_DIR := $(patsubst %,$(KWASM_SRC_DIR)/%,$(ELROND_FILE_NAMES))
 
-%.unit: %
-	python3 $<
+rule-coverage: kmultiversx
+	$(eval MANDOS_KOMPILED := $(shell $(POETRY_RUN) kdist which mx-semantics.llvm-mandos))
+	$(eval KWASM_SRC_DIR   := $(shell $(POETRY_RUN) python -c 'from pykwasm.kdist.plugin import K_DIR; print(K_DIR)'))
+	$(eval ELROND_FILES    := $(patsubst %,$(KWASM_SRC_DIR)/%,$(ELROND_FILE_NAMES)))
+	python3 rule_coverage.py $(MANDOS_KOMPILED) $(ELROND_FILES)
 
-rule-coverage:
-	python3 rule_coverage.py $(MANDOS_KOMPILED) $(ELROND_FILES_KWASM_DIR)
-
-clean-coverage:
+clean-coverage: kmultiversx
+	$(eval MANDOS_KOMPILED := $(shell $(POETRY_RUN) kdist which mx-semantics.llvm-mandos))
 	rm $(MANDOS_KOMPILED)/*_coverage.txt $(MANDOS_KOMPILED)/coverage.txt

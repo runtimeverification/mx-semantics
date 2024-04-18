@@ -82,8 +82,6 @@ jobs:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA}  /bin/bash -c 'make build'
-      - name: 'Run Python Unit Tests'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make unittest-python'
       - name: 'Run Simple Test'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} /bin/bash -c 'make test-simple -j6'
       - name: 'Run Mandos Tests'

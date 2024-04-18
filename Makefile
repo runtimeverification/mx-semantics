@@ -226,10 +226,8 @@ testapi_tests=$(shell find $(TEST_TESTAPI_DIR) -name "*.scen.json")
 test-testapi: build sc-build/$(TEST_TESTAPI_DIR)
 	$(TEST_KASMER) -d $(TEST_TESTAPI_DIR)
 
-# Unit Tests
-# ----------
-PYTHON_UNITTEST_FILES =
-unittest-python: $(PYTHON_UNITTEST_FILES:=.unit)
+# Coverage
+# --------
 
 MANDOS_KOMPILED := $(shell $(POETRY_RUN) kdist which mx-semantics.llvm-mandos)
 KWASM_SRC_DIR   := $(shell $(POETRY_RUN) python -c 'from pykwasm.kdist.plugin import K_DIR; print(K_DIR)')
@@ -244,9 +242,6 @@ ELROND_FILE_NAMES := elrond.md                   \
                      $(wildcard data/*.k)        \
                      $(wildcard vmhooks/*.md)
 ELROND_FILES_KWASM_DIR := $(patsubst %,$(KWASM_SRC_DIR)/%,$(ELROND_FILE_NAMES))
-
-%.unit: %
-	python3 $<
 
 rule-coverage:
 	python3 rule_coverage.py $(MANDOS_KOMPILED) $(ELROND_FILES_KWASM_DIR)

@@ -229,9 +229,6 @@ test-testapi: build sc-build/$(TEST_TESTAPI_DIR)
 # Coverage
 # --------
 
-MANDOS_KOMPILED := $(shell $(POETRY_RUN) kdist which mx-semantics.llvm-mandos)
-KWASM_SRC_DIR   := $(shell $(POETRY_RUN) python -c 'from pykwasm.kdist.plugin import K_DIR; print(K_DIR)')
-
 ELROND_FILE_NAMES := elrond.md                   \
                      elrond-config.md            \
                      elrond-node.md              \
@@ -241,10 +238,13 @@ ELROND_FILE_NAMES := elrond.md                   \
                      kasmer.md                   \
                      $(wildcard data/*.k)        \
                      $(wildcard vmhooks/*.md)
-ELROND_FILES_KWASM_DIR := $(patsubst %,$(KWASM_SRC_DIR)/%,$(ELROND_FILE_NAMES))
 
-rule-coverage:
-	python3 rule_coverage.py $(MANDOS_KOMPILED) $(ELROND_FILES_KWASM_DIR)
+rule-coverage: kmultiversx
+	$(eval MANDOS_KOMPILED := $(shell $(POETRY_RUN) kdist which mx-semantics.llvm-mandos))
+	$(eval KWASM_SRC_DIR   := $(shell $(POETRY_RUN) python -c 'from pykwasm.kdist.plugin import K_DIR; print(K_DIR)'))
+	$(eval ELROND_FILES    := $(patsubst %,$(KWASM_SRC_DIR)/%,$(ELROND_FILE_NAMES)))
+	python3 rule_coverage.py $(MANDOS_KOMPILED) $(ELROND_FILES)
 
-clean-coverage:
+clean-coverage: kmultiversx
+	$(eval MANDOS_KOMPILED := $(shell $(POETRY_RUN) kdist which mx-semantics.llvm-mandos))
 	rm $(MANDOS_KOMPILED)/*_coverage.txt $(MANDOS_KOMPILED)/coverage.txt

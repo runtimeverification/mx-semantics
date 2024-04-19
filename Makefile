@@ -1,4 +1,3 @@
-
 .PHONY: all                                                                      \
         test-elrond-adder test-elrond-crowdfunding-esdt                          \
         test-elrond-multisig test-elrond-basic-features                          \
@@ -6,25 +5,17 @@
         test-elrond-addercaller test-elrond-callercallee test-custom-contracts   \
         rule-coverage clean-coverage                                             \
 
+
 # Settings
 # --------
 
 DEPS_DIR  := deps
 
 PLUGIN_SUBMODULE := $(abspath $(DEPS_DIR)/plugin)
-export PLUGIN_SUBMODULE
-
-KWASM_SUBMODULE     := $(DEPS_DIR)/wasm-semantics
-K_SUBMODULE         := $(KWASM_SUBMODULE)/deps/k
-KWASM_BINARY_PARSER := $(KWASM_SUBMODULE)/binary-parser
 
 ELROND_SDK_SUBMODULE     := $(DEPS_DIR)/mx-sdk-rs
 ELROND_CONTRACT          := $(ELROND_SDK_SUBMODULE)/contracts
 ELROND_CONTRACT_EXAMPLES := $(ELROND_CONTRACT)/examples
-
-
-PYTHONPATH := $(K_LIB):$(KWASM_BINARY_PARSER):$(PYTHONPATH)
-export PYTHONPATH
 
 
 all: build

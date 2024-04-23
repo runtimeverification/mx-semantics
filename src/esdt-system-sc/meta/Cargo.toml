@@ -1,0 +1,13 @@
+[package]
+name = "esdt-system-sc-meta"
+version = "0.0.0"
+authors = ["Runtime Verification"]
+edition = "2021"
+publish = false
+
+[dependencies.esdt-system-sc]
+path = ".."
+
+[dependencies.multiversx-sc-meta]
+version = "0.43.4"
+path = "../../../deps/mx-sdk-rs/framework/meta"

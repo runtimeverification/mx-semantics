@@ -1,0 +1,17 @@
+[package]
+name = "esdt-system-sc"
+version = "0.0.0"
+authors = ["Runtime Verification"]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/esdt_system_sc.rs"
+
+[dependencies.multiversx-sc]
+version = "0.43.4"
+path = "../../deps/mx-sdk-rs/framework/base"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.43.4"
+path = "../../deps/mx-sdk-rs/framework/scenario"

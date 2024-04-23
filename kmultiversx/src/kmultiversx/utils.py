@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
 
-from pyk.kast.inner import KSort
+from pyk.kast.inner import KInner, KSort
 from pykwasm import wasm2kast
 
 if TYPE_CHECKING:
-    from pyk.kast.inner import KInner
     from pyk.kast.kast import KAst
     from pyk.ktool.krun import KRun
 
@@ -15,6 +15,23 @@ if TYPE_CHECKING:
 
 
 GENERATED_TOP_CELL = KSort('GeneratedTopCell')
+
+RUNTIME_MANDOS_JSON_PATH = Path(__file__).parent / 'kdist' / 'runtime' / 'llvm-mandos.json'
+RUNTIME_KASMER_JSON_PATH = Path(__file__).parent / 'kdist' / 'runtime' / 'llvm-kasmer.json'
+
+
+def read_mandos_runtime() -> KInner:
+    return read_kinner_json(RUNTIME_MANDOS_JSON_PATH)
+
+
+def read_kasmer_runtime() -> KInner:
+    return read_kinner_json(RUNTIME_KASMER_JSON_PATH)
+
+
+def read_kinner_json(path: Path) -> KInner:
+    with open(str(path), 'r') as f:
+        config_json = json.load(f)
+        return KInner.from_dict(config_json['term'])
 
 
 def kast_to_json(config: KAst) -> dict:

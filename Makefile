@@ -3,7 +3,7 @@
         test-elrond-multisig test-elrond-basic-features                          \
         test-elrond-alloc-features test-elrond-composability-features            \
         test-elrond-addercaller test-elrond-callercallee test-custom-contracts   \
-        rule-coverage clean-coverage                                             \
+        rule-coverage clean-coverage runtime-json                                \
 
 
 # Settings
@@ -61,6 +61,16 @@ clean: kmultiversx
 	$(POETRY) run kdist clean
 	$(MAKE) -C $(PLUGIN_SUBMODULE) clean
 
+# Runtime
+# -------
+
+ESDT_SYSTEM_SC_DIR  := src/esdt-system-sc
+ESDT_SYSTEM_SC_WASM := $(ESDT_SYSTEM_SC_DIR)/output/esdt-system-sc.wasm
+
+$(ESDT_SYSTEM_SC_WASM): sc-build/$(ESDT_SYSTEM_SC_DIR)
+
+runtime-json: build-mandos build-kasmer $(ESDT_SYSTEM_SC_WASM)
+	$(POETRY) run runtime $(ESDT_SYSTEM_SC_WASM)
 
 
 # Testing

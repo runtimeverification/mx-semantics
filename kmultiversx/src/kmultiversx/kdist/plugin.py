@@ -47,7 +47,7 @@ def llvm_target(main_file: Path, main_module: str, syntax_module: str) -> Kompil
             'main_module': main_module,
             'syntax_module': syntax_module,
             'include_dirs': [WASM_DIR, PLUGIN_DIR],
-            'md_selector': 'k',
+            'md_selector': 'k | libcrypto-extra',
             'hook_namespaces': ['KRYPTO'],
             'opt_level': 2,
             'ccopts': [
@@ -64,6 +64,7 @@ def llvm_target(main_file: Path, main_module: str, syntax_module: str) -> Kompil
                 f"{PLUGIN_DIR / 'build/libff/lib/libff.a'}",
                 f"-I{PLUGIN_DIR / 'build/libff/include'}",
                 f"{PLUGIN_DIR / 'plugin-c/crypto.cpp'}",
+                f"{PLUGIN_DIR / 'plugin-c/hash_ext.cpp'}",
                 f"{PLUGIN_DIR / 'plugin-c/plugin_util.cpp'}",
             ],
         },

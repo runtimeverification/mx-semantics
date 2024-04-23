@@ -7,21 +7,18 @@ import resource
 import subprocess
 import sys
 import tempfile
-from typing import TYPE_CHECKING, Iterable, Optional
+from typing import Iterable, Optional
 
 from Cryptodome.Hash import keccak
 from pyk.cli.utils import dir_path
-from pyk.kast.inner import KApply, KSequence, KToken, Subst
+from pyk.kast.inner import KApply, KInner, KSequence, KToken, Subst
 from pyk.kast.manip import split_config_from
 from pyk.kdist import kdist
 from pyk.ktool.krun import KRun
 from pyk.prelude.collections import set_of
 from pykwasm.kwasm_ast import KBytes, KInt, KString
 
-from kmultiversx.utils import GENERATED_TOP_CELL, flatten, kast_to_json_str, krun_config, load_wasm
-
-if TYPE_CHECKING:
-    from pyk.kast.inner import KInner
+from kmultiversx.utils import flatten, kast_to_json_str, krun_config, load_wasm, read_mandos_runtime
 
 
 def wrapBytes(bs: KInner) -> KInner:  # noqa: N802
@@ -97,13 +94,17 @@ sys.setrecursionlimit(1500000000)
 resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
 
-def mandos_int_to_kint(mandos_int: str, default_when_empty: int | None = None) -> KToken:
+def mandos_int_to_int(mandos_int: str, default_when_empty: int | None = None) -> int:
     if mandos_int == '' and default_when_empty is not None:
-        return KInt(default_when_empty)
+        return default_when_empty
     if mandos_int[0:2] == '0x':
-        return KInt(int(mandos_int, 16))
+        return int(mandos_int, 16)
     unseparated_int = mandos_int.replace(',', '')
-    parsed_int = int(unseparated_int)
+    return int(unseparated_int)
+
+
+def mandos_int_to_kint(mandos_int: str, default_when_empty: int | None = None) -> KToken:
+    parsed_int = mandos_int_to_int(mandos_int, default_when_empty)
     return KInt(parsed_int)
 
 
@@ -307,28 +308,48 @@ def mandos_to_set_account(address: str, sections: dict, filename: str, output_di
 
     if 'esdt' in sections:
         for k, v in sections['esdt'].items():
-            tok_id = mandos_argument_to_kbytes(k)
 
-            value = mandos_to_esdt_value(v)
-            if value is not None:
-                step = KApply('setEsdtBalance', [address_value, tok_id, value])
+            balances = mandos_to_esdt_balances(k, v)
+            for token_kbytes, amount_kint in balances:
+                step = KApply('setEsdtBalance', [address_value, token_kbytes, amount_kint])
                 set_account_steps.append(step)
 
+            token_kbytes = mandos_argument_to_kbytes(k)
             roles = mandos_to_esdt_roles(v)
             if roles is not None:
-                step = KApply('setEsdtRoles', [address_value, tok_id, set_of(roles)])
+                step = KApply('setEsdtRoles', [address_value, token_kbytes, set_of(roles)])
                 set_account_steps.append(step)
 
     return set_account_steps
 
 
-# ESDT value is either an integer (compact) or a dictionary (full)
-def mandos_to_esdt_value(v: str | dict) -> KToken | None:
-    if isinstance(v, str):
-        return mandos_int_to_kint(v)
-    if 'instances' in v:
-        return mandos_int_to_kint(v['instances'][0]['balance'])
-    return None
+def mandos_to_esdt_balances(key: str, value: str | dict) -> list[tuple[KToken, KInner]]:
+
+    token_bytes = mandos_argument_to_bytes(key)
+
+    if isinstance(value, str):
+        return [(KBytes(token_bytes), mandos_int_to_kint(value))]
+    if 'instances' in value:
+        res = []
+        for inst in value['instances']:
+            nonce = inst['nonce']
+            if nonce == '':
+                nonce = '0'
+            nonce = mandos_int_to_int(nonce)
+            if nonce == 0:
+                token_kbytes = KBytes(token_bytes)
+            else:  # TODO is there a built-in function for doing this?
+                byte_length = (nonce.bit_length() + 7) // 8
+                nonce_bytes = nonce.to_bytes(length=byte_length, byteorder='big', signed=False)
+                token_kbytes = KBytes(token_bytes + nonce_bytes)
+
+            balance_kint = mandos_int_to_kint(inst['balance'])
+
+            res.append((token_kbytes, balance_kint))
+
+        return res
+
+    return []
 
 
 ESDT_ROLES = {
@@ -384,13 +405,12 @@ def mandos_to_check_account(address: str, sections: dict, filename: str) -> list
         k_steps.append(KApply('checkAccountCode', [address_value, k_code_path]))
     if ('esdt' in sections) and (sections['esdt'] != '*'):
         for token, value in sections['esdt'].items():
-            token_kbytes = mandos_argument_to_kbytes(token)
-
-            value_kint = mandos_to_esdt_value(value)
-            if value_kint is not None:
-                step = KApply('checkAccountESDTBalance', [address_value, token_kbytes, value_kint])
+            balances = mandos_to_esdt_balances(token, value)
+            for token_kbytes, amount_kint in balances:
+                step = KApply('checkAccountESDTBalance', [address_value, token_kbytes, amount_kint])
                 k_steps.append(step)
 
+            token_kbytes = mandos_argument_to_kbytes(token)
             roles = mandos_to_esdt_roles(value)
             if roles is not None:
                 step = KApply('checkEsdtRoles', [address_value, token_kbytes, set_of(roles)])
@@ -420,7 +440,7 @@ def mandos_to_call_tx(tx: dict) -> KInner:
     value = mandos_int_to_kint(get_egld_value(tx))
     esdt_value = mandos_esdt_to_klist(tx.get('esdtValue', []))
     function = KWasmString(tx['function'])
-    arguments = mandos_arguments_to_klist(tx['arguments'])
+    arguments = mandos_arguments_to_klist(tx.get('arguments', []))
     gas_limit = mandos_int_to_kint(tx['gasLimit'])
     gas_price = mandos_int_to_kint(tx['gasPrice'], default_when_empty=0)
 
@@ -783,7 +803,7 @@ def run_tests() -> None:
 
     tests = args.files
 
-    template_wasm_config = krun.definition.init_config(GENERATED_TOP_CELL)
+    template_wasm_config = read_mandos_runtime()
 
     for test in tests:
         if args.verbose:

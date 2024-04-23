@@ -34,7 +34,7 @@ from kmultiversx.scenario import (
     mandos_argument_to_kbytes,
     wrapBytes,
 )
-from kmultiversx.utils import GENERATED_TOP_CELL, KasmerRunError, kast_to_json_str, krun_config, load_wasm
+from kmultiversx.utils import KasmerRunError, kast_to_json_str, krun_config, load_wasm, read_kasmer_runtime
 
 if TYPE_CHECKING:
     from hypothesis.strategies import SearchStrategy
@@ -123,7 +123,7 @@ def deploy_test(krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInne
     )
 
     # create an empty config and embed init steps
-    empty_conf = krun.definition.init_config(GENERATED_TOP_CELL)
+    empty_conf = read_kasmer_runtime()
 
     conf, subst = split_config_from(empty_conf)
     subst['K_CELL'] = init_steps

@@ -219,10 +219,11 @@ module ESDT
                 => newWasmInstance(DST, CODE)
                 ~> mkCall( DST
                          , #quoteUnparseWasmString(Bytes2String(getCallFunc(FUNC, ARGS)))
-                         , mkVmInputEsdtExec(SND, FUNC, ARGS, GAS, GAS_PRICE)
+                         , mkVmInputEsdtExec(SND, FUNC, ARGS, GAS, GAS_PRICE, HASH)
                          )
                    ...
         </commands>
+        <txHash> HASH </txHash>
         <account>
           <address> DST </address>
           <code> CODE:ModuleDecl </code>
@@ -236,10 +237,10 @@ module ESDT
         </commands>
       [owise]
 
-    syntax VmInputCell ::= mkVmInputEsdtExec(Bytes, BuiltinFunction, ListBytes, Int, Int)
+    syntax VmInputCell ::= mkVmInputEsdtExec(Bytes, BuiltinFunction, ListBytes, Int, Int, Bytes)
         [function, total]
  // -----------------------------------------------------------------------------------
-    rule mkVmInputEsdtExec(FROM, BIFUNC, ARGS, GAS, GAS_PRICE)
+    rule mkVmInputEsdtExec(FROM, BIFUNC, ARGS, GAS, GAS_PRICE, HASH)
       => <vmInput>
             <caller> FROM </caller>
             <callArgs> getCallArgs(BIFUNC, ARGS) </callArgs>
@@ -250,6 +251,7 @@ module ESDT
             </esdtTransfers>
             <gasProvided> GAS </gasProvided>
             <gasPrice> GAS_PRICE </gasPrice>
+            <txHash> HASH </txHash>
           </vmInput>
 ```
 

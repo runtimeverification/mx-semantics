@@ -25,8 +25,14 @@ module MANDOS
         <newAddresses> .Map </newAddresses>
         <checkedAccounts> .Set </checkedAccounts>
         <elrond/>
+        <txCount> 0 </txCount>
         <exit-code exit=""> 0 </exit-code>
       </mandos>
+    
+    syntax Bytes ::= mkTxHash(Int)    [function, total]
+ // ---------------------------------------------------
+    rule mkTxHash(TX_CNT) => Int2Bytes(32, TX_CNT, BE)
+
 ```
 
 Mandos Steps
@@ -102,6 +108,21 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             #fi
         [simplification]
 
+    syntax MapBytesToBytes  ::= #removeReservedKeys ( MapBytesToBytes ) [function]
+ // ----------------------------------------------------------------------------------------
+    rule #removeReservedKeys(.MapBytesToBytes)
+        => .MapBytesToBytes
+    rule #removeReservedKeys(wrap(Key) Bytes2Bytes|-> Value M)
+        =>  #if #hasPrefix(Bytes2String(Key), "ELROND")
+            #then #removeReservedKeys(M)
+            #else wrap(Key) Bytes2Bytes|-> Value #removeReservedKeys(M)
+            #fi
+    rule #removeReservedKeys(wrap(Key) Bytes2Bytes|-> Value M)
+        =>  #if #hasPrefix(Bytes2String(Key), "ELROND")
+            #then #removeReservedKeys(M)
+            #else wrap(Key) Bytes2Bytes|-> Value #removeReservedKeys(M)
+            #fi
+        [simplification]
 ```
 
 ### Step type: setState
@@ -357,7 +378,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            ...
          </account>
          <commands> .K </commands>
-        requires ACCTSTORAGE ==K #removeEmptyBytes(STORAGE)
+        requires #removeReservedKeys(ACCTSTORAGE) ==K #removeEmptyBytes(STORAGE)
       [priority(60)]
 
     syntax Step ::= checkAccountCode    ( Address, String ) [klabel(checkAccountCode), symbol]
@@ -439,13 +460,18 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 
     rule [callTxAux]:
         <k> callTxAux(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
-        <commands> .K => callContract(TO, FUNCTION, mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GASLIMIT, GASPRICE)) </commands>
+        <commands> .K => callContract(
+                            TO, FUNCTION, 
+                            mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GASLIMIT, GASPRICE, mkTxHash(CNT))
+                          ) 
+        </commands>
         <account>
           <address> FROM </address>
           <nonce> NONCE => NONCE +Int 1 </nonce>
           <balance> BALANCE => BALANCE -Int GASLIMIT *Int GASPRICE </balance>
           ...
         </account>
+        <txCount> CNT => CNT +Int 1 </txCount>
       [priority(60), preserves-definedness]
       // Preserving definedness:
       //   - callContract is a constructor
@@ -454,9 +480,9 @@ Only take the next step once both the Elrond node and Wasm are done executing.
       //   - +String, +Int, -Int and *Int are total
       //   - #parseWasmString is total.
 
-    syntax VmInputCell ::= mkVmInputSCCall(Bytes, ListBytes, Int, List, Int, Int)    [function, total]
+    syntax VmInputCell ::= mkVmInputSCCall(Bytes, ListBytes, Int, List, Int, Int, Bytes)    [function, total]
  // -----------------------------------------------------------------------------------
-    rule mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GAS, GAS_PRICE)
+    rule mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GAS, GAS_PRICE, HASH)
       => <vmInput>
             <caller> FROM </caller>
             <callArgs> ARGS </callArgs>
@@ -466,6 +492,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             // gas
             <gasProvided> GAS </gasProvided>
             <gasPrice> GAS_PRICE </gasPrice>
+            <txHash> HASH </txHash>
           </vmInput>
 
     syntax Step ::= checkExpectOut ( ListBytes ) [klabel(checkExpectOut), symbol]
@@ -514,12 +541,13 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
       [priority(60)]
 
     rule <k> queryTxAux(TO, FUNCTION, ARGS) => #wait ... </k>
-         <commands> .K => callContract(TO, FUNCTION, mkVmInputQuery(TO, ARGS)) </commands>
+         <commands> .K => callContract(TO, FUNCTION, mkVmInputQuery(TO, ARGS, mkTxHash(CNT))) </commands>
+         <txCount> CNT => CNT +Int 1 </txCount>
       [priority(60)]
 
-    syntax VmInputCell ::= mkVmInputQuery(Bytes, ListBytes)    [function, total]
+    syntax VmInputCell ::= mkVmInputQuery(Bytes, ListBytes, Bytes)    [function, total]
  // -----------------------------------------------------------------------------------
-    rule mkVmInputQuery(TO, ARGS)
+    rule mkVmInputQuery(TO, ARGS, HASH)
       => <vmInput>
             <caller> TO </caller>
             <callArgs> ARGS </callArgs>
@@ -529,6 +557,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
             // gas
             <gasProvided> maxUInt64 </gasProvided>
             <gasPrice> 0 </gasPrice>
+            <txHash> HASH </txHash>
           </vmInput>
 ```
 
@@ -550,7 +579,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
                 => createAccount(NEWADDR)
                 ~> setAccountOwner(NEWADDR, FROM)
                 ~> setAccountCode(NEWADDR, MODULE)
-                ~> callContract(NEWADDR, "init", mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE))
+                ~> callContract(NEWADDR, "init", mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE, mkTxHash(CNT)))
         </commands>
         <account>
            <address> FROM </address>
@@ -559,11 +588,12 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
            ...
         </account>
         <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
+        <txCount> CNT => CNT +Int 1 </txCount>
       [priority(60)]
 
-    syntax VmInputCell ::= mkVmInputDeploy(Bytes, Int, ListBytes, Int, Int)    [function, total]
+    syntax VmInputCell ::= mkVmInputDeploy(Bytes, Int, ListBytes, Int, Int, Bytes)    [function, total]
  // -----------------------------------------------------------------------------------
-    rule mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE)
+    rule mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE, HASH)
       => <vmInput>
             <caller> FROM </caller>
             <callArgs> ARGS </callArgs>
@@ -573,6 +603,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
             // gas
             <gasProvided> GASLIMIT </gasProvided>
             <gasPrice> GASPRICE </gasPrice>
+            <txHash> HASH </txHash>
           </vmInput>
 ```
 

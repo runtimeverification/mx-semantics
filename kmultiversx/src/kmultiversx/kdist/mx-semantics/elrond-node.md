@@ -32,6 +32,8 @@ module ELROND-NODE
             // gas
             <gasProvided> 0 </gasProvided>
             <gasPrice> 0 </gasPrice>
+            // tx ID
+            <txHash> .Bytes </txHash>
           </vmInput>
           // executional
           // every contract call uses its own wasm module instance, managed data heaps, and bytesStack.
@@ -58,6 +60,8 @@ module ELROND-NODE
                 <esdtId>     .Bytes </esdtId>
                 <esdtBalance> 0     </esdtBalance>
                 <esdtRoles>  .Set   </esdtRoles>
+                <esdtProperties> .Bytes </esdtProperties>
+                <esdtMetadata> .esdtMetadata </esdtMetadata>
               </esdtData>
             </esdtDatas>
 ```
@@ -190,6 +194,15 @@ Storage maps byte arrays to byte arrays.
 
     syntax ESDTTransfer ::= esdtTransfer( tokenName : Bytes , tokenValue : Int , tokenNonce : Int )    [klabel(esdtTransfer), symbol]
 
+    syntax ESDTMetadata ::= ".esdtMetadata"       [klabel(.esdtMetadata), symbol]
+                          | esdtMetadata(
+                                name: Bytes,
+                                nonce: Int,
+                                creator: Bytes,
+                                royalties: Int,
+                                hash: Bytes,
+                                uris: ListBytes,
+                                attributes: Bytes )      [klabel(esdtMetadata), symbol]
 ```
 
 ### Bytes Stack
@@ -200,12 +213,16 @@ Storage maps byte arrays to byte arrays.
 
     syntax BytesOp ::= #pushBytes ( Bytes )
                      | "#dropBytes"
+                     | "#appendBytes"
  // ---------------------------------------
     rule <instrs> #pushBytes(BS) => .K ... </instrs>
          <bytesStack> STACK => BS : STACK </bytesStack>
 
     rule <instrs> #dropBytes => .K ... </instrs>
          <bytesStack> _ : STACK => STACK </bytesStack>
+
+    rule <instrs> #appendBytes => .K ... </instrs>
+         <bytesStack> BS1 : BS2 : BSS => (BS1 +Bytes BS2) : BSS </bytesStack>
 
     syntax InternalInstr ::= "#returnLength"
  // ----------------------------------------
@@ -217,6 +234,20 @@ Storage maps byte arrays to byte arrays.
     rule <instrs> #bytesEqual => i32.const #bool( BS1 ==K BS2 ) ... </instrs>
          <bytesStack> BS1 : BS2 : _ </bytesStack>
 
+```
+
+### Output
+
+```k
+    syntax InternalInstr ::= "#appendToOutFromBytesStack"
+                           | #appendToOut ( Bytes )
+ // -----------------------------------------------
+    rule <instrs> #appendToOutFromBytesStack => .K ... </instrs>
+         <bytesStack> OUT : STACK => STACK </bytesStack>
+         <out> ... (.ListBytes => ListItem(wrap(OUT))) </out>
+
+    rule <instrs> #appendToOut(OUT) => .K ... </instrs>
+         <out> ... (.ListBytes => ListItem(wrap(OUT))) </out>
 ```
 
 ## Call State

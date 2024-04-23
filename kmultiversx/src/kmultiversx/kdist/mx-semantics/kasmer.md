@@ -135,9 +135,10 @@ Only the `#foundryRunner` account can execute these commands/host functions.
                 => createAccount(NEWADDR)
                 ~> setAccountOwner(NEWADDR, OWNER)
                 ~> setAccountCode(NEWADDR, MODULE)
-                ~> callContract(NEWADDR, "init", mkVmInputDeploy(OWNER, VALUE, ARGS, GAS, 0))
+                ~> callContract(NEWADDR, "init", mkVmInputDeploy(OWNER, VALUE, ARGS, GAS, 0, HASH))
                 ) ...
         </commands>
+        <txHash> HASH </txHash>
         <account>
            <address> OWNER </address>
            <nonce> NONCE </nonce>

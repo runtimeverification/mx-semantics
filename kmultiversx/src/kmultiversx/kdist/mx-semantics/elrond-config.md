@@ -311,20 +311,6 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <bytesStack> BS : STACK => STACK </bytesStack>
 ```
 
-### Output
-
-```k
-    syntax InternalInstr ::= "#appendToOutFromBytesStack"
-                           | #appendToOut ( Bytes )
- // -----------------------------------------------
-    rule <instrs> #appendToOutFromBytesStack => .K ... </instrs>
-         <bytesStack> OUT : STACK => STACK </bytesStack>
-         <out> ... (.ListBytes => ListItem(wrap(OUT))) </out>
-
-    rule <instrs> #appendToOut(OUT) => .K ... </instrs>
-         <out> ... (.ListBytes => ListItem(wrap(OUT))) </out>
-```
-
 ### Parsing
 
 ```k

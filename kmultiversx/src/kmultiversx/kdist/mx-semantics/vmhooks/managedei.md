@@ -33,6 +33,13 @@ module MANAGEDEI
                   ...
          </instrs>
 
+ // extern void      managedGetOriginalTxHash(void* context, int32_t resultHandle);
+    rule <instrs> hostCall ( "env" , "managedGetOriginalTxHash" , [ i32  .ValTypes ] -> [ .ValTypes ] )
+               => #setBuffer(RES_IDX, HASH) ...
+         </instrs>
+         <txHash> HASH </txHash>
+         <locals>  0 |-> <i32> RES_IDX  </locals>
+
  // extern void      managedSignalError(void* context, int32_t errHandle);
     rule <instrs> hostCall ( "env" , "managedSignalError" , [ i32  .ValTypes ] -> [ .ValTypes ] )
                => #getBuffer(ERR_IDX)
@@ -173,7 +180,32 @@ module MANAGEDEI
           10 |-> <i32> CB_CLOSURE_IDX
         </locals>
 
-  // extern void managedCreateAsyncCall(void* context, int32_t destHandle);
+ // extern void managedAsyncCall(void* context, int32_t destHandle, int32_t valueHandle, int32_t functionHandle, int32_t argumentsHandle);
+    rule [managedAsyncCall]:
+        <instrs> hostCall("env", "managedAsyncCall", [i32 i32 i32 i32 .ValTypes] -> [ .ValTypes ] )
+              ~> _
+              => #pushBytes(b"callBack")
+              ~> #pushBytes(b"callBack")
+              ~> #createAsyncCallWithTypedArgs(
+                  getBuffer(DEST_IDX), 
+                  getBigInt(VALUE_IDX),
+                  getBuffer(FUNC_IDX), 
+                  readManagedVecOfManagedBuffers(ARGS_IDX),
+                  GAS,
+                  0,
+                  b""
+                 )
+                 
+        </instrs>
+        <locals>
+          0 |-> <i32> DEST_IDX
+          1 |-> <i32> VALUE_IDX
+          2 |-> <i32> FUNC_IDX
+          3 |-> <i32> ARGS_IDX
+        </locals>
+        <gasProvided> GAS </gasProvided>
+
+  // extern void managedGetCallbackClosure(void* context, int32_t destHandle);
   // Ideally, every call should have a call ID and parent call ID, and this should consider the parent call ID to locate the parent call.
   // Since we only handle local async calls for now, the parent async call is always the first one in the list.
     rule [managedGetCallbackClosure]:

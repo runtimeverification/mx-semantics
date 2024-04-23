@@ -55,7 +55,6 @@ module MANBUFOPS
          <bufferHeap> HEAP => HEAP {{ BUFFER_IDX <- BS }} </bufferHeap>
 
     syntax InternalInstr ::= #appendBytesToBuffer( Int )
-                           | "#appendBytes"
  // -----------------------------------------------------------------
     rule <instrs> #appendBytesToBuffer( DEST_IDX )
                => #getBuffer(DEST_IDX)
@@ -63,9 +62,6 @@ module MANBUFOPS
                ~> #setBufferFromBytesStack( DEST_IDX )
                   ... 
          </instrs>
-
-    rule <instrs> #appendBytes => .K ... </instrs>
-         <bytesStack> BS1 : BS2 : BSS => (BS1 +Bytes BS2) : BSS </bytesStack>
 
     syntax InternalInstr ::= #sliceBytes( Int , Int )
  // ------------------------------------------------------------------

@@ -124,10 +124,12 @@ module ASYNC
                                   <esdtTransfers> .List </esdtTransfers>
                                   <gasProvided> GAS </gasProvided>
                                   <gasPrice> GAS_PRICE </gasPrice>
+                                  <txHash> HASH </txHash>
                                 </vmInput>)
                 ~> #mergeOutputs
                     ...
         </commands>
+        <txHash> HASH </txHash>
         <callee> PARENT </callee>
         <gasPrice> GAS_PRICE </gasPrice>
         <asyncCalls> 
@@ -152,10 +154,12 @@ module ASYNC
                                   <esdtTransfers> extractLastEsdt(PARENT, VMOUTPUT) </esdtTransfers>
                                   <gasProvided> GAS </gasProvided>
                                   <gasPrice> GAS_PRICE </gasPrice>
+                                  <txHash> HASH </txHash>
                                 </vmInput>)
                 ~> #mergeOutputs
                     ...
         </commands>
+        <txHash> HASH </txHash>
         <vmOutput>
           VMOutput( ... returnCode: RC, returnMessage: MSG , out: OUT ) #as VMOUTPUT
         </vmOutput>

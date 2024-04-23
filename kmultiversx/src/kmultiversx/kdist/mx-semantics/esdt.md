@@ -9,6 +9,15 @@ requires "elrond-node.md"
 module ESDT
     imports ELROND-NODE
     imports LIST-BYTES-EXTENSIONS
+    imports MAP-BYTES-TO-BYTES-PRIMITIVE
+
+    syntax Bytes ::= "#esdtSCAddress"   [macro]
+ // -------------------------------------------
+    rule #esdtSCAddress => b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\xff\xff"
+
+    syntax Bytes ::= keyWithNonce(Bytes, Int)   [function, total]
+ // -------------------------------------------------------------
+    rule keyWithNonce(TOK, NONCE) => TOK +Bytes Int2Bytes(NONCE, BE, Unsigned)
 
     syntax InternalCmd ::= transferESDT  ( Bytes , Bytes , ESDTTransfer )
                          | transferESDTs ( Bytes , Bytes , List )
@@ -20,15 +29,46 @@ module ESDT
                     ... 
          </commands>
 
-    rule <commands> transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, _) #as T) 
+    rule <commands> transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, 0) #as T) 
                  => checkAccountExists(FROM)
                  ~> checkAccountExists(TO)
                  ~> checkESDTBalance(FROM, TOKEN, VALUE)
-                 ~> addToESDTBalance(FROM, TOKEN, 0 -Int VALUE)
-                 ~> addToESDTBalance(TO,   TOKEN, VALUE)
+                 ~> addToESDTBalance(FROM, TOKEN, 0 -Int VALUE, false)
+                 ~> addToESDTBalance(TO,   TOKEN, VALUE, true)
                  ~> appendToOutAccount(TO, OutputTransfer(FROM, T))
                     ... 
          </commands>
+
+    rule <commands> transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, NONCE) #as T) 
+                 => checkAccountExists(FROM)
+                 ~> checkAccountExists(TO)
+                 ~> checkESDTBalance(FROM, keyWithNonce(TOKEN, NONCE), VALUE)
+                 ~> addNFTToDestination(FROM, TO, keyWithNonce(TOKEN, NONCE), VALUE)
+                 ~> removeEmptyNft(FROM, keyWithNonce(TOKEN, NONCE))
+                 ~> appendToOutAccount(TO, OutputTransfer(FROM, T))
+                    ... 
+         </commands>
+      requires NONCE =/=Int 0
+
+    syntax InternalCmd ::= removeEmptyNft(Bytes, Bytes)
+ // ---------------------------------------------------
+    rule [removeEmptyNft]:
+        <commands> removeEmptyNft(ACCT, TOKEN) => .K ... </commands>
+        <account>
+          <address> ACCT </address>
+          (<esdtData>
+            <esdtId> TOKEN </esdtId>
+            <esdtBalance> 0 </esdtBalance>
+            ...
+          </esdtData> => .Bag)
+          ...
+        </account>
+      [priority(60)]
+
+    rule [removeEmptyNft-skip]:
+        <commands> removeEmptyNft(_, _) => .K ... </commands>
+      [priority(61)]
+
 ```
 
 ## ESDT transfer sub-commands
@@ -62,10 +102,10 @@ module ESDT
 - Update ESDT balance: assumes the account exists and it has enough balance.
 
 ```k
-    syntax InternalCmd ::= addToESDTBalance(account: Bytes, token: Bytes, delta: Int)
+    syntax InternalCmd ::= addToESDTBalance(account: Bytes, token: Bytes, delta: Int, allowNew: Bool)
  // ------------------------------------------------------
     rule [addToESDTBalance]:
-        <commands> addToESDTBalance(ACCT, TOKEN, DELTA) => .K ... </commands>
+        <commands> addToESDTBalance(ACCT, TOKEN, DELTA, _) => .K ... </commands>
         <account>
           <address> ACCT </address>
           <esdtData>
@@ -78,7 +118,7 @@ module ESDT
       [priority(60)]
 
     rule [addToESDTBalance-new-esdtData]:
-        <commands> addToESDTBalance(ACCT, TOKEN, DELTA) => .K ... </commands>
+        <commands> addToESDTBalance(ACCT, TOKEN, DELTA, true) => .K ... </commands>
         <account>
           <address> ACCT </address>
           (.Bag => <esdtData>
@@ -90,6 +130,65 @@ module ESDT
         </account>
       [priority(61)]
 
+    rule [addToESDTBalance-new-err]:
+        <commands> addToESDTBalance(_ACCT, _TOKEN, _DELTA, false)
+                => #throwExceptionBs(ExecutionFailed, b"new NFT data on sender") 
+                   ...
+        </commands>
+      [priority(61)]
+
+```
+
+- Add NFT to an account
+
+```k
+    syntax InternalCmd ::= addNFTToDestination(Bytes, Bytes, Bytes, Int)
+ // --------------------------------------------------------------------
+    rule [addNFTToDestination-existing]:
+        <commands> addNFTToDestination(FROM, TO, TOKEN, DELTA) => .K ... </commands>
+        <account>
+          <address> FROM </address>
+          <esdtData>
+            <esdtId> TOKEN </esdtId>
+            <esdtBalance> ORIGFROM => ORIGFROM -Int DELTA </esdtBalance>
+            ...
+          </esdtData>
+          ...
+        </account>
+        <account>
+          <address> TO </address>
+          <esdtData>
+            <esdtId> TOKEN </esdtId>
+            <esdtBalance> ORIGFROM => ORIGFROM +Int DELTA </esdtBalance>
+            ...
+          </esdtData>
+          ...
+        </account>
+      [priority(60)]
+
+    rule [addNFTToDestination-new]:
+        <commands> addNFTToDestination(FROM, TO, TOKEN, DELTA) => .K ... </commands>
+        <account>
+          <address> FROM </address>
+          <esdtData>
+            <esdtId> TOKEN </esdtId>
+            <esdtBalance> ORIGFROM => ORIGFROM -Int DELTA </esdtBalance>
+            <esdtMetadata> META </esdtMetadata>
+            ...
+          </esdtData>
+          ...
+        </account>
+        <account>
+          <address> TO </address>
+          (.Bag => <esdtData>
+            <esdtId> TOKEN </esdtId>
+            <esdtBalance> DELTA </esdtBalance>
+            <esdtMetadata> META </esdtMetadata>
+            ...
+          </esdtData>)
+          ...
+        </account>
+      [priority(60)]
 ```
 
 ## ESDT Builtin Functions
@@ -128,7 +227,7 @@ module ESDT
  // ------------------------------------------------------------------------------
     rule [esdtLocalMint-cmd]:
         <commands> esdtLocalMint(ADDR, TOK, VAL)
-                => addToESDTBalance(ADDR, TOK, VAL) ...
+                => addToESDTBalance(ADDR, TOK, VAL, true) ...
         </commands>
 ```
 
@@ -168,7 +267,46 @@ module ESDT
     rule [esdtLocalBurn-cmd]:
         <commands> esdtLocalBurn(ADDR, TOK, VAL)
                 => checkESDTBalance(ADDR, TOK, VAL)
-                ~> addToESDTBalance(ADDR, TOK, 0 -Int VAL)
+                ~> addToESDTBalance(ADDR, TOK, 0 -Int VAL, false)
+                   ...
+        </commands>
+
+```
+
+### NFT Burn
+
+```k
+    syntax BuiltinFunction ::= "#ESDTNFTBurn"        [klabel(#ESDTNFTBurn), symbol]
+
+    rule toBuiltinFunction(F) => #ESDTNFTBurn requires F ==String "\"ESDTNFTBurn\""
+
+    rule BuiltinFunction2Bytes(#ESDTNFTBurn) => b"ESDTNFTBurn"
+
+    rule [ESDTNFTBurn]:
+        <commands> processBuiltinFunction(#ESDTNFTBurn, SND, DST, <vmInput> 
+                                                                    <callValue> VALUE </callValue>
+                                                                    <callArgs> ARGS </callArgs>
+                                                                    _ 
+                                                                  </vmInput>)
+                => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
+                ~> checkBool(size(ARGS) >=Int 2, "invalid arguments to process built-in function")
+                ~> checkBool(SND ==K DST, "invalid receiver address")
+                ~> checkAccountExists(SND)
+                ~> esdtNftBurn( SND,
+                                           ARGS {{ 0 }} orDefault b"",
+                                Bytes2Int( ARGS {{ 1 }} orDefault b"", BE, Unsigned),
+                                Bytes2Int( ARGS {{ 2 }} orDefault b"", BE, Unsigned)
+                              )
+                   ...
+        </commands>
+
+    syntax InternalCmd ::= esdtNftBurn(Bytes, Bytes, Int, Int)
+ // ----------------------------------------------------------
+    rule [esdtNftBurn]:
+        <commands> esdtNftBurn(ADDR, TOKEN, NONCE, VALUE)
+                => checkAllowedToExecute(ADDR, TOKEN, ESDTRoleNFTBurn)
+                ~> checkESDTBalance(ADDR, keyWithNonce(TOKEN, NONCE), VALUE)
+                ~> addToESDTBalance(ADDR, keyWithNonce(TOKEN, NONCE), 0 -Int VALUE, false)
                    ...
         </commands>
 
@@ -254,7 +392,7 @@ module ESDT
             <txHash> HASH </txHash>
           </vmInput>
 ```
-
+          
 
 ### Multi ESDT Transfer
 
@@ -318,6 +456,160 @@ module ESDT
     rule parseESDTTransfersH(_, _) => .List [owise]
 ```
 
+### NFT Create
+
+```k
+    syntax BuiltinFunction ::= "#ESDTNFTCreate"        [klabel(#ESDTNFTCreate), symbol]
+
+    rule toBuiltinFunction(F) => #ESDTNFTCreate requires F ==String "\"ESDTNFTCreate\""
+
+    rule BuiltinFunction2Bytes(#ESDTNFTCreate) => b"ESDTNFTCreate"
+
+    rule [ESDTNFTCreate]:
+        <commands> processBuiltinFunction(#ESDTNFTCreate, SND, DST, 
+                                      <vmInput> 
+                                        <callValue> VALUE </callValue>
+                                        <callArgs> ARGS </callArgs>
+                                        _ 
+                                      </vmInput>)
+                => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
+                ~> checkBool(size(ARGS) >=Int 7, "invalid arguments to process built-in function")
+                ~> checkBool(SND ==K DST, "invalid receiver address")
+                ~> checkBool(lengthBytes(ARGS {{ 1 }} orDefault b"") <=Int 32,
+                      "invalid arguments to process built-in function, max length for quantity in nft create is 32")
+                ~> esdtNftCreate(SND, ESDTNFTCreate.token(ARGS), ESDTNFTCreate.qtty(ARGS), ESDTNFTCreate.meta(SND, ARGS))
+                   ...
+        </commands>
+
+    syntax InternalCmd ::= esdtNftCreate(Bytes, Bytes, Int, ESDTMetadata)      [klabel(esdtNftCreate), symbol]
+ // ---------------------------------------------------------------------------------------------------------
+    rule [esdtNftCreate]:
+        <commands> esdtNftCreate(SND, TOKEN, QTTY, esdtMetadata (... nonce: NONCE, royalties: ROYALTIES) #as META)
+                => checkAllowedToExecute(SND, TOKEN, ESDTRoleNFTCreate)
+                ~> checkBool(ROYALTIES <=Int 10000,
+                      "invalid arguments to process built-in function, invalid max royality value")
+                ~> checkBool(QTTY >Int 0,
+                      "invalid arguments to process built-in function, invalid quantity")
+                ~> #if QTTY >Int 1
+                   #then checkAllowedToExecute(SND, TOKEN, ESDTRoleNFTAddQuantity)
+                   #else .K
+                   #fi
+                ~> saveNFT(SND, TOKEN, QTTY, META)
+                ~> saveLatestNonce(SND, TOKEN, NONCE)
+                   ...
+        </commands>
+
+    syntax Bytes ::= "ESDTNFTCreate.token" "(" ListBytes ")"   [function, total]
+    syntax Int   ::= "ESDTNFTCreate.qtty"  "(" ListBytes ")"   [function, total]
+ // -------------------------------------------------------------------------------------
+    rule ESDTNFTCreate.token(ARGS)  =>           ARGS {{ 0 }} orDefault b""
+    rule ESDTNFTCreate.qtty(ARGS)   => Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned)
+    
+    syntax ESDTMetadata ::= "ESDTNFTCreate.meta" "("  Bytes ","  ListBytes ")"   [function, total]
+ // --------------------------------------------------------------------------------------------
+    rule ESDTNFTCreate.meta(SND, ARGS)
+      => esdtMetadata( ...
+            name: ARGS {{ 2 }} orDefault b"", 
+            nonce: getLatestNonce(SND, ESDTNFTCreate.token(ARGS)) +Int 1,
+            creator: SND,
+            royalties: Bytes2Int(ARGS {{ 3 }} orDefault b"", BE, Unsigned),
+            hash: ARGS {{ 4 }} orDefault b"",
+            uris: rangeTotal(ARGS, 6, 0),
+            attributes: ARGS {{ 5 }} orDefault b""
+          )
+
+    syntax Int ::= getLatestNonce(Bytes, Bytes)   [function, total]
+ // ---------------------------------------------------------------
+    rule [[ getLatestNonce(ADDR, TOK) => Bytes2Int( STORAGE {{ getNonceKey(TOK)}} orDefault b"", BE, Unsigned )]]
+        <account>
+          <address> ADDR </address>
+          <storage> STORAGE </storage>
+          ...
+        </account>
+
+    rule getLatestNonce(_, _) => 0      [owise]
+
+    syntax Bytes ::= getNonceKey(Bytes)   [function, total]
+ // -------------------------------------------------------
+    rule getNonceKey(TOK) => b"ELRONDnonce" +Bytes TOK
+
+
+    syntax InternalCmd ::= saveNFT(Bytes, Bytes, Int, ESDTMetadata)       [klabel(saveNFT), symbol]
+ // -----------------------------------------------------------------------------------------------
+    rule [saveNFT]:
+        <commands> saveNFT(ADDR, TOK_KEY, QTTY, esdtMetadata(... nonce: NONCE) #as META) => .K ... </commands>
+        <account>
+          <address> ADDR </address>
+          (.Bag => <esdtData>
+            <esdtId> keyWithNonce(TOK_KEY, NONCE) </esdtId>
+            <esdtBalance> QTTY </esdtBalance>
+            <esdtRoles> .Set </esdtRoles>
+            <esdtMetadata> META </esdtMetadata>
+            <esdtProperties> .Bytes </esdtProperties>
+          </esdtData>)
+          ...
+        </account>
+        <out> ... (.ListBytes => ListItem(wrap(Int2Bytes(NONCE, BE, Unsigned)))) </out>
+
+    syntax InternalCmd ::= saveLatestNonce(Bytes, Bytes, Int)   [klabel(saveLatestNonce), symbol]
+ // ---------------------------------------------------------------------------------------------
+    rule [saveLatestNonce]:
+        <commands> saveLatestNonce(ADDR, TOKEN, NONCE) => .K ... </commands>
+        <account>
+          <address> ADDR </address>
+          <storage> STORAGE => STORAGE{{ getNonceKey(TOKEN) <- Int2Bytes(NONCE, BE, Unsigned) }} </storage>
+          ...
+        </account>
+```
+
+### NFT Add Quantity
+
+```k
+    syntax BuiltinFunction ::= "#ESDTNFTAddQuantity"        [klabel(#ESDTNFTAddQuantity), symbol]
+
+    rule toBuiltinFunction(F) => #ESDTNFTAddQuantity requires F ==String "\"ESDTNFTAddQuantity\""
+
+    rule BuiltinFunction2Bytes(#ESDTNFTAddQuantity) => b"ESDTNFTAddQuantity"
+
+    rule [ESDTNFTAddQuantity]:
+        <commands> processBuiltinFunction(#ESDTNFTAddQuantity, SND, DST, 
+                                      <vmInput> 
+                                        <callValue> VALUE </callValue>
+                                        <callArgs> ARGS </callArgs>
+                                        _ 
+                                      </vmInput>)
+                
+                => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
+                ~> checkBool(size(ARGS) >=Int 3, "invalid arguments to process built-in function")
+                ~> checkBool(SND ==K DST, "invalid receiver address")
+                ~> checkBool(lengthBytes(ARGS {{ 2 }} orDefault b"") <=Int 32,
+                      "invalid arguments to process built-in function, max length for quantity in add nft quantity is 32")
+
+                ~> esdtNftAddQuantity( SND,
+                                                 ARGS {{ 0 }} orDefault b"",
+                                       Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned),
+                                       Bytes2Int(ARGS {{ 2 }} orDefault b"", BE, Unsigned)
+                                      )
+                   ...
+        </commands>
+
+    syntax InternalCmd ::= esdtNftAddQuantity(Bytes, Bytes, Int, Int)
+ // -----------------------------------------------------------------
+    rule [esdtNftAddQuantity]:
+        <commands> esdtNftAddQuantity(SND, TOKEN, NONCE, VALUE)
+                => checkAllowedToExecute(SND, TOKEN, ESDTRoleNFTAddQuantity)
+                ~> checkBool(NONCE =/=Int 0, "NFT does not have metadata")
+                ~> addToESDTBalance(
+                      SND,
+                      keyWithNonce(TOKEN, NONCE),
+                      VALUE,
+                      false
+                   )
+                   ...
+        </commands>
+
+```
+
 ## Misc
 
 ```k
@@ -334,6 +626,9 @@ module ESDT
     syntax InternalCmd ::= checkAllowedToExecute(account: Bytes, token: Bytes, role: ESDTLocalRole)
         [klabel(checkAllowedToExecute), symbol]
  // ----------------------------------------------------------------------------------------
+    rule [checkAllowedToExecute-system]:
+        <commands> checkAllowedToExecute(#esdtSCAddress, _, _) => .K ... </commands>
+
     rule [checkAllowedToExecute-pass]:
         <commands> checkAllowedToExecute(ADDR, TOK, ROLE) => .K ... </commands>
         <account>

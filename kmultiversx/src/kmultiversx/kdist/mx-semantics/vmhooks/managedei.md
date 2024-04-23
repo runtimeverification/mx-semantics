@@ -253,5 +253,144 @@ module MANAGEDEI
         <locals> 0 |-> <i32> BUF_IDX </locals>
         <prevBlockRandomSeed> SEED </prevBlockRandomSeed>
 
+
+
+
+ // extern void managedGetESDTTokenData(void* context, int32_t addressHandle, int32_t tokenIDHandle, long long nonce,
+ //                                                    int32_t valueHandle, int32_t propertiesHandle, int32_t hashHandle,
+ //                                                    int32_t nameHandle, int32_t attributesHandle, int32_t creatorHandle,
+ //                                                    int32_t royaltiesHandle, int32_t urisHandle);
+    rule [managedGetESDTTokenData]:
+        <instrs> hostCall("env", "managedGetESDTTokenData", [i32 i32 i64 i32 i32 i32 i32 i32 i32 i32 i32 .ValTypes] -> [ .ValTypes ] )
+              => #getBuffer(ADDR_IDX)
+              ~> #pushBytes(Int2Bytes(NONCE, BE, Unsigned))
+              ~> #getBuffer(TOK_IDX)
+              ~> #appendBytes
+              ~> #getESDTTokenData
+                 ...
+        </instrs>
+        <locals>
+          ...
+          0 |-> <i32> ADDR_IDX
+          1 |-> <i32> TOK_IDX
+          2 |-> <i64> NONCE
+          ...
+        </locals>
+
+    syntax InternalInstr ::= "#getESDTTokenData"
+ // --------------------------------------------
+    rule [getESDTTokenData-nft]:
+        <instrs> #getESDTTokenData
+              => #setBigIntValue(VAL_IDX, VALUE)
+              ~> #setBuffer(PROPS_IDX, PROPS)
+              ~> #setBuffer(HASH_IDX, HASH)
+              ~> #setBuffer(NAME_IDX, NAME)
+              ~> #setBuffer(ATTRS_IDX, ATTRS)
+              ~> #setBuffer(HASH_IDX, HASH)
+              ~> #setBuffer(CREATOR_IDX, CREATOR)
+              ~> #setBigIntValue(ROYL_IDX, ROYL)
+              ~> #writeManagedVecOfManagedBuffers(URIS, URIS_IDX)
+                 ...
+        </instrs>
+        <bytesStack> TOKEN : ADDR : REST => REST </bytesStack>
+        <locals>
+          ...
+          3 |-> <i32> VAL_IDX
+          4 |-> <i32> PROPS_IDX
+          5 |-> <i32> HASH_IDX
+          6 |-> <i32> NAME_IDX
+          7 |-> <i32> ATTRS_IDX
+          8 |-> <i32> CREATOR_IDX
+          9 |-> <i32> ROYL_IDX
+          10 |-> <i32> URIS_IDX
+          ...
+        </locals>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TOKEN </esdtId>
+            <esdtBalance> VALUE </esdtBalance>
+            <esdtMetadata>
+              esdtMetadata( ...
+                name: NAME,
+                creator: CREATOR,
+                royalties: ROYL,
+                hash: HASH,
+                uris: URIS,
+                attributes: ATTRS
+              )
+            </esdtMetadata>
+            <esdtProperties> PROPS </esdtProperties>
+            ...
+          </esdtData>
+          ...
+        </account>
+
+    rule [getESDTTokenData-ft]:
+        <instrs> #getESDTTokenData
+              => #setBigIntValue(VAL_IDX, VALUE)
+              ~> #setBuffer(PROPS_IDX, PROPS)
+                 ...
+        </instrs>
+        <bytesStack> TOKEN : ADDR : REST => REST </bytesStack>
+        <locals>
+          ...
+          3 |-> <i32> VAL_IDX
+          4 |-> <i32> PROPS_IDX
+          ...
+        </locals>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TOKEN </esdtId>
+            <esdtBalance> VALUE </esdtBalance>
+            <esdtMetadata> .esdtMetadata </esdtMetadata>
+            <esdtProperties> PROPS </esdtProperties>
+            ...
+          </esdtData>
+          ...
+        </account>
+
+    // extern long long getESDTLocalRoles(void* context, int32_t tokenIdHandle);
+    rule [getESDTLocalRoles]:
+        <instrs> hostCall("env", "getESDTLocalRoles", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
+              => #getBuffer(TOKEN_IDX)
+                 ...
+        </instrs>
+        <locals> 0 |-> <i32> TOKEN_IDX </locals>
+        <esdtTransfers> .List </esdtTransfers>
+
+    syntax InternalInstr ::= "#getESDTLocalRoles"     [klabel(getESDTLocalRoles), symbol]
+ // ---------------------------------------------
+    rule [getESDTLocalRoles-aux]:
+        <instrs> #getESDTLocalRoles
+              => i64.const rolesToInt(ROLES)
+                 ...
+        </instrs>
+        <bytesStack> TOKEN : REST => REST </bytesStack>
+        <callee> ADDR </callee>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TOKEN </esdtId>
+            <esdtRoles> ROLES </esdtRoles>
+            ...
+          </esdtData>
+          ...
+        </account>
+
+    rule [getESDTLocalRoles-aux-nil]:
+        <instrs> #getESDTLocalRoles => i64.const 0 ... </instrs>
+        <bytesStack> _TOKEN : REST => REST </bytesStack>
+      [owise]
+
+    syntax Int ::= rolesToInt(Set)   [function, total]
+ // ---------------------------------------------------
+    rule rolesToInt(S) => #if ESDTRoleLocalMint      in S #then 1 #else 0 #fi 
+                     +Int #if ESDTRoleLocalBurn      in S #then 2 #else 0 #fi
+                     +Int #if ESDTRoleNFTCreate      in S #then 4 #else 0 #fi
+                     +Int #if ESDTRoleNFTAddQuantity in S #then 8 #else 0 #fi
+                     +Int #if ESDTRoleNFTBurn        in S #then 16 #else 0 #fi
+
 endmodule
 ```

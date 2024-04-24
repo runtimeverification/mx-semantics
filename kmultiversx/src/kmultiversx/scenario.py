@@ -7,11 +7,11 @@ import resource
 import subprocess
 import sys
 import tempfile
-from typing import Iterable, Optional
+from typing import TYPE_CHECKING, Iterable, Optional
 
 from Cryptodome.Hash import keccak
 from pyk.cli.utils import dir_path
-from pyk.kast.inner import KApply, KInner, KSequence, KToken, Subst
+from pyk.kast.inner import KApply, KSequence, KToken, Subst
 from pyk.kast.manip import split_config_from
 from pyk.kdist import kdist
 from pyk.ktool.krun import KRun
@@ -19,6 +19,9 @@ from pyk.prelude.collections import set_of
 from pykwasm.kwasm_ast import KBytes, KInt, KString
 
 from kmultiversx.utils import flatten, kast_to_json_str, krun_config, load_wasm, read_mandos_runtime
+
+if TYPE_CHECKING:
+    from pyk.kast.inner import KInner
 
 
 def wrapBytes(bs: KInner) -> KInner:  # noqa: N802
@@ -323,7 +326,7 @@ def mandos_to_set_account(address: str, sections: dict, filename: str, output_di
     return set_account_steps
 
 
-def mandos_to_esdt_balances(key: str, value: str | dict) -> list[tuple[KToken, KInner]]:
+def mandos_to_esdt_balances(key: str, value: str | dict) -> list[tuple[KToken, KToken]]:
 
     token_bytes = mandos_argument_to_bytes(key)
 

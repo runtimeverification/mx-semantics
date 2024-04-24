@@ -81,6 +81,8 @@ jobs:
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-elrond-crowdfunding-esdt
       - name: 'Contract Test: Multisig'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-elrond-multisig
+      - name: 'Contract Test: NFT Minter'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-elrond-nft-minter
       - name: 'Contract Tests: Custom'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-custom-contracts
       - name: 'Tear down Docker'

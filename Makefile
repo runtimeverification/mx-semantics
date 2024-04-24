@@ -3,7 +3,7 @@
         test-elrond-multisig test-elrond-basic-features                          \
         test-elrond-alloc-features test-elrond-composability-features            \
         test-elrond-addercaller test-elrond-callercallee test-custom-contracts   \
-        rule-coverage clean-coverage runtime-json                                \
+        rule-coverage clean-coverage runtime-json test-elrond-nft-minter         \
 
 
 # Settings
@@ -144,6 +144,11 @@ elrond_multisig_tests=$(shell cat tests/multisig.test)
 
 test-elrond-multisig: build sc-build/$(ELROND_MULTISIG_DIR)
 	$(TEST_MANDOS) $(elrond_multisig_tests)
+
+# NFT Tests
+
+test-elrond-nft-minter: build sc-build/$(ELROND_CONTRACT_EXAMPLES)/nft-minter
+	$(TEST_MANDOS) $(shell find $(ELROND_CONTRACT_EXAMPLES)/nft-minter -name "*.scen.json")
 
 ## Basic Feature Test
 

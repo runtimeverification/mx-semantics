@@ -156,15 +156,20 @@ ELROND_BASIC_FEATURES_DIR=$(ELROND_CONTRACT)/feature-tests/basic-features
 ELROND_BASIC_FEATURES_WASM=$(ELROND_BASIC_FEATURES_DIR)/output/basic-features.wasm
 elrond_basic_features_tests=$(shell cat tests/basic_features.test)
 
+
+ELROND_ESDT_SC_MOCK_DIR=$(ELROND_CONTRACT)/feature-tests/esdt-system-sc-mock
+ELROND_ESDT_SC_MOCK_WASM=$(ELROND_ESDT_SC_MOCK_DIR)/output/esdt-system-sc-mock.wasm
+
 $(ELROND_BASIC_FEATURES_WASM): sc-build/$(ELROND_BASIC_FEATURES_DIR)
+$(ELROND_ESDT_SC_MOCK_WASM): sc-build/$(ELROND_ESDT_SC_MOCK_DIR)
 
 # TODO optimize test runner and enable logging
 test-elrond-basic-features: $(elrond_basic_features_tests:=.mandos)
 
-$(ELROND_BASIC_FEATURES_DIR)/scenarios/%.scen.json.mandos: build $(ELROND_BASIC_FEATURES_WASM)
+$(ELROND_BASIC_FEATURES_DIR)/scenarios/%.scen.json.mandos: build $(ELROND_BASIC_FEATURES_WASM) $(ELROND_ESDT_SC_MOCK_WASM)
 	$(TEST_MANDOS) $(ELROND_BASIC_FEATURES_DIR)/scenarios/$*.scen.json --log-level none
 
-tests/custom-scenarios/basic-features/%.scen.json.mandos: build $(ELROND_BASIC_FEATURES_WASM)
+tests/custom-scenarios/basic-features/%.scen.json.mandos: build $(ELROND_BASIC_FEATURES_WASM) $(ELROND_ESDT_SC_MOCK_WASM)
 	$(TEST_MANDOS) tests/custom-scenarios/basic-features/$*.scen.json --log-level none
 
 ## Alloc Features Test

@@ -22,6 +22,7 @@ class SourceTarget(Target):
 
     def build(self, output_dir: Path, deps: dict[str, Path], args: dict[str, Any], verbose: bool) -> None:
         shutil.copytree(deps['wasm-semantics.source'] / 'wasm-semantics', output_dir / 'wasm-semantics')
+        shutil.copytree(self.SRC_DIR / 'plugin/plugin', output_dir / 'plugin')
         shutil.copytree(self.SRC_DIR / 'mx-semantics', output_dir / 'mx-semantics')
 
     def source(self) -> tuple[Path, ...]:
@@ -56,7 +57,7 @@ def llvm_target(main_file_name: str, main_module: str, syntax_module: str) -> Ko
             'main_file': src_dir / 'mx-semantics' / main_file_name,
             'main_module': main_module,
             'syntax_module': syntax_module,
-            'include_dirs': [src_dir, PLUGIN_DIR],
+            'include_dirs': [src_dir],
             'md_selector': 'k',
             'hook_namespaces': ['KRYPTO'],
             'opt_level': 2,
@@ -87,7 +88,7 @@ def haskell_target(main_file_name: str, main_module: str, syntax_module: str) ->
             'main_file': src_dir / 'mx-semantics' / main_file_name,
             'main_module': main_module,
             'syntax_module': syntax_module,
-            'include_dirs': [src_dir, PLUGIN_DIR],
+            'include_dirs': [src_dir],
             'md_selector': 'k',
             'hook_namespaces': ['KRYPTO'],
             'warnings_to_errors': True,

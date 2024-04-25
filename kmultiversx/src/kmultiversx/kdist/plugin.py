@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 CURRENT_DIR: Final = Path(__file__).parent
-PLUGIN_DIR: Final = CURRENT_DIR.parents[3] / 'deps/plugin'  # TODO Distribute plugin files with Python
+PLUGIN_DIR: Final = CURRENT_DIR / 'plugin'
 
 
 class SourceTarget(Target):

@@ -9,11 +9,8 @@
 # Settings
 # --------
 
-DEPS_DIR  := deps
-
-PLUGIN_SUBMODULE := $(abspath $(DEPS_DIR)/plugin)
-
-ELROND_SDK_SUBMODULE     := $(DEPS_DIR)/mx-sdk-rs
+PLUGIN_SUBMODULE         := kmultiversx/src/kmultiversx/kdist/plugin
+ELROND_SDK_SUBMODULE     := deps/mx-sdk-rs
 ELROND_CONTRACT          := $(ELROND_SDK_SUBMODULE)/contracts
 ELROND_CONTRACT_EXAMPLES := $(ELROND_CONTRACT)/examples
 

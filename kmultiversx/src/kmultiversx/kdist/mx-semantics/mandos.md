@@ -29,6 +29,8 @@ module MANDOS
         <exit-code exit=""> 0 </exit-code>
       </mandos>
     
+    // Creates 32-byte a dummy transaction hash from transaction count.
+    // The official Mandos (Scenario) implementation uses the "id" field as transaction hash. 
     syntax Bytes ::= mkTxHash(Int)    [function, total]
  // ---------------------------------------------------
     rule mkTxHash(TX_CNT) => Int2Bytes(32, TX_CNT, BE)

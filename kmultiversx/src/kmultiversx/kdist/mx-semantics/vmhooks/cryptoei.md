@@ -48,23 +48,6 @@ module CRYPTOEI-HELPERS
                 ...
         </instrs>
 
-    syntax InternalInstr ::= "#verifyEd25519"   [klabel(verifyEd25519), symbol]
- // ---------------------------------------------------------------------------
-
-    rule [verifyEd25519]:
-        // TODO fix this
-        // <instrs> #verifyEd25519
-        //       => (#if ED25519VerifyMessage( KEY , MSG , SIG )
-        //          #then i32.const 0
-        //          #else #throwException(ExecutionFailed, "invalid signature")
-        //          #fi) ...
-        // </instrs>
-        // <bytesStack> SIG : MSG : KEY : REST => REST </bytesStack>
-        <instrs> #verifyEd25519
-              => i32.const 0 ...
-        </instrs>
-        <bytesStack> _SIG : _MSG : _KEY : REST => REST </bytesStack>
-
 endmodule
 ```
 
@@ -112,21 +95,6 @@ module CRYPTOEI
                  ...
         </instrs>
         <locals> 0 |-> <i32> DATA 1 |-> <i32> DEST </locals>
-
-    // extern int32_t managedVerifyEd25519(void* context, int32_t keyHandle, int32_t messageHandle, int32_t sigHandle);
-    rule [managedVerifyEd25519]:
-        <instrs> hostCall("env", "managedVerifyEd25519", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
-              => #getBuffer(KEY_IDX)
-              ~> #getBuffer(MSG_IDX)
-              ~> #getBuffer(SIG_IDX)
-              ~> #verifyEd25519
-                 ...
-        </instrs>
-        <locals>
-          0 |-> <i32> KEY_IDX
-          1 |-> <i32> MSG_IDX
-          2 |-> <i32> SIG_IDX
-        </locals>
 
 endmodule
 ```

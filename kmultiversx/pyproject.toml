@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "kmultiversx"
-version = "0.1.42"
+version = "0.1.43"
 description = "Python tools for Elrond semantics"
 authors = [
     "Runtime Verification, Inc. <contact@runtimeverification.com>",
@@ -44,6 +44,7 @@ pyupgrade = "*"
 [tool.isort]
 profile = "black"
 line_length = 120
+skip = [ "src/kmultiversx/kdist/plugin" ]
 
 [tool.autoflake]
 recursive = true
@@ -52,10 +53,13 @@ remove-all-unused-imports = true
 ignore-init-module-imports = true
 remove-duplicate-keys = true
 remove-unused-variables = true
+exclude = [ "src/kmultiversx/kdist/plugin" ]
 
 [tool.black]
 line-length = 120
 skip-string-normalization = true
+exclude = "src/kmultiversx/kdist/plugin"
 
 [tool.mypy]
 disallow_untyped_defs = true
+exclude = "src/kmultiversx/kdist/plugin/*"

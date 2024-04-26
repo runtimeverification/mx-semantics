@@ -1,5 +1,5 @@
 [submodule "deps/plugin"]
-	path = deps/plugin
+	path = kmultiversx/src/kmultiversx/kdist/plugin
 	url = https://github.com/runtimeverification/blockchain-k-plugin.git
 [submodule "deps/mx-sdk-rs"]
 	path = deps/mx-sdk-rs

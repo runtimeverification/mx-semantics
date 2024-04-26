@@ -355,10 +355,11 @@ module MANAGEDEI
     rule [getESDTLocalRoles]:
         <instrs> hostCall("env", "getESDTLocalRoles", [ i32 .ValTypes ] -> [ i64 .ValTypes ])
               => #getBuffer(TOKEN_IDX)
+              ~> #getESDTLocalRoles
+              ~> #dropBytes
                  ...
         </instrs>
         <locals> 0 |-> <i32> TOKEN_IDX </locals>
-        <esdtTransfers> .List </esdtTransfers>
 
     syntax InternalInstr ::= "#getESDTLocalRoles"     [klabel(getESDTLocalRoles), symbol]
  // ---------------------------------------------
@@ -367,7 +368,7 @@ module MANAGEDEI
               => i64.const rolesToInt(ROLES)
                  ...
         </instrs>
-        <bytesStack> TOKEN : REST => REST </bytesStack>
+        <bytesStack> TOKEN : _ </bytesStack>
         <callee> ADDR </callee>
         <account>
           <address> ADDR </address>
@@ -381,7 +382,7 @@ module MANAGEDEI
 
     rule [getESDTLocalRoles-aux-nil]:
         <instrs> #getESDTLocalRoles => i64.const 0 ... </instrs>
-        <bytesStack> _TOKEN : REST => REST </bytesStack>
+        <bytesStack> _TOKEN : _ </bytesStack>
       [owise]
 
     syntax Int ::= rolesToInt(Set)   [function, total]

@@ -89,6 +89,9 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <nextModuleIdx> IDX </nextModuleIdx>
          <commands> .K </commands>
       [priority(60)]
+
+    syntax Step ::= checkFailed(Step)     [klabel(checkFailed), symbol]
+
 ```
 
 ### Helper Functions
@@ -151,14 +154,21 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          </commands>
       [priority(60)]
 
-    syntax Step ::= setEsdtBalance( Bytes , Bytes, Int )     [klabel(setEsdtBalance), symbol]
+    syntax Step ::= setEsdtBalance   ( Bytes , Bytes, Int, ESDTMetadata, Int )     [klabel(setEsdtBalance), symbol]
+                  | setEsdtBalanceAux( Bytes , Bytes,      ESDTMetadata, Int )     [klabel(setEsdtBalanceAux), symbol]
  // ------------------------------------------------
-    rule <k> setEsdtBalance( ADDR , TokId , Value ) => .K ... </k>
+    rule <k> setEsdtBalance( ADDR , TokId , Nonce, Metadata, Value )
+          => setEsdtBalanceAux(ADDR, keyWithNonce(TokId, Nonce), Metadata, Value) ...
+        </k>
+
+    rule [setEsdtBalanceAux]:
+        <k> setEsdtBalanceAux( ADDR , TokId , Metadata, Value ) => .K ... </k>
         <account>
           <address> ADDR </address>
           <esdtData>
             <esdtId> TokId </esdtId>
             <esdtBalance> _ => Value </esdtBalance>
+            <esdtMetadata> _ => Metadata </esdtMetadata>
             ...
            </esdtData>
           ...
@@ -166,13 +176,15 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         <commands> .K </commands>
       [priority(60)]
 
-    rule <k> setEsdtBalance( ADDR , TokId , Value ) => .K ... </k>
+    rule [setEsdtBalanceAux-new]:
+        <k> setEsdtBalanceAux( ADDR , TokId , Metadata , Value ) => .K ... </k>
         <account>
           <address> ADDR </address>
           <esdtDatas>
             (.Bag => <esdtData>
               <esdtId> TokId </esdtId>
               <esdtBalance> Value </esdtBalance>
+            <esdtMetadata> Metadata </esdtMetadata>
               ...
             </esdtData>)
             ...
@@ -344,26 +356,38 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <commands> .K </commands>
       [priority(60)]
 
-    syntax Step ::= checkAccountESDTBalance    ( Address, Bytes, Int ) [klabel(checkAccountESDTBalance), symbol]
-                  | checkAccountESDTBalanceAux ( Bytes, Bytes, Int )   [klabel(checkAccountESDTBalanceAux), symbol]
+    syntax Step ::= checkAccountESDTBalance    ( Bytes, Bytes, Int, Int ) [klabel(checkAccountESDTBalance), symbol]
+                  | checkAccountESDTBalanceAux ( Bytes, Bytes, Int, Int )   [klabel(checkAccountESDTBalanceAux), symbol]
  // ------------------------------------------------------------------------------------------------
-    rule <k> checkAccountESDTBalance(ADDRESS, TOKEN, BALANCE)
-             => checkAccountESDTBalanceAux(#address2Bytes(ADDRESS), TOKEN, BALANCE) ... </k>
+    rule <k> checkAccountESDTBalance(ADDRESS, TOKEN, NONCE, BALANCE)
+          => checkAccountESDTBalanceAux(ADDRESS, keyWithNonce(TOKEN, NONCE), NONCE, BALANCE) ... </k>
          <commands> .K </commands>
       [priority(60)]
 
-    rule <k> checkAccountESDTBalanceAux(ADDR, TOKEN, BALANCE) => .K ... </k>
+    rule <k> checkAccountESDTBalanceAux(ADDR, TOKEN, NONCE, BALANCE) #as C
+          => #if BALANCE ==Int BALANCE2
+             #then .K
+             #else checkFailed(C)
+             #fi ... </k>
          <account>
            <address> ADDR </address>
            <esdtData>
              <esdtId> TOKEN </esdtId>
-             <esdtBalance> BALANCE </esdtBalance>
+             <esdtBalance> BALANCE2 </esdtBalance>
              ...
            </esdtData>
            ...
          </account>
          <commands> .K </commands>
       [priority(60)]
+
+    rule <k> checkAccountESDTBalanceAux(ADDR, _TOKEN, _NONCE, 0) => .K ... </k>
+         <account>
+           <address> ADDR </address>
+           ...
+         </account>
+         <commands> .K </commands>
+      [priority(61)]
 
     syntax Step ::= checkAccountStorage    ( Address, MapBytesToBytes ) [klabel(checkAccountStorage), symbol]
                   | checkAccountStorageAux ( Bytes, MapBytesToBytes )   [klabel(checkAccountStorageAux), symbol]

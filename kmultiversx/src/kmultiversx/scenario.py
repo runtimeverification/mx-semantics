@@ -311,13 +311,12 @@ def mandos_to_set_account(address: str, sections: dict, filename: str, output_di
 
     if 'esdt' in sections:
         for k, v in sections['esdt'].items():
+            token_kbytes = mandos_argument_to_kbytes(k)
 
-            balances = mandos_to_esdt_balances(k, v)
-            for token_kbytes, amount_kint in balances:
-                step = KApply('setEsdtBalance', [address_value, token_kbytes, amount_kint])
+            for nonce, amount, metadata in mandos_to_esdt_instances(v):
+                step = KApply('setEsdtBalance', [address_value, token_kbytes, KInt(nonce), metadata, KInt(amount)])
                 set_account_steps.append(step)
 
-            token_kbytes = mandos_argument_to_kbytes(k)
             roles = mandos_to_esdt_roles(v)
             if roles is not None:
                 step = KApply('setEsdtRoles', [address_value, token_kbytes, set_of(roles)])
@@ -326,29 +325,42 @@ def mandos_to_set_account(address: str, sections: dict, filename: str, output_di
     return set_account_steps
 
 
-def mandos_to_esdt_balances(key: str, value: str | dict) -> list[tuple[KToken, KToken]]:
+def mandos_to_esdt_metadata(value: dict | None) -> KInner:
+    if value is None:
+        return KApply('.esdtMetadata', [])
 
-    token_bytes = mandos_argument_to_bytes(key)
+    nonce = mandos_int_to_int(value.get('nonce', '0'))
+    if nonce == 0:
+        return KApply('.esdtMetadata', [])
 
+    return KApply(
+        'esdtMetadata',
+        [
+            mandos_argument_to_kbytes(value.get('name', '')),
+            KInt(nonce),
+            mandos_argument_to_kbytes(value.get('creator', '')),
+            mandos_int_to_kint(value.get('royalties', '0')),
+            mandos_argument_to_kbytes(value.get('hash', '')),
+            ListBytes(mandos_argument_to_kbytes(i) for i in value.get('uris', [])),
+            mandos_argument_to_kbytes(value.get('attributes', '')),
+        ],
+    )
+
+
+def mandos_to_esdt_instances(value: str | dict) -> list[tuple[int, int, KInner]]:
+    """
+    returns (nonce, value, metadata)
+    """
     if isinstance(value, str):
-        return [(KBytes(token_bytes), mandos_int_to_kint(value))]
+        return [(0, mandos_int_to_int(value), mandos_to_esdt_metadata(None))]
     if 'instances' in value:
         res = []
         for inst in value['instances']:
             nonce = inst['nonce']
-            if nonce == '':
-                nonce = '0'
-            nonce = mandos_int_to_int(nonce)
-            if nonce == 0:
-                token_kbytes = KBytes(token_bytes)
-            else:  # TODO is there a built-in function for doing this?
-                byte_length = (nonce.bit_length() + 7) // 8
-                nonce_bytes = nonce.to_bytes(length=byte_length, byteorder='big', signed=False)
-                token_kbytes = KBytes(token_bytes + nonce_bytes)
-
-            balance_kint = mandos_int_to_kint(inst['balance'])
-
-            res.append((token_kbytes, balance_kint))
+            nonce_int = mandos_int_to_int(nonce, 0)
+            balance_int = mandos_int_to_int(inst['balance'])
+            metadata = mandos_to_esdt_metadata(value)
+            res.append((nonce_int, balance_int, metadata))
 
         return res
 
@@ -408,12 +420,13 @@ def mandos_to_check_account(address: str, sections: dict, filename: str) -> list
         k_steps.append(KApply('checkAccountCode', [address_value, k_code_path]))
     if ('esdt' in sections) and (sections['esdt'] != '*'):
         for token, value in sections['esdt'].items():
-            balances = mandos_to_esdt_balances(token, value)
-            for token_kbytes, amount_kint in balances:
-                step = KApply('checkAccountESDTBalance', [address_value, token_kbytes, amount_kint])
+            token_kbytes = mandos_argument_to_kbytes(token)
+
+            # TODO check NFT/SFT metadata
+            for nonce, amount, _ in mandos_to_esdt_instances(value):
+                step = KApply('checkAccountESDTBalance', [address_value, token_kbytes, KInt(nonce), KInt(amount)])
                 k_steps.append(step)
 
-            token_kbytes = mandos_argument_to_kbytes(token)
             roles = mandos_to_esdt_roles(value)
             if roles is not None:
                 step = KApply('checkEsdtRoles', [address_value, token_kbytes, set_of(roles)])

@@ -321,8 +321,7 @@ def mandos_to_set_account(address: str, sections: dict, filename: str, output_di
             if roles is not None:
                 step = KApply('setEsdtRoles', [address_value, token_kbytes, set_of(roles)])
                 set_account_steps.append(step)
-            
-            
+
             if 'lastNonce' in v:
                 last_nonce = mandos_int_to_kint(v['lastNonce'])
                 set_account_steps.append(KApply('setEsdtLastNonce', [address_value, token_kbytes, last_nonce]))

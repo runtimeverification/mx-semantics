@@ -230,7 +230,7 @@ module ASYNC
     syntax ListBytes ::= argsForCallback(ReturnCode, Bytes, ListBytes)    [function, total]
  // -------------------------------------------------------------------
     rule argsForCallback(OK, _, OUT) 
-      => ListItem(wrap(Int2Bytes(0, BE, Unsigned))) OUT
+      => ListItem(wrap(b"\x00")) OUT
     rule argsForCallback(EC:ExceptionCode, MSG, _) 
       => ListItem(wrap(Int2Bytes(ReturnCode2Int(EC), BE, Unsigned))) ListItem(wrap(MSG))
 

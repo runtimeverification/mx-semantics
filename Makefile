@@ -188,21 +188,20 @@ $(ELROND_ALLOC_FEATURES_DIR)/scenarios/%.scen.json.mandos: build $(ELROND_ALLOC_
 
 ## Composability Features Test
 
-ELROND_VAULT_DIR=$(ELROND_CONTRACT)/feature-tests/composability/vault
-ELROND_VAULT_WASM=$(ELROND_VAULT_DIR)/output/vault.wasm
-$(ELROND_VAULT_WASM): sc-build/$(ELROND_VAULT_DIR)
-
-ELROND_PROMISES_DIR=$(ELROND_CONTRACT)/feature-tests/composability/promises-features
-ELROND_PROMISES_WASM=$(ELROND_PROMISES_DIR)/output/promises-features.wasm
-$(ELROND_PROMISES_WASM): sc-build/$(ELROND_PROMISES_DIR)
-
 elrond_composability_features_tests=$(shell cat tests/composability_features.test)
 test-elrond-composability-features: $(elrond_composability_features_tests:=.mandos)
 
 ELROND_COMPOSABILITY_FEATURES_DIR=$(ELROND_CONTRACT)/feature-tests/composability
 
-$(ELROND_COMPOSABILITY_FEATURES_DIR)/scenarios-promises/%.scen.json.mandos: build $(ELROND_VAULT_WASM) $(ELROND_PROMISES_WASM)
-	$(TEST_MANDOS) $(ELROND_COMPOSABILITY_FEATURES_DIR)/scenarios-promises/$*.scen.json --log-level none
+composability_contracts := vault              \
+                           promises-features  \
+						   forwarder-queue    \
+						   forwarder-raw      \
+						   proxy-test-first
+composability_builds := $(patsubst %,sc-build/$(ELROND_COMPOSABILITY_FEATURES_DIR)/%,$(composability_contracts))
+
+$(ELROND_COMPOSABILITY_FEATURES_DIR)/%.scen.json.mandos: build $(composability_builds)
+	$(TEST_MANDOS) $(ELROND_COMPOSABILITY_FEATURES_DIR)/$*.scen.json --log-level none
 
 tests/custom-scenarios/composability-features/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_VAULT_WASM) $(ELROND_PROMISES_WASM)
 	$(TEST_MANDOS) tests/custom-scenarios/composability-features/$*.scen.json --log-level none

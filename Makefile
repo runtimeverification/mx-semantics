@@ -194,7 +194,7 @@ composability_builds := $(patsubst %,sc-build/$(ELROND_COMPOSABILITY_FEATURES_DI
 $(ELROND_COMPOSABILITY_FEATURES_DIR)/%.scen.json.mandos: build $(composability_builds)
 	$(TEST_MANDOS) $(ELROND_COMPOSABILITY_FEATURES_DIR)/$*.scen.json --log-level none
 
-tests/custom-scenarios/composability-features/%.scen.json.mandos: $(llvm_kompiled) $(ELROND_VAULT_WASM) $(ELROND_PROMISES_WASM)
+tests/custom-scenarios/composability-features/%.scen.json.mandos: build $(composability_builds)
 	$(TEST_MANDOS) tests/custom-scenarios/composability-features/$*.scen.json --log-level none
 
 # Custom contract tests

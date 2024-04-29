@@ -50,9 +50,6 @@ usage() {
 
        $0 run        : Run a single Mandos scenario
        $0 kast       : Parse a single Mandos scenario and output it in supported format
-       
-       $0 help    : Display this help message.
-       $0 version : Display the KElrond, K, Kore, and Z3 versions in use.
 
        Note: <pgm> is a path to a file containing a WebAssembly program.
              <K args> are any arguments you want to pass to K when executing/proving.
@@ -67,29 +64,6 @@ usage_fatal() {
 }
 
 [[ ! -z ${1:-} ]] || usage_fatal "Must supply a command to run."
-
-# Print the help message
-# ----------------------
-
-if [[ "$1" == '--help' ]] || [[ "$1" == 'help' ]]; then
-    usage
-    exit 0
-fi
-
-# Print version information
-# -------------------------
-
-if [[ "$1" == 'version' ]] || [[ "$1" == '--version' ]]; then
-    notif "KWasm Version"
-    git rev-parse --short HEAD
-    notif "K Version"
-    kompile --version
-    notif "Kore Version"
-    kore-exec --version
-    notif "Z3 Version"
-    z3 --version
-    exit 0
-fi
 
 run_command="$1"; shift
 

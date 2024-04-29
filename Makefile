@@ -186,11 +186,12 @@ ELROND_COMPOSABILITY_FEATURES_DIR=$(ELROND_CONTRACT)/feature-tests/composability
 
 composability_contracts := vault              \
                            promises-features  \
-						   forwarder          \
+                           forwarder          \
                            forwarder-queue    \
                            forwarder-raw      \
                            proxy-test-first   \
-                           proxy-test-second
+                           proxy-test-second  \
+                           recursive-caller
 composability_builds := $(patsubst %,sc-build/$(ELROND_COMPOSABILITY_FEATURES_DIR)/%,$(composability_contracts))
 
 $(ELROND_COMPOSABILITY_FEATURES_DIR)/%.scen.json.mandos: build $(composability_builds)

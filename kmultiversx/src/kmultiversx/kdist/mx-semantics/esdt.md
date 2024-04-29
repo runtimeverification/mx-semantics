@@ -19,33 +19,39 @@ module ESDT
  // -------------------------------------------------------------
     rule keyWithNonce(TOK, NONCE) => TOK +Bytes Int2Bytes(NONCE, BE, Unsigned)
 
-    syntax InternalCmd ::= transferESDT  ( Bytes , Bytes , ESDTTransfer )
-                         | transferESDTs ( Bytes , Bytes , List )
+    syntax InternalCmd ::= transferESDT ( Bytes , Bytes , ESDTTransfer )
+                         | transferESDTs    ( Bytes , Bytes , List )
+                         | transferESDTsAux ( Bytes , Bytes , List )
 
-    rule <commands> transferESDTs(_, _, .List) => .K ... </commands>
-    rule <commands> transferESDTs(FROM, TO, ListItem(T:ESDTTransfer) Ls) 
+
+    rule <commands> transferESDTs(FROM, TO, L)
+                 => transferESDTsAux(FROM, TO, L) 
+                 ~> appendToOutAccount(TO, OutputTransfer(FROM, L))
+                    ...
+         </commands>
+
+    rule <commands> transferESDTsAux(_, _, .List) => .K ... </commands>
+    rule <commands> transferESDTsAux(FROM, TO, ListItem(T:ESDTTransfer) Ls) 
                  => transferESDT(FROM, TO, T) 
-                 ~> transferESDTs(FROM, TO, Ls)
+                 ~> transferESDTsAux(FROM, TO, Ls)
                     ... 
          </commands>
 
-    rule <commands> transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, 0) #as T) 
+    rule <commands> transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, 0)) 
                  => checkAccountExists(FROM)
                  ~> checkAccountExists(TO)
                  ~> checkESDTBalance(FROM, TOKEN, VALUE)
                  ~> addToESDTBalance(FROM, TOKEN, 0 -Int VALUE, false)
                  ~> addToESDTBalance(TO,   TOKEN, VALUE, true)
-                 ~> appendToOutAccount(TO, OutputTransfer(FROM, T))
                     ... 
          </commands>
 
-    rule <commands> transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, NONCE) #as T) 
+    rule <commands> transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, NONCE)) 
                  => checkAccountExists(FROM)
                  ~> checkAccountExists(TO)
                  ~> checkESDTBalance(FROM, keyWithNonce(TOKEN, NONCE), VALUE)
                  ~> addNFTToDestination(FROM, TO, keyWithNonce(TOKEN, NONCE), VALUE)
                  ~> removeEmptyNft(FROM, keyWithNonce(TOKEN, NONCE))
-                 ~> appendToOutAccount(TO, OutputTransfer(FROM, T))
                     ... 
          </commands>
       requires NONCE =/=Int 0
@@ -307,6 +313,7 @@ module ESDT
                 => checkAllowedToExecute(ADDR, TOKEN, ESDTRoleNFTBurn)
                 ~> checkESDTBalance(ADDR, keyWithNonce(TOKEN, NONCE), VALUE)
                 ~> addToESDTBalance(ADDR, keyWithNonce(TOKEN, NONCE), 0 -Int VALUE, false)
+                ~> removeEmptyNft(ADDR, keyWithNonce(TOKEN, NONCE))
                    ...
         </commands>
 

@@ -62,7 +62,7 @@ module ELROND-NODE
                 <esdtRoles>  .Set   </esdtRoles>
                 <esdtProperties> .Bytes </esdtProperties>
                 <esdtMetadata> .esdtMetadata </esdtMetadata>
-<esdtLastNonce> 0 </esdtLastNonce>
+                <esdtLastNonce> 0 </esdtLastNonce>
               </esdtData>
             </esdtDatas>
 ```
@@ -144,8 +144,8 @@ Storage maps byte arrays to byte arrays.
 
     syntax Bool ::= nonZeroOutputTransfer(OutputTransfer)      [function, total]
  // ---------------------------------------------------------------------------
-    rule nonZeroOutputTransfer(OutputTransfer(_, I:Int))                 => I =/=Int 0
-    rule nonZeroOutputTransfer(OutputTransfer(_, esdtTransfer(_, I, _))) => I =/=Int 0
+    rule nonZeroOutputTransfer(OutputTransfer(_, I:Int))  => I =/=Int 0
+    rule nonZeroOutputTransfer(OutputTransfer(_, L:List)) => size(L) >Int 0
 
     syntax OutputAccount ::= appendToOutTransfers(OutputAccount, OutputTransfer)    [function, total]
  // -------------------------------------------------------------------------------------------------
@@ -175,7 +175,7 @@ Storage maps byte arrays to byte arrays.
       [priority(61)]
 
     syntax TransferValue ::= Int            // EGLD transfer
-                           | ESDTTransfer
+                           | List
 
     syntax Address ::= Bytes
                      | WasmStringToken

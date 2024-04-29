@@ -251,15 +251,17 @@ module ASYNC
       => extractLastEsdtAux(lastTransfer(PARENT, OAs))
     rule extractLastEsdt(_, _) => .List                     [owise]    
 
-    rule extractLastEsdtAux(E:ESDTTransfer) => ListItem(E)
-    rule extractLastEsdtAux(_) => .List                     [owise]    
+    rule extractLastEsdtAux(L:List) => L
+    rule extractLastEsdtAux(_)      => .List                     [owise]    
 
 
     syntax TransferValue ::= lastTransfer(Bytes, Map)      [function, total]
+                           | lastTransferAux(KItem)        [function, total]
  // -----------------------------------------------------------------------------
-    rule lastTransfer(PARENT, PARENT |-> OutputAccount(_, _ ListItem(T))) => T
-    rule lastTransfer(_, _) => 0
-      [owise] 
+    rule lastTransfer(PARENT, OAs) => lastTransferAux(OAs [ PARENT ] orDefault 0)
+    
+    rule lastTransferAux(OutputAccount(_, _ ListItem(OutputTransfer(... value: V)))) => V
+    rule lastTransferAux(_) => 0 [owise]
 
 endmodule
 ```

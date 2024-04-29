@@ -19,7 +19,7 @@ deployTx(
 )
 
 setAccount("testCaller", 0, 100, .Code, .Bytes, .MapBytesToBytes)
-setEsdtBalance(b"\"testCaller\"", b"my-tok", 20)
+setEsdtBalance(b"\"testCaller\"", b"my-tok", 0, .esdtMetadata, 20)
 
 callTx(
     "testCaller"

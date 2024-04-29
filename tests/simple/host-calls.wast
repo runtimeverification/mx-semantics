@@ -333,8 +333,8 @@ checkExpectOut(ListItemWrap(Int2Bytes(777, BE, Signed)))
 checkAccountBalance("testDeployer", 0)
 
 setAccount("testCaller", 0, 0, .Code, .Bytes, .MapBytesToBytes)
-setEsdtBalance(b"\"testCaller\"", b"my-tok", 20)
-setEsdtBalance(b"\"testCaller\"", b"my-tok-2", 20)
+setEsdtBalance(b"\"testCaller\"", b"my-tok", 0, .esdtMetadata, 20)
+setEsdtBalance(b"\"testCaller\"", b"my-tok-2", 0, .esdtMetadata, 20)
 
 callTx( "testCaller" , "testContract" , 0 , .List
       , "argsTest_getArgumentLength_invalidArg_neg", .ListBytes

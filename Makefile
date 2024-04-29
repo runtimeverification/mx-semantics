@@ -186,6 +186,7 @@ ELROND_COMPOSABILITY_FEATURES_DIR=$(ELROND_CONTRACT)/feature-tests/composability
 
 composability_contracts := vault              \
                            promises-features  \
+						   forwarder          \
                            forwarder-queue    \
                            forwarder-raw      \
                            proxy-test-first

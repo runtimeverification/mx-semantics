@@ -520,10 +520,14 @@ module ESDT
 
     syntax Int ::= getLatestNonce(Bytes, Bytes)   [function, total]
  // ---------------------------------------------------------------
-    rule [[ getLatestNonce(ADDR, TOK) => Bytes2Int( STORAGE {{ getNonceKey(TOK)}} orDefault b"", BE, Unsigned )]]
+    rule [[ getLatestNonce(ADDR, TOK) => NONCE ]]
         <account>
           <address> ADDR </address>
-          <storage> STORAGE </storage>
+          <esdtData>
+            <esdtId> TOK </esdtId>
+            <esdtLastNonce> NONCE </esdtLastNonce>
+            ...
+          </esdtData>
           ...
         </account>
 
@@ -543,9 +547,10 @@ module ESDT
           (.Bag => <esdtData>
             <esdtId> keyWithNonce(TOK_KEY, NONCE) </esdtId>
             <esdtBalance> QTTY </esdtBalance>
-            <esdtRoles> .Set </esdtRoles>
-            <esdtMetadata> META </esdtMetadata>
+            <esdtRoles>  .Set   </esdtRoles>
             <esdtProperties> .Bytes </esdtProperties>
+            <esdtMetadata> META </esdtMetadata>
+            <esdtLastNonce> 0 </esdtLastNonce>
           </esdtData>)
           ...
         </account>
@@ -557,7 +562,11 @@ module ESDT
         <commands> saveLatestNonce(ADDR, TOKEN, NONCE) => .K ... </commands>
         <account>
           <address> ADDR </address>
-          <storage> STORAGE => STORAGE{{ getNonceKey(TOKEN) <- Int2Bytes(NONCE, BE, Unsigned) }} </storage>
+          <esdtData>
+            <esdtId> TOKEN </esdtId>
+            <esdtLastNonce> _ => NONCE </esdtLastNonce>
+            ...
+          </esdtData>
           ...
         </account>
 ```

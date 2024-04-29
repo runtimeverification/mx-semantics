@@ -194,6 +194,40 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         <commands> .K </commands>
       [priority(61)]
 
+
+    syntax Step ::= setEsdtLastNonce ( Bytes , Bytes, Int )     [klabel(setEsdtLastNonce), symbol]
+ // ----------------------------------------------------------------------------
+    rule [setEsdtLastNonce-existing]:
+        <k> setEsdtLastNonce(ADDR, TOK, NONCE) => .K ... </k>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TOK </esdtId>
+            <esdtLastNonce> _ => NONCE </esdtLastNonce>
+            ...
+           </esdtData>
+          ...
+        </account>
+        <commands> .K </commands>
+      [priority(60)]
+
+    rule [setEsdtLastNonce-new]:
+        <k> setEsdtLastNonce(ADDR, TOK, NONCE) => .K ... </k>
+        <account>
+          <address> ADDR </address>
+          <esdtDatas>
+            (.Bag => <esdtData>
+              <esdtId> TOK </esdtId>
+              <esdtLastNonce> NONCE </esdtLastNonce>
+              ...
+            </esdtData>)
+            ...
+          </esdtDatas>
+          ...
+        </account>
+        <commands> .K </commands>
+      [priority(61)]
+
     syntax Step ::= setEsdtRoles( Bytes , Bytes , Set )
         [klabel(setEsdtRoles), symbol]
  // ----------------------------------------------------------------------------

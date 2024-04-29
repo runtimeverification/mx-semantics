@@ -62,6 +62,7 @@ module ELROND-NODE
                 <esdtRoles>  .Set   </esdtRoles>
                 <esdtProperties> .Bytes </esdtProperties>
                 <esdtMetadata> .esdtMetadata </esdtMetadata>
+<esdtLastNonce> 0 </esdtLastNonce>
               </esdtData>
             </esdtDatas>
 ```

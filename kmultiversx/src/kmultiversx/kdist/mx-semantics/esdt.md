@@ -50,7 +50,7 @@ module ESDT
                  => checkAccountExists(FROM)
                  ~> checkAccountExists(TO)
                  ~> checkESDTBalance(FROM, keyWithNonce(TOKEN, NONCE), VALUE)
-                 ~> addNFTToDestination(FROM, TO, keyWithNonce(TOKEN, NONCE), VALUE)
+                 ~> moveNFTToDestination(FROM, TO, keyWithNonce(TOKEN, NONCE), VALUE)
                  ~> removeEmptyNft(FROM, keyWithNonce(TOKEN, NONCE))
                     ... 
          </commands>
@@ -148,10 +148,10 @@ module ESDT
 - Add NFT to an account
 
 ```k
-    syntax InternalCmd ::= addNFTToDestination(Bytes, Bytes, Bytes, Int)
+    syntax InternalCmd ::= moveNFTToDestination(Bytes, Bytes, Bytes, Int)
  // --------------------------------------------------------------------
-    rule [addNFTToDestination-existing]:
-        <commands> addNFTToDestination(FROM, TO, TOKEN, DELTA) => .K ... </commands>
+    rule [moveNFTToDestination-existing]:
+        <commands> moveNFTToDestination(FROM, TO, TOKEN, DELTA) => .K ... </commands>
         <account>
           <address> FROM </address>
           <esdtData>
@@ -172,8 +172,20 @@ module ESDT
         </account>
       [priority(60)]
 
-    rule [addNFTToDestination-new]:
-        <commands> addNFTToDestination(FROM, TO, TOKEN, DELTA) => .K ... </commands>
+    rule [moveNFTToDestination-self]:
+        <commands> moveNFTToDestination(FROM, FROM, TOKEN, _DELTA) => .K ... </commands>
+        <account>
+          <address> FROM </address>
+          <esdtData>
+            <esdtId> TOKEN </esdtId>
+            ...
+          </esdtData>
+          ...
+        </account>
+      [priority(60)]
+
+    rule [moveNFTToDestination-new]:
+        <commands> moveNFTToDestination(FROM, TO, TOKEN, DELTA) => .K ... </commands>
         <account>
           <address> FROM </address>
           <esdtData>

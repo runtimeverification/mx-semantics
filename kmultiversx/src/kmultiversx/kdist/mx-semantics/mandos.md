@@ -653,6 +653,11 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
 
     rule <k> transferTxAux(FROM, TO, VAL) => #wait ... </k>
          <commands> .K => transferFunds(FROM, TO, VAL) </commands>
+         <account>
+          <address> FROM </address>
+          <nonce> NONCE => NONCE +Int 1 </nonce>
+          ...
+        </account>
       [priority(60)]
 ```
 

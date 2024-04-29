@@ -189,7 +189,8 @@ composability_contracts := vault              \
 						   forwarder          \
                            forwarder-queue    \
                            forwarder-raw      \
-                           proxy-test-first
+                           proxy-test-first   \
+                           proxy-test-second
 composability_builds := $(patsubst %,sc-build/$(ELROND_COMPOSABILITY_FEATURES_DIR)/%,$(composability_contracts))
 
 $(ELROND_COMPOSABILITY_FEATURES_DIR)/%.scen.json.mandos: build $(composability_builds)

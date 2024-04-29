@@ -9,11 +9,7 @@
 # Settings
 # --------
 
-DEPS_DIR  := deps
-
-PLUGIN_SUBMODULE := $(abspath $(DEPS_DIR)/plugin)
-
-ELROND_SDK_SUBMODULE     := $(DEPS_DIR)/mx-sdk-rs
+ELROND_SDK_SUBMODULE     := deps/mx-sdk-rs
 ELROND_CONTRACT          := $(ELROND_SDK_SUBMODULE)/contracts
 ELROND_CONTRACT_EXAMPLES := $(ELROND_CONTRACT)/examples
 
@@ -28,11 +24,6 @@ K_OPTS     := -Xmx8G -Xss512m
 POETRY     := poetry -C kmultiversx
 POETRY_RUN := $(POETRY) run
 
-
-.PHONY: plugin-deps
-plugin-deps:
-	$(MAKE) -C $(PLUGIN_SUBMODULE) blake2 libcryptopp libff -j8
-
 .PHONY: kmultiversx
 kmultiversx:
 	$(POETRY) install --no-ansi
@@ -41,11 +32,11 @@ kmultiversx:
 build: build-mandos
 
 .PHONY: build-mandos
-build-mandos: kmultiversx plugin-deps
+build-mandos: kmultiversx
 	K_OPTS='$(K_OPTS)' $(POETRY) run kdist -v build mx-semantics.llvm-mandos
 
 .PHONY: build-kasmer
-build-kasmer: kmultiversx plugin-deps
+build-kasmer: kmultiversx
 	K_OPTS='$(K_OPTS)' $(POETRY) run kdist -v build mx-semantics.llvm-kasmer
 
 .PHONY: build-haskell
@@ -53,7 +44,7 @@ build-haskell: kmultiversx
 	$(POETRY) run kdist -v build mx-semantics.haskell-\* -j2
 
 .PHONY: build-all
-build-all: kmultiversx plugin-deps
+build-all: kmultiversx
 	K_OPTS='$(K_OPTS)' $(POETRY) run kdist -v build mx-semantics.\* -j4
 
 .PHONY: clean

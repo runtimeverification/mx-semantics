@@ -63,8 +63,6 @@ jobs:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build kmultiversx'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make kmultiversx
-      - name: 'Build plugin submodule'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make plugin-deps
       - name: 'Build K definitions'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make build-all
       - name: 'KMultiversX Tests'
@@ -105,8 +103,6 @@ jobs:
           container-name: elrond-semantics-ci-${{ github.sha }}
       - name: 'Build kmultiversx'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make kmultiversx
-      - name: 'Build plugin submodule'
-        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make plugin-deps
       - name: 'Build K definition'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make build
       - name: 'Feature Test: Basic'

@@ -486,6 +486,7 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
           VMOutput( ... returnCode: EC:ExceptionCode, returnMessage: MSG ) => .VMOutput
         </vmOutput>
 
+    // FIXME This does not always return correct codes/messages
     syntax InternalInstr ::= resolveErrorFromOutput(ExceptionCode, Bytes) [function, total]
  // -----------------------------------------------------------------------
     rule resolveErrorFromOutput(ExecutionFailed, b"memory limit reached")
@@ -494,8 +495,10 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
     rule resolveErrorFromOutput(FunctionNotFound, MSG)
         => #throwExceptionBs(ExecutionFailed, MSG)
 
-    rule resolveErrorFromOutput(UserError, _)
-        => #throwExceptionBs(ExecutionFailed, b"error signalled by smartcontract")
+    rule resolveErrorFromOutput(UserError, MSG)
+        => #throwExceptionBs(ExecutionFailed, #if MSG ==K b"action is not allowed"
+                                              #then MSG
+                                              #else b"error signalled by smartcontract" #fi)
 
     rule resolveErrorFromOutput(OutOfFunds, _)
         => #throwExceptionBs(ExecutionFailed, b"failed transfer (insufficient funds)")

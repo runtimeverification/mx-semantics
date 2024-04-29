@@ -165,7 +165,7 @@ module ESDT
           <address> TO </address>
           <esdtData>
             <esdtId> TOKEN </esdtId>
-            <esdtBalance> ORIGFROM => ORIGFROM +Int DELTA </esdtBalance>
+            <esdtBalance> ORIGTO => ORIGTO +Int DELTA </esdtBalance>
             ...
           </esdtData>
           ...
@@ -194,7 +194,7 @@ module ESDT
           </esdtData>)
           ...
         </account>
-      [priority(60)]
+      [priority(61)]
 ```
 
 ## ESDT Builtin Functions
@@ -449,6 +449,13 @@ module ESDT
       => parseESDTTransfersH(MultiESDTNFTTransfer.num(ARGS), rangeTotal(ARGS, 2, 0))
       requires size(ARGS) >=Int 2
 
+    rule parseESDTTransfers(#ESDTNFTTransfer, ARGS)
+      => ListItem(esdtTransfer(
+                        ARGS {{ 0 }} orDefault b"",
+                        Bytes2Int(ARGS {{ 2 }} orDefault b"", BE, Unsigned),
+                        Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned)
+                  ))
+
     rule parseESDTTransfers(_, _) => .List
       [owise]
 
@@ -626,6 +633,34 @@ module ESDT
 
 ```
 
+### NFT Transfer
+
+```k
+    syntax BuiltinFunction ::= "#ESDTNFTTransfer"        [klabel(#ESDTNFTTransfer), symbol]
+
+    rule toBuiltinFunction(F) => #ESDTNFTTransfer requires F ==String "\"ESDTNFTTransfer\""
+
+    rule BuiltinFunction2Bytes(#ESDTNFTTransfer) => b"ESDTNFTTransfer"
+
+    rule [ESDTNFTTransfer]:
+        <commands> processBuiltinFunction(#ESDTNFTTransfer, SND, DST, 
+                                      <vmInput> 
+                                        <callValue> VALUE </callValue>
+                                        <callArgs> ARGS </callArgs>
+                                        _ 
+                                      </vmInput> #as VMINPUT)
+                
+                => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
+                ~> checkBool(size(ARGS) >=Int 4, "invalid arguments to process built-in function")
+                ~> checkBool(SND ==K DST, "invalid receiver address")
+                ~> transferESDTs( SND, ARGS {{ 3 }} orDefault b"",
+                      parseESDTTransfers(#ESDTNFTTransfer, ARGS))
+                ~> determineIsSCCallAfter(SND, ARGS {{ 3 }} orDefault b"", #ESDTNFTTransfer, VMINPUT)
+                   ...
+        </commands>
+
+```
+
 ## Misc
 
 ```k
@@ -675,6 +710,7 @@ module ESDT
     syntax Bytes ::= getCallFunc(BuiltinFunction, ListBytes)  [function, total]
  // --------------------------------------------------------------------------
     rule getCallFunc(#ESDTTransfer, ARGS) => ARGS {{ 2 }} orDefault b"" // token&amount&func&...
+    rule getCallFunc(#ESDTNFTTransfer, ARGS) => ARGS {{ 4 }} orDefault b"" // token&nonce&amount&dest&func&...
     rule getCallFunc(#MultiESDTNFTTransfer, ARGS)
       => ARGS {{ MultiESDTNFTTransfer.num(ARGS) *Int 3 +Int 2 }} orDefault b""
     rule getCallFunc(_, _) => b""   [owise]

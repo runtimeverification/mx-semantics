@@ -58,6 +58,7 @@ deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_map3.sce
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_linked_list.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_map.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_map_storage.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_non_fungible_token.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_queue.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_set.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_single_value.scen.json

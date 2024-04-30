@@ -264,6 +264,40 @@ module BASEOPS
          </instrs>
          <esdtTransfers> TS </esdtTransfers>
  
+    // long long getCurrentESDTNFTNonce(void* context, int32_t addressOffset, int32_t tokenIDOffset, int32_t tokenIDLen);
+    rule <instrs> hostCall("env", "getCurrentESDTNFTNonce", [ i32 i32 i32 .ValTypes ] -> [ i64 .ValTypes ])
+               => #memLoad(ADDR_OFFSET, 32)
+               ~> #memLoad(TOKEN_OFFSET, TOKEN_LEN)
+               ~> #getCurrentESDTNFTNonce
+               ~> #dropBytes
+               ~> #dropBytes
+                 ...
+        </instrs>
+        <locals>
+          0 |-> <i32> ADDR_OFFSET
+          1 |-> <i32> TOKEN_OFFSET
+          2 |-> <i32> TOKEN_LEN
+        </locals>
+
+    syntax InternalInstr ::= "#getCurrentESDTNFTNonce"    [klabel(getCurrentESDTNFTNonce), symbol]
+ // ----------------------------------------------------------------------------------------------
+    rule [getCurrentESDTNFTNonce]:
+        <instrs> #getCurrentESDTNFTNonce => i64.const LAST_NONCE ... </instrs>
+        <bytesStack> TOKEN : ADDR : _ </bytesStack>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TOKEN </esdtId> 
+            <esdtLastNonce> LAST_NONCE </esdtLastNonce>
+            ...
+          </esdtData>
+          ...
+        </account>
+
+    rule [getCurrentESDTNFTNonce-none]:
+        <instrs> #getCurrentESDTNFTNonce => i64.const 0 ... </instrs>
+      [owise]
+
     // extern void writeEventLog(void *context, int32_t numTopics, int32_t topicLengthsOffset, int32_t topicOffset, int32_t dataOffset, int32_t dataLength);
     rule <instrs> hostCall("env", "writeEventLog", [ i32 i32 i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #getArgsFromMemory(NUMTOPICS, TOPICLENGTHOFFSET, TOPICOFFSET)
@@ -432,15 +466,17 @@ module BASEOPS
                  ...
         </instrs>
         <callee> Callee </callee>
+        <txHash> HASH </txHash>
         <commands> 
-          (.K => callContract( Dest, Bytes2String(Func), prepareIndirectContractCallInput(Callee, Value, Esdt, GasLimit, Args))) ... 
+          (.K => callContract( Dest, Bytes2String(Func), 
+                               prepareIndirectContractCallInput(Callee, Value, Esdt, GasLimit, Args, HASH))) ... 
         </commands>
         // TODO requires not IsOutOfVMFunctionExecution
         
 
-    syntax VmInputCell ::= prepareIndirectContractCallInput(Bytes, Int, List, Int, ListBytes)    [function, total]
+    syntax VmInputCell ::= prepareIndirectContractCallInput(Bytes, Int, List, Int, ListBytes, Bytes)   [function, total]
  // -----------------------------------------------------------------------------------
-    rule prepareIndirectContractCallInput(SENDER, VALUE, ESDT, GASLIMIT, ARGS)
+    rule prepareIndirectContractCallInput(SENDER, VALUE, ESDT, GASLIMIT, ARGS, HASH)
       => <vmInput>
             <caller> SENDER </caller>
             <callArgs> ARGS </callArgs>
@@ -450,6 +486,7 @@ module BASEOPS
             // gas
             <gasProvided> GASLIMIT </gasProvided>
             <gasPrice> 0 </gasPrice>
+            <txHash> HASH </txHash>
           </vmInput>
 
 ```
@@ -483,6 +520,7 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
           VMOutput( ... returnCode: EC:ExceptionCode, returnMessage: MSG ) => .VMOutput
         </vmOutput>
 
+    // FIXME This does not always return correct codes/messages
     syntax InternalInstr ::= resolveErrorFromOutput(ExceptionCode, Bytes) [function, total]
  // -----------------------------------------------------------------------
     rule resolveErrorFromOutput(ExecutionFailed, b"memory limit reached")
@@ -491,8 +529,10 @@ If the result is a failure; `resolveErrorFromOutput` throws a new exception.
     rule resolveErrorFromOutput(FunctionNotFound, MSG)
         => #throwExceptionBs(ExecutionFailed, MSG)
 
-    rule resolveErrorFromOutput(UserError, _)
-        => #throwExceptionBs(ExecutionFailed, b"error signalled by smartcontract")
+    rule resolveErrorFromOutput(UserError, MSG)
+        => #throwExceptionBs(ExecutionFailed, #if MSG ==K b"action is not allowed"
+                                              #then MSG
+                                              #else b"error signalled by smartcontract" #fi)
 
     rule resolveErrorFromOutput(OutOfFunds, _)
         => #throwExceptionBs(ExecutionFailed, b"failed transfer (insufficient funds)")

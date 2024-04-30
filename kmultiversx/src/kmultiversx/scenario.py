@@ -329,24 +329,24 @@ def mandos_to_set_account(address: str, sections: dict, filename: str, output_di
     return set_account_steps
 
 
-def mandos_to_esdt_metadata(value: dict | None) -> KInner:
-    if value is None:
+def mandos_to_esdt_metadata(instance: dict | None) -> KInner:
+    if instance is None:
         return KApply('.esdtMetadata', [])
 
-    nonce = mandos_int_to_int(value.get('nonce', '0'))
+    nonce = mandos_int_to_int(instance.get('nonce', '0'))
     if nonce == 0:
         return KApply('.esdtMetadata', [])
 
     return KApply(
         'esdtMetadata',
         [
-            mandos_argument_to_kbytes(value.get('name', '')),
+            mandos_argument_to_kbytes(instance.get('name', '')),
             KInt(nonce),
-            mandos_argument_to_kbytes(value.get('creator', '')),
-            mandos_int_to_kint(value.get('royalties', '0')),
-            mandos_argument_to_kbytes(value.get('hash', '')),
-            ListBytes(mandos_argument_to_kbytes(i) for i in value.get('uris', [])),
-            mandos_argument_to_kbytes(value.get('attributes', '')),
+            mandos_argument_to_kbytes(instance.get('creator', '')),
+            mandos_int_to_kint(instance.get('royalties', '0')),
+            mandos_argument_to_kbytes(instance.get('hash', '')),
+            ListBytes(mandos_argument_to_kbytes(i) for i in instance.get('uris', [])),
+            mandos_argument_to_kbytes(instance.get('attributes', '')),
         ],
     )
 
@@ -363,7 +363,7 @@ def mandos_to_esdt_instances(value: str | dict) -> list[tuple[int, int, KInner]]
             nonce = inst['nonce']
             nonce_int = mandos_int_to_int(nonce, 0)
             balance_int = mandos_int_to_int(inst['balance'])
-            metadata = mandos_to_esdt_metadata(value)
+            metadata = mandos_to_esdt_metadata(inst)
             res.append((nonce_int, balance_int, metadata))
 
         return res

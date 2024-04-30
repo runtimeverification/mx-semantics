@@ -333,7 +333,7 @@ def mandos_to_esdt_metadata(instance: dict | None) -> KInner:
     if instance is None:
         return KApply('.esdtMetadata', [])
 
-    nonce = mandos_int_to_int(instance.get('nonce', '0'))
+    nonce = mandos_int_to_int(instance.get('nonce', '0'), 0)
     if nonce == 0:
         return KApply('.esdtMetadata', [])
 
@@ -360,7 +360,7 @@ def mandos_to_esdt_instances(value: str | dict) -> list[tuple[int, int, KInner]]
     if 'instances' in value:
         res = []
         for inst in value['instances']:
-            nonce = inst['nonce']
+            nonce = inst.get('nonce', '0')
             nonce_int = mandos_int_to_int(nonce, 0)
             balance_int = mandos_int_to_int(inst['balance'])
             metadata = mandos_to_esdt_metadata(inst)

@@ -689,7 +689,7 @@ module ESDT
                                         <callValue> VALUE </callValue>
                                         <callArgs> ARGS </callArgs>
                                         _ 
-                                      </vmInput> #as VMINPUT)
+                                      </vmInput>)
                 
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
                 ~> checkBool(size(ARGS) >=Int 3, "invalid arguments to process built-in function")

@@ -488,7 +488,9 @@ module BIGINTOPS
     // extern void bigIntGetESDTExternalBalance(void* context, int32_t addressOffset, int32_t tokenIDOffset, int32_t tokenIDLen, long long nonce, int32_t resultHandle);
     rule <instrs> hostCall ( "env" , "bigIntGetESDTExternalBalance" , [ i32  i32  i32  i64  i32  .ValTypes ] -> [ .ValTypes ] )
                => #memLoad(ADDR_OFFSET, 32)
+               ~> #pushBytes(Int2Bytes(NONCE, BE, Unsigned))
                ~> #memLoad(TOK_ID_OFFSET, TOK_ID_LEN)
+               ~> #appendBytes
                ~> #bigIntGetESDTExternalBalance(RES_HANDLE)
                ~> #dropBytes
                ~> #dropBytes
@@ -498,7 +500,7 @@ module BIGINTOPS
            0 |-> <i32> ADDR_OFFSET
            1 |-> <i32> TOK_ID_OFFSET
            2 |-> <i32> TOK_ID_LEN
-           3 |-> <i64> _NONCE   // TODO use nonce
+           3 |-> <i64> NONCE
            4 |-> <i32> RES_HANDLE
          </locals>
 

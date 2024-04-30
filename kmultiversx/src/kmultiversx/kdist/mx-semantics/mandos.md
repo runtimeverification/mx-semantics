@@ -25,8 +25,16 @@ module MANDOS
         <newAddresses> .Map </newAddresses>
         <checkedAccounts> .Set </checkedAccounts>
         <elrond/>
+        <txCount> 0 </txCount>
         <exit-code exit=""> 0 </exit-code>
       </mandos>
+    
+    // Creates 32-byte a dummy transaction hash from transaction count.
+    // The official Mandos (Scenario) implementation uses the "id" field as transaction hash. 
+    syntax Bytes ::= mkTxHash(Int)    [function, total]
+ // ---------------------------------------------------
+    rule mkTxHash(TX_CNT) => Int2Bytes(32, TX_CNT, BE)
+
 ```
 
 Mandos Steps
@@ -81,6 +89,9 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <nextModuleIdx> IDX </nextModuleIdx>
          <commands> .K </commands>
       [priority(60)]
+
+    syntax Step ::= checkFailed(Step)     [klabel(checkFailed), symbol]
+
 ```
 
 ### Helper Functions
@@ -95,13 +106,32 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             #then #removeEmptyBytes(M)
             #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
             #fi
+        requires notBool Key in_keys(M)
     rule #removeEmptyBytes(Key Bytes2Bytes|-> Value M)
         =>  #if Value ==K wrap(.Bytes)
             #then #removeEmptyBytes(M)
             #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
             #fi
+        requires notBool Key in_keys(M)
         [simplification]
 
+    syntax MapBytesToBytes  ::= #removeReservedKeys ( MapBytesToBytes ) [function]
+ // ----------------------------------------------------------------------------------------
+    rule #removeReservedKeys(.MapBytesToBytes)
+        => .MapBytesToBytes
+    rule #removeReservedKeys(wrap(Key) Bytes2Bytes|-> Value M)
+        =>  #if #hasPrefix(Bytes2String(Key), "ELROND")
+            #then #removeReservedKeys(M)
+            #else wrap(Key) Bytes2Bytes|-> Value #removeReservedKeys(M)
+            #fi
+        requires notBool wrap(Key) in_keys(M)
+    rule #removeReservedKeys(wrap(Key) Bytes2Bytes|-> Value M)
+        =>  #if #hasPrefix(Bytes2String(Key), "ELROND")
+            #then #removeReservedKeys(M)
+            #else wrap(Key) Bytes2Bytes|-> Value #removeReservedKeys(M)
+            #fi
+        requires notBool wrap(Key) in_keys(M)
+        [simplification]
 ```
 
 ### Step type: setState
@@ -128,14 +158,21 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          </commands>
       [priority(60)]
 
-    syntax Step ::= setEsdtBalance( Bytes , Bytes, Int )     [klabel(setEsdtBalance), symbol]
+    syntax Step ::= setEsdtBalance   ( Bytes , Bytes, Int, ESDTMetadata, Int )     [klabel(setEsdtBalance), symbol]
+                  | setEsdtBalanceAux( Bytes , Bytes,      ESDTMetadata, Int )     [klabel(setEsdtBalanceAux), symbol]
  // ------------------------------------------------
-    rule <k> setEsdtBalance( ADDR , TokId , Value ) => .K ... </k>
+    rule <k> setEsdtBalance( ADDR , TokId , Nonce, Metadata, Value )
+          => setEsdtBalanceAux(ADDR, keyWithNonce(TokId, Nonce), Metadata, Value) ...
+        </k>
+
+    rule [setEsdtBalanceAux]:
+        <k> setEsdtBalanceAux( ADDR , TokId , Metadata, Value ) => .K ... </k>
         <account>
           <address> ADDR </address>
           <esdtData>
             <esdtId> TokId </esdtId>
             <esdtBalance> _ => Value </esdtBalance>
+            <esdtMetadata> _ => Metadata </esdtMetadata>
             ...
            </esdtData>
           ...
@@ -143,13 +180,49 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         <commands> .K </commands>
       [priority(60)]
 
-    rule <k> setEsdtBalance( ADDR , TokId , Value ) => .K ... </k>
+    rule [setEsdtBalanceAux-new]:
+        <k> setEsdtBalanceAux( ADDR , TokId , Metadata , Value ) => .K ... </k>
         <account>
           <address> ADDR </address>
           <esdtDatas>
             (.Bag => <esdtData>
               <esdtId> TokId </esdtId>
               <esdtBalance> Value </esdtBalance>
+            <esdtMetadata> Metadata </esdtMetadata>
+              ...
+            </esdtData>)
+            ...
+          </esdtDatas>
+          ...
+        </account>
+        <commands> .K </commands>
+      [priority(61)]
+
+
+    syntax Step ::= setEsdtLastNonce ( Bytes , Bytes, Int )     [klabel(setEsdtLastNonce), symbol]
+ // ----------------------------------------------------------------------------
+    rule [setEsdtLastNonce-existing]:
+        <k> setEsdtLastNonce(ADDR, TOK, NONCE) => .K ... </k>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TOK </esdtId>
+            <esdtLastNonce> _ => NONCE </esdtLastNonce>
+            ...
+           </esdtData>
+          ...
+        </account>
+        <commands> .K </commands>
+      [priority(60)]
+
+    rule [setEsdtLastNonce-new]:
+        <k> setEsdtLastNonce(ADDR, TOK, NONCE) => .K ... </k>
+        <account>
+          <address> ADDR </address>
+          <esdtDatas>
+            (.Bag => <esdtData>
+              <esdtId> TOK </esdtId>
+              <esdtLastNonce> NONCE </esdtLastNonce>
               ...
             </esdtData>)
             ...
@@ -321,26 +394,38 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <commands> .K </commands>
       [priority(60)]
 
-    syntax Step ::= checkAccountESDTBalance    ( Address, Bytes, Int ) [klabel(checkAccountESDTBalance), symbol]
-                  | checkAccountESDTBalanceAux ( Bytes, Bytes, Int )   [klabel(checkAccountESDTBalanceAux), symbol]
+    syntax Step ::= checkAccountESDTBalance    ( Bytes, Bytes, Int, Int ) [klabel(checkAccountESDTBalance), symbol]
+                  | checkAccountESDTBalanceAux ( Bytes, Bytes, Int )      [klabel(checkAccountESDTBalanceAux), symbol]
  // ------------------------------------------------------------------------------------------------
-    rule <k> checkAccountESDTBalance(ADDRESS, TOKEN, BALANCE)
-             => checkAccountESDTBalanceAux(#address2Bytes(ADDRESS), TOKEN, BALANCE) ... </k>
+    rule <k> checkAccountESDTBalance(ADDRESS, TOKEN, NONCE, BALANCE)
+          => checkAccountESDTBalanceAux(ADDRESS, keyWithNonce(TOKEN, NONCE), BALANCE) ... </k>
          <commands> .K </commands>
       [priority(60)]
 
-    rule <k> checkAccountESDTBalanceAux(ADDR, TOKEN, BALANCE) => .K ... </k>
+    rule <k> checkAccountESDTBalanceAux(ADDR, TOKEN, BALANCE) #as C
+          => #if BALANCE ==Int BALANCE2
+             #then .K
+             #else checkFailed(C)
+             #fi ... </k>
          <account>
            <address> ADDR </address>
            <esdtData>
              <esdtId> TOKEN </esdtId>
-             <esdtBalance> BALANCE </esdtBalance>
+             <esdtBalance> BALANCE2 </esdtBalance>
              ...
            </esdtData>
            ...
          </account>
          <commands> .K </commands>
       [priority(60)]
+
+    rule <k> checkAccountESDTBalanceAux(ADDR, _TOKEN, 0) => .K ... </k>
+         <account>
+           <address> ADDR </address>
+           ...
+         </account>
+         <commands> .K </commands>
+      [priority(61)]
 
     syntax Step ::= checkAccountStorage    ( Address, MapBytesToBytes ) [klabel(checkAccountStorage), symbol]
                   | checkAccountStorageAux ( Bytes, MapBytesToBytes )   [klabel(checkAccountStorageAux), symbol]
@@ -357,7 +442,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            ...
          </account>
          <commands> .K </commands>
-        requires ACCTSTORAGE ==K #removeEmptyBytes(STORAGE)
+        requires #removeReservedKeys(ACCTSTORAGE) ==K #removeEmptyBytes(STORAGE)
       [priority(60)]
 
     syntax Step ::= checkAccountCode    ( Address, String ) [klabel(checkAccountCode), symbol]
@@ -439,13 +524,18 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 
     rule [callTxAux]:
         <k> callTxAux(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE) => #wait ... </k>
-        <commands> .K => callContract(TO, FUNCTION, mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GASLIMIT, GASPRICE)) </commands>
+        <commands> .K => callContract(
+                            TO, FUNCTION, 
+                            mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GASLIMIT, GASPRICE, mkTxHash(CNT))
+                          ) 
+        </commands>
         <account>
           <address> FROM </address>
           <nonce> NONCE => NONCE +Int 1 </nonce>
           <balance> BALANCE => BALANCE -Int GASLIMIT *Int GASPRICE </balance>
           ...
         </account>
+        <txCount> CNT => CNT +Int 1 </txCount>
       [priority(60), preserves-definedness]
       // Preserving definedness:
       //   - callContract is a constructor
@@ -454,9 +544,9 @@ Only take the next step once both the Elrond node and Wasm are done executing.
       //   - +String, +Int, -Int and *Int are total
       //   - #parseWasmString is total.
 
-    syntax VmInputCell ::= mkVmInputSCCall(Bytes, ListBytes, Int, List, Int, Int)    [function, total]
+    syntax VmInputCell ::= mkVmInputSCCall(Bytes, ListBytes, Int, List, Int, Int, Bytes)    [function, total]
  // -----------------------------------------------------------------------------------
-    rule mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GAS, GAS_PRICE)
+    rule mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GAS, GAS_PRICE, HASH)
       => <vmInput>
             <caller> FROM </caller>
             <callArgs> ARGS </callArgs>
@@ -466,6 +556,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             // gas
             <gasProvided> GAS </gasProvided>
             <gasPrice> GAS_PRICE </gasPrice>
+            <txHash> HASH </txHash>
           </vmInput>
 
     syntax Step ::= checkExpectOut ( ListBytes ) [klabel(checkExpectOut), symbol]
@@ -514,12 +605,13 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
       [priority(60)]
 
     rule <k> queryTxAux(TO, FUNCTION, ARGS) => #wait ... </k>
-         <commands> .K => callContract(TO, FUNCTION, mkVmInputQuery(TO, ARGS)) </commands>
+         <commands> .K => callContract(TO, FUNCTION, mkVmInputQuery(TO, ARGS, mkTxHash(CNT))) </commands>
+         <txCount> CNT => CNT +Int 1 </txCount>
       [priority(60)]
 
-    syntax VmInputCell ::= mkVmInputQuery(Bytes, ListBytes)    [function, total]
+    syntax VmInputCell ::= mkVmInputQuery(Bytes, ListBytes, Bytes)    [function, total]
  // -----------------------------------------------------------------------------------
-    rule mkVmInputQuery(TO, ARGS)
+    rule mkVmInputQuery(TO, ARGS, HASH)
       => <vmInput>
             <caller> TO </caller>
             <callArgs> ARGS </callArgs>
@@ -529,6 +621,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
             // gas
             <gasProvided> maxUInt64 </gasProvided>
             <gasPrice> 0 </gasPrice>
+            <txHash> HASH </txHash>
           </vmInput>
 ```
 
@@ -550,7 +643,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
                 => createAccount(NEWADDR)
                 ~> setAccountOwner(NEWADDR, FROM)
                 ~> setAccountCode(NEWADDR, MODULE)
-                ~> callContract(NEWADDR, "init", mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE))
+                ~> callContract(NEWADDR, "init", mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE, mkTxHash(CNT)))
         </commands>
         <account>
            <address> FROM </address>
@@ -559,11 +652,12 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
            ...
         </account>
         <newAddresses> ... tuple(FROM, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
+        <txCount> CNT => CNT +Int 1 </txCount>
       [priority(60)]
 
-    syntax VmInputCell ::= mkVmInputDeploy(Bytes, Int, ListBytes, Int, Int)    [function, total]
+    syntax VmInputCell ::= mkVmInputDeploy(Bytes, Int, ListBytes, Int, Int, Bytes)    [function, total]
  // -----------------------------------------------------------------------------------
-    rule mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE)
+    rule mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE, HASH)
       => <vmInput>
             <caller> FROM </caller>
             <callArgs> ARGS </callArgs>
@@ -573,6 +667,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
             // gas
             <gasProvided> GASLIMIT </gasProvided>
             <gasPrice> GASPRICE </gasPrice>
+            <txHash> HASH </txHash>
           </vmInput>
 ```
 
@@ -596,6 +691,11 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
 
     rule <k> transferTxAux(FROM, TO, VAL) => #wait ... </k>
          <commands> .K => transferFunds(FROM, TO, VAL) </commands>
+         <account>
+          <address> FROM </address>
+          <nonce> NONCE => NONCE +Int 1 </nonce>
+          ...
+        </account>
       [priority(60)]
 ```
 

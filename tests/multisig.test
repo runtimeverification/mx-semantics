@@ -1,3 +1,4 @@
 deps/mx-sdk-rs/contracts/examples/multisig/scenarios/changeBoard.scen.json
 deps/mx-sdk-rs/contracts/examples/multisig/scenarios/changeQuorum.scen.json
 deps/mx-sdk-rs/contracts/examples/multisig/scenarios/changeQuorum_tooBig.scen.json
+deps/mx-sdk-rs/contracts/examples/multisig/scenarios/sendEsdt.scen.json

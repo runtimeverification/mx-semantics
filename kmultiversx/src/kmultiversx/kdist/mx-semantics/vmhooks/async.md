@@ -124,10 +124,12 @@ module ASYNC
                                   <esdtTransfers> .List </esdtTransfers>
                                   <gasProvided> GAS </gasProvided>
                                   <gasPrice> GAS_PRICE </gasPrice>
+                                  <txHash> HASH </txHash>
                                 </vmInput>)
                 ~> #mergeOutputs
                     ...
         </commands>
+        <txHash> HASH </txHash>
         <callee> PARENT </callee>
         <gasPrice> GAS_PRICE </gasPrice>
         <asyncCalls> 
@@ -152,10 +154,12 @@ module ASYNC
                                   <esdtTransfers> extractLastEsdt(PARENT, VMOUTPUT) </esdtTransfers>
                                   <gasProvided> GAS </gasProvided>
                                   <gasPrice> GAS_PRICE </gasPrice>
+                                  <txHash> HASH </txHash>
                                 </vmInput>)
                 ~> #mergeOutputs
                     ...
         </commands>
+        <txHash> HASH </txHash>
         <vmOutput>
           VMOutput( ... returnCode: RC, returnMessage: MSG , out: OUT ) #as VMOUTPUT
         </vmOutput>
@@ -226,7 +230,7 @@ module ASYNC
     syntax ListBytes ::= argsForCallback(ReturnCode, Bytes, ListBytes)    [function, total]
  // -------------------------------------------------------------------
     rule argsForCallback(OK, _, OUT) 
-      => ListItem(wrap(Int2Bytes(0, BE, Unsigned))) OUT
+      => ListItem(wrap(b"\x00")) OUT
     rule argsForCallback(EC:ExceptionCode, MSG, _) 
       => ListItem(wrap(Int2Bytes(ReturnCode2Int(EC), BE, Unsigned))) ListItem(wrap(MSG))
 
@@ -247,15 +251,17 @@ module ASYNC
       => extractLastEsdtAux(lastTransfer(PARENT, OAs))
     rule extractLastEsdt(_, _) => .List                     [owise]    
 
-    rule extractLastEsdtAux(E:ESDTTransfer) => ListItem(E)
-    rule extractLastEsdtAux(_) => .List                     [owise]    
+    rule extractLastEsdtAux(L:List) => L
+    rule extractLastEsdtAux(_)      => .List                     [owise]    
 
 
     syntax TransferValue ::= lastTransfer(Bytes, Map)      [function, total]
+                           | lastTransferAux(KItem)        [function, total]
  // -----------------------------------------------------------------------------
-    rule lastTransfer(PARENT, PARENT |-> OutputAccount(_, _ ListItem(T))) => T
-    rule lastTransfer(_, _) => 0
-      [owise] 
+    rule lastTransfer(PARENT, OAs) => lastTransferAux(OAs [ PARENT ] orDefault 0)
+    
+    rule lastTransferAux(OutputAccount(_, _ ListItem(OutputTransfer(... value: V)))) => V
+    rule lastTransferAux(_) => 0 [owise]
 
 endmodule
 ```

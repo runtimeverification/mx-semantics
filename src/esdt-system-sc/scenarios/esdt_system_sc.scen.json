@@ -1,0 +1,14 @@
+{
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "0x000000000000000000010000000000000000000000000000000000000002ffff": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "code": "file:../output/esdt-system-sc.wasm"
+                }
+            }
+        }
+    ]
+}

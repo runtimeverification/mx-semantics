@@ -214,7 +214,7 @@ module ESDT
 ### Local Mint
 
 ```k
-    syntax BuiltinFunction ::= "#ESDTLocalMint"        [klabel(#ESDTLocalMint), symbol]
+    syntax BuiltinFunction ::= "#ESDTLocalMint"        [symbol(#ESDTLocalMint)]
 
     rule toBuiltinFunction(F) => #ESDTLocalMint requires F ==String "\"ESDTLocalMint\""
 
@@ -241,7 +241,7 @@ module ESDT
         </commands>
 
     syntax InternalCmd ::= esdtLocalMint(account: Bytes, token: Bytes, value: Int)
-        [klabel(esdtLocalMint), symbol]
+        [symbol(esdtLocalMint)]
  // ------------------------------------------------------------------------------
     rule [esdtLocalMint-cmd]:
         <commands> esdtLocalMint(ADDR, TOK, VAL)
@@ -252,7 +252,7 @@ module ESDT
 ### Local Burn
 
 ```k
-    syntax BuiltinFunction ::= "#ESDTLocalBurn"        [klabel(#ESDTLocalBurn), symbol]
+    syntax BuiltinFunction ::= "#ESDTLocalBurn"        [symbol(#ESDTLocalBurn)]
 
     rule toBuiltinFunction(F) => #ESDTLocalBurn requires F ==String "\"ESDTLocalBurn\""
 
@@ -280,7 +280,7 @@ module ESDT
         </commands>
 
     syntax InternalCmd ::= esdtLocalBurn(account: Bytes, token: Bytes, value: Int)
-        [klabel(esdtLocalBurn), symbol]
+        [symbol(esdtLocalBurn)]
  // ------------------------------------------------------------------------------
     rule [esdtLocalBurn-cmd]:
         <commands> esdtLocalBurn(ADDR, TOK, VAL)
@@ -294,7 +294,7 @@ module ESDT
 ### NFT Burn
 
 ```k
-    syntax BuiltinFunction ::= "#ESDTNFTBurn"        [klabel(#ESDTNFTBurn), symbol]
+    syntax BuiltinFunction ::= "#ESDTNFTBurn"        [symbol(#ESDTNFTBurn)]
 
     rule toBuiltinFunction(F) => #ESDTNFTBurn requires F ==String "\"ESDTNFTBurn\""
 
@@ -334,7 +334,7 @@ module ESDT
 ### ESDT Transfer
 
 ```k
-    syntax BuiltinFunction ::= "#ESDTTransfer"        [klabel(#ESDTTransfer), symbol]
+    syntax BuiltinFunction ::= "#ESDTTransfer"        [symbol(#ESDTTransfer)]
 
     rule toBuiltinFunction(F) => #ESDTTransfer requires F ==String "\"ESDTTransfer\""
 
@@ -364,7 +364,7 @@ module ESDT
     rule ESDTTransfer.value(ARGS) => getArgUInt(ARGS, 1)
 
     syntax InternalCmd ::= determineIsSCCallAfter(Bytes, Bytes, BuiltinFunction, VmInputCell)
-        [klabel(determineIsSCCallAfter), symbol]
+        [symbol(determineIsSCCallAfter)]
  // ----------------------------------------------
     rule [determineIsSCCallAfter-call]:
         <commands> determineIsSCCallAfter(SND, DST, FUNC, <vmInput> 
@@ -411,12 +411,12 @@ module ESDT
             <txHash> HASH </txHash>
           </vmInput>
 ```
-          
+
 
 ### Multi ESDT Transfer
 
 ```k
-    syntax BuiltinFunction ::= "#MultiESDTNFTTransfer"        [klabel(#MultiESDTNFTTransfer), symbol]
+    syntax BuiltinFunction ::= "#MultiESDTNFTTransfer"        [symbol(#MultiESDTNFTTransfer)]
 
     rule toBuiltinFunction(F) => #MultiESDTNFTTransfer requires F ==String "\"MultiESDTNFTTransfer\""
 
@@ -485,7 +485,7 @@ module ESDT
 ### NFT Create
 
 ```k
-    syntax BuiltinFunction ::= "#ESDTNFTCreate"        [klabel(#ESDTNFTCreate), symbol]
+    syntax BuiltinFunction ::= "#ESDTNFTCreate"        [symbol(#ESDTNFTCreate)]
 
     rule toBuiltinFunction(F) => #ESDTNFTCreate requires F ==String "\"ESDTNFTCreate\""
 
@@ -507,7 +507,7 @@ module ESDT
                    ...
         </commands>
 
-    syntax InternalCmd ::= esdtNftCreate(Bytes, Bytes, Int, ESDTMetadata)      [klabel(esdtNftCreate), symbol]
+    syntax InternalCmd ::= esdtNftCreate(Bytes, Bytes, Int, ESDTMetadata)      [symbol(esdtNftCreate)]
  // ---------------------------------------------------------------------------------------------------------
     rule [esdtNftCreate]:
         <commands> esdtNftCreate(SND, TOKEN, QTTY, esdtMetadata (... nonce: NONCE, royalties: ROYALTIES) #as META)
@@ -530,7 +530,7 @@ module ESDT
  // -------------------------------------------------------------------------------------
     rule ESDTNFTCreate.token(ARGS)  =>           getArg(ARGS, 0)
     rule ESDTNFTCreate.qtty(ARGS)   => getArgUInt(ARGS, 1)
-    
+
     syntax ESDTMetadata ::= "ESDTNFTCreate.meta" "("  Bytes ","  ListBytes ")"   [function, total]
  // --------------------------------------------------------------------------------------------
     rule ESDTNFTCreate.meta(SND, ARGS)
@@ -559,12 +559,7 @@ module ESDT
 
     rule getLatestNonce(_, _) => 0      [owise]
 
-    syntax Bytes ::= getNonceKey(Bytes)   [function, total]
- // -------------------------------------------------------
-    rule getNonceKey(TOK) => b"ELRONDnonce" +Bytes TOK
-
-
-    syntax InternalCmd ::= saveNFT(Bytes, Bytes, Int, ESDTMetadata)       [klabel(saveNFT), symbol]
+    syntax InternalCmd ::= saveNFT(Bytes, Bytes, Int, ESDTMetadata)       [symbol(saveNFT)]
  // -----------------------------------------------------------------------------------------------
     rule [saveNFT]:
         <commands> saveNFT(ADDR, TOK_KEY, QTTY, esdtMetadata(... nonce: NONCE) #as META) => .K ... </commands>
@@ -582,7 +577,7 @@ module ESDT
         </account>
         <out> ... (.ListBytes => ListItem(wrap(Int2Bytes(NONCE, BE, Unsigned)))) </out>
 
-    syntax InternalCmd ::= saveLatestNonce(Bytes, Bytes, Int)   [klabel(saveLatestNonce), symbol]
+    syntax InternalCmd ::= saveLatestNonce(Bytes, Bytes, Int)   [symbol(saveLatestNonce)]
  // ---------------------------------------------------------------------------------------------
     rule [saveLatestNonce]:
         <commands> saveLatestNonce(ADDR, TOKEN, NONCE) => .K ... </commands>
@@ -600,7 +595,7 @@ module ESDT
 ### NFT Add Quantity
 
 ```k
-    syntax BuiltinFunction ::= "#ESDTNFTAddQuantity"        [klabel(#ESDTNFTAddQuantity), symbol]
+    syntax BuiltinFunction ::= "#ESDTNFTAddQuantity"        [symbol(#ESDTNFTAddQuantity)]
 
     rule toBuiltinFunction(F) => #ESDTNFTAddQuantity requires F ==String "\"ESDTNFTAddQuantity\""
 
@@ -613,7 +608,7 @@ module ESDT
                                         <callArgs> ARGS </callArgs>
                                         _ 
                                       </vmInput>)
-                
+
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
                 ~> checkBool(size(ARGS) >=Int 3, "invalid arguments to process built-in function")
                 ~> checkBool(SND ==K DST, "invalid receiver address")
@@ -648,7 +643,7 @@ module ESDT
 ### NFT Transfer
 
 ```k
-    syntax BuiltinFunction ::= "#ESDTNFTTransfer"        [klabel(#ESDTNFTTransfer), symbol]
+    syntax BuiltinFunction ::= "#ESDTNFTTransfer"        [symbol(#ESDTNFTTransfer)]
 
     rule toBuiltinFunction(F) => #ESDTNFTTransfer requires F ==String "\"ESDTNFTTransfer\""
 
@@ -661,7 +656,7 @@ module ESDT
                                         <callArgs> ARGS </callArgs>
                                         _ 
                                       </vmInput> #as VMINPUT)
-                
+
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
                 ~> checkBool(size(ARGS) >=Int 4, "invalid arguments to process built-in function")
                 ~> checkBool(SND ==K DST, "invalid receiver address")
@@ -676,7 +671,7 @@ module ESDT
 ### NFT Add URI
 
 ```k
-    syntax BuiltinFunction ::= "#ESDTNFTAddURI"        [klabel(#ESDTNFTAddURI), symbol]
+    syntax BuiltinFunction ::= "#ESDTNFTAddURI"        [symbol(#ESDTNFTAddURI)]
 
     rule toBuiltinFunction(F) => #ESDTNFTAddURI requires F ==String "\"ESDTNFTAddURI\""
 
@@ -690,7 +685,7 @@ module ESDT
                                         <callArgs> ARGS </callArgs>
                                         _ 
                                       </vmInput>)
-                
+
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
                 ~> checkBool(size(ARGS) >=Int 3, "invalid arguments to process built-in function")
                 ~> checkBool(SND ==K DST, "invalid receiver address")
@@ -732,18 +727,18 @@ module ESDT
 ## Misc
 
 ```k
-    syntax ESDTLocalRole ::= "ESDTRoleLocalMint"            [klabel(ESDTRoleLocalMint), symbol]
-                           | "ESDTRoleLocalBurn"            [klabel(ESDTRoleLocalBurn), symbol]
-                           | "ESDTRoleNFTCreate"            [klabel(ESDTRoleNFTCreate), symbol]
-                           | "ESDTRoleNFTAddQuantity"       [klabel(ESDTRoleNFTAddQuantity), symbol]
-                           | "ESDTRoleNFTBurn"              [klabel(ESDTRoleNFTBurn), symbol]
-                           | "ESDTRoleNFTAddURI"            [klabel(ESDTRoleNFTAddURI), symbol]
-                           | "ESDTRoleNFTUpdateAttributes"  [klabel(ESDTRoleNFTUpdateAttributes), symbol]
-                           | "ESDTTransferRole"             [klabel(ESDTTransferRole), symbol]
-                           | "None"                         [klabel(ESDTRoleNone), symbol]
+    syntax ESDTLocalRole ::= "ESDTRoleLocalMint"            [symbol(ESDTRoleLocalMint)]
+                           | "ESDTRoleLocalBurn"            [symbol(ESDTRoleLocalBurn)]
+                           | "ESDTRoleNFTCreate"            [symbol(ESDTRoleNFTCreate)]
+                           | "ESDTRoleNFTAddQuantity"       [symbol(ESDTRoleNFTAddQuantity)]
+                           | "ESDTRoleNFTBurn"              [symbol(ESDTRoleNFTBurn)]
+                           | "ESDTRoleNFTAddURI"            [symbol(ESDTRoleNFTAddURI)]
+                           | "ESDTRoleNFTUpdateAttributes"  [symbol(ESDTRoleNFTUpdateAttributes)]
+                           | "ESDTTransferRole"             [symbol(ESDTTransferRole)]
+                           | "None"                         [symbol(ESDTRoleNone)]
 
     syntax InternalCmd ::= checkAllowedToExecute(account: Bytes, token: Bytes, role: ESDTLocalRole)
-        [klabel(checkAllowedToExecute), symbol]
+        [symbol(checkAllowedToExecute)]
  // ----------------------------------------------------------------------------------------
     rule [checkAllowedToExecute-system]:
         <commands> checkAllowedToExecute(#esdtSCAddress, _, _) => .K ... </commands>
@@ -790,7 +785,7 @@ module ESDT
  // ---------------------------------------------------------------
     rule getArg    (ARGS, I) => ARGS {{ I }} orDefault b""
     rule getArgUInt(ARGS, I) => Bytes2Int(getArg(ARGS, I), BE, Unsigned)
-     
+
 ```
 
 ```k

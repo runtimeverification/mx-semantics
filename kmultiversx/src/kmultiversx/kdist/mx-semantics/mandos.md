@@ -106,11 +106,13 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             #then #removeEmptyBytes(M)
             #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
             #fi
+        requires notBool Key in_keys(M)
     rule #removeEmptyBytes(Key Bytes2Bytes|-> Value M)
         =>  #if Value ==K wrap(.Bytes)
             #then #removeEmptyBytes(M)
             #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
             #fi
+        requires notBool Key in_keys(M)
         [simplification]
 
     syntax MapBytesToBytes  ::= #removeReservedKeys ( MapBytesToBytes ) [function]
@@ -122,11 +124,13 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             #then #removeReservedKeys(M)
             #else wrap(Key) Bytes2Bytes|-> Value #removeReservedKeys(M)
             #fi
+        requires notBool wrap(Key) in_keys(M)
     rule #removeReservedKeys(wrap(Key) Bytes2Bytes|-> Value M)
         =>  #if #hasPrefix(Bytes2String(Key), "ELROND")
             #then #removeReservedKeys(M)
             #else wrap(Key) Bytes2Bytes|-> Value #removeReservedKeys(M)
             #fi
+        requires notBool wrap(Key) in_keys(M)
         [simplification]
 ```
 

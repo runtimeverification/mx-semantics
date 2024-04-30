@@ -39,6 +39,7 @@ deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_get_esd
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_nft_add_uri.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_nft_create_and_send.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_nft_create.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_nft_current_nonce.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_nft_decode_complex_attributes.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_nft_transfer_async.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_nft_transfer_exec.scen.json

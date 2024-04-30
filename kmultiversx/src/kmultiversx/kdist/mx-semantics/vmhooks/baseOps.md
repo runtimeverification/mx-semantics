@@ -264,6 +264,40 @@ module BASEOPS
          </instrs>
          <esdtTransfers> TS </esdtTransfers>
  
+    // long long getCurrentESDTNFTNonce(void* context, int32_t addressOffset, int32_t tokenIDOffset, int32_t tokenIDLen);
+    rule <instrs> hostCall("env", "getCurrentESDTNFTNonce", [ i32 i32 i32 .ValTypes ] -> [ i64 .ValTypes ])
+               => #memLoad(ADDR_OFFSET, 32)
+               ~> #memLoad(TOKEN_OFFSET, TOKEN_LEN)
+               ~> #getCurrentESDTNFTNonce
+               ~> #dropBytes
+               ~> #dropBytes
+                 ...
+        </instrs>
+        <locals>
+          0 |-> <i32> ADDR_OFFSET
+          1 |-> <i32> TOKEN_OFFSET
+          2 |-> <i32> TOKEN_LEN
+        </locals>
+
+    syntax InternalInstr ::= "#getCurrentESDTNFTNonce"    [klabel(getCurrentESDTNFTNonce), symbol]
+ // ----------------------------------------------------------------------------------------------
+    rule [getCurrentESDTNFTNonce]:
+        <instrs> #getCurrentESDTNFTNonce => i64.const LAST_NONCE ... </instrs>
+        <bytesStack> TOKEN : ADDR : _ </bytesStack>
+        <account>
+          <address> ADDR </address>
+          <esdtData>
+            <esdtId> TOKEN </esdtId> 
+            <esdtLastNonce> LAST_NONCE </esdtLastNonce>
+            ...
+          </esdtData>
+          ...
+        </account>
+
+    rule [getCurrentESDTNFTNonce-none]:
+        <instrs> #getCurrentESDTNFTNonce => i64.const 0 ... </instrs>
+      [owise]
+
     // extern void writeEventLog(void *context, int32_t numTopics, int32_t topicLengthsOffset, int32_t topicOffset, int32_t dataOffset, int32_t dataLength);
     rule <instrs> hostCall("env", "writeEventLog", [ i32 i32 i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #getArgsFromMemory(NUMTOPICS, TOPICLENGTHOFFSET, TOPICOFFSET)

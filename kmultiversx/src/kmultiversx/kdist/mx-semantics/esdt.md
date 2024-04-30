@@ -230,12 +230,12 @@ module ESDT
                 ~> checkBool(size(ARGS) >=Int 2, "invalid arguments to process built-in function")
                 ~> checkBool(SND ==K DST, "invalid receiver address")
                 ~> checkAccountExists(SND)
-                ~> checkAllowedToExecute(SND, ARGS {{ 0 }} orDefault b"", ESDTRoleLocalMint)
-                ~> checkBool( lengthBytes(ARGS {{ 1 }} orDefault b"") <=Int 100
+                ~> checkAllowedToExecute(SND, getArg(ARGS, 0), ESDTRoleLocalMint)
+                ~> checkBool( lengthBytes(getArg(ARGS, 1)) <=Int 100
                             , "invalid arguments to process built-in function")
                 ~> esdtLocalMint( SND
-                                , ARGS {{ 0 }} orDefault b""
-                                , Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned)
+                                , getArg(ARGS, 0)
+                                , getArgUInt(ARGS, 1)
                                 )
                    ...
         </commands>
@@ -269,12 +269,12 @@ module ESDT
                 ~> checkBool(SND ==K DST, "invalid receiver address")
                 ~> checkAccountExists(SND)
                 // TODO If the token has the 'BurnRoleForAll' global property, skip 'checkAllowedToExecute'
-                ~> checkAllowedToExecute(SND, ARGS {{ 0 }} orDefault b"", ESDTRoleLocalBurn) 
-                ~> checkBool( lengthBytes(ARGS {{ 1 }} orDefault b"") <=Int 100
+                ~> checkAllowedToExecute(SND, getArg(ARGS, 0), ESDTRoleLocalBurn) 
+                ~> checkBool( lengthBytes(getArg(ARGS, 1)) <=Int 100
                             , "invalid arguments to process built-in function")
                 ~> esdtLocalBurn( SND
-                                , ARGS {{ 0 }} orDefault b""
-                                , Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned)
+                                , getArg(ARGS, 0)
+                                , getArgUInt(ARGS, 1)
                                 )
                    ...
         </commands>
@@ -311,9 +311,9 @@ module ESDT
                 ~> checkBool(SND ==K DST, "invalid receiver address")
                 ~> checkAccountExists(SND)
                 ~> esdtNftBurn( SND,
-                                           ARGS {{ 0 }} orDefault b"",
-                                Bytes2Int( ARGS {{ 1 }} orDefault b"", BE, Unsigned),
-                                Bytes2Int( ARGS {{ 2 }} orDefault b"", BE, Unsigned)
+                                           getArg(ARGS, 0),
+                                getArgUInt(ARGS, 1),
+                                getArgUInt(ARGS, 2)
                               )
                    ...
         </commands>
@@ -360,8 +360,8 @@ module ESDT
     syntax Bytes ::= "ESDTTransfer.token"  "(" ListBytes ")"   [function, total]
     syntax Int   ::= "ESDTTransfer.value" "(" ListBytes ")"    [function, total]
  // -----------------------------------------------------------------------------
-    rule ESDTTransfer.token(ARGS) => ARGS {{ 0 }} orDefault b""
-    rule ESDTTransfer.value(ARGS) => Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned)
+    rule ESDTTransfer.token(ARGS) => getArg(ARGS, 0)
+    rule ESDTTransfer.value(ARGS) => getArgUInt(ARGS, 1)
 
     syntax InternalCmd ::= determineIsSCCallAfter(Bytes, Bytes, BuiltinFunction, VmInputCell)
         [klabel(determineIsSCCallAfter), symbol]
@@ -448,8 +448,8 @@ module ESDT
     syntax Bytes ::= "MultiESDTNFTTransfer.dest" "(" ListBytes ")"    [function, total]
     syntax Int   ::= "MultiESDTNFTTransfer.num"  "(" ListBytes ")"    [function, total]
  // -----------------------------------------------------------------------------------
-    rule MultiESDTNFTTransfer.dest(ARGS) => ARGS {{ 0 }} orDefault b""
-    rule MultiESDTNFTTransfer.num(ARGS)  => Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned)
+    rule MultiESDTNFTTransfer.dest(ARGS) => getArg(ARGS, 0)
+    rule MultiESDTNFTTransfer.num(ARGS)  => getArgUInt(ARGS, 1)
 
     syntax List ::= parseESDTTransfers  (BuiltinFunction, ListBytes)  [function, total]
                   | parseESDTTransfersH (Int, ListBytes)              [function, total]
@@ -463,9 +463,9 @@ module ESDT
 
     rule parseESDTTransfers(#ESDTNFTTransfer, ARGS)
       => ListItem(esdtTransfer(
-                        ARGS {{ 0 }} orDefault b"",
-                        Bytes2Int(ARGS {{ 2 }} orDefault b"", BE, Unsigned),
-                        Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned)
+                        getArg(ARGS, 0),
+                        getArgUInt(ARGS, 2),
+                        getArgUInt(ARGS, 1)
                   ))
 
     rule parseESDTTransfers(_, _) => .List
@@ -501,7 +501,7 @@ module ESDT
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
                 ~> checkBool(size(ARGS) >=Int 7, "invalid arguments to process built-in function")
                 ~> checkBool(SND ==K DST, "invalid receiver address")
-                ~> checkBool(lengthBytes(ARGS {{ 1 }} orDefault b"") <=Int 32,
+                ~> checkBool(lengthBytes(getArg(ARGS, 1)) <=Int 32,
                       "invalid arguments to process built-in function, max length for quantity in nft create is 32")
                 ~> esdtNftCreate(SND, ESDTNFTCreate.token(ARGS), ESDTNFTCreate.qtty(ARGS), ESDTNFTCreate.meta(SND, ARGS))
                    ...
@@ -528,20 +528,20 @@ module ESDT
     syntax Bytes ::= "ESDTNFTCreate.token" "(" ListBytes ")"   [function, total]
     syntax Int   ::= "ESDTNFTCreate.qtty"  "(" ListBytes ")"   [function, total]
  // -------------------------------------------------------------------------------------
-    rule ESDTNFTCreate.token(ARGS)  =>           ARGS {{ 0 }} orDefault b""
-    rule ESDTNFTCreate.qtty(ARGS)   => Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned)
+    rule ESDTNFTCreate.token(ARGS)  =>           getArg(ARGS, 0)
+    rule ESDTNFTCreate.qtty(ARGS)   => getArgUInt(ARGS, 1)
     
     syntax ESDTMetadata ::= "ESDTNFTCreate.meta" "("  Bytes ","  ListBytes ")"   [function, total]
  // --------------------------------------------------------------------------------------------
     rule ESDTNFTCreate.meta(SND, ARGS)
       => esdtMetadata( ...
-            name: ARGS {{ 2 }} orDefault b"", 
+            name: getArg(ARGS, 2), 
             nonce: getLatestNonce(SND, ESDTNFTCreate.token(ARGS)) +Int 1,
             creator: SND,
-            royalties: Bytes2Int(ARGS {{ 3 }} orDefault b"", BE, Unsigned),
-            hash: ARGS {{ 4 }} orDefault b"",
+            royalties: getArgUInt(ARGS, 3),
+            hash: getArg(ARGS, 4),
             uris: rangeTotal(ARGS, 6, 0),
-            attributes: ARGS {{ 5 }} orDefault b""
+            attributes: getArg(ARGS, 5)
           )
 
     syntax Int ::= getLatestNonce(Bytes, Bytes)   [function, total]
@@ -617,13 +617,13 @@ module ESDT
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
                 ~> checkBool(size(ARGS) >=Int 3, "invalid arguments to process built-in function")
                 ~> checkBool(SND ==K DST, "invalid receiver address")
-                ~> checkBool(lengthBytes(ARGS {{ 2 }} orDefault b"") <=Int 32,
+                ~> checkBool(lengthBytes(getArg(ARGS, 2)) <=Int 32,
                       "invalid arguments to process built-in function, max length for quantity in add nft quantity is 32")
 
                 ~> esdtNftAddQuantity( SND,
-                                                 ARGS {{ 0 }} orDefault b"",
-                                       Bytes2Int(ARGS {{ 1 }} orDefault b"", BE, Unsigned),
-                                       Bytes2Int(ARGS {{ 2 }} orDefault b"", BE, Unsigned)
+                                                 getArg(ARGS, 0),
+                                       getArgUInt(ARGS, 1),
+                                       getArgUInt(ARGS, 2)
                                       )
                    ...
         </commands>
@@ -665,11 +665,67 @@ module ESDT
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
                 ~> checkBool(size(ARGS) >=Int 4, "invalid arguments to process built-in function")
                 ~> checkBool(SND ==K DST, "invalid receiver address")
-                ~> transferESDTs( SND, ARGS {{ 3 }} orDefault b"",
+                ~> transferESDTs( SND, getArg(ARGS, 3),
                       parseESDTTransfers(#ESDTNFTTransfer, ARGS))
-                ~> determineIsSCCallAfter(SND, ARGS {{ 3 }} orDefault b"", #ESDTNFTTransfer, VMINPUT)
+                ~> determineIsSCCallAfter(SND, getArg(ARGS, 3), #ESDTNFTTransfer, VMINPUT)
                    ...
         </commands>
+
+```
+
+### NFT Add URI
+
+```k
+    syntax BuiltinFunction ::= "#ESDTNFTAddURI"        [klabel(#ESDTNFTAddURI), symbol]
+
+    rule toBuiltinFunction(F) => #ESDTNFTAddURI requires F ==String "\"ESDTNFTAddURI\""
+
+    rule BuiltinFunction2Bytes(#ESDTNFTAddURI) => b"ESDTNFTAddURI"
+
+    // ESDTNFTAddURI & TOKEN & NONCE & URI1 & URI2 ...
+    rule [ESDTNFTAddURI]:
+        <commands> processBuiltinFunction(#ESDTNFTAddURI, SND, DST, 
+                                      <vmInput> 
+                                        <callValue> VALUE </callValue>
+                                        <callArgs> ARGS </callArgs>
+                                        _ 
+                                      </vmInput> #as VMINPUT)
+                
+                => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
+                ~> checkBool(size(ARGS) >=Int 3, "invalid arguments to process built-in function")
+                ~> checkBool(SND ==K DST, "invalid receiver address")
+                ~> checkAllowedToExecute(SND, getArg(ARGS, 0), ESDTRoleNFTAddURI)
+                ~> esdtNftAddUri(
+                      SND,
+                      keyWithNonce(getArg(ARGS, 0), getArgUInt(ARGS, 1)),
+                      rangeTotal(ARGS, 2, 0)
+                   )
+                   ...
+        </commands>
+      [priority(60)]
+
+    syntax InternalCmd ::= esdtNftAddUri(Bytes, Bytes, ListBytes)
+ // -----------------------------------------------------------------
+    rule [esdtNftAddUri]:
+        <commands> esdtNftAddUri(SND, TOKEN, NEW_URIS)
+                => .K ...
+        </commands>
+        <account>
+          <address> SND </address>
+          <esdtData>
+            <esdtId> TOKEN </esdtId>
+            <esdtMetadata> esdtMetadata ( ... uris: URIS => URIS NEW_URIS ) </esdtMetadata>
+            ...
+          </esdtData>
+          ...
+        </account>
+      [priority(60)]
+
+    rule [esdtNftAddUri-not-found]:
+        <commands> esdtNftAddUri(_SND, _TOKEN, _NEW_URIS)
+                => #throwExceptionBs(UserError, b"new NFT data on sender") ...
+        </commands>
+      [priority(61)]
 
 ```
 
@@ -714,18 +770,27 @@ module ESDT
 
     syntax ListBytes ::= getCallArgs(BuiltinFunction, ListBytes)  [function, total]
  // -------------------------------------------------------------------------------
-    rule getCallArgs(#ESDTTransfer, ARGS) => rangeTotal(ARGS, 3, 0) // drop token, amount, func
+    rule getCallArgs(#ESDTTransfer, ARGS)    => rangeTotal(ARGS, 3, 0) // drop token, amount, func
+    rule getCallArgs(#ESDTNFTTransfer, ARGS) => rangeTotal(ARGS, 5, 0) // drop token, nonce, amount, dest, func
     rule getCallArgs(#MultiESDTNFTTransfer, ARGS)
       => rangeTotal(ARGS, MultiESDTNFTTransfer.num(ARGS) *Int 3 +Int 3, 0) // drop dest, num, num*3, func
     rule getCallArgs(_, _) => .ListBytes  [owise]
 
     syntax Bytes ::= getCallFunc(BuiltinFunction, ListBytes)  [function, total]
  // --------------------------------------------------------------------------
-    rule getCallFunc(#ESDTTransfer, ARGS) => ARGS {{ 2 }} orDefault b"" // token&amount&func&...
-    rule getCallFunc(#ESDTNFTTransfer, ARGS) => ARGS {{ 4 }} orDefault b"" // token&nonce&amount&dest&func&...
+    rule getCallFunc(#ESDTTransfer,    ARGS) => getArg(ARGS, 2) // token&amount&func&...
+    rule getCallFunc(#ESDTNFTTransfer, ARGS) => getArg(ARGS, 4) // token&nonce&amount&dest&func&...
     rule getCallFunc(#MultiESDTNFTTransfer, ARGS)
-      => ARGS {{ MultiESDTNFTTransfer.num(ARGS) *Int 3 +Int 2 }} orDefault b""
+      => getArg(ARGS, MultiESDTNFTTransfer.num(ARGS) *Int 3 +Int 2)
     rule getCallFunc(_, _) => b""   [owise]
+
+
+    syntax Bytes ::= getArg    (ListBytes, Int)    [function, total]
+    syntax Int   ::= getArgUInt(ListBytes, Int)    [function, total]
+ // ---------------------------------------------------------------
+    rule getArg    (ARGS, I) => ARGS {{ I }} orDefault b""
+    rule getArgUInt(ARGS, I) => Bytes2Int(getArg(ARGS, I), BE, Unsigned)
+     
 ```
 
 ```k

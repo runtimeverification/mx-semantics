@@ -36,6 +36,7 @@ deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_call_tr
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_call_transf_exec_reject_multi_transfer.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_call_transf_exec_reject_nft.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_get_esdt_local_roles.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_nft_add_uri.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_nft_create_and_send.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_nft_create.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_nft_decode_complex_attributes.scen.json

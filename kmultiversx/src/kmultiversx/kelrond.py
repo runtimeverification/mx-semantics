@@ -77,7 +77,7 @@ def _exit_with_output(cp: CompletedProcess) -> None:
 
 
 def _argument_parser() -> ArgumentParser:
-    parser = ArgumentParser(prog='kwasm')
+    parser = ArgumentParser(prog='kelrond')
     command_parser = parser.add_subparsers(dest='command', required=True)
 
     run_parser = command_parser.add_parser('run', help='run a Mandos scenario')
@@ -91,7 +91,7 @@ def _argument_parser() -> ArgumentParser:
 
 
 def _add_common_arguments(parser: ArgumentParser) -> None:
-    parser.add_argument('program', metavar='PROGRAM', type=file_path, help='path to WebAssembly program')
+    parser.add_argument('program', metavar='PROGRAM', type=file_path, help='path to Mandos scenario')
     parser.add_argument('--backend', metavar='BACKEND', type=Backend, default=Backend.LLVM, help='K backend to use')
     parser.add_argument(
         '--main-file',

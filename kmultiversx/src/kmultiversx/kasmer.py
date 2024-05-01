@@ -362,7 +362,7 @@ def build_lhs_subst(init_subst: dict[str, KInner], steps: KInner) -> dict[str, K
     subst['INTERIMSTATES_CELL'] = list_of(())
     subst['VMOUTPUT_CELL'] = KVariable('VMOUTPUT_CELL', 'VMOutput')
     subst['LOGGING_CELL'] = KVariable('LOGGING_CELL', 'String')
-    subst['EXITCODE_CELL'] = KInt(0)
+    subst['EXIT_CODE_CELL'] = token(0)
     subst['PRANK_CELL'] = token(False)
 
     return subst
@@ -385,6 +385,7 @@ def build_rhs_subst(rhs_subst: dict[str, KInner]) -> dict[str, KInner]:
     del subst['CURBLOCKROUND_CELL']
     del subst['CURBLOCKEPOCH_CELL']
     del subst['CURBLOCKRANDOMSEED_CELL']
+    del subst['TXCOUNT_CELL']
     subst['VMOUTPUT_CELL'] = KVariable('VMOUTPUT_CELL_R', 'VMOutput')
     subst['LOGGING_CELL'] = KVariable('LOGGING_CELL_R', 'String')
 

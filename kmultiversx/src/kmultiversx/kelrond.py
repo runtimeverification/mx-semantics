@@ -69,10 +69,10 @@ def _preprocessed(program: Path) -> Iterator[Path]:
 
 
 def _exit_with_output(cp: CompletedProcess) -> None:
+    print(cp.stdout, end='', flush=True)
     status = cp.returncode
-    out = cp.stdout if status else cp.stderr
-    file = sys.stdout if status else sys.stderr
-    print(out, end='', file=file, flush=True)
+    if status:
+        print(cp.stderr, end='', file=sys.stderr, flush=True)
     sys.exit(status)
 
 

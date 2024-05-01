@@ -385,6 +385,7 @@ def build_rhs_subst(rhs_subst: dict[str, KInner]) -> dict[str, KInner]:
     del subst['CURBLOCKROUND_CELL']
     del subst['CURBLOCKEPOCH_CELL']
     del subst['CURBLOCKRANDOMSEED_CELL']
+    del subst['TXCOUNT_CELL']
     subst['VMOUTPUT_CELL'] = KVariable('VMOUTPUT_CELL_R', 'VMOutput')
     subst['LOGGING_CELL'] = KVariable('LOGGING_CELL_R', 'String')
 

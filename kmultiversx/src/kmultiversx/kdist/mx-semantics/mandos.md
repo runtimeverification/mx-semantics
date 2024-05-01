@@ -11,6 +11,25 @@ module MANDOS-SYNTAX
 endmodule
 ```
 
+```k
+module MANDOS-TEXT    [concrete]
+    imports ELROND
+
+    // Handles the special case where the contract code is provided in Wasm text format.
+    // This only occurs in simple tests (tests/simple)
+    rule [newWasmInstance-text]:
+        <commands> newWasmInstance(_, (module _:OptionalId _:Defns):ModuleDecl #as CODE)
+                => #waitWasm ~> setContractModIdx ...
+        </commands>
+        ( _:WasmCell => <wasm>
+          <instrs> sequenceStmts(text2abstract(CODE .Stmts)) </instrs>
+          ...
+        </wasm>)
+
+endmodule
+```
+
+
 Mandos Configuration
 --------------------
 
@@ -18,6 +37,7 @@ Mandos Configuration
 module MANDOS
     imports COLLECTIONS
     imports ELROND
+    imports MANDOS-TEXT
 
     configuration
       <mandos>

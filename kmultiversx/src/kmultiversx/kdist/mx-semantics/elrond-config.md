@@ -674,29 +674,19 @@ Every contract call runs in its own Wasm instance initialized with the contract'
     syntax InternalCmd ::= "setContractModIdx"
  // ------------------------------------------------------
     rule [newWasmInstance]:
-        <commands> newWasmInstance(_, CODE) => #waitWasm ~> setContractModIdx ...</commands>
+        <commands> newWasmInstance(_, #module(...) #as CODE)
+                => #waitWasm ~> setContractModIdx ...
+        </commands>
         ( _:WasmCell => <wasm>
-          <instrs> initContractModule(CODE) </instrs>
+          <instrs> CODE </instrs>
           ...
         </wasm>)
-      // TODO: It is fairly hard to check that this rule preserves definedness.
-      // However, if that's not the case, then this axiom is invalid. We should
-      // figure this out somehow. Preferably, we should make initContractModule
-      // a total function. Otherwise, we should probably make a
-      // `definedInitContractModule` function that we should use in the requires
-      // clause.
 
     rule [setContractModIdx]:
         <commands> setContractModIdx => .K ... </commands>
         <contractModIdx> _ => NEXTIDX -Int 1 </contractModIdx>
         <nextModuleIdx> NEXTIDX </nextModuleIdx>
 
-    syntax K ::= initContractModule(ModuleDecl)   [function]
- // ------------------------------------------------------------------------
-    rule initContractModule((module _:OptionalId _:Defns):ModuleDecl #as M)
-      => sequenceStmts(text2abstract(M .Stmts))
-
-    rule initContractModule(M:ModuleDecl) => M              [owise]
 ```
 
 Initialize the call state and invoke the endpoint function:

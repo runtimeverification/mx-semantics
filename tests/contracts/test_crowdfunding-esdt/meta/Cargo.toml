@@ -11,4 +11,4 @@ authors = [ "Runtime Verification",]
 path = ".."
 
 [dependencies.multiversx-sc-meta]
-version = "0.47.4"
+version = "0.48.0"

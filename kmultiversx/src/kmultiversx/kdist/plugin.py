@@ -80,7 +80,6 @@ class KompileTarget(Target):
 
 def llvm_target(main_file_name: str, main_module: str, syntax_module: str) -> KompileTarget:
     def ccopts(plugin_dir: Path) -> list[str]:
-        is_linux = sys.platform.startswith('linux')
         return [
                 '-g',
                 '-std=c++17',
@@ -95,7 +94,7 @@ def llvm_target(main_file_name: str, main_module: str, syntax_module: str) -> Ko
                 f"-I{plugin_dir / 'libff/include'}",
                 str(plugin_dir / 'plugin-c/crypto.cpp'),
                 str(plugin_dir / 'plugin-c/plugin_util.cpp'),
-            ] + ['-lprocps'] if is_linux else []
+            ] + ['-lprocps'] if sys.platform.startswith('linux') else []
 
 
     return KompileTarget(

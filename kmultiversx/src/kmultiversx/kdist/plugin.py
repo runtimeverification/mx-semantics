@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import sys
 from distutils.dir_util import copy_tree
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -78,21 +79,11 @@ class KompileTarget(Target):
 
 
 def llvm_target(main_file_name: str, main_module: str, syntax_module: str) -> KompileTarget:
-    return KompileTarget(
-        lambda src_dir, plugin_dir: {
-            'backend': KompileBackend.LLVM,
-            'main_file': src_dir / 'mx-semantics' / main_file_name,
-            'main_module': main_module,
-            'syntax_module': syntax_module,
-            'include_dirs': [src_dir],
-            'md_selector': 'k',
-            'hook_namespaces': ['KRYPTO'],
-            'opt_level': 2,
-            'ccopts': [
+    def ccopts(plugin_dir: Path) -> list[str]:
+        return [
                 '-g',
                 '-std=c++17',
                 '-lcrypto',
-                '-lprocps',
                 '-lsecp256k1',
                 '-lssl',
                 str(plugin_dir / 'blake2/lib/blake2.a'),
@@ -103,7 +94,20 @@ def llvm_target(main_file_name: str, main_module: str, syntax_module: str) -> Ko
                 f"-I{plugin_dir / 'libff/include'}",
                 str(plugin_dir / 'plugin-c/crypto.cpp'),
                 str(plugin_dir / 'plugin-c/plugin_util.cpp'),
-            ],
+            ] + ['-lprocps'] if sys.platform == 'linux' else []
+
+
+    return KompileTarget(
+        lambda src_dir, plugin_dir: {
+            'backend': KompileBackend.LLVM,
+            'main_file': src_dir / 'mx-semantics' / main_file_name,
+            'main_module': main_module,
+            'syntax_module': syntax_module,
+            'include_dirs': [src_dir],
+            'md_selector': 'k',
+            'hook_namespaces': ['KRYPTO'],
+            'opt_level': 2,
+            'ccopts': ccopts(plugin_dir)
         },
     )
 

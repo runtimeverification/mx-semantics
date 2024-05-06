@@ -161,6 +161,7 @@ pub trait TestCoindripContract {
         delta_last_claim_timestamp: u32,
     ) {
         testapi::assume(BigUint::zero() < value);
+        testapi::assume(value < self.get_max_mint_value());
         testapi::assume(0u64 < create_timestamp);
         testapi::assume(create_timestamp < u64::MAX - 4 * u64::from(u32::MAX));
 
@@ -341,6 +342,18 @@ pub trait TestCoindripContract {
         }
     }
 
-    #[proxy]
+    fn get_max_mint_value(&self) -> BigUint {
+      // 800 = 11 0010 000
+      // 800 = 2^5 + 2^8 + 2^9
+      // 2^800 = 2^512 * 2^256 * 2^32
+      let a32 = BigUint::from(4294967296u64);
+      let a64 = a32.clone() * a32.clone();
+      let a128 = a64.clone() * a64;
+      let a256 = a128.clone() * a128;
+      let a512 = a256.clone() * a256.clone();
+      a32 * a256 * a512
+  }
+
+  #[proxy]
     fn coindrip_proxy(&self, sc_address: ManagedAddress) -> coindrip_proxy::Proxy<Self::Api>;
 }

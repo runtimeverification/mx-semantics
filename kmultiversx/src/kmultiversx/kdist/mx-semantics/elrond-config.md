@@ -92,6 +92,7 @@ module ELROND-CONFIG
          </memInst>
       requires #signed(i32 , OFFSET) +Int lengthBytes(BS) <=Int (SIZE *Int #pageSize())
        andBool 0 <=Int #signed(i32 , OFFSET)
+      [preserves-definedness] // setBytesRange total, MEMADDR key existed prior in <mems> map
 
     rule [memStore-owise]:
         <instrs> #memStore(_, _) => #throwException(ExecutionFailed, "mem store: memory instance not found") ... </instrs>

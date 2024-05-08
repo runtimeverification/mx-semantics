@@ -180,6 +180,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            ...
          </account>
          requires VALUE ==K .Bytes
+         [preserves-definedness] // map update is total, CALLEE key existed prior
     rule <instrs> #writeToStorage(KEY, VALUE) => i32.const #storageStatus(STORAGE, KEY, VALUE) ... </instrs>
          <callee> CALLEE </callee>
          <account>
@@ -188,6 +189,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            ...
          </account>
          requires VALUE =/=K .Bytes
+         [preserves-definedness] // map update is total, CALLEE key existed prior
 
     rule [writeToStorage-unknown-addr]:
         <instrs> #writeToStorage(_, _) => #throwException(ExecutionFailed, "writeToStorage: unknown account address") ... </instrs>

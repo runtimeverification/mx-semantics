@@ -577,7 +577,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <checkedAccounts> _ => .Set </checkedAccounts>
         <prank> _ => false </prank>
         <exit-code> _ => 0 </exit-code>
-
+    [preserves-definedness] // all initial configuration fields assumed defined
 ```
 
 ### Prank

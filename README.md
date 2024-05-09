@@ -1,7 +1,7 @@
 Semantics of Elrond and Mandos
 ==============================
 
-This repository the semantics of the [MultiversX](https://multiversx.com/) (formerly Elrond) blockchain in K on top of WebAssembly semantics ([KWasm](https://github.com/kframework/wasm-semantics)).
+This repository the semantics of the [MultiversX](https://multiversx.com/) (formerly Elrond) blockchain in [K](https://github.com/runtimeverification/k) on top of WebAssembly semantics ([KWasm](https://github.com/kframework/wasm-semantics)).
 
 
 ## Installation

@@ -29,7 +29,6 @@ sudo apt-get install --yes               \
                      libprocps-dev       \
                      libsecp256k1-dev    \
                      libssl-dev          \
-                     pandoc              \
                      python3             \
                      python3-pip         \
                      python3-venv        \

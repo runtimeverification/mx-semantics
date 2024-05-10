@@ -51,7 +51,7 @@ kup install k.openssl.procps.secp256k1 --version v$(cat deps/k_release)
 
 #### Poetry
 
-To install Poetry you can use the follwoing command
+To install Poetry you can use the following command
 ```bash
 curl -sSL https://install.python-poetry.org | python3 -
 ```

@@ -204,6 +204,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
            ...
          </account>
          requires VALUE ==K .Bytes
+         [preserves-definedness] // ADDR exists prior in account map
 
     rule [foundryWriteToStorage]:
         <instrs> foundryWriteToStorage => .K ... </instrs>
@@ -214,7 +215,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
            ...
          </account>
          requires VALUE =/=K .Bytes
-
+         [preserves-definedness] // ADDR exists prior in account map
 ```
 
 ### Set balance
@@ -348,7 +349,8 @@ Only the `#foundryRunner` account can execute these commands/host functions.
                     +String Bytes2String(TOK_ID)
         </logging>
       requires 0 <=Int VALUE
-      [priority(60)]
+      [priority(60), preserves-definedness]
+      // ADDR exists prior so the account map is well-defined
 
     // ERROR: account not found
     rule [setESDTBalance-acct-not-found]:

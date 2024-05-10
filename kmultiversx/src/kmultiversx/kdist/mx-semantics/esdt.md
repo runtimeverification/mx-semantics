@@ -134,11 +134,12 @@ module ESDT
           </esdtData>)
           ...
         </account>
-      [priority(61)]
+      [priority(61), preserves-definedness]
+      // preserves-definedness: ACCT exists prior so the account map is defined
 
     rule [addToESDTBalance-new-err]:
         <commands> addToESDTBalance(_ACCT, _TOKEN, _DELTA, false)
-                => #throwExceptionBs(ExecutionFailed, b"new NFT data on sender") 
+                => #throwExceptionBs(ExecutionFailed, b"new NFT data on sender")
                    ...
         </commands>
       [priority(61)]

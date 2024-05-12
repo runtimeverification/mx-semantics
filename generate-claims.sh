@@ -57,3 +57,9 @@ wasm2wat deps/mx-sdk-rs/contracts/examples/multisig/output/multisig.wasm -o gene
 wasm2wat tests/contracts/test_multisig/output/test_multisig.wasm -o generated_claims/w-test_multisig.wat
 poetry -C kmultiversx run -- kasmer --directory "tests/contracts/test_multisig" --gen-claims 2>&1 | tee kasmer.log
 
+# NFT
+
+sc-meta all build --path tests/contracts/test_nft --wasm-symbols --no-wasm-opt
+wasm2wat tests/contracts/test_nft/output/test_nft.wasm -o generated_claims/w-test_nft.wat
+poetry -C kmultiversx run -- kasmer --directory "tests/contracts/test_nft" --gen-claims 2>&1 | tee kasmer.log
+

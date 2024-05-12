@@ -1,0 +1,27 @@
+[package]
+name = "test_nft"
+version = "0.0.0"
+authors = ["you"]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/test_nft.rs"
+
+[dependencies.multiversx-sc]
+version = "0.48.1"
+
+[dev-dependencies]
+num-bigint = "0.4"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.48.1"
+
+[workspace]
+members = [
+    ".",
+    "meta",
+]
+
+[dependencies]
+testapi = { version = "0.1.0", path = "../../../src/testapi" }

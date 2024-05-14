@@ -1,7 +1,7 @@
 Semantics of Elrond and Mandos
 ==============================
 
-This repository the semantics of the [MultiversX](https://multiversx.com/) (formerly Elrond) blockchain in K on top of WebAssembly semantics ([KWasm](https://github.com/kframework/wasm-semantics)).
+This repository the semantics of the [MultiversX](https://multiversx.com/) (formerly Elrond) blockchain in [K](https://github.com/runtimeverification/k) on top of WebAssembly semantics ([KWasm](https://github.com/kframework/wasm-semantics)).
 
 
 ## Installation
@@ -10,11 +10,85 @@ This repository the semantics of the [MultiversX](https://multiversx.com/) (form
 
 * Python3
 * [WABT v1.0.13](https://github.com/WebAssembly/wabt/tree/1.0.13)
-* K framework ([version](./deps/wasm-semantics/deps/k_release))
+* K Framework ([version](./deps/k_release))
 * [Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer)
 * [Rustup and `sc-meta`](https://docs.multiversx.com/developers/meta/sc-meta)
 
-See [Dockerfile](./Dockerfile) for installation details.
+### Installing Dependencies
+
+Python3 and WABT should be installable via your system's package manager alongside with the follwoing other dependencies.
+We use the Ubuntu package manager as an example:
+```bash
+sudo apt-get install --yes               \
+                     autoconf            \
+                     libtool             \
+                     cmake               \
+                     curl                \
+                     wget                \
+                     libcrypto++-dev     \
+                     libprocps-dev       \
+                     libsecp256k1-dev    \
+                     libssl-dev          \
+                     python3             \
+                     python3-pip         \
+                     python3-venv        \
+                     wabt
+```
+
+#### K Framework
+
+You need to install the [K Framework](https://kframework.org/) on your system. While you can build it [from soucre](https://github.com/runtimeverification/k?tab=readme-ov-file#prerequisite-install-guide), the fastest way is via the [kup package manager](https://github.com/runtimeverification/kup).
+
+To install `kup` simply run
+```bash
+bash <(curl https://kframework.org/install)
+```
+Once `kup` is installed, to get the correct version of K run:
+```bash
+kup install k.openssl.procps.secp256k1 --version v$(cat deps/k_release)
+```
+
+#### Poetry
+
+To install Poetry you can use the following command
+```bash
+curl -sSL https://install.python-poetry.org | python3 -
+```
+For more complete instructions see the [official installer](https://python-poetry.org/docs/#installing-with-the-official-installer).
+
+#### Rustup
+
+To install Rust and the necessary crates you have to [install `rustup`](https://www.rust-lang.org/tools/install), which can be done by ruuning the following on a Unix-like OS:
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+Or, if you want to install a more fine-tuned version for this project:
+```bash
+wget -O rustup.sh https://sh.rustup.rs && \
+chmod +x rustup.sh && \
+./rustup.sh --verbose --default-toolchain nightly-2023-12-11 --target wasm32-unknown-unknown -y
+```
+
+#### `sc-meta`
+
+[`sc-meta`](https://docs.multiversx.com/developers/meta/sc-meta) is the [MultiversX](https://multiversx.com/) smart contract managing tool. To install it, you can run the following
+```bash
+cargo install multiversx-sc-meta --locked
+```
+However, if you run into problems with the above command, this might be because of your `rustup` version. Try installing it with a nightly version of `rustup` alongside your current one:
+```bash
+rustup install nightly
+```
+and to install `sc-meta` with the nightly version run:
+```bash
+cargo +nightly install multiversx-sc-meta --locked
+```
+If the above doesn't succeed try installing a [less recent version](https://crates.io/crates/multiversx-sc-meta/versions) of the tool. For instance, to install version `0.48.1` run:
+```bash
+cargo +nightly install multiversx-sc-meta --locked --version 0.48.1
+```
+
+See [Dockerfile](./Dockerfile) for additional installation details.
 
 ### Building the semantics
 

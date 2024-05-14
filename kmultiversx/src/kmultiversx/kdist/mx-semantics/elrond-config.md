@@ -674,10 +674,13 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 Every contract call runs in its own Wasm instance initialized with the contract's code.
 
 ```k
-    syntax InternalCmd ::= "setContractModIdx"
- // ------------------------------------------------------
+    syntax InternalCmd ::= newWasmInstanceAux(Bytes, ModuleDecl)  [symbol(newWasmInstanceAux)]
+ // --------------------------------------------------------------------------------------------------
     rule [newWasmInstance]:
-        <commands> newWasmInstance(_, CODE) => #waitWasm ~> setContractModIdx ...</commands>
+        <commands> newWasmInstance(ADDR, CODE) => newWasmInstanceAux(ADDR, CODE) ... </commands>
+
+    rule [newWasmInstanceAux]:
+        <commands> newWasmInstanceAux(_, CODE) => #waitWasm ~> setContractModIdx ... </commands>
         ( _:WasmCell => <wasm>
           <instrs> initContractModule(CODE) </instrs>
           ...
@@ -689,6 +692,8 @@ Every contract call runs in its own Wasm instance initialized with the contract'
       // `definedInitContractModule` function that we should use in the requires
       // clause.
 
+    syntax InternalCmd ::= "setContractModIdx"
+ // ------------------------------------------------------
     rule [setContractModIdx]:
         <commands> setContractModIdx => .K ... </commands>
         <contractModIdx> _ => NEXTIDX -Int 1 </contractModIdx>

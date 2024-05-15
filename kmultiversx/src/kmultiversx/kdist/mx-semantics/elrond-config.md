@@ -463,6 +463,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <address> ADDR </address>
            ...
          </account>
+         <instrs> (#waitCommands ~> _) #Or .K </instrs>
         //  <logging> S => S +String " -- initAccount duplicate " +String Bytes2String(ADDR) </logging>
       [priority(60)]
 
@@ -477,6 +478,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            )
            ...
          </accounts>
+         <instrs> (#waitCommands ~> _) #Or .K </instrs>
         //  <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
       [priority(61)]
 
@@ -495,6 +497,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <storage> _ => STORAGE </storage>
            ...
          </account>
+         <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule [setAccountCode]:
@@ -504,6 +507,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <code> _ => CODE </code>
            ...
          </account>
+         <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule <commands> setAccountOwner(ADDR, OWNER) => .K ... </commands>
@@ -512,6 +516,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <ownerAddress> _ => OWNER </ownerAddress>
            ...
          </account>
+         <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 ```
 
@@ -532,6 +537,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                  ~> transferFundsH(A, B, V)
                     ...
          </commands>
+         <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule [transferFundsH-self]:
@@ -544,6 +550,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           <balance> ORIGFROM </balance>
           ...
         </account>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires VALUE <=Int ORIGFROM
       [priority(60)]
 
@@ -562,6 +569,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           <balance> ORIGTO => ORIGTO +Int VALUE </balance>
           ...
         </account>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
       [priority(60), preserves-definedness]
       // Preserving definedness:
@@ -575,6 +583,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           <balance> ORIGFROM </balance>
           ...
         </account>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires VALUE >Int ORIGFROM
       [priority(60)]
 
@@ -589,6 +598,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule <commands> callContract(TO, FUNCNAME:String, VMINPUT)
                  => callContract(TO, #quoteUnparseWasmString(FUNCNAME), VMINPUT) ...
          </commands>
+         <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule [callContract]:
@@ -617,6 +627,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         </account>
         <vmOutput> _ => .VMOutput </vmOutput>
         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires notBool(isBuiltin(FUNCNAME))
        andBool #token("\"callBack\"", "WasmStringToken") =/=K FUNCNAME
       [priority(60)]
@@ -640,6 +651,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         </commands>
         <vmOutput> _ => .VMOutput </vmOutput>
         <logging> S => S +String " -- callContract " +String #parseWasmString(FUNC) </logging>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires isBuiltin(FUNC)
       [priority(60)]
 
@@ -647,6 +659,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         <commands> callContract(_, FUNCNAME:WasmString, _)
                 => #throwExceptionBs(ExecutionFailed, b"invalid function (calling callBack() directly is forbidden)") ...
         </commands>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires #token("\"callBack\"", "WasmStringToken") ==K FUNCNAME
       [priority(60)]
 
@@ -659,12 +672,14 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           <code> .Code </code>
           ...
         </account>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(61)]
 
     rule [callContract-not-found]:
         <commands> callContract(TO, _:WasmString, _)
                 => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes TO) ...
         </commands>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(62)]
 ```
 
@@ -675,6 +690,7 @@ Every contract call runs in its own Wasm instance initialized with the contract'
  // --------------------------------------------------------------------------------------------------
     rule [newWasmInstance]:
         <commands> newWasmInstance(ADDR, CODE) => newWasmInstanceAux(ADDR, CODE) ... </commands>
+        <instrs> .K </instrs>
 
     rule [newWasmInstanceAux]:
         <commands> newWasmInstanceAux(_, CODE) => #waitWasm ~> setContractModIdx ... </commands>

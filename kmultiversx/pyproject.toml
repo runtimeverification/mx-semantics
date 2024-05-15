@@ -21,7 +21,7 @@ mx-semantics = "kmultiversx.kdist.plugin"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-pykwasm = { git = "https://github.com/runtimeverification/wasm-semantics.git", tag = "v0.1.50", subdirectory = "pykwasm" }
+pykwasm = { git = "https://github.com/runtimeverification/wasm-semantics.git", tag = "v0.1.51", subdirectory = "pykwasm" }
 pycryptodomex = "^3.18.0"
 hypothesis = "^6.82.6"
 

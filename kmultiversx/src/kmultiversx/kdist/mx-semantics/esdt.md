@@ -5,9 +5,11 @@ TODO check token settings: frozen, paused, limited transfer...
 
 ```k
 requires "elrond-node.md"
+requires "switch.md"
 
 module ESDT
     imports ELROND-NODE
+    imports SWITCH-SYNTAX
     imports LIST-BYTES-EXTENSIONS
     imports MAP-BYTES-TO-BYTES-PRIMITIVE
 
@@ -29,13 +31,17 @@ module ESDT
                  ~> appendToOutAccount(TO, OutputTransfer(FROM, L))
                     ...
          </commands>
+         <instrs> (#waitCommands ~> _) #Or .K </instrs>
 
     rule <commands> transferESDTsAux(_, _, .List) => .K ... </commands>
+         <instrs> (#waitCommands ~> _) #Or .K </instrs>
+
     rule <commands> transferESDTsAux(FROM, TO, ListItem(T:ESDTTransfer) Ls) 
                  => transferESDT(FROM, TO, T) 
                  ~> transferESDTsAux(FROM, TO, Ls)
                     ... 
          </commands>
+         <instrs> (#waitCommands ~> _) #Or .K </instrs>
 
     rule <commands> transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, 0)) 
                  => checkAccountExists(FROM)
@@ -45,6 +51,7 @@ module ESDT
                  ~> addToESDTBalance(TO,   TOKEN, VALUE, true)
                     ... 
          </commands>
+         <instrs> (#waitCommands ~> _) #Or .K </instrs>
 
     rule <commands> transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, NONCE)) 
                  => checkAccountExists(FROM)
@@ -54,6 +61,7 @@ module ESDT
                  ~> removeEmptyNft(FROM, keyWithNonce(TOKEN, NONCE))
                     ... 
          </commands>
+         <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires NONCE =/=Int 0
 
     syntax InternalCmd ::= removeEmptyNft(Bytes, Bytes)
@@ -69,10 +77,12 @@ module ESDT
           </esdtData> => .Bag)
           ...
         </account>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule [removeEmptyNft-skip]:
         <commands> removeEmptyNft(_, _) => .K ... </commands>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(61)]
 
 ```
@@ -95,12 +105,14 @@ module ESDT
           </esdtData>
           ...
         </account>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires VALUE <=Int ORIGFROM
       [priority(60)]
 
     // VALUE > ORIGFROM or TOKEN does not exist
     rule [checkESDTBalance-oof]:
         <commands> checkESDTBalance(_, _, _) => #throwExceptionBs(OutOfFunds, b"") ... </commands>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(61)]
 
 ```
@@ -121,6 +133,7 @@ module ESDT
           </esdtData>
           ...
         </account>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule [addToESDTBalance-new-esdtData]:
@@ -134,6 +147,7 @@ module ESDT
           </esdtData>)
           ...
         </account>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(61), preserves-definedness]
       // preserves-definedness: ACCT exists prior so the account map is defined
 
@@ -142,6 +156,7 @@ module ESDT
                 => #throwExceptionBs(ExecutionFailed, b"new NFT data on sender")
                    ...
         </commands>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(61)]
 
 ```
@@ -171,6 +186,7 @@ module ESDT
           </esdtData>
           ...
         </account>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule [moveNFTToDestination-self]:
@@ -183,6 +199,7 @@ module ESDT
           </esdtData>
           ...
         </account>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule [moveNFTToDestination-new]:
@@ -207,6 +224,7 @@ module ESDT
           </esdtData>)
           ...
         </account>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(61)]
 ```
 
@@ -234,20 +252,11 @@ module ESDT
                 ~> checkAllowedToExecute(SND, getArg(ARGS, 0), ESDTRoleLocalMint)
                 ~> checkBool( lengthBytes(getArg(ARGS, 1)) <=Int 100
                             , "invalid arguments to process built-in function")
-                ~> esdtLocalMint( SND
-                                , getArg(ARGS, 0)
-                                , getArgUInt(ARGS, 1)
-                                )
+                ~> addToESDTBalance(SND, getArg(ARGS, 0), getArgUInt(ARGS, 1), true)
                    ...
         </commands>
+        <instrs> .K </instrs>
 
-    syntax InternalCmd ::= esdtLocalMint(account: Bytes, token: Bytes, value: Int)
-        [symbol(esdtLocalMint)]
- // ------------------------------------------------------------------------------
-    rule [esdtLocalMint-cmd]:
-        <commands> esdtLocalMint(ADDR, TOK, VAL)
-                => addToESDTBalance(ADDR, TOK, VAL, true) ...
-        </commands>
 ```
 
 ### Local Burn
@@ -273,22 +282,11 @@ module ESDT
                 ~> checkAllowedToExecute(SND, getArg(ARGS, 0), ESDTRoleLocalBurn) 
                 ~> checkBool( lengthBytes(getArg(ARGS, 1)) <=Int 100
                             , "invalid arguments to process built-in function")
-                ~> esdtLocalBurn( SND
-                                , getArg(ARGS, 0)
-                                , getArgUInt(ARGS, 1)
-                                )
+                ~> checkESDTBalance(SND, getArg(ARGS, 0),        getArgUInt(ARGS, 1))
+                ~> addToESDTBalance(SND, getArg(ARGS, 0), 0 -Int getArgUInt(ARGS, 1), false)
                    ...
         </commands>
-
-    syntax InternalCmd ::= esdtLocalBurn(account: Bytes, token: Bytes, value: Int)
-        [symbol(esdtLocalBurn)]
- // ------------------------------------------------------------------------------
-    rule [esdtLocalBurn-cmd]:
-        <commands> esdtLocalBurn(ADDR, TOK, VAL)
-                => checkESDTBalance(ADDR, TOK, VAL)
-                ~> addToESDTBalance(ADDR, TOK, 0 -Int VAL, false)
-                   ...
-        </commands>
+        <instrs> .K </instrs>
 
 ```
 
@@ -318,6 +316,7 @@ module ESDT
                               )
                    ...
         </commands>
+        <instrs> .K </instrs>
 
     syntax InternalCmd ::= esdtNftBurn(Bytes, Bytes, Int, Int)
  // ----------------------------------------------------------
@@ -329,6 +328,7 @@ module ESDT
                 ~> removeEmptyNft(ADDR, keyWithNonce(TOKEN, NONCE))
                    ...
         </commands>
+        <instrs> .K </instrs>
 
 ```
 
@@ -357,6 +357,7 @@ module ESDT
                 ~> determineIsSCCallAfter(SND, DST, #ESDTTransfer, VMINPUT)
                    ...
         </commands>
+        <instrs> .K </instrs>
 
     syntax Bytes ::= "ESDTTransfer.token"  "(" ListBytes ")"   [function, total]
     syntax Int   ::= "ESDTTransfer.value" "(" ListBytes ")"    [function, total]
@@ -387,12 +388,14 @@ module ESDT
           <code> CODE:ModuleDecl </code>
           ...
         </account>
+        <instrs> .K </instrs>
       requires getCallFunc(FUNC, ARGS) =/=K b""
 
     rule [determineIsSCCallAfter-nocall]:
         <commands> determineIsSCCallAfter(_SND, _DST, _FUNC, _VMINPUT)
                 => .K ...
         </commands>
+        <instrs> .K </instrs>
       [owise]
 
     syntax VmInputCell ::= mkVmInputEsdtExec(Bytes, BuiltinFunction, ListBytes, Int, Int, Bytes)
@@ -444,6 +447,7 @@ module ESDT
                 ~> determineIsSCCallAfter(SND, MultiESDTNFTTransfer.dest(ARGS), #MultiESDTNFTTransfer, VMINPUT)
                    ...
         </commands>
+        <instrs> .K </instrs>
 
 
     syntax Bytes ::= "MultiESDTNFTTransfer.dest" "(" ListBytes ")"    [function, total]
@@ -507,6 +511,7 @@ module ESDT
                 ~> esdtNftCreate(SND, ESDTNFTCreate.token(ARGS), ESDTNFTCreate.qtty(ARGS), ESDTNFTCreate.meta(SND, ARGS))
                    ...
         </commands>
+        <instrs> .K </instrs>
 
     syntax InternalCmd ::= esdtNftCreate(Bytes, Bytes, Int, ESDTMetadata)      [symbol(esdtNftCreate)]
  // ---------------------------------------------------------------------------------------------------------
@@ -525,6 +530,7 @@ module ESDT
                 ~> saveLatestNonce(SND, TOKEN, NONCE)
                    ...
         </commands>
+        <instrs> .K </instrs>
 
     syntax Bytes ::= "ESDTNFTCreate.token" "(" ListBytes ")"   [function, total]
     syntax Int   ::= "ESDTNFTCreate.qtty"  "(" ListBytes ")"   [function, total]
@@ -577,6 +583,7 @@ module ESDT
           ...
         </account>
         <out> ... (.ListBytes => ListItem(wrap(Int2Bytes(NONCE, BE, Unsigned)))) </out>
+        <instrs> .K </instrs>
 
     syntax InternalCmd ::= saveLatestNonce(Bytes, Bytes, Int)   [symbol(saveLatestNonce)]
  // ---------------------------------------------------------------------------------------------
@@ -591,6 +598,7 @@ module ESDT
           </esdtData>
           ...
         </account>
+        <instrs> .K </instrs>
 ```
 
 ### NFT Add Quantity
@@ -623,6 +631,7 @@ module ESDT
                                       )
                    ...
         </commands>
+        <instrs> .K </instrs>
 
     syntax InternalCmd ::= esdtNftAddQuantity(Bytes, Bytes, Int, Int)
  // -----------------------------------------------------------------
@@ -638,6 +647,7 @@ module ESDT
                    )
                    ...
         </commands>
+        <instrs> .K </instrs>
 
 ```
 
@@ -666,6 +676,7 @@ module ESDT
                 ~> determineIsSCCallAfter(SND, getArg(ARGS, 3), #ESDTNFTTransfer, VMINPUT)
                    ...
         </commands>
+        <instrs> .K </instrs>
 
 ```
 
@@ -698,6 +709,7 @@ module ESDT
                    )
                    ...
         </commands>
+        <instrs> .K </instrs>
       [priority(60)]
 
     syntax InternalCmd ::= esdtNftAddUri(Bytes, Bytes, ListBytes)
@@ -715,12 +727,14 @@ module ESDT
           </esdtData>
           ...
         </account>
+        <instrs> .K </instrs>
       [priority(60)]
 
     rule [esdtNftAddUri-not-found]:
         <commands> esdtNftAddUri(_SND, _TOKEN, _NEW_URIS)
                 => #throwExceptionBs(UserError, b"new NFT data on sender") ...
         </commands>
+        <instrs> .K </instrs>
       [priority(61)]
 
 ```
@@ -743,6 +757,7 @@ module ESDT
  // ----------------------------------------------------------------------------------------
     rule [checkAllowedToExecute-system]:
         <commands> checkAllowedToExecute(#esdtSCAddress, _, _) => .K ... </commands>
+        <instrs> .K </instrs>
 
     rule [checkAllowedToExecute-pass]:
         <commands> checkAllowedToExecute(ADDR, TOK, ROLE) => .K ... </commands>
@@ -755,6 +770,7 @@ module ESDT
           </esdtData>
           ...
         </account>
+        <instrs> .K </instrs>
       requires ROLE in ROLES
       [priority(60)]
 
@@ -762,6 +778,7 @@ module ESDT
         <commands> checkAllowedToExecute(_ADDR, _TOK, _ROLE) 
                 => #throwExceptionBs(UserError, b"action is not allowed") ...
         </commands>
+        <instrs> .K </instrs>
       [priority(61)]
 
     syntax ListBytes ::= getCallArgs(BuiltinFunction, ListBytes)  [function, total]

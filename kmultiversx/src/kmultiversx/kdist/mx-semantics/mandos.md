@@ -56,11 +56,13 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule [steps-empty]:
         <k> .Steps => .K </k>
         <commands> .K </commands>
+        <instrs> .K </instrs>
       [priority(60)]
 
     rule [steps-seq]:
         <k> S:Step SS:Steps => S ~> SS ... </k>
         <commands> .K </commands>
+        <instrs> .K </instrs>
       [priority(60)]
 
     syntax Step ::= "setExitCode" Int     [klabel(setExitCode), symbol]
@@ -88,6 +90,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <moduleRegistry> REG => REG [NAME <- IDX -Int 1] </moduleRegistry>
          <nextModuleIdx> IDX </nextModuleIdx>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     syntax Step ::= checkFailed(Step)     [klabel(checkFailed), symbol]
@@ -149,6 +152,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> setAccount(ADDRESS, NONCE, BALANCE, CODE, OWNER, STORAGE)
           => setAccountAux(#address2Bytes(ADDRESS), NONCE, BALANCE, CODE, #address2Bytes(OWNER), STORAGE) ... </k>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> setAccountAux(ADDRESS, NONCE, BALANCE, CODE, OWNER, STORAGE) => #wait ... </k>
@@ -156,6 +160,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
                  => createAccount(ADDRESS)
                  ~> setAccountFields(ADDRESS, NONCE, BALANCE, CODE, OWNER, STORAGE) 
          </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     syntax Step ::= setEsdtBalance   ( Bytes , Bytes, Int, ESDTMetadata, Int )     [klabel(setEsdtBalance), symbol]
@@ -164,6 +169,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> setEsdtBalance( ADDR , TokId , Nonce, Metadata, Value )
           => setEsdtBalanceAux(ADDR, keyWithNonce(TokId, Nonce), Metadata, Value) ...
         </k>
+         <commands> .K </commands>
+         <instrs> .K </instrs>
 
     rule [setEsdtBalanceAux]:
         <k> setEsdtBalanceAux( ADDR , TokId , Metadata, Value ) => .K ... </k>
@@ -178,6 +185,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
           ...
         </account>
         <commands> .K </commands>
+        <instrs> .K </instrs>
       [priority(60)]
 
     rule [setEsdtBalanceAux-new]:
@@ -196,6 +204,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
           ...
         </account>
         <commands> .K </commands>
+        <instrs> .K </instrs>
       [priority(61)]
 
 
@@ -213,6 +222,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
           ...
         </account>
         <commands> .K </commands>
+        <instrs> .K </instrs>
       [priority(60)]
 
     rule [setEsdtLastNonce-new]:
@@ -230,6 +240,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
           ...
         </account>
         <commands> .K </commands>
+        <instrs> .K </instrs>
       [priority(61)]
 
     syntax Step ::= setEsdtRoles( Bytes , Bytes , Set )
@@ -247,6 +258,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
           ...
         </account>
         <commands> .K </commands>
+        <instrs> .K </instrs>
       [priority(60)]
 
     rule [setEsdtRoles-new]:
@@ -264,6 +276,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
           ...
         </account>
         <commands> .K </commands>
+        <instrs> .K </instrs>
       [priority(61)]
 
     syntax Step ::= checkEsdtRoles( Bytes , Bytes , Set )
@@ -281,6 +294,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
           ...
         </account>
         <commands> .K </commands>
+        <instrs> .K </instrs>
       [priority(60)]
 
     syntax Step ::= newAddress    ( Address, Int, Address ) [klabel(newAddress), symbol]
@@ -289,11 +303,13 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> newAddress(CREATOR, NONCE, NEW)
           => newAddressAux(#address2Bytes(CREATOR), NONCE, #address2Bytes(NEW)) ... </k>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> newAddressAux(CREATOR, NONCE, NEW) => .K ... </k>
          <newAddresses> NEWADDRESSES => NEWADDRESSES [tuple(CREATOR, NONCE) <- NEW] </newAddresses>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     syntax AddressNonce ::= tuple( Bytes , Int )
@@ -310,51 +326,61 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> setCurBlockInfo(blockTimestamp(TIMESTAMP)) => .K ... </k>
          <curBlockTimestamp> _ => TIMESTAMP </curBlockTimestamp>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> setCurBlockInfo(blockNonce(NONCE)) => .K ... </k>
          <curBlockNonce> _ => NONCE </curBlockNonce>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> setCurBlockInfo(blockRound(ROUND)) => .K ... </k>
          <curBlockRound> _ => ROUND </curBlockRound>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> setCurBlockInfo(blockEpoch(EPOCH)) => .K ... </k>
          <curBlockEpoch> _ => EPOCH </curBlockEpoch>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> setCurBlockInfo(blockRandomSeed(SEED)) => .K ... </k>
          <curBlockRandomSeed> _ => SEED </curBlockRandomSeed>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> setPrevBlockInfo(blockTimestamp(TIMESTAMP)) => .K ... </k>
          <prevBlockTimestamp> _ => TIMESTAMP </prevBlockTimestamp>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> setPrevBlockInfo(blockNonce(NONCE)) => .K ... </k>
          <prevBlockNonce> _ => NONCE </prevBlockNonce>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> setPrevBlockInfo(blockRound(ROUND)) => .K ... </k>
          <prevBlockRound> _ => ROUND </prevBlockRound>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> setPrevBlockInfo(blockEpoch(EPOCH)) => .K ... </k>
          <prevBlockEpoch> _ => EPOCH </prevBlockEpoch>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> setPrevBlockInfo(blockRandomSeed(SEED)) => .K ... </k>
          <prevBlockRandomSeed> _ => SEED </prevBlockRandomSeed>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 ```
 
@@ -366,6 +392,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // --------------------------------------------------------------------------------------------
     rule <k> checkAccountNonce(ADDRESS, NONCE)
              => checkAccountNonceAux(#address2Bytes(ADDRESS), NONCE) ... </k>
+         <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> checkAccountNonceAux(ADDR, NONCE) => .K ... </k>
@@ -375,6 +403,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            ...
          </account>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     syntax Step ::= checkAccountBalance    ( Address, Int ) [klabel(checkAccountBalance), symbol]
@@ -383,6 +412,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkAccountBalance(ADDRESS, BALANCE)
              => checkAccountBalanceAux(#address2Bytes(ADDRESS), BALANCE) ... </k>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> checkAccountBalanceAux(ADDR, BALANCE) => .K ... </k>
@@ -392,6 +422,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            ...
          </account>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     syntax Step ::= checkAccountESDTBalance    ( Bytes, Bytes, Int, Int ) [klabel(checkAccountESDTBalance), symbol]
@@ -400,6 +431,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkAccountESDTBalance(ADDRESS, TOKEN, NONCE, BALANCE)
           => checkAccountESDTBalanceAux(ADDRESS, keyWithNonce(TOKEN, NONCE), BALANCE) ... </k>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> checkAccountESDTBalanceAux(ADDR, TOKEN, BALANCE) #as C
@@ -417,6 +449,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            ...
          </account>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> checkAccountESDTBalanceAux(ADDR, _TOKEN, 0) => .K ... </k>
@@ -425,6 +458,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            ...
          </account>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(61)]
 
     syntax Step ::= checkAccountStorage    ( Address, MapBytesToBytes ) [klabel(checkAccountStorage), symbol]
@@ -433,6 +467,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkAccountStorage(ADDRESS, STORAGE)
              => checkAccountStorageAux(#address2Bytes(ADDRESS), STORAGE) ... </k>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> checkAccountStorageAux(ADDR, STORAGE) => .K ... </k>
@@ -442,6 +477,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            ...
          </account>
          <commands> .K </commands>
+         <instrs> .K </instrs>
         requires #removeReservedKeys(ACCTSTORAGE) ==K #removeEmptyBytes(STORAGE)
       [priority(60)]
 
@@ -451,6 +487,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkAccountCode(ADDRESS, CODEPATH)
              => checkAccountCodeAux(#address2Bytes(ADDRESS), CODEPATH) ... </k>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     syntax OptionalString ::= #getModuleCodePath(ModuleDecl)    [function, total]
@@ -467,6 +504,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            ...
          </account>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
       
     rule [checkAccountCodeAux-code]:
@@ -477,6 +515,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
            ...
          </account>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       requires CODEPATH ==K #getModuleCodePath(CODE)
       [priority(60)]
 
@@ -486,11 +525,13 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkedAccount(ADDRESS)
              => checkedAccountAux(#address2Bytes(ADDRESS)) ... </k>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> checkedAccountAux(ADDR) => .K ... </k>
          <checkedAccounts> ... (.Set => SetItem(ADDR)) ... </checkedAccounts>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     syntax Step ::= checkNoAdditionalAccounts( Set ) [klabel(checkNoAdditionalAccounts), symbol]
@@ -498,6 +539,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkNoAdditionalAccounts(EXPECTED) => .K ... </k>
          <checkedAccounts> CHECKEDACCTS </checkedAccounts>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       requires EXPECTED ==K CHECKEDACCTS
       [priority(60)]
 
@@ -506,6 +548,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> clearCheckedAccounts => .K ... </k>
          <checkedAccounts> _ => .Set </checkedAccounts>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 ```
 
@@ -520,6 +563,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          => callTxAux(#address2Bytes(FROM), #address2Bytes(TO), VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE) ... 
         </k>
         <commands> .K </commands>
+        <instrs> .K </instrs>
       [priority(60)]
 
     rule [callTxAux]:
@@ -529,6 +573,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
                             mkVmInputSCCall(FROM, ARGS, VALUE, ESDT, GASLIMIT, GASPRICE, mkTxHash(CNT))
                           ) 
         </commands>
+        <instrs> .K </instrs>
         <account>
           <address> FROM </address>
           <nonce> NONCE => NONCE +Int 1 </nonce>
@@ -564,6 +609,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkExpectOut(OUT) => .K ... </k>
          <vmOutput> VMOutput(... out: OUT) </vmOutput>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     syntax Step ::= checkExpectStatus ( ReturnCode ) [klabel(checkExpectStatus), symbol]
@@ -571,6 +617,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkExpectStatus(RETURNCODE) => .K ... </k>
          <vmOutput> VMOutput(... returnCode: RETURNCODE) </vmOutput>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     syntax Step ::= checkExpectMessage ( Bytes ) [klabel(checkExpectMessage), symbol]
@@ -578,6 +625,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkExpectMessage(MSG) => .K ... </k>
          <vmOutput> VMOutput(... returnMessage: MSG) </vmOutput>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     syntax Step ::= checkExpectLogs ( List ) [klabel(checkExpectLogs), symbol]
@@ -585,10 +633,12 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     rule <k> checkExpectLogs(LOGS) => .K ... </k>
          <vmOutput> VMOutput(... logs: LOGS) </vmOutput>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
     // TODO implement event logs (some host functions like ESDT transfer should emit event logs. see crowdfunding-claim-successful.json)
     rule <k> checkExpectLogs(_LOGS) => .K ... </k>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(61)]
 
 ```
@@ -602,10 +652,13 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
                   | queryTxAux (to: Bytes,   func: WasmString, args: ListBytes) [klabel(queryTxAux), symbol]
  // ---------------------------------------------------------------------------------------------------
     rule <k> queryTx(TO, FUNCTION, ARGS) => queryTxAux(#address2Bytes(TO), FUNCTION, ARGS) ... </k>
+         <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> queryTxAux(TO, FUNCTION, ARGS) => #wait ... </k>
          <commands> .K => callContract(TO, FUNCTION, mkVmInputQuery(TO, ARGS, mkTxHash(CNT))) </commands>
+         <instrs> .K </instrs>
          <txCount> CNT => CNT +Int 1 </txCount>
       [priority(60)]
 
@@ -635,6 +688,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
           => deployTxAux(#address2Bytes(FROM), VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) ... 
          </k>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule [deployTxAux]:
@@ -645,6 +699,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
                 ~> setAccountCode(NEWADDR, MODULE)
                 ~> callContract(NEWADDR, "init", mkVmInputDeploy(FROM, VALUE, ARGS, GASLIMIT, GASPRICE, mkTxHash(CNT)))
         </commands>
+        <instrs> .K </instrs>
         <account>
            <address> FROM </address>
            <nonce> NONCE => NONCE +Int 1 </nonce>
@@ -678,6 +733,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
  // -----------------------------------------------------
     rule <k> transfer(TX) => TX ... </k>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     syntax TransferTx ::= transferTx    ( from: Address, to: Bytes, value: Int ) [klabel(transferTx), symbol]
@@ -687,10 +743,12 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
           => transferTxAux(#address2Bytes(FROM), #address2Bytes(TO), VAL) ...
          </k>
          <commands> .K </commands>
+         <instrs> .K </instrs>
     [priority(60)]
 
     rule <k> transferTxAux(FROM, TO, VAL) => #wait ... </k>
          <commands> .K => transferFunds(FROM, TO, VAL) </commands>
+         <instrs> .K </instrs>
          <account>
           <address> FROM </address>
           <nonce> NONCE => NONCE +Int 1 </nonce>
@@ -706,6 +764,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
  // ------------------------------------------------------------------------------------
     rule <k> validatorReward(TX) => TX ... </k>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     syntax ValidatorRewardTx ::= validatorRewardTx    ( to: Address, value: Int) [klabel(validatorRewardTx), symbol]
@@ -713,6 +772,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
  // -------------------------------------------------------------------------------------------------------------------
     rule <k> validatorRewardTx(TO, VAL) => validatorRewardTxAux(#address2Bytes(TO), VAL) ... </k>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     rule <k> validatorRewardTxAux(TO, VAL) => .K ... </k>
@@ -726,6 +786,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
             ...
          </account>
          <commands> .K </commands>
+         <instrs> .K </instrs>
       [priority(60)]
 
     syntax Bytes ::= #incBytes(val : Bytes, inc : Int) [function]

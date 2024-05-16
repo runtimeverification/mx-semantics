@@ -408,6 +408,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     rule [exception-revert]:
         <commands> (#exception(EC, MSG) ~> #endWasm) => popCallState ~> popWorldState ... </commands>
         <vmOutput> .VMOutput => VMOutput( EC , MSG , .ListBytes , .List, .Map) </vmOutput>
+        <logging> S => S +String " -- Exception: " +String Bytes2String(MSG) </logging>
 
     rule [exception-skip]:
         <commands> #exception(_,_) ~> (CMD:InternalCmd => .K ) ... </commands>
@@ -420,24 +421,9 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 `#throwException*` clears the `<instrs>` cell and creates an `#exception(_,_)` command with the given error code and message.
 
 ```k
- // ------------------------------------------------------------------
-    rule [throwException]:
-        <instrs> #throwException( EC , MSG )
-              => #throwExceptionBs( EC , String2Bytes(MSG) ) ...
-        </instrs>
-    rule [throwException-cmd]:
-        <commands> #throwException( EC , MSG )
-              => #throwExceptionBs( EC , String2Bytes(MSG) ) ...
-        </commands>
-
     rule [throwExceptionBs]:
         <instrs> (#throwExceptionBs( EC , MSG ) ~> _ ) => .K </instrs>
         <commands> (.K => #exception(EC,MSG)) ... </commands>
-        <logging> S => S +String " -- Exception: " +String Bytes2String(MSG) </logging>
-    rule [throwExceptionBs-cmd]:
-        <commands> (#throwExceptionBs( EC , MSG ) => #exception(EC,MSG)) ... </commands>
-        <logging> S => S +String " -- Exception: " +String Bytes2String(MSG) </logging>
-
 ```
 
 ## Managing Accounts
@@ -457,17 +443,24 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
     syntax InternalCmd ::= createAccount ( Bytes ) [klabel(createAccount), symbol]
  // ------------------------------------------------------------------------------
     // ignore if the account already exists
-    rule [createAccount-existing]:
+    rule [createAccount-existing-instrs-empty]:
          <commands> createAccount(ADDR) => .K ... </commands>
          <account>
            <address> ADDR </address>
            ...
          </account>
-         <instrs> (#waitCommands ~> _) #Or .K </instrs>
-        //  <logging> S => S +String " -- initAccount duplicate " +String Bytes2String(ADDR) </logging>
+         <instrs> .K </instrs>
+      [priority(60)]
+    rule [createAccount-existing-instrs-wait]:
+         <commands> createAccount(ADDR) => .K ... </commands>
+         <account>
+           <address> ADDR </address>
+           ...
+         </account>
+         <instrs> #waitCommands ... </instrs>
       [priority(60)]
 
-    rule [createAccount-new]:
+    rule [createAccount-new-instrs-empty]:
          <commands> createAccount(ADDR) => .K ... </commands>
          <accounts>
            ( .Bag
@@ -478,15 +471,27 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            )
            ...
          </accounts>
-         <instrs> (#waitCommands ~> _) #Or .K </instrs>
-        //  <logging> S => S +String " -- initAccount new " +String Bytes2String(ADDR) </logging>
+         <instrs> .K </instrs>
+      [priority(61)]
+    rule [createAccount-new-instrs-wait]:
+         <commands> createAccount(ADDR) => .K ... </commands>
+         <accounts>
+           ( .Bag
+          => <account>
+               <address> ADDR </address>
+               ...
+             </account>
+           )
+           ...
+         </accounts>
+         <instrs> #waitCommands ... </instrs>
       [priority(61)]
 
     syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, Code, Bytes, MapBytesToBytes )  [klabel(setAccountFields), symbol]
                          | setAccountCode      ( Bytes, Code )  [klabel(setAccountCode), symbol]
                          | setAccountOwner     ( Bytes, Bytes )
  // ---------------------------------------------------------------
-    rule [setAccountFields]:
+    rule [setAccountFields-instrs-empty]:
          <commands> setAccountFields(ADDR, NONCE, BALANCE, CODE, OWNER_ADDR, STORAGE) => .K ... </commands>
          <account>
            <address> ADDR </address>
@@ -497,26 +502,58 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
            <storage> _ => STORAGE </storage>
            ...
          </account>
-         <instrs> (#waitCommands ~> _) #Or .K </instrs>
+         <instrs> .K </instrs>
+      [priority(60)]
+    rule [setAccountFields-instrs-wait]:
+         <commands> setAccountFields(ADDR, NONCE, BALANCE, CODE, OWNER_ADDR, STORAGE) => .K ... </commands>
+         <account>
+           <address> ADDR </address>
+           <nonce> _ => NONCE </nonce>
+           <balance> _ => BALANCE </balance>
+           <code> _ => CODE </code>
+           <ownerAddress> _ => OWNER_ADDR </ownerAddress>
+           <storage> _ => STORAGE </storage>
+           ...
+         </account>
+         <instrs> #waitCommands ... </instrs>
       [priority(60)]
 
-    rule [setAccountCode]:
+    rule [setAccountCode-instrs-empty]:
          <commands> setAccountCode(ADDR, CODE) => .K ... </commands>
          <account>
            <address> ADDR </address>
            <code> _ => CODE </code>
            ...
          </account>
-         <instrs> (#waitCommands ~> _) #Or .K </instrs>
+         <instrs> .K </instrs>
+      [priority(60)]
+    rule [setAccountCode-instrs-wait]:
+         <commands> setAccountCode(ADDR, CODE) => .K ... </commands>
+         <account>
+           <address> ADDR </address>
+           <code> _ => CODE </code>
+           ...
+         </account>
+         <instrs> #waitCommands ... </instrs>
       [priority(60)]
 
-    rule <commands> setAccountOwner(ADDR, OWNER) => .K ... </commands>
+    rule [setAccountOwner-instrs-empty]:
+         <commands> setAccountOwner(ADDR, OWNER) => .K ... </commands>
          <account>
            <address> ADDR </address>
            <ownerAddress> _ => OWNER </ownerAddress>
            ...
          </account>
-         <instrs> (#waitCommands ~> _) #Or .K </instrs>
+         <instrs> .K </instrs>
+      [priority(60)]
+    rule [setAccountOwner-instrs-wait]:
+         <commands> setAccountOwner(ADDR, OWNER) => .K ... </commands>
+         <account>
+           <address> ADDR </address>
+           <ownerAddress> _ => OWNER </ownerAddress>
+           ...
+         </account>
+         <instrs> #waitCommands ... </instrs>
       [priority(60)]
 ```
 
@@ -528,17 +565,13 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 - `transferFundsH` assumes that the accounts exist.
 
 ```k
-    syntax InternalCmd ::= transferFunds ( Bytes, Bytes, Int )
-                         | transferFundsH ( Bytes, Bytes, Int )
+    syntax K           ::= transferFunds ( Bytes, Bytes, Int )    [macro]
+    syntax InternalCmd ::= transferFundsH ( Bytes, Bytes, Int )
  // -----------------------------------------
-    rule <commands> transferFunds(A, B, V)
-                 => checkAccountExists(A)
-                 ~> checkAccountExists(B)
-                 ~> transferFundsH(A, B, V)
-                    ...
-         </commands>
-         <instrs> (#waitCommands ~> _) #Or .K </instrs>
-      [priority(60)]
+    rule transferFunds(A, B, V)
+      => checkAccountExists(A)
+      ~> checkAccountExists(B)
+      ~> transferFundsH(A, B, V)
 
     rule [transferFundsH-self]:
         <commands> transferFundsH(ACCT, ACCT, VALUE)
@@ -550,7 +583,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           <balance> ORIGFROM </balance>
           ...
         </account>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+       // <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires VALUE <=Int ORIGFROM
       [priority(60)]
 
@@ -569,7 +602,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           <balance> ORIGTO => ORIGTO +Int VALUE </balance>
           ...
         </account>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+       // <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
       [priority(60), preserves-definedness]
       // Preserving definedness:
@@ -577,13 +610,13 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       //   - -Int and +Int are total
 
     rule [transferFundsH-oofunds]:
-        <commands> transferFundsH(ACCT, _, VALUE) => #throwExceptionBs(OutOfFunds, b"") ... </commands>
+        <commands> transferFundsH(ACCT, _, VALUE) => #exception(OutOfFunds, b"") ... </commands>
         <account>
           <address> ACCT </address>
           <balance> ORIGFROM </balance>
           ...
         </account>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+       // <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires VALUE >Int ORIGFROM
       [priority(60)]
 
@@ -592,15 +625,13 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ## Calling Contract
 
 ```k
-    syntax InternalCmd ::= callContract ( Bytes, String,     VmInputCell ) [klabel(callContractString), symbol]
-                         | callContract ( Bytes, WasmString, VmInputCell ) [klabel(callContractWasmString), symbol]
+    syntax InternalCmd ::= callContract    ( Bytes, String,     VmInputCell ) [symbol(callContractString), function, total]
+                         | callContract    ( Bytes, WasmString, VmInputCell ) [symbol(callContractWasmString)]
+                         | callContractAux ( Bytes, Bytes, WasmString, VmInputCell ) [symbol(callContractAux)]
  // -------------------------------------------------------------------------------------
-    rule <commands> callContract(TO, FUNCNAME:String, VMINPUT)
-                 => callContract(TO, #quoteUnparseWasmString(FUNCNAME), VMINPUT) ...
-         </commands>
-         <instrs> (#waitCommands ~> _) #Or .K </instrs>
-      [priority(60)]
-
+    rule callContract(TO, FUNCNAME:String, VMINPUT)
+      => callContract(TO, #quoteUnparseWasmString(FUNCNAME), VMINPUT)
+    
     rule [callContract]:
         <commands> callContract(TO, FUNCNAME:WasmStringToken,
                                 <vmInput>
@@ -615,9 +646,17 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
                 ~> resetCallstate
                 ~> transferFunds(FROM, TO, VALUE)
                 ~> transferESDTs(FROM, TO, ESDT)
-                ~> newWasmInstance(TO, CODE)
-                ~> mkCall(TO, FUNCNAME, VMINPUT)
+                ~> callContractAux(FROM, TO, FUNCNAME, VMINPUT)
                 ~> #endWasm
+                   ...
+        </commands>
+        <vmOutput> _ => .VMOutput </vmOutput>
+        <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
+
+    rule [callContractAux]:
+        <commands> callContractAux(_FROM, TO, FUNCNAME, VMINPUT)
+                => newWasmInstance(TO, CODE)
+                ~> mkCall(TO, FUNCNAME, VMINPUT)
                    ...
         </commands>
         <account>
@@ -625,62 +664,40 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           <code> CODE </code>
           ...
         </account>
-        <vmOutput> _ => .VMOutput </vmOutput>
-        <logging> S => S +String " -- callContract " +String #parseWasmString(FUNCNAME) </logging>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> .K </instrs>
       requires notBool(isBuiltin(FUNCNAME))
        andBool #token("\"callBack\"", "WasmStringToken") =/=K FUNCNAME
       [priority(60)]
 
-    rule [callContract-builtin]:
-        <commands> callContract(TO, FUNC:WasmStringToken,
-                                <vmInput>
-                                  <caller> FROM </caller>
-                                  <callValue> VALUE </callValue>
-                                  <esdtTransfers> ESDT </esdtTransfers>
-                                  _
-                                </vmInput> #as VMINPUT)
-                => pushWorldState
-                ~> pushCallState
-                ~> resetCallstate
-                ~> transferFunds(FROM, TO, VALUE)
-                ~> transferESDTs(FROM, TO, ESDT)
-                ~> processBuiltinFunction(toBuiltinFunction(FUNC), FROM, TO, VMINPUT)
-                ~> #endWasm
+    rule [callContractAux-builtin]:
+        <commands> callContractAux(FROM, TO, FUNC, VMINPUT)
+                => processBuiltinFunction(toBuiltinFunction(FUNC), FROM, TO, VMINPUT)
                    ...
         </commands>
-        <vmOutput> _ => .VMOutput </vmOutput>
-        <logging> S => S +String " -- callContract " +String #parseWasmString(FUNC) </logging>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> .K </instrs>
       requires isBuiltin(FUNC)
       [priority(60)]
 
-    rule [callContract-err-callback]:
-        <commands> callContract(_, FUNCNAME:WasmString, _)
-                => #throwExceptionBs(ExecutionFailed, b"invalid function (calling callBack() directly is forbidden)") ...
+    rule [callContractAux-err-callback]:
+        <commands> callContractAux(_, _, FUNCNAME:WasmString, _)
+                => #exception(ExecutionFailed, b"invalid function (calling callBack() directly is forbidden)") ...
         </commands>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+       <instrs> .K </instrs>
       requires #token("\"callBack\"", "WasmStringToken") ==K FUNCNAME
       [priority(60)]
 
-    rule [callContract-not-contract]:
-        <commands> callContract(TO, _:WasmString, _)
-                => #throwExceptionBs(ContractNotFound, b"not a contract: " +Bytes TO) ...
+    rule [callContractAux-not-contract]:
+        <commands> callContractAux(_, TO, _:WasmString, _)
+                => #exception(ContractNotFound, b"not a contract: " +Bytes TO) ...
         </commands>
         <account>
           <address> TO </address>
           <code> .Code </code>
           ...
         </account>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> .K </instrs>
       [priority(61)]
 
-    rule [callContract-not-found]:
-        <commands> callContract(TO, _:WasmString, _)
-                => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes TO) ...
-        </commands>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
-      [priority(62)]
 ```
 
 Every contract call runs in its own Wasm instance initialized with the contract's code.
@@ -711,6 +728,7 @@ Every contract call runs in its own Wasm instance initialized with the contract'
         <commands> setContractModIdx => .K ... </commands>
         <contractModIdx> _ => NEXTIDX -Int 1 </contractModIdx>
         <nextModuleIdx> NEXTIDX </nextModuleIdx>
+        <instrs> .K </instrs>
 
     syntax K ::= initContractModule(ModuleDecl)   [function]
  // ------------------------------------------------------------------------
@@ -754,14 +772,16 @@ Initialize the call state and invoke the endpoint function:
       [priority(60)]
 
     rule [mkCall-func-not-found]:
-        <commands> mkCall(_TO, FUNCNAME:WasmStringToken, _VMINPUT) => .K ... </commands>
+        <commands> mkCall(_TO, FUNCNAME:WasmStringToken, _VMINPUT)
+                => #exception(FunctionNotFound, b"invalid function (not found)") ...
+        </commands>
         <contractModIdx> MODIDX:Int </contractModIdx>
         <moduleInst>
           <modIdx> MODIDX </modIdx>
           <exports> EXPORTS </exports>
           ...
         </moduleInst>
-        <instrs> .K => #throwException(FunctionNotFound, "invalid function (not found)") </instrs>
+        <instrs> .K </instrs>
         <logging> S => S +String " -- callContract not found " +String #parseWasmString(FUNCNAME) </logging>
       requires notBool( FUNCNAME in_keys(EXPORTS) )
       [priority(60)]

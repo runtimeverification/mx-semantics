@@ -21,47 +21,35 @@ module ESDT
  // -------------------------------------------------------------
     rule keyWithNonce(TOK, NONCE) => TOK +Bytes Int2Bytes(NONCE, BE, Unsigned)
 
-    syntax InternalCmd ::= transferESDT ( Bytes , Bytes , ESDTTransfer )
-                         | transferESDTs    ( Bytes , Bytes , List )
-                         | transferESDTsAux ( Bytes , Bytes , List )
 
+    syntax K ::= transferESDTs(Bytes, Bytes, List)       [function, total]
+               | transferESDTsAux(Bytes, Bytes, List)    [function, total]
+ // -------------------------------------------------------------------
+    rule transferESDTs(FROM, TO, L)
+      => transferESDTsAux(FROM, TO, L) 
+      ~> appendToOutAccount(TO, OutputTransfer(FROM, L))
 
-    rule <commands> transferESDTs(FROM, TO, L)
-                 => transferESDTsAux(FROM, TO, L) 
-                 ~> appendToOutAccount(TO, OutputTransfer(FROM, L))
-                    ...
-         </commands>
-         <instrs> (#waitCommands ~> _) #Or .K </instrs>
+    rule transferESDTsAux(FROM, TO, ListItem(T) Ts)
+      => transferESDT(FROM, TO, T)
+      ~> transferESDTsAux(FROM, TO, Ts)
 
-    rule <commands> transferESDTsAux(_, _, .List) => .K ... </commands>
-         <instrs> (#waitCommands ~> _) #Or .K </instrs>
+    rule transferESDTsAux(_FROM, _TO, _)    => .K       [owise]
 
-    rule <commands> transferESDTsAux(FROM, TO, ListItem(T:ESDTTransfer) Ls) 
-                 => transferESDT(FROM, TO, T) 
-                 ~> transferESDTsAux(FROM, TO, Ls)
-                    ... 
-         </commands>
-         <instrs> (#waitCommands ~> _) #Or .K </instrs>
+    syntax K ::= transferESDT ( Bytes , Bytes , ESDTTransfer )    [function, total]
+ // ---------------------------------------------------------------------
+    rule transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, 0))
+      => checkAccountExists(FROM)
+      ~> checkAccountExists(TO)
+      ~> checkESDTBalance(FROM, TOKEN, VALUE)
+      ~> addToESDTBalance(FROM, TOKEN, 0 -Int VALUE, false)
+      ~> addToESDTBalance(TO,   TOKEN, VALUE, true)
 
-    rule <commands> transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, 0)) 
-                 => checkAccountExists(FROM)
-                 ~> checkAccountExists(TO)
-                 ~> checkESDTBalance(FROM, TOKEN, VALUE)
-                 ~> addToESDTBalance(FROM, TOKEN, 0 -Int VALUE, false)
-                 ~> addToESDTBalance(TO,   TOKEN, VALUE, true)
-                    ... 
-         </commands>
-         <instrs> (#waitCommands ~> _) #Or .K </instrs>
-
-    rule <commands> transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, NONCE)) 
-                 => checkAccountExists(FROM)
-                 ~> checkAccountExists(TO)
-                 ~> checkESDTBalance(FROM, keyWithNonce(TOKEN, NONCE), VALUE)
-                 ~> moveNFTToDestination(FROM, TO, keyWithNonce(TOKEN, NONCE), VALUE)
-                 ~> removeEmptyNft(FROM, keyWithNonce(TOKEN, NONCE))
-                    ... 
-         </commands>
-         <instrs> (#waitCommands ~> _) #Or .K </instrs>
+    rule transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, NONCE)) 
+      => checkAccountExists(FROM)
+      ~> checkAccountExists(TO)
+      ~> checkESDTBalance(FROM, keyWithNonce(TOKEN, NONCE), VALUE)
+      ~> moveNFTToDestination(FROM, TO, keyWithNonce(TOKEN, NONCE), VALUE)
+      ~> removeEmptyNft(FROM, keyWithNonce(TOKEN, NONCE))
       requires NONCE =/=Int 0
 
     syntax InternalCmd ::= removeEmptyNft(Bytes, Bytes)
@@ -77,12 +65,17 @@ module ESDT
           </esdtData> => .Bag)
           ...
         </account>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        // <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
-    rule [removeEmptyNft-skip]:
+    rule [removeEmptyNft-skip-instrs-empty]:
         <commands> removeEmptyNft(_, _) => .K ... </commands>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> .K </instrs>
+      [priority(61)]
+
+    rule [removeEmptyNft-skip-instrs-wait]:
+        <commands> removeEmptyNft(_, _) => .K ... </commands>
+        <instrs> #waitCommands ... </instrs>
       [priority(61)]
 
 ```
@@ -105,14 +98,18 @@ module ESDT
           </esdtData>
           ...
         </account>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        // <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires VALUE <=Int ORIGFROM
       [priority(60)]
 
     // VALUE > ORIGFROM or TOKEN does not exist
-    rule [checkESDTBalance-oof]:
-        <commands> checkESDTBalance(_, _, _) => #throwExceptionBs(OutOfFunds, b"") ... </commands>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+    rule [checkESDTBalance-oof-instrs-empty]:
+        <commands> checkESDTBalance(_, _, _) => #exception(OutOfFunds, b"") ... </commands>
+        <instrs> .K </instrs>
+      [priority(61)]
+    rule [checkESDTBalance-oof-instrs-wait]:
+        <commands> checkESDTBalance(_, _, _) => #exception(OutOfFunds, b"") ... </commands>
+        <instrs> #waitCommands ... </instrs>
       [priority(61)]
 
 ```
@@ -133,7 +130,7 @@ module ESDT
           </esdtData>
           ...
         </account>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        // <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule [addToESDTBalance-new-esdtData]:
@@ -147,15 +144,22 @@ module ESDT
           </esdtData>)
           ...
         </account>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        // <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(61)]
 
-    rule [addToESDTBalance-new-err]:
+    rule [addToESDTBalance-new-err-instrs-empty]:
         <commands> addToESDTBalance(_ACCT, _TOKEN, _DELTA, false)
-                => #throwExceptionBs(ExecutionFailed, b"new NFT data on sender") 
+                => #exception(ExecutionFailed, b"new NFT data on sender") 
                    ...
         </commands>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> .K </instrs>
+      [priority(61)]
+    rule [addToESDTBalance-new-err-instrs-wait]:
+        <commands> addToESDTBalance(_ACCT, _TOKEN, _DELTA, false)
+                => #exception(ExecutionFailed, b"new NFT data on sender") 
+                   ...
+        </commands>
+        <instrs> #waitCommands ... </instrs>
       [priority(61)]
 
 ```
@@ -185,7 +189,7 @@ module ESDT
           </esdtData>
           ...
         </account>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        // <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule [moveNFTToDestination-self]:
@@ -198,7 +202,7 @@ module ESDT
           </esdtData>
           ...
         </account>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        // <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule [moveNFTToDestination-new]:
@@ -223,7 +227,7 @@ module ESDT
           </esdtData>)
           ...
         </account>
-        <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        // <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(61)]
 ```
 
@@ -731,7 +735,7 @@ module ESDT
 
     rule [esdtNftAddUri-not-found]:
         <commands> esdtNftAddUri(_SND, _TOKEN, _NEW_URIS)
-                => #throwExceptionBs(UserError, b"new NFT data on sender") ...
+                => #exception(UserError, b"new NFT data on sender") ...
         </commands>
         <instrs> .K </instrs>
       [priority(61)]
@@ -775,7 +779,7 @@ module ESDT
 
     rule [checkAllowedToExecute-fail]:
         <commands> checkAllowedToExecute(_ADDR, _TOK, _ROLE) 
-                => #throwExceptionBs(UserError, b"action is not allowed") ...
+                => #exception(UserError, b"action is not allowed") ...
         </commands>
         <instrs> .K </instrs>
       [priority(61)]

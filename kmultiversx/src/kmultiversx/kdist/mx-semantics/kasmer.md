@@ -350,7 +350,8 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         </logging>
       requires 0 <=Int VALUE
       [priority(60), preserves-definedness]
-      // ADDR exists prior so the account map is well-defined
+      // ADDR exists prior so the account map is well-defined, and the case where
+      // TOK_ID exists prior in esdtData is handled above with higher priority.
 
     // ERROR: account not found
     rule [setESDTBalance-acct-not-found]:

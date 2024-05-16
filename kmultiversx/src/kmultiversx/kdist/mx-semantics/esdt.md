@@ -149,7 +149,8 @@ module ESDT
         </account>
         <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(61), preserves-definedness]
-      // preserves-definedness: ACCT exists prior so the account map is defined
+      // preserves-definedness: ACCT exists prior so the account map is defined, and the case where
+      // TOKEN exists prior in esdtData is handled above with higher priority.
 
     rule [addToESDTBalance-new-err]:
         <commands> addToESDTBalance(_ACCT, _TOKEN, _DELTA, false)

@@ -783,13 +783,13 @@ files = [
 
 [[package]]
 name = "pep8-naming"
-version = "0.13.3"
+version = "0.14.1"
 description = "Check PEP-8 naming conventions, plugin for flake8"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "pep8-naming-0.13.3.tar.gz", hash = "sha256:1705f046dfcd851378aac3be1cd1551c7c1e5ff363bacad707d43007877fa971"},
-    {file = "pep8_naming-0.13.3-py3-none-any.whl", hash = "sha256:1a86b8c71a03337c97181917e2b472f0f5e4ccb06844a0d6f0a33522549e7a80"},
+    {file = "pep8-naming-0.14.1.tar.gz", hash = "sha256:1ef228ae80875557eb6c1549deafed4dabbf3261cfcafa12f773fe0db9be8a36"},
+    {file = "pep8_naming-0.14.1-py3-none-any.whl", hash = "sha256:63f514fc777d715f935faf185dedd679ab99526a7f2f503abb61587877f7b1c5"},
 ]
 
 [package.dependencies]
@@ -972,7 +972,7 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pyk"
-version = "7.0.67"
+version = "7.0.70"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -993,13 +993,13 @@ xdg-base-dirs = "^6.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/k.git"
-reference = "v7.0.67"
-resolved_reference = "8c5e00d10e600132f51f2958d4f624bc86669cbf"
+reference = "v7.0.70"
+resolved_reference = "b8ec37891c2e3e68afe5c5a0c14e2d2d17ef2daf"
 subdirectory = "pyk"
 
 [[package]]
 name = "pykwasm"
-version = "0.1.52"
+version = "0.1.53"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -1010,13 +1010,13 @@ develop = false
 cytoolz = "^0.12.1"
 numpy = "^1.24.2"
 py-wasm = {git = "https://github.com/runtimeverification/py-wasm.git", tag = "0.2.1"}
-pyk = {git = "https://github.com/runtimeverification/k.git", tag = "v7.0.67", subdirectory = "pyk"}
+pyk = {git = "https://github.com/runtimeverification/k.git", tag = "v7.0.70", subdirectory = "pyk"}
 
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/wasm-semantics.git"
-reference = "v0.1.52"
-resolved_reference = "b104b92501208a293c59933f8513134be66df6b8"
+reference = "v0.1.53"
+resolved_reference = "bbc3567be6e1984be45b1aeae1dfb8b2a6671f21"
 subdirectory = "pykwasm"
 
 [[package]]
@@ -1294,4 +1294,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "a098a2b108e8a6d53a0f2acea0d8090dca29d3c8e082c43513dad998c8ebdfae"
+content-hash = "a0d94c987ae1c7e1dcea77070102b2103c178382c952c4a57329308a3f2913d4"

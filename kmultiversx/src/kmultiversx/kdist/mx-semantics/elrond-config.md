@@ -565,7 +565,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 - `transferFundsH` assumes that the accounts exist.
 
 ```k
-    syntax K           ::= transferFunds ( Bytes, Bytes, Int )    [macro]
+    syntax K           ::= transferFunds ( Bytes, Bytes, Int )    [function, total]
     syntax InternalCmd ::= transferFundsH ( Bytes, Bytes, Int )
  // -----------------------------------------
     rule transferFunds(A, B, V)

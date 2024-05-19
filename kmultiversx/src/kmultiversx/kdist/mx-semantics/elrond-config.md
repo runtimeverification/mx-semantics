@@ -4,6 +4,19 @@ Elrond Configuration
 Combine Elrond node with Wasm.
 
 ```k
+
+// TODO: #or patterns are currently not supported in the Booster backend. PR k#4363 aims to resolve
+// this with a desugaring pass in the K frontend, but this solution may not handle rule labels properly. 
+// In PR #267, we worked around this by either duplicating rules or commenting out cells that contain #or patterns. 
+// The duplicated rules have labels ending with '-instrs-empty' and '-instrs-wait'.
+// 
+// Once the issue with #or patterns is resolved in a way that supports rule labels, 
+// de-duplicate these rules and re-enable the commented-out #or patterns.
+//
+// K PR : https://github.com/runtimeverification/k/pull/4363
+// K Issue: https://github.com/runtimeverification/k/issues/4355
+// mx-semantics PR: https://github.com/runtimeverification/mx-semantics/pull/267
+
 requires "vmhooks/async.md"
 requires "wasm-semantics/wasm-text.md"
 requires "plugin/krypto.md"

@@ -327,14 +327,16 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
 
     rule [checkAccountExists-fail]:
         <commands> checkAccountExists(ADDR) 
-                => #throwExceptionBs(ExecutionFailed, b"account not found: " +Bytes ADDR) ... 
+                => #exception(ExecutionFailed, b"account not found: " +Bytes ADDR) ... 
         </commands>
       [priority(61)]
 
-    syntax ThrowException ::= #throwException( ExceptionCode , String )
+    syntax ThrowException ::= #throwException( ExceptionCode , String )    [macro]
                             | #throwExceptionBs( ExceptionCode , Bytes )
+ // ------------------------------------------------------------------------------
+    rule #throwException( EC , MSG ) => #throwExceptionBs( EC , String2Bytes(MSG) )
+
     syntax InternalInstr ::= ThrowException
-    syntax InternalCmd ::= ThrowException
 
     syntax InternalCmd ::= #exception( ExceptionCode , Bytes )
  // ---------------------------------------------------
@@ -359,12 +361,10 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax InternalCmd ::= processBuiltinFunction(BuiltinFunction, Bytes, Bytes, VmInputCell)
       [klabel(processBuiltinFunction),symbol]
 
-    syntax InternalCmd ::= checkBool(Bool, String)    [klabel(checkBool), symbol]
- // -----------------------------------------------------------------------------------
-    rule [checkBool-t]:
-        <commands> checkBool(true, _)    => .K ... </commands>
-    rule [checkBool-f]:
-        <commands> checkBool(false, ERR) => #throwExceptionBs(ExecutionFailed, String2Bytes(ERR)) ... </commands>
+    syntax K ::= checkBool(Bool, String)    [function, total, symbol(checkBool)]
+ // -----------------------------------------------------------------------------
+    rule [checkBool-t]: checkBool(true, _)    => .K
+    rule [checkBool-f]: checkBool(false, ERR) => #exception(ExecutionFailed, String2Bytes(ERR))
 
     syntax WasmCell
     syntax InternalCmd ::= newWasmInstance(Bytes, ModuleDecl)  [klabel(newWasmInstance), symbol]

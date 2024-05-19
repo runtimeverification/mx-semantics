@@ -29,11 +29,12 @@ module ESDT
       => transferESDTsAux(FROM, TO, L) 
       ~> appendToOutAccount(TO, OutputTransfer(FROM, L))
 
-    rule transferESDTsAux(FROM, TO, ListItem(T) Ts)
+    rule transferESDTsAux(FROM:Bytes, TO:Bytes, ListItem(T:ESDTTransfer) Ts)
       => transferESDT(FROM, TO, T)
       ~> transferESDTsAux(FROM, TO, Ts)
 
-    rule transferESDTsAux(_FROM, _TO, _)    => .K       [owise]
+    rule transferESDTsAux(_FROM, _TO, .List)         => .K
+    rule transferESDTsAux(_FROM, _TO, ListItem(X) _) => .K    requires notBool isESDTTransfer(X)
 
     syntax K ::= transferESDT ( Bytes , Bytes , ESDTTransfer )    [function, total]
  // ---------------------------------------------------------------------

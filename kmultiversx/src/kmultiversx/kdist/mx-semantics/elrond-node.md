@@ -371,10 +371,11 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
                          | mkCall( Bytes, WasmString, VmInputCell )
 
     syntax InternalCmd ::= "resetCallstate"      [klabel(resetCallState), symbol]
- // --------------------------------------------------------------------------- 
+ // ---------------------------------------------------------------------------
     rule [resetCallstate]:
         <commands> resetCallstate => .K ... </commands>
         (_:CallStateCell => <callState> <instrs> .K </instrs> ... </callState>)
+      [preserves-definedness] // all constant configuration cells should be defined
 
 endmodule
 ```

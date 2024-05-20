@@ -26,7 +26,7 @@ module ESDT
                | transferESDTsAux(Bytes, Bytes, List)    [function, total]
  // -------------------------------------------------------------------
     rule transferESDTs(FROM, TO, L)
-      => transferESDTsAux(FROM, TO, L) 
+      => transferESDTsAux(FROM, TO, L)
       ~> appendToOutAccount(TO, OutputTransfer(FROM, L))
 
     rule transferESDTsAux(FROM:Bytes, TO:Bytes, ListItem(T:ESDTTransfer) Ts)
@@ -45,7 +45,7 @@ module ESDT
       ~> addToESDTBalance(FROM, TOKEN, 0 -Int VALUE, false)
       ~> addToESDTBalance(TO,   TOKEN, VALUE, true)
 
-    rule transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, NONCE)) 
+    rule transferESDT(FROM, TO, esdtTransfer(TOKEN, VALUE, NONCE))
       => checkAccountExists(FROM)
       ~> checkAccountExists(TO)
       ~> checkESDTBalance(FROM, keyWithNonce(TOKEN, NONCE), VALUE)
@@ -146,18 +146,21 @@ module ESDT
           ...
         </account>
         // <instrs> (#waitCommands ~> _) #Or .K </instrs>
-      [priority(61)]
+      [priority(61), preserves-definedness]
+      // preserves-definedness:
+      //  - ACCT exists prior so the account map is defined
+      //  - TOKEN does not exist prior in esdtData, otherwise the rule above with higher priority would apply.
 
     rule [addToESDTBalance-new-err-instrs-empty]:
         <commands> addToESDTBalance(_ACCT, _TOKEN, _DELTA, false)
-                => #exception(ExecutionFailed, b"new NFT data on sender") 
+                => #exception(ExecutionFailed, b"new NFT data on sender")
                    ...
         </commands>
         <instrs> .K </instrs>
       [priority(61)]
     rule [addToESDTBalance-new-err-instrs-wait]:
         <commands> addToESDTBalance(_ACCT, _TOKEN, _DELTA, false)
-                => #exception(ExecutionFailed, b"new NFT data on sender") 
+                => #exception(ExecutionFailed, b"new NFT data on sender")
                    ...
         </commands>
         <instrs> #waitCommands ... </instrs>
@@ -244,10 +247,10 @@ module ESDT
     rule BuiltinFunction2Bytes(#ESDTLocalMint) => b"ESDTLocalMint"
 
     rule [ESDTLocalMint]:
-        <commands> processBuiltinFunction(#ESDTLocalMint, SND, DST, <vmInput> 
+        <commands> processBuiltinFunction(#ESDTLocalMint, SND, DST, <vmInput>
                                                                     <callValue> VALUE </callValue>
                                                                     <callArgs> ARGS </callArgs>
-                                                                    _ 
+                                                                    _
                                                                   </vmInput>)
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
                 ~> checkBool(size(ARGS) >=Int 2, "invalid arguments to process built-in function")
@@ -273,17 +276,17 @@ module ESDT
     rule BuiltinFunction2Bytes(#ESDTLocalBurn) => b"ESDTLocalBurn"
 
     rule [ESDTLocalBurn]:
-        <commands> processBuiltinFunction(#ESDTLocalBurn, SND, DST, <vmInput> 
+        <commands> processBuiltinFunction(#ESDTLocalBurn, SND, DST, <vmInput>
                                                                     <callValue> VALUE </callValue>
                                                                     <callArgs> ARGS </callArgs>
-                                                                    _ 
+                                                                    _
                                                                   </vmInput>)
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
                 ~> checkBool(size(ARGS) >=Int 2, "invalid arguments to process built-in function")
                 ~> checkBool(SND ==K DST, "invalid receiver address")
                 ~> checkAccountExists(SND)
                 // TODO If the token has the 'BurnRoleForAll' global property, skip 'checkAllowedToExecute'
-                ~> checkAllowedToExecute(SND, getArg(ARGS, 0), ESDTRoleLocalBurn) 
+                ~> checkAllowedToExecute(SND, getArg(ARGS, 0), ESDTRoleLocalBurn)
                 ~> checkBool( lengthBytes(getArg(ARGS, 1)) <=Int 100
                             , "invalid arguments to process built-in function")
                 ~> checkESDTBalance(SND, getArg(ARGS, 0),        getArgUInt(ARGS, 1))
@@ -304,10 +307,10 @@ module ESDT
     rule BuiltinFunction2Bytes(#ESDTNFTBurn) => b"ESDTNFTBurn"
 
     rule [ESDTNFTBurn]:
-        <commands> processBuiltinFunction(#ESDTNFTBurn, SND, DST, <vmInput> 
+        <commands> processBuiltinFunction(#ESDTNFTBurn, SND, DST, <vmInput>
                                                                     <callValue> VALUE </callValue>
                                                                     <callArgs> ARGS </callArgs>
-                                                                    _ 
+                                                                    _
                                                                   </vmInput>)
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
                 ~> checkBool(size(ARGS) >=Int 2, "invalid arguments to process built-in function")
@@ -346,11 +349,11 @@ module ESDT
     rule BuiltinFunction2Bytes(#ESDTTransfer) => b"ESDTTransfer"
 
     rule [ESDTTransfer]:
-        <commands> processBuiltinFunction(#ESDTTransfer, SND, DST, 
-                                      <vmInput> 
+        <commands> processBuiltinFunction(#ESDTTransfer, SND, DST,
+                                      <vmInput>
                                         <callValue> VALUE </callValue>
                                         <callArgs> ARGS </callArgs>
-                                        _ 
+                                        _
                                       </vmInput> #as VMINPUT)
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
                 ~> checkBool(size(ARGS) >=Int 2, "invalid arguments to process built-in function")
@@ -373,11 +376,11 @@ module ESDT
         [symbol(determineIsSCCallAfter)]
  // ----------------------------------------------
     rule [determineIsSCCallAfter-call]:
-        <commands> determineIsSCCallAfter(SND, DST, FUNC, <vmInput> 
+        <commands> determineIsSCCallAfter(SND, DST, FUNC, <vmInput>
                                                             <callArgs> ARGS </callArgs>
                                                             <gasProvided> GAS </gasProvided>
                                                             <gasPrice> GAS_PRICE </gasPrice>
-                                                            _ 
+                                                            _
                                                           </vmInput>)
                 => newWasmInstance(DST, CODE)
                 ~> mkCall( DST
@@ -431,11 +434,11 @@ module ESDT
     rule BuiltinFunction2Bytes(#MultiESDTNFTTransfer) => b"MultiESDTNFTTransfer"
 
     rule [MultiESDTNFTTransfer]:
-        <commands> processBuiltinFunction(#MultiESDTNFTTransfer, SND, DST, 
-                                      <vmInput> 
+        <commands> processBuiltinFunction(#MultiESDTNFTTransfer, SND, DST,
+                                      <vmInput>
                                         <callValue> VALUE </callValue>
                                         <callArgs> ARGS </callArgs>
-                                        _ 
+                                        _
                                       </vmInput> #as VMINPUT)
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
                 ~> checkBool(size(ARGS) >=Int 4, "invalid arguments to process built-in function")
@@ -480,8 +483,8 @@ module ESDT
     rule parseESDTTransfers(_, _) => .List
       [owise]
 
-    rule parseESDTTransfersH(N, ListItem(wrap(TOK)) ListItem(wrap(NONCE)) ListItem(wrap(AMT)) REST) 
-      => ListItem( esdtTransfer( 
+    rule parseESDTTransfersH(N, ListItem(wrap(TOK)) ListItem(wrap(NONCE)) ListItem(wrap(AMT)) REST)
+      => ListItem( esdtTransfer(
             TOK, Bytes2Int(AMT, BE, Unsigned), Bytes2Int(NONCE, BE, Unsigned)
           ))
          parseESDTTransfersH(N -Int 1, REST)
@@ -501,11 +504,11 @@ module ESDT
     rule BuiltinFunction2Bytes(#ESDTNFTCreate) => b"ESDTNFTCreate"
 
     rule [ESDTNFTCreate]:
-        <commands> processBuiltinFunction(#ESDTNFTCreate, SND, DST, 
-                                      <vmInput> 
+        <commands> processBuiltinFunction(#ESDTNFTCreate, SND, DST,
+                                      <vmInput>
                                         <callValue> VALUE </callValue>
                                         <callArgs> ARGS </callArgs>
-                                        _ 
+                                        _
                                       </vmInput>)
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
                 ~> checkBool(size(ARGS) >=Int 7, "invalid arguments to process built-in function")
@@ -546,7 +549,7 @@ module ESDT
  // --------------------------------------------------------------------------------------------
     rule ESDTNFTCreate.meta(SND, ARGS)
       => esdtMetadata( ...
-            name: getArg(ARGS, 2), 
+            name: getArg(ARGS, 2),
             nonce: getLatestNonce(SND, ESDTNFTCreate.token(ARGS)) +Int 1,
             creator: SND,
             royalties: getArgUInt(ARGS, 3),
@@ -615,11 +618,11 @@ module ESDT
     rule BuiltinFunction2Bytes(#ESDTNFTAddQuantity) => b"ESDTNFTAddQuantity"
 
     rule [ESDTNFTAddQuantity]:
-        <commands> processBuiltinFunction(#ESDTNFTAddQuantity, SND, DST, 
-                                      <vmInput> 
+        <commands> processBuiltinFunction(#ESDTNFTAddQuantity, SND, DST,
+                                      <vmInput>
                                         <callValue> VALUE </callValue>
                                         <callArgs> ARGS </callArgs>
-                                        _ 
+                                        _
                                       </vmInput>)
 
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
@@ -665,11 +668,11 @@ module ESDT
     rule BuiltinFunction2Bytes(#ESDTNFTTransfer) => b"ESDTNFTTransfer"
 
     rule [ESDTNFTTransfer]:
-        <commands> processBuiltinFunction(#ESDTNFTTransfer, SND, DST, 
-                                      <vmInput> 
+        <commands> processBuiltinFunction(#ESDTNFTTransfer, SND, DST,
+                                      <vmInput>
                                         <callValue> VALUE </callValue>
                                         <callArgs> ARGS </callArgs>
-                                        _ 
+                                        _
                                       </vmInput> #as VMINPUT)
 
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
@@ -695,11 +698,11 @@ module ESDT
 
     // ESDTNFTAddURI & TOKEN & NONCE & URI1 & URI2 ...
     rule [ESDTNFTAddURI]:
-        <commands> processBuiltinFunction(#ESDTNFTAddURI, SND, DST, 
-                                      <vmInput> 
+        <commands> processBuiltinFunction(#ESDTNFTAddURI, SND, DST,
+                                      <vmInput>
                                         <callValue> VALUE </callValue>
                                         <callArgs> ARGS </callArgs>
-                                        _ 
+                                        _
                                       </vmInput>)
 
                 => checkBool(VALUE ==Int 0, "built in function called with tx value is not allowed")
@@ -779,7 +782,7 @@ module ESDT
       [priority(60)]
 
     rule [checkAllowedToExecute-fail]:
-        <commands> checkAllowedToExecute(_ADDR, _TOK, _ROLE) 
+        <commands> checkAllowedToExecute(_ADDR, _TOK, _ROLE)
                 => #exception(UserError, b"action is not allowed") ...
         </commands>
         <instrs> .K </instrs>

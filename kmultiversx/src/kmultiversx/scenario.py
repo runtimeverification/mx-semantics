@@ -18,7 +18,14 @@ from pyk.ktool.krun import KRun
 from pyk.prelude.collections import set_of
 from pykwasm.kwasm_ast import KBytes, KInt, KString
 
-from kmultiversx.utils import flatten, kast_to_json_str, krun_config, load_wasm, read_mandos_runtime
+from kmultiversx.utils import (
+    flatten,
+    kast_to_json_str,
+    krun_config,
+    load_wasm,
+    load_wasm_from_mxsc,
+    read_mandos_runtime,
+)
 
 if TYPE_CHECKING:
     from pyk.kast.inner import KInner
@@ -445,7 +452,7 @@ def mandos_to_deploy_tx(tx: dict, filename: str, output_dir: str) -> KInner:
     value = mandos_int_to_kint(get_egld_value(tx))
     arguments = mandos_arguments_to_klist(tx['arguments'])
     gas_limit = mandos_int_to_kint(tx['gasLimit'])
-    gas_price = mandos_int_to_kint(tx['gasPrice'], default_when_empty=0)
+    gas_price = mandos_int_to_kint(tx.get('gasPrice', '0'), default_when_empty=0)
 
     code = get_contract_code(tx['contractCode'], filename)
     assert isinstance(code, str)
@@ -462,7 +469,7 @@ def mandos_to_call_tx(tx: dict) -> KInner:
     function = KWasmString(tx['function'])
     arguments = mandos_arguments_to_klist(tx.get('arguments', []))
     gas_limit = mandos_int_to_kint(tx['gasLimit'])
-    gas_price = mandos_int_to_kint(tx['gasPrice'], default_when_empty=0)
+    gas_price = mandos_int_to_kint(tx.get('gasPrice', '0'), default_when_empty=0)
 
     return KApply('callTx', [sender, to, value, esdt_value, function, arguments, gas_limit, gas_price])
 
@@ -574,6 +581,9 @@ def file_to_module_decl(filename: str, output_dir: str) -> KInner:
         return load_wasm(filename)
     if filename[-5:] == '.wast' or filename[-4:] == '.wat':
         return wat_file_to_module_decl(filename, output_dir)
+    if filename[-10:] == '.mxsc.json':
+        return load_wasm_from_mxsc(filename)
+
     raise ValueError(f'Filetype not yet supported: {filename}')
 
 
@@ -602,7 +612,7 @@ def get_external_file_path(test_file: str, rel_path_to_new_file: str) -> str:
 
 
 def get_contract_code(code: str, filename: str) -> Optional[str]:
-    if code[0:5] == 'file:':
+    if code[0:5] in ('file:', 'mxsc:'):
         return get_external_file_path(filename, code[5:])
     if code == '':
         return None

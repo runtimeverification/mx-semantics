@@ -37,13 +37,13 @@ deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/managed_buffer_c
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/managed_buffer_copy_slice.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/managed_buffer_eq.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/managed_vec_address_push.scen.json
-deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/managed_vec_array_push.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/managed_vec_biguint_push.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/only_owner.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/only_user_account.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/panic.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/return_codes.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/sc_properties.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/small_num_overflow.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_big_int.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_big_uint.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_bool.scen.json
@@ -55,6 +55,8 @@ deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_managed_
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_map1.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_map2.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_map3.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_address_to_id.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_get_at_address.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_linked_list.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_map.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/basic-features/scenarios/storage_mapper_map_storage.scen.json

@@ -452,7 +452,7 @@ def mandos_to_deploy_tx(tx: dict, filename: str, output_dir: str) -> KInner:
     value = mandos_int_to_kint(get_egld_value(tx))
     arguments = mandos_arguments_to_klist(tx['arguments'])
     gas_limit = mandos_int_to_kint(tx['gasLimit'])
-    gas_price = mandos_int_to_kint(tx.get('gasPrice', "0"), default_when_empty=0)
+    gas_price = mandos_int_to_kint(tx.get('gasPrice', '0'), default_when_empty=0)
 
     code = get_contract_code(tx['contractCode'], filename)
     assert isinstance(code, str)
@@ -469,7 +469,7 @@ def mandos_to_call_tx(tx: dict) -> KInner:
     function = KWasmString(tx['function'])
     arguments = mandos_arguments_to_klist(tx.get('arguments', []))
     gas_limit = mandos_int_to_kint(tx['gasLimit'])
-    gas_price = mandos_int_to_kint(tx.get('gasPrice', "0"), default_when_empty=0)
+    gas_price = mandos_int_to_kint(tx.get('gasPrice', '0'), default_when_empty=0)
 
     return KApply('callTx', [sender, to, value, esdt_value, function, arguments, gas_limit, gas_price])
 

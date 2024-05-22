@@ -1,9 +1,3 @@
-deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios-promises/promises_call_async_accept_egld.scen.json
-deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios-promises/promises_call_async_accept_esdt.scen.json
-deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios-promises/promises_call_async_retrieve_egld.scen.json
-deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios-promises/promises_call_async_retrieve_esdt.scen.json
-deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios-promises/promises_call_callback_directly.scen.json
-deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios-promises/promises_multi_transfer.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_builtin_nft_add_quantity.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_builtin_nft_burn.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forwarder_builtin_nft_create.scen.json
@@ -62,6 +56,12 @@ deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forw_raw_sync_ech
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forw_raw_sync_egld.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forw_raw_transf_exec_accept_egld.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/forw_raw_transf_exec_reject_egld.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/promises_call_async_accept_egld.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/promises_call_async_accept_esdt.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/promises_call_async_retrieve_egld.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/promises_call_async_retrieve_esdt.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/promises_call_callback_directly.scen.json
+deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/promises_multi_transfer.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/proxy_test_message_sameShard_callback.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/proxy_test_message_sameShard.scen.json
 deps/mx-sdk-rs/contracts/feature-tests/composability/scenarios/proxy_test_payment_sameShard_callback.scen.json

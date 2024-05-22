@@ -9,5 +9,4 @@ publish = false
 path = ".."
 
 [dependencies.multiversx-sc-meta]
-version = "0.43.4"
-path = "../../../deps/mx-sdk-rs/framework/meta"
+version = "0.50.1"

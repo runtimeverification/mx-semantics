@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import resource
 import subprocess
 import sys
 import tempfile
@@ -101,7 +100,6 @@ sc_addr_num_leading_zeros = 8
 sc_addr_reserved_prefix_len = sc_addr_num_leading_zeros + 2
 
 sys.setrecursionlimit(1500000000)
-resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
 
 def mandos_int_to_int(mandos_int: str, default_when_empty: int | None = None) -> int:

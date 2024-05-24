@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
 
@@ -49,6 +50,14 @@ def flatten(l: list[list[T]]) -> list[T]:
 def load_wasm(filename: str) -> KInner:
     with open(filename, 'rb') as f:
         return wasm2kast.wasm2kast(f, filename)
+
+
+def load_wasm_from_mxsc(filename: str) -> KInner:
+    with open(filename, 'r') as f:
+        contract_json = json.load(f)
+        code_hex = contract_json['code']
+        code_bytes = bytes.fromhex(code_hex)
+        return wasm2kast.wasm2kast(BytesIO(code_bytes), filename)
 
 
 def krun_config(krun: KRun, conf: KInner, pipe_stderr: bool = False) -> KInner:

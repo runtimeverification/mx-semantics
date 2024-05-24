@@ -9,8 +9,7 @@ publish = false
 path = "src/esdt_system_sc.rs"
 
 [dependencies.multiversx-sc]
-version = "0.43.4"
-path = "../../deps/mx-sdk-rs/framework/base"
+version = "0.50.1"
 
 [dev-dependencies.multiversx-sc-scenario]
 version = "0.43.4"

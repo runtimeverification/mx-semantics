@@ -68,11 +68,12 @@ module MANBUFOPS
     rule <instrs> #sliceBytes(OFFSET, LENGTH) => .K ... </instrs>
          <bytesStack> (BS => substrBytes(BS, OFFSET, OFFSET +Int LENGTH)) : _ </bytesStack>
          requires #sliceBytesInBounds( BS , OFFSET , LENGTH )
+         [preserves-definedness] // bounds for substrBytes checked explicitly
 
     syntax Bool ::= #sliceBytesInBounds( Bytes , Int , Int )      [function, total]
-    rule #sliceBytesInBounds( BS , OFFSET , LENGTH ) 
-            => OFFSET >=Int 0 andBool 
-               LENGTH >=Int 0 andBool 
+    rule #sliceBytesInBounds( BS , OFFSET , LENGTH )
+            => OFFSET >=Int 0 andBool
+               LENGTH >=Int 0 andBool
                OFFSET +Int LENGTH <=Int lengthBytes(BS)
 ```
 

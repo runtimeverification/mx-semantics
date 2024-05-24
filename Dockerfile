@@ -36,8 +36,8 @@ RUN python3 -m pip install --upgrade pip
 
 RUN wget -O rustup.sh https://sh.rustup.rs && \
     chmod +x rustup.sh && \
-    ./rustup.sh --verbose --default-toolchain nightly-2023-12-11 --target wasm32-unknown-unknown -y
+    ./rustup.sh --verbose --target wasm32-unknown-unknown -y
 
 ENV PATH="/home/${USER}/.cargo/bin:${PATH}"
 
-RUN cargo install multiversx-sc-meta --version ~0.47 --locked
+RUN cargo install multiversx-sc-meta --version ~0.50 --locked

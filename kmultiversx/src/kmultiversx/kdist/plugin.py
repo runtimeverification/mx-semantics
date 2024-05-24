@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from pyk.kbuild.utils import k_version, sync_files
 from pyk.kdist.api import Target
-from pyk.ktool.kompile import KompileBackend, kompile
+from pyk.ktool.kompile import PykBackend, kompile
 from pyk.utils import run_process
 
 if TYPE_CHECKING:
@@ -99,7 +99,7 @@ def llvm_target(main_file_name: str, main_module: str, syntax_module: str) -> Ko
 
     return KompileTarget(
         lambda src_dir, plugin_dir: {
-            'backend': KompileBackend.LLVM,
+            'backend': PykBackend.LLVM,
             'main_file': src_dir / 'mx-semantics' / main_file_name,
             'main_module': main_module,
             'syntax_module': syntax_module,
@@ -115,7 +115,7 @@ def llvm_target(main_file_name: str, main_module: str, syntax_module: str) -> Ko
 def haskell_target(main_file_name: str, main_module: str, syntax_module: str) -> KompileTarget:
     return KompileTarget(
         lambda src_dir, plugin_dir: {
-            'backend': KompileBackend.HASKELL,
+            'backend': PykBackend.HASKELL,
             'main_file': src_dir / 'mx-semantics' / main_file_name,
             'main_module': main_module,
             'syntax_module': syntax_module,

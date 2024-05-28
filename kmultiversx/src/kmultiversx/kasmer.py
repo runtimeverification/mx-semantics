@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from pyk.kast.outer import KClaim
     from pyk.ktool.krun import KPrint
 
-INPUT_FILE_NAME = 'foundry.json'
+INPUT_FILE_NAME = 'kasmer.json'
 TEST_PREFIX = 'test_'
 
 ROOT_ACCT_ADDR = 'address:k'
@@ -477,7 +477,7 @@ def main() -> None:
         '--definition-dir',
         dest='definition_dir',
         type=dir_path,
-        help='Path to Foundry LLVM definition to use.',
+        help='Path to Kasmer LLVM definition to use.',
     )
     parser.add_argument('-d', '--directory', required=True, help='Path to the test contract.')
     parser.add_argument(

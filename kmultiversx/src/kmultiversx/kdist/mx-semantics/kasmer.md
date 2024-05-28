@@ -15,28 +15,28 @@ module KASMER
 
 ```k
     configuration
-      <foundry>
+      <kasmer>
         <mandos/>
         <wasmStore> .Map </wasmStore> // file path -> wasm module AST
         <prank> false </prank>
-      </foundry>
+      </kasmer>
 
-    syntax Bytes ::= "#foundryRunner"      [macro]
+    syntax Bytes ::= "#kasmerRunner"      [macro]
  // --------------------------------------------------------
-    rule #foundryRunner
+    rule #kasmerRunner
       => b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00k-test________________"
 ```
 
-## Foundry Host Functions
+## Kasmer Host Functions
 
-Only the `#foundryRunner` account can execute these commands/host functions.
+Only the `#kasmerRunner` account can execute these commands/host functions.
 
 ### Create account
 
 ```k
     rule [testapi-createAccount]:
         <instrs> hostCall ( "env" , "createAccount" , [ i32  i64  i32  .ValTypes ] -> [ .ValTypes ] )
-              => foundryCreateAccount( getBuffer(ADDR_HANDLE), NONCE, getBigInt(BALANCE_HANDLE))
+              => kasmerCreateAccount( getBuffer(ADDR_HANDLE), NONCE, getBigInt(BALANCE_HANDLE))
                  ...
         </instrs>
         <locals>
@@ -44,12 +44,12 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           1 |-> <i64> NONCE
           2 |-> <i32> BALANCE_HANDLE
         </locals>
-        <callee> #foundryRunner </callee>
+        <callee> #kasmerRunner </callee>
 
-    syntax InternalInstr ::= foundryCreateAccount(BytesResult, Int, IntResult)
+    syntax InternalInstr ::= kasmerCreateAccount(BytesResult, Int, IntResult)
  // ----------------------------------------------------------------------------
-    rule [foundryCreateAccount]:
-        <instrs> foundryCreateAccount(ADDR:Bytes, NONCE, BALANCE:Int)
+    rule [kasmerCreateAccount]:
+        <instrs> kasmerCreateAccount(ADDR:Bytes, NONCE, BALANCE:Int)
               => #waitCommands
                  ...
         </instrs>
@@ -58,8 +58,8 @@ Only the `#foundryRunner` account can execute these commands/host functions.
                     ) ...
         </commands>
 
-    rule [foundryCreateAccount-err]:
-        <instrs> foundryCreateAccount(_, _, _)
+    rule [kasmerCreateAccount-err]:
+        <instrs> kasmerCreateAccount(_, _, _)
               => #throwException(ExecutionFailed, "Could not create account")
                  ...
         </instrs>
@@ -72,7 +72,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 ```k
     rule [testapi-registerNewAddress]:
         <instrs> hostCall ( "env" , "registerNewAddress" , [ i32  i64  i32  .ValTypes ] -> [ .ValTypes ] )
-              => foundryRegisterNewAddress( getBuffer(OWNER_HANDLE), NONCE, getBuffer(ADDR_HANDLE))
+              => kasmerRegisterNewAddress( getBuffer(OWNER_HANDLE), NONCE, getBuffer(ADDR_HANDLE))
                  ...
         </instrs>
         <locals>
@@ -80,18 +80,18 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           1 |-> <i64> NONCE
           2 |-> <i32> ADDR_HANDLE
         </locals>
-        <callee> #foundryRunner </callee>
+        <callee> #kasmerRunner </callee>
 
-    syntax InternalInstr ::= foundryRegisterNewAddress(BytesResult, Int, BytesResult)
+    syntax InternalInstr ::= kasmerRegisterNewAddress(BytesResult, Int, BytesResult)
  // ----------------------------------------------------------------------------
-    rule [foundryRegisterNewAddress]:
-        <instrs> foundryRegisterNewAddress(CREATOR:Bytes, NONCE, NEW:Bytes)
+    rule [kasmerRegisterNewAddress]:
+        <instrs> kasmerRegisterNewAddress(CREATOR:Bytes, NONCE, NEW:Bytes)
               => .K ...
         </instrs>
         <newAddresses> NEWADDRESSES => NEWADDRESSES [tuple(CREATOR, NONCE) <- NEW] </newAddresses>
 
-    rule [foundryRegisterNewAddress-err]:
-        <instrs> foundryRegisterNewAddress(_, _, _)
+    rule [kasmerRegisterNewAddress-err]:
+        <instrs> kasmerRegisterNewAddress(_, _, _)
               => #throwException(ExecutionFailed, "Could not register address") ...
         </instrs>
       [owise]
@@ -103,7 +103,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
 ```k
     rule [testapi-deployContract]:
         <instrs> hostCall("env", "deployContract", [i32 i64 i32 i32 i32 i32 .ValTypes] -> [.ValTypes])
-              => foundryDeployContract(
+              => kasmerDeployContract(
                     getBuffer(OWNER_HANDLE),
                     GAS_LIMIT,
                     getBigInt(VALUE_HANDLE),
@@ -121,12 +121,12 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           4 |-> <i32> ARGS_HANDLE
           5 |-> <i32> RESULT_ADDR_HANDLE
         </locals>
-        <callee> #foundryRunner </callee>
+        <callee> #kasmerRunner </callee>
 
-    syntax InternalInstr ::= foundryDeployContract(BytesResult, Int, IntResult, BytesResult, ListBytesResult, Int)
+    syntax InternalInstr ::= kasmerDeployContract(BytesResult, Int, IntResult, BytesResult, ListBytesResult, Int)
  // ----------------------------------------------------------------------------
-    rule [foundryDeployContract]:
-        <instrs> foundryDeployContract(OWNER:Bytes, GAS, VALUE:Int, PATH:Bytes, ARGS:ListBytes, RESULT_ADDR_HANDLE)
+    rule [kasmerDeployContract]:
+        <instrs> kasmerDeployContract(OWNER:Bytes, GAS, VALUE:Int, PATH:Bytes, ARGS:ListBytes, RESULT_ADDR_HANDLE)
               => #waitCommands
               ~> #setBuffer(RESULT_ADDR_HANDLE, NEWADDR)
                  ...
@@ -147,8 +147,8 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <newAddresses> ... tuple(OWNER, NONCE) |-> NEWADDR:Bytes ... </newAddresses>
         <wasmStore> ... PATH |-> MODULE </wasmStore>
 
-    rule [foundryDeployContract-err]:
-        <instrs> foundryDeployContract(_, _, _, _, _, _)
+    rule [kasmerDeployContract-err]:
+        <instrs> kasmerDeployContract(_, _, _, _, _, _)
               => #throwException(ExecutionFailed, "Could not deploy contract")
                  ...
         </instrs>
@@ -173,14 +173,14 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           1 |-> <i32> KEY_HANDLE
           2 |-> <i32> DEST_HANDLE
         </locals>
-        <callee> #foundryRunner </callee>
+        <callee> #kasmerRunner </callee>
 
     rule [testapi-setStorage]:
         <instrs> hostCall ( "env" , "setStorage" , [ i32  i32  i32  .ValTypes ] -> [ .ValTypes ] )
               => #getBuffer(VAL_HANDLE)
               ~> #getBuffer(KEY_HANDLE)
               ~> #getBuffer(ADDR_HANDLE)
-              ~> foundryWriteToStorage
+              ~> kasmerWriteToStorage
               ~> #dropBytes
               ~> #dropBytes
               ~> #dropBytes
@@ -191,12 +191,12 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           1 |-> <i32> KEY_HANDLE
           2 |-> <i32> VAL_HANDLE
         </locals>
-        <callee> #foundryRunner </callee>
+        <callee> #kasmerRunner </callee>
 
-    syntax InternalInstr ::= "foundryWriteToStorage"
+    syntax InternalInstr ::= "kasmerWriteToStorage"
  // -------------------------------------------------
-    rule [foundryWriteToStorage-empty]:
-        <instrs> foundryWriteToStorage => .K ... </instrs>
+    rule [kasmerWriteToStorage-empty]:
+        <instrs> kasmerWriteToStorage => .K ... </instrs>
         <bytesStack> ADDR : KEY : VALUE : _ </bytesStack>
          <account>
            <address> ADDR </address>
@@ -206,8 +206,8 @@ Only the `#foundryRunner` account can execute these commands/host functions.
          requires VALUE ==K .Bytes
          [preserves-definedness] // ADDR exists prior in account map
 
-    rule [foundryWriteToStorage]:
-        <instrs> foundryWriteToStorage => .K ... </instrs>
+    rule [kasmerWriteToStorage]:
+        <instrs> kasmerWriteToStorage => .K ... </instrs>
         <bytesStack> ADDR : KEY : VALUE : _ </bytesStack>
          <account>
            <address> ADDR </address>
@@ -231,7 +231,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           0 |-> <i32> ADDR_HANDLE
           1 |-> <i32> VAL_HANDLE
         </locals>
-        <callee> #foundryRunner </callee>
+        <callee> #kasmerRunner </callee>
 
     syntax InternalInstr ::= #setBalance(BytesResult, IntResult)
  // ------------------------------------------------------------
@@ -291,7 +291,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           1 |-> <i32> TOK_ID_HANDLE
           2 |-> <i32> VAL_HANDLE
         </locals>
-        <callee> #foundryRunner </callee>
+        <callee> #kasmerRunner </callee>
 
 
     syntax InternalInstr ::= #setESDTBalance(IntResult)
@@ -514,7 +514,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
                => S +String " -- setBlockTimestamp "
                     +String Int2String(TIMESTAMP)
         </logging>
-        <callee> #foundryRunner </callee>
+        <callee> #kasmerRunner </callee>
 
 ```
 
@@ -529,13 +529,13 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           0 |-> <i32> P
         </locals>
 
-    syntax InternalInstr ::= #assert(Int)     [symbol, klabel(foundryAssert)]
+    syntax InternalInstr ::= #assert(Int)     [symbol, klabel(kasmerAssert)]
  // -------------------------------------------------------------------------
-    rule [foundryAssert-true]:
+    rule [kasmerAssert-true]:
         <instrs> #assert( I ) => .K ... </instrs>
       requires I =/=Int 0
 
-    rule [foundryAssert-false]:
+    rule [kasmerAssert-false]:
         <instrs> #assert( I )
              => #throwException(ExecutionFailed, "assertion failed") ...
         </instrs>
@@ -550,13 +550,13 @@ Only the `#foundryRunner` account can execute these commands/host functions.
           0 |-> <i32> P
         </locals>
 
-    syntax IternalInstr ::= #assume(Int)     [symbol, klabel(foundryAssume)]
+    syntax IternalInstr ::= #assume(Int)     [symbol, klabel(kasmerAssume)]
  // ------------------------------------------------------------------------
-    rule [foundryAssume-true]:
+    rule [kasmerAssume-true]:
         <instrs> #assume(P) => .K ... </instrs>
       requires P =/=Int 0
 
-    rule [foundryAssume-false]:
+    rule [kasmerAssume-false]:
         <instrs> #assume(P) => #endFoundryImmediately ... </instrs>
       requires P ==Int 0
 
@@ -593,13 +593,13 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         <locals>
           0 |-> <i32> ADDR_HANDLE
         </locals>
-        <callee> #foundryRunner </callee>
+        <callee> #kasmerRunner </callee>
 
     syntax InternalInstr ::= #startPrank(BytesResult)
  // -------------------------------------------------
     rule [startPrank]:
         <instrs> #startPrank(ADDR:Bytes) => .K ... </instrs>
-        <callee> #foundryRunner => ADDR </callee>
+        <callee> #kasmerRunner => ADDR </callee>
         <prank> false => true </prank>
 
     rule [startPrank-not-allowed]:
@@ -609,7 +609,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
         </instrs>
         <callee> ADDR </callee>
         <prank> PRANK </prank>
-      requires ADDR =/=K #foundryRunner
+      requires ADDR =/=K #kasmerRunner
         orBool PRANK
 
     rule [startPrank-err]:
@@ -623,7 +623,7 @@ Only the `#foundryRunner` account can execute these commands/host functions.
               => .K ...
         </instrs>
         <locals> .Map </locals>
-        <callee> _ => #foundryRunner </callee>
+        <callee> _ => #kasmerRunner </callee>
         <prank> true => false </prank>
 
     rule [testapi-stopPrank-err]:

@@ -4,9 +4,3 @@
 [submodule "deps/mx-sdk-rs"]
 	path = deps/mx-sdk-rs
 	url = https://github.com/multiversx/mx-sdk-rs.git
-[submodule "deps/mx-exchange-sc"]
-	path = deps/mx-exchange-sc
-	url = https://github.com/multiversx/mx-exchange-sc
-[submodule "deps/coindrip-protocol-sc"]
-	path = deps/coindrip-protocol-sc
-	url = https://github.com/CoinDrip-finance/coindrip-protocol-sc

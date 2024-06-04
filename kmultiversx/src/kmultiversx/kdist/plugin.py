@@ -8,11 +8,12 @@ from typing import TYPE_CHECKING
 
 from pyk.kbuild.utils import k_version, sync_files
 from pyk.kdist.api import Target
+from pyk.kllvm.compiler import compile_runtime
 from pyk.ktool.kompile import PykBackend, kompile
 from pyk.utils import run_process
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping
+    from collections.abc import Callable, Iterable, Mapping
     from typing import Any, Final
 
 
@@ -59,6 +60,23 @@ class PluginTarget(Target):
     def source(self) -> tuple[Path]:
         return (self.PLUGIN_DIR,)
 
+def ccopts(plugin_dir: Path) -> list[str]:
+    return [
+            '-g',
+            '-std=c++17',
+            '-lcrypto',
+            '-lsecp256k1',
+            '-lssl',
+            str(plugin_dir / 'blake2/lib/blake2.a'),
+            f"-I{plugin_dir / 'blake2/include'}",
+            str(plugin_dir / 'libcryptopp/lib/libcryptopp.a'),
+            f"-I{plugin_dir / 'libcryptopp/include'}",
+            str(plugin_dir / 'libff/lib/libff.a'),
+            f"-I{plugin_dir / 'libff/include'}",
+            str(plugin_dir / 'plugin-c/crypto.cpp'),
+            str(plugin_dir / 'plugin-c/plugin_util.cpp'),
+        ] + ['-lprocps'] if sys.platform == 'linux' else []
+
 
 class KompileTarget(Target):
     _kompile_args: Callable[[Path], Mapping[str, Any]]
@@ -77,25 +95,22 @@ class KompileTarget(Target):
     def deps(self) -> tuple[str, str]:
         return ('mx-semantics.source', 'mx-semantics.plugin')
 
+class PythonTarget(Target):
+    _ccopts: Callable[Path, Iterable[str]]
+
+    def __init__(self, ccopts: Callable[Path, Iterable[str]]):
+        self._ccopts = ccopts
+
+    def build(self, output_dir: Path, deps: dict[str, Path], args: dict[str, Any], verbose: bool) -> None:
+        compile_runtime(deps['mx-semantics.llvm-kasmer'], ccopts=self._ccopts(deps['mx-semantics.plugin']), verbose=verbose)
+
+    def context(self) -> dict[str, str]:
+        return {'k-version': k_version().text}
+
+    def deps(self) -> tuple[str, str]:
+        return ('mx-semantics.llvm-kasmer', 'mx-semantics.plugin')
 
 def llvm_target(main_file_name: str, main_module: str, syntax_module: str) -> KompileTarget:
-    def ccopts(plugin_dir: Path) -> list[str]:
-        return [
-                '-g',
-                '-std=c++17',
-                '-lcrypto',
-                '-lsecp256k1',
-                '-lssl',
-                str(plugin_dir / 'blake2/lib/blake2.a'),
-                f"-I{plugin_dir / 'blake2/include'}",
-                str(plugin_dir / 'libcryptopp/lib/libcryptopp.a'),
-                f"-I{plugin_dir / 'libcryptopp/include'}",
-                str(plugin_dir / 'libff/lib/libff.a'),
-                f"-I{plugin_dir / 'libff/include'}",
-                str(plugin_dir / 'plugin-c/crypto.cpp'),
-                str(plugin_dir / 'plugin-c/plugin_util.cpp'),
-            ] + ['-lprocps'] if sys.platform == 'linux' else []
-
 
     return KompileTarget(
         lambda src_dir, plugin_dir: {
@@ -111,6 +126,9 @@ def llvm_target(main_file_name: str, main_module: str, syntax_module: str) -> Ko
         },
     )
 
+
+def python_target() -> PythonTarget:
+    return PythonTarget(ccopts)
 
 def haskell_target(main_file_name: str, main_module: str, syntax_module: str) -> KompileTarget:
     return KompileTarget(
@@ -132,6 +150,7 @@ __TARGETS__: Final = {
     'plugin': PluginTarget(),
     'llvm-mandos': llvm_target('mandos.md', 'MANDOS', 'MANDOS-SYNTAX'),
     'llvm-kasmer': llvm_target('kasmer.md', 'KASMER', 'KASMER-SYNTAX'),
+    'kasmer-bindings': python_target(),
     'haskell-mandos': haskell_target('mandos.md', 'MANDOS', 'MANDOS-SYNTAX'),
     'haskell-kasmer': haskell_target('kasmer.md', 'KASMER', 'KASMER-SYNTAX'),
 }

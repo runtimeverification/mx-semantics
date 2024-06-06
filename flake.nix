@@ -75,6 +75,8 @@
               openssl.dev
               clang
               mpfr
+              pkg-config
+              procps
               llvmPackages.llvm
             ];
 

@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "kmultiversx"
-version = "0.1.72"
+version = "0.1.73"
 description = "Python tools for Elrond semantics"
 authors = [
     "Runtime Verification, Inc. <contact@runtimeverification.com>",
@@ -12,7 +12,6 @@ authors = [
 
 [tool.poetry.scripts]
 mandos = "kmultiversx.scenario:run_tests"
-kasmer = "kmultiversx.kasmer:main"
 kelrond = "kmultiversx.kelrond:main"
 runtime = "kmultiversx.runtime:main"
 

@@ -224,6 +224,14 @@ elrond_callercallee_tests=$(shell find $(ELROND_CALLER_DIR) -name "*.scen.json")
 test-elrond-callercallee: build sc-build/$(ELROND_CALLER_DIR) sc-build/$(ELROND_CALLEE_DIR)
 	$(TEST_MANDOS) $(elrond_callercallee_tests)
 
+## Kasmer Test API tests
+
+TEST_TESTAPI_DIR := tests/contracts/test_testapi
+testapi_tests=$(shell find $(TEST_TESTAPI_DIR) -name "*.scen.json")
+
+test-testapi: build-kasmer sc-build/$(TEST_TESTAPI_DIR)
+	$(TEST_MANDOS) --definition kasmer $(testapi_tests)
+
 # Coverage
 # --------
 

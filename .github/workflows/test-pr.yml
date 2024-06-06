@@ -71,6 +71,8 @@ jobs:
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-simple -j6
       - name: 'Mandos Tests'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make mandos-test -j6
+      - name: 'TestApi tests'
+        run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-testapi
       - name: 'Contract Test: Adder'
         run: docker exec -t elrond-semantics-ci-${GITHUB_SHA} make test-elrond-adder
       - name: 'Contract Test: Crowdfunding ESDT'

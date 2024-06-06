@@ -9,7 +9,6 @@ import tempfile
 from typing import TYPE_CHECKING, Iterable, Optional
 
 from Cryptodome.Hash import keccak
-from pyk.cli.utils import dir_path
 from pyk.kast.inner import KApply, KSequence, KToken, Subst
 from pyk.kast.manip import split_config_from
 from pyk.kdist import kdist
@@ -23,6 +22,7 @@ from kmultiversx.utils import (
     krun_config,
     load_wasm,
     load_wasm_from_mxsc,
+    read_kasmer_runtime,
     read_mandos_runtime,
 )
 
@@ -817,21 +817,21 @@ def run_tests() -> None:
     test_args.add_argument('--log-level', choices=['none', 'per-file', 'per-step'], default='per-file')
     test_args.add_argument('--verbose', action='store_true', help='')
     test_args.add_argument(
-        '--definition-dir',
-        dest='definition_dir',
-        type=dir_path,
-        help='Path to Mandos LLVM definition to use.',
+        '--definition',
+        dest='definition',
+        choices=('mandos', 'kasmer'),
+        default='mandos',
     )
     args = test_args.parse_args()
 
-    definition_dir = args.definition_dir
-    if definition_dir is None:
-        definition_dir = kdist.get('mx-semantics.llvm-mandos')
-    krun = KRun(definition_dir)
+    if args.definition == 'kasmer':
+        krun = KRun(kdist.get('mx-semantics.llvm-kasmer'))
+        template_wasm_config = read_kasmer_runtime()
+    else:
+        krun = KRun(kdist.get('mx-semantics.llvm-mandos'))
+        template_wasm_config = read_mandos_runtime()
 
     tests = args.files
-
-    template_wasm_config = read_mandos_runtime()
 
     for test in tests:
         if args.verbose:

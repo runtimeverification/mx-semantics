@@ -1,0 +1,35 @@
+{
+    "name": "test_testapi",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "address:k": {
+                    "nonce": "0"
+                }
+            },
+            "newAddresses": [
+                {
+                    "creatorAddress": "address:k",
+                    "creatorNonce": "0",
+                    "newAddress": "sc:k-test"
+                }
+            ]
+        },
+        {
+            "step": "scDeploy",
+            "id": "deploy adder",
+            "tx": {
+                "from": "address:k",
+                "contractCode": "file:../output/test-testapi.wasm",
+                "arguments": [],
+                "gasLimit": "5,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": ""
+            }
+        }
+    ]
+}

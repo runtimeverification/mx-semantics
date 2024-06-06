@@ -12,7 +12,6 @@ authors = [
 
 [tool.poetry.scripts]
 mandos = "kmultiversx.scenario:run_tests"
-kasmer = "kmultiversx.kasmer:main"
 kelrond = "kmultiversx.kelrond:main"
 runtime = "kmultiversx.runtime:main"
 

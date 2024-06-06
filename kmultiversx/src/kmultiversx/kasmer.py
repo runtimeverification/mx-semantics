@@ -1,23 +1,16 @@
 from __future__ import annotations
 
-import argparse
 import glob
 import json
 import sys
-import warnings
 from os.path import join
-from pathlib import Path
 from typing import TYPE_CHECKING, Iterable, Mapping, cast
 
 from hypothesis import Phase, Verbosity, given, settings
-from hypothesis.errors import HypothesisWarning
 from hypothesis.strategies import integers, tuples
-from pyk.cli.utils import dir_path
 from pyk.cterm import CTerm, cterm_build_claim
 from pyk.kast.inner import KApply, KSequence, KSort, KVariable, Subst
 from pyk.kast.manip import split_config_from
-from pyk.kdist import kdist
-from pyk.ktool.krun import KRun
 from pyk.prelude.collections import list_of, map_of, set_of
 from pyk.prelude.kint import leInt
 from pyk.prelude.ml import mlEqualsTrue
@@ -37,10 +30,13 @@ from kmultiversx.scenario import (
 from kmultiversx.utils import KasmerRunError, kast_to_json_str, krun_config, load_wasm, read_kasmer_runtime
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from hypothesis.strategies import SearchStrategy
     from pyk.kast.inner import KInner
     from pyk.kast.outer import KClaim
-    from pyk.ktool.krun import KPrint
+    from pyk.ktool.kprint import KPrint
+    from pyk.ktool.krun import KRun
 
 INPUT_FILE_NAME = 'kasmer.json'
 TEST_PREFIX = 'test_'
@@ -463,86 +459,3 @@ def type_to_constraint(typ: str, var: KVariable) -> tuple[KInner, ...]:
     if typ == 'u64':
         return (leInt(KInt(0), var), leInt(var, KInt(18446744073709551615)))
     raise TypeError(f'Unsupported type {typ}')
-
-
-# Main Script
-
-
-def main() -> None:
-    sys.setrecursionlimit(REC_LIMIT)
-    warnings.filterwarnings('ignore', message='The recursion limit will not be reset', category=HypothesisWarning)
-
-    parser = argparse.ArgumentParser(description='Symbolic testing for MultiversX contracts')
-    parser.add_argument(
-        '--definition-dir',
-        dest='definition_dir',
-        type=dir_path,
-        help='Path to Kasmer LLVM definition to use.',
-    )
-    parser.add_argument('-d', '--directory', required=True, help='Path to the test contract.')
-    parser.add_argument(
-        '--gen-claims',
-        dest='gen_claims',
-        action='store_true',
-        help='Generate claims for symbolic testing.',
-    )
-    parser.add_argument(
-        '--output-dir',
-        dest='output_dir',
-        required=False,
-        help='Directory to store generated claims.',
-    )
-    parser.add_argument(
-        '-p',
-        '--pretty',
-        dest='pretty',
-        default=False,
-        action='store_true',
-        help='Pretty print claims. Default output format is JSON.',
-    )
-    parser.add_argument(
-        '-v',
-        '--verbose',
-        dest='verbose',
-        default=False,
-        action='store_true',
-        help='Print verbose error messages.',
-    )
-    args = parser.parse_args()
-
-    definition_dir = args.definition_dir
-    if definition_dir is None:
-        definition_dir = kdist.get('mx-semantics.llvm-kasmer')
-    krun = KRun(definition_dir)
-
-    test_dir = args.directory
-
-    # Load test parameters in JSON
-    input_json = load_input_json(test_dir)
-
-    print('Loading WASM files...')
-    # Test contract's wasm module
-    test_wasm = load_wasm(find_test_wasm_path(test_dir))
-
-    # Load dependency contracts' wasm modules
-    wasm_paths = (join(test_dir, p) for p in input_json['contract_paths'])
-    contract_wasms = load_contract_wasms(wasm_paths)
-
-    print('Initializing the test...')
-    sym_conf, init_subst = deploy_test(krun, test_wasm, contract_wasms)
-    print('Initialization done.')
-
-    test_endpoints = get_test_endpoints(args.directory)
-    print(f'Tests: { list(test_endpoints.keys()) }')
-
-    if args.gen_claims:
-        if args.output_dir:
-            output_dir = Path(args.output_dir)
-        else:
-            output_dir = Path('generated_claims')
-
-        print('Generating claims:', output_dir)
-        generate_claims(krun, test_endpoints, sym_conf, init_subst, output_dir, args.pretty)
-
-    else:
-        run_concrete(krun, test_endpoints, sym_conf, init_subst, args.verbose)

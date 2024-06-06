@@ -115,3 +115,22 @@ jobs:
         if: always()
         run: |
           docker stop --time=0 elrond-semantics-ci-${GITHUB_SHA}
+
+  nix:
+    name: 'Build using Nix'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: normal
+          - runner: ARM64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - name: 'Check out code'
+        uses: actions/checkout@v3
+        with:
+          # Check out pull request HEAD instead of merge commit.
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: 'Build KMultiversX'
+        run: GC_DONT_GC=1 nix build .#kmultiversx --extra-experimental-features 'nix-command flakes' --print-build-logs

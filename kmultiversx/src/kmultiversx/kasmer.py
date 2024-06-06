@@ -17,7 +17,7 @@ from pyk.cterm import CTerm, cterm_build_claim
 from pyk.kast.inner import KApply, KSequence, KSort, KVariable, Subst
 from pyk.kast.manip import split_config_from
 from pyk.kdist import kdist
-from pyk.ktool.krun import KRun
+from pyk.ktool.krun import KRun, llvm_interpret
 from pyk.prelude.collections import list_of, map_of, set_of
 from pyk.prelude.kint import leInt
 from pyk.prelude.ml import mlEqualsTrue
@@ -154,6 +154,27 @@ def run_config_and_check_empty(
 
     return final_conf, sym_conf, subst
 
+def run_pattern_and_check_empty(
+    krun: KRun, conf: KInner, pipe_stderr: bool = False
+) -> None:
+    conf_kore = krun.kast_to_kore(conf, sort=KSort('GeneratedTopCell'))
+    final_conf = llvm_interpret(krun.definition_dir, conf_kore)
+    exit_code_cell = final_conf.args[0].args[0].args[5]
+    assert exit_code_cell.symbol == "Lbl'-LT-'exit-code'-GT-'"
+    exit_code = int(exit_code_cell.args[0].value.value)
+
+    # if not isinstance(k_cell, KSequence) or k_cell.arity != 0:
+    if exit_code != 0:
+        sym_conf, subst = split_config_from(krun.kore_to_kast(final_conf))
+        k_cell = subst['K_CELL']
+        print(krun.pretty_print(k_cell))
+        raise KasmerRunError(
+            k_cell=subst['K_CELL'],
+            vm_output=subst['VMOUTPUT_CELL'],
+            logging=subst['LOGGING_CELL'],
+            final_conf=final_conf,
+            message='k cell not empty',
+        )
 
 def run_test(krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoint: str, args: tuple[str, ...]) -> None:
     step = {
@@ -175,7 +196,7 @@ def run_test(krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoi
     conf_with_steps = Subst(subst)(sym_conf)
 
     try:
-        run_config_and_check_empty(krun, conf_with_steps, pipe_stderr=True)
+        run_pattern_and_check_empty(krun, conf_with_steps, pipe_stderr=True)
     except RuntimeError as rte:
         if rte.args[0].startswith('Command krun exited with code 1'):
             raise RuntimeError(f'Test failed for input input: {args}') from None

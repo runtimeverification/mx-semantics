@@ -14,7 +14,9 @@ from pyk.cterm import CTerm, cterm_build_claim
 from pyk.kast.inner import KApply, KSequence, KSort, KVariable, Subst
 from pyk.kast.manip import split_config_from
 from pyk.kllvm.parser import parse_pattern
+from pyk.konvert import _kast_to_kore
 from pyk.kore.parser import KoreParser
+from pyk.kore.syntax import App
 from pyk.prelude.collections import list_of, map_of, set_of
 from pyk.prelude.kint import leInt
 from pyk.prelude.ml import mlEqualsTrue
@@ -39,6 +41,7 @@ if TYPE_CHECKING:
     from hypothesis.strategies import SearchStrategy
     from pyk.kast.inner import KInner
     from pyk.kast.outer import KClaim
+    from pyk.kore.syntax import Pattern
     from pyk.ktool.kprint import KPrint
     from pyk.ktool.krun import KRun
 
@@ -155,14 +158,12 @@ def run_config_and_check_empty(
     return final_conf, sym_conf, subst
 
 
-def run_pattern_and_check_exit_code(krun: KRun, conf: KInner, pipe_stderr: bool = False) -> None:
-    conf_kore = krun.kast_to_kore(conf, sort=KSort('GeneratedTopCell'))
-
+def run_pattern_and_check_exit_code(krun: KRun, conf: Pattern, pipe_stderr: bool = False) -> None:
     interpreter = krun.definition_dir / 'interpreter'
     args = [str(interpreter), '/dev/stdin', str(-1), '/dev/stdout']
 
     try:
-        res = run_process(args, input=conf_kore.text, pipe_stderr=True)
+        res = run_process(args, input=conf.text, pipe_stderr=True)
     except CalledProcessError as err:
         raise RuntimeError(f'Interpreter failed with status {err.returncode}: {err.stderr}') from err
 
@@ -186,7 +187,11 @@ def run_pattern_and_check_exit_code(krun: KRun, conf: KInner, pipe_stderr: bool 
         )
 
 
-def run_test(krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoint: str, args: tuple[str, ...]) -> None:
+K_STEPS_VAR_KAST = KVariable('K_STEPS')
+K_STEPS_VAR_KORE = _kast_to_kore(K_STEPS_VAR_KAST)
+
+
+def run_test(krun: KRun, sym_conf: Pattern, endpoint: str, args: tuple[str, ...]) -> None:
     step = {
         'tx': {
             'from': ROOT_ACCT_ADDR,
@@ -201,12 +206,15 @@ def run_test(krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoi
     }
     tx_steps = KSequence([set_exit_code(1)] + get_steps_sc_call(step) + [set_exit_code(0)])
 
-    subst = init_subst.copy()
-    subst['K_CELL'] = tx_steps
-    conf_with_steps = Subst(subst)(sym_conf)
+    def subst_k_cell(p: Pattern) -> Pattern:
+        if p == K_STEPS_VAR_KORE:
+            return krun.kast_to_kore(tx_steps)
+        return p
+
+    test_conf = sym_conf.top_down(subst_k_cell)
 
     try:
-        run_pattern_and_check_exit_code(krun, conf_with_steps, pipe_stderr=True)
+        run_pattern_and_check_exit_code(krun, test_conf, pipe_stderr=True)
     except RuntimeError as rte:
         if rte.args[0].startswith('Command krun exited with code 1'):
             raise RuntimeError(f'Test failed for input input: {args}') from None
@@ -261,16 +269,14 @@ def arg_types_to_strategy(types: Iterable[str]) -> SearchStrategy[tuple[str, ...
 # Hypothesis test runner
 
 
-def test_with_hypothesis(
-    krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoint: str, arg_types: Iterable[str], verbose: bool
-) -> None:
+def test_with_hypothesis(krun: KRun, sym_conf: Pattern, endpoint: str, arg_types: Iterable[str], verbose: bool) -> None:
     def test(args: tuple[str, ...]) -> None:
         # set the recursion limit every time because hypothesis changes it
         if sys.getrecursionlimit() < REC_LIMIT:
             sys.setrecursionlimit(REC_LIMIT)
 
         try:
-            run_test(krun, sym_conf, init_subst, endpoint, args)
+            run_test(krun, sym_conf, endpoint, args)
         except KasmerRunError as kre:
             message = 'Test failed:'
             message += f'\n\tendpoint: {endpoint}'
@@ -302,9 +308,18 @@ def run_concrete(
     init_subst: dict[str, KInner],
     verbose: bool = False,
 ) -> None:
+    subst = init_subst.copy()
+    subst['K_CELL'] = K_STEPS_VAR_KAST
+    init_conf = Subst(subst)(sym_conf)
+    conf_with_var = krun.kast_to_kore(init_conf)
+
+    if isinstance(conf_with_var, App) and conf_with_var.symbol == 'inj':
+        # kast_to_kore for some reason sometimes makes a sort injection for the generatedTop cell, which the llvm interpreter rejects
+        conf_with_var = conf_with_var.args[0]
+
     for endpoint, arg_types in test_endpoints.items():
         print(f'Testing {endpoint !r}')
-        test_with_hypothesis(krun, sym_conf, init_subst, endpoint, arg_types, verbose)
+        test_with_hypothesis(krun, conf_with_var, endpoint, arg_types, verbose)
         print(f'Passed {endpoint !r}')
 
 

@@ -4,19 +4,22 @@ import glob
 import json
 import sys
 from os.path import join
+from subprocess import CalledProcessError
 from typing import TYPE_CHECKING, Iterable, Mapping, cast
 
+import pyk.kllvm.load_static  # noqa: F401
 from hypothesis import Phase, Verbosity, given, settings
 from hypothesis.strategies import integers, tuples
 from pyk.cterm import CTerm, cterm_build_claim
 from pyk.kast.inner import KApply, KSequence, KSort, KVariable, Subst
 from pyk.kast.manip import split_config_from
-from pyk.ktool.krun import llvm_interpret
+from pyk.kllvm.parser import parse_pattern
+from pyk.kore.parser import KoreParser
 from pyk.prelude.collections import list_of, map_of, set_of
 from pyk.prelude.kint import leInt
 from pyk.prelude.ml import mlEqualsTrue
 from pyk.prelude.utils import token
-from pyk.utils import ensure_dir_path
+from pyk.utils import ensure_dir_path, run_process
 from pykwasm.kwasm_ast import KInt
 
 from kmultiversx.scenario import (
@@ -151,27 +154,37 @@ def run_config_and_check_empty(
 
     return final_conf, sym_conf, subst
 
-def run_pattern_and_check_exit_code(
-    krun: KRun, conf: KInner, pipe_stderr: bool = False
-) -> None:
-    conf_kore = krun.kast_to_kore(conf, sort=KSort('GeneratedTopCell'))
-    final_conf = llvm_interpret(krun.definition_dir, conf_kore)
-    exit_code_cell = final_conf.args[0].args[0].args[5]
-    assert exit_code_cell.symbol == "Lbl'-LT-'exit-code'-GT-'"
-    exit_code = int(exit_code_cell.args[0].value.value)
 
-    # if not isinstance(k_cell, KSequence) or k_cell.arity != 0:
+def run_pattern_and_check_exit_code(krun: KRun, conf: KInner, pipe_stderr: bool = False) -> None:
+    conf_kore = krun.kast_to_kore(conf, sort=KSort('GeneratedTopCell'))
+
+    interpreter = krun.definition_dir / 'interpreter'
+    args = [str(interpreter), '/dev/stdin', str(-1), '/dev/stdout']
+
+    try:
+        res = run_process(args, input=conf_kore.text, pipe_stderr=True)
+    except CalledProcessError as err:
+        raise RuntimeError(f'Interpreter failed with status {err.returncode}: {err.stderr}') from err
+
+    final_conf = parse_pattern(res.stdout)
+
+    exit_code_cell = final_conf.arguments[0].arguments[0].arguments[5]
+    assert exit_code_cell.constructor.name == "Lbl'-LT-'exit-code'-GT-'"
+    exit_code = int(exit_code_cell.arguments[0].arguments[0].contents)
+
     if exit_code != 0:
-        sym_conf, subst = split_config_from(krun.kore_to_kast(final_conf))
+        kast_conf = krun.kore_to_kast(KoreParser(res.stdout).pattern())
+        sym_conf, subst = split_config_from(kast_conf)
         k_cell = subst['K_CELL']
         print(krun.pretty_print(k_cell))
         raise KasmerRunError(
             k_cell=subst['K_CELL'],
             vm_output=subst['VMOUTPUT_CELL'],
             logging=subst['LOGGING_CELL'],
-            final_conf=final_conf,
+            final_conf=kast_conf,
             message='k cell not empty',
         )
+
 
 def run_test(krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoint: str, args: tuple[str, ...]) -> None:
     step = {

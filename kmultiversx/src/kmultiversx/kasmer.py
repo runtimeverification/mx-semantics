@@ -4,7 +4,6 @@ import glob
 import json
 import sys
 from os.path import join
-from subprocess import CalledProcessError
 from typing import TYPE_CHECKING, Iterable, Mapping, cast
 
 import pyk.kllvm.load_static  # noqa: F401
@@ -21,7 +20,7 @@ from pyk.prelude.collections import list_of, map_of, set_of
 from pyk.prelude.kint import leInt
 from pyk.prelude.ml import mlEqualsTrue
 from pyk.prelude.utils import token
-from pyk.utils import ensure_dir_path, run_process
+from pyk.utils import ensure_dir_path
 from pykwasm.kwasm_ast import KInt
 
 from kmultiversx.scenario import (
@@ -33,7 +32,14 @@ from kmultiversx.scenario import (
     mandos_argument_to_kbytes,
     wrapBytes,
 )
-from kmultiversx.utils import KasmerRunError, kast_to_json_str, krun_config, load_wasm, read_kasmer_runtime
+from kmultiversx.utils import (
+    KasmerRunError,
+    kast_to_json_str,
+    krun_config,
+    llvm_interpret_raw,
+    load_wasm,
+    read_kasmer_runtime,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -159,22 +165,16 @@ def run_config_and_check_empty(
 
 
 def run_pattern_and_check_exit_code(krun: KRun, conf: Pattern, pipe_stderr: bool = False) -> None:
-    interpreter = krun.definition_dir / 'interpreter'
-    args = [str(interpreter), '/dev/stdin', str(-1), '/dev/stdout']
+    pattern_out = llvm_interpret_raw(krun.definition_dir, conf.text, pipe_stderr)
 
-    try:
-        res = run_process(args, input=conf.text, pipe_stderr=True)
-    except CalledProcessError as err:
-        raise RuntimeError(f'Interpreter failed with status {err.returncode}: {err.stderr}') from err
-
-    final_conf = parse_pattern(res.stdout)
+    final_conf = parse_pattern(pattern_out)
 
     exit_code_cell = final_conf.arguments[0].arguments[0].arguments[5]
     assert exit_code_cell.constructor.name == "Lbl'-LT-'exit-code'-GT-'"
     exit_code = int(exit_code_cell.arguments[0].arguments[0].contents)
 
     if exit_code != 0:
-        kast_conf = krun.kore_to_kast(KoreParser(res.stdout).pattern())
+        kast_conf = krun.kore_to_kast(KoreParser(pattern_out).pattern())
         sym_conf, subst = split_config_from(kast_conf)
         k_cell = subst['K_CELL']
         print(krun.pretty_print(k_cell))

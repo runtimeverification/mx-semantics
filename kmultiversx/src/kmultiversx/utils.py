@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 from io import BytesIO
 from pathlib import Path
+from subprocess import CalledProcessError
 from typing import TYPE_CHECKING, TypeVar
 
 from pyk.kast.inner import KInner, KSort
+from pyk.utils import run_process
 from pykwasm import wasm2kast
 
 if TYPE_CHECKING:
@@ -64,6 +66,18 @@ def krun_config(krun: KRun, conf: KInner, pipe_stderr: bool = False) -> KInner:
     conf_kore = krun.kast_to_kore(conf, sort=GENERATED_TOP_CELL)
     res_conf_kore = krun.run_pattern(conf_kore, pipe_stderr=pipe_stderr)
     return krun.kore_to_kast(res_conf_kore)
+
+
+def llvm_interpret_raw(definition_dir: Path, kore_input: str, pipe_stderr: bool = False) -> str:
+    interpreter = definition_dir / 'interpreter'
+    args = [str(interpreter), '/dev/stdin', str(-1), '/dev/stdout']
+
+    try:
+        res = run_process(args, input=kore_input, pipe_stderr=pipe_stderr)
+    except CalledProcessError as err:
+        raise RuntimeError(f'Interpreter failed with status {err.returncode}: {err.stderr}') from err
+
+    return res.stdout
 
 
 class KasmerRunError(Exception):  # noqa: B903

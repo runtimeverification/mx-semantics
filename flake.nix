@@ -116,9 +116,9 @@
               pykwasm = wasm-semantics.packages.${prev.system}.kwasm-pyk;
               hypothesis = prevPython.hypothesis.overridePythonAttrs (old: {
                   propagatedBuildInputs = prev.lib.filter
-                    (x: !(prev.lib.strings.hasInfix "attrs" x.name))
+                    (x: !(prev.lib.strings.hasInfix "attrs" x.name || prev.lib.strings.hasInfix "exceptiongroup" x.name))
                     old.propagatedBuildInputs;
-                  buildInputs = (old.buildInputs or []) ++ [ finalPython.attrs ];
+                  buildInputs = (old.buildInputs or []) ++ [ finalPython.attrs finalPython.exceptiongroup ];
               });
             });
             groups = [ ];

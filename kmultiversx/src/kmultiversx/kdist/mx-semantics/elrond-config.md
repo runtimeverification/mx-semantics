@@ -50,13 +50,11 @@ module ELROND-CONFIG
 ```k
     syntax Bool ::= #hasPrefix ( String , String ) [function, total]
  // ---------------------------------------------------------------------
-    rule #hasPrefix(STR, PREFIX) => true
+    rule #hasPrefix(STR, PREFIX) => substrString(STR, 0, lengthString(PREFIX)) ==String PREFIX
       requires lengthString(STR) >=Int lengthString(PREFIX)
-       andBool substrString(STR, 0, lengthString(PREFIX)) ==String PREFIX
 
     rule #hasPrefix(STR, PREFIX) => false
-      requires notBool (       lengthString(STR) >=Int lengthString(PREFIX)
-                       andBool substrString(STR, 0, lengthString(PREFIX)) ==String PREFIX)
+      requires notBool (lengthString(STR) >=Int lengthString(PREFIX))
 ```
 
 ### Memory

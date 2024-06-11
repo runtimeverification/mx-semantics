@@ -12,7 +12,6 @@ from hypothesis.strategies import integers, tuples
 from pyk.cterm import CTerm, cterm_build_claim
 from pyk.kast.inner import KApply, KSequence, KSort, KVariable, Subst
 from pyk.kast.manip import split_config_from
-from pyk.kllvm.parser import parse_pattern
 from pyk.konvert import _kast_to_kore
 from pyk.kore.parser import KoreParser
 from pyk.kore.syntax import App

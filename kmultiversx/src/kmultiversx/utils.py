@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from io import BytesIO
 from pathlib import Path
-from subprocess import CalledProcessError
 from typing import TYPE_CHECKING, TypeVar
 
 from pyk.kast.inner import KInner, KSort
@@ -11,6 +10,8 @@ from pyk.utils import run_process
 from pykwasm import wasm2kast
 
 if TYPE_CHECKING:
+    from subprocess import CompletedProcess
+
     from pyk.kast.kast import KAst
     from pyk.ktool.krun import KRun
 

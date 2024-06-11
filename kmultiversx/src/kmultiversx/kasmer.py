@@ -4,7 +4,7 @@ import glob
 import json
 import sys
 from os.path import join
-from typing import TYPE_CHECKING, Iterable, Mapping, cast
+from typing import TYPE_CHECKING, cast
 
 import pyk.kllvm.load_static  # noqa: F401
 from hypothesis import Phase, Verbosity, given, settings
@@ -41,6 +41,7 @@ from kmultiversx.utils import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
     from pathlib import Path
 
     from hypothesis.strategies import SearchStrategy
@@ -61,7 +62,7 @@ REC_LIMIT = 4000
 
 def load_input_json(test_dir: str) -> dict:
     try:
-        with open(join(test_dir, INPUT_FILE_NAME), 'r') as f:
+        with open(join(test_dir, INPUT_FILE_NAME)) as f:
             return json.load(f)
     except FileNotFoundError:
         raise FileNotFoundError(f'{INPUT_FILE_NAME!r} not found in "{test_dir!r}"') from None
@@ -225,7 +226,7 @@ def get_test_endpoints(test_dir: str) -> Mapping[str, tuple[str, ...]]:
     else:
         raise ValueError(f'ABI file not found: {test_dir}/output/?.abi.json')
 
-    with open(abi_path, 'r') as f:
+    with open(abi_path) as f:
         abi_json = json.load(f)
 
     endpoints = {}

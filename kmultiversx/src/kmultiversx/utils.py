@@ -33,7 +33,7 @@ def read_kasmer_runtime() -> KInner:
 
 
 def read_kinner_json(path: Path) -> KInner:
-    with open(str(path), 'r') as f:
+    with open(str(path)) as f:
         config_json = json.load(f)
         return KInner.from_dict(config_json['term'])
 
@@ -56,7 +56,7 @@ def load_wasm(filename: str) -> KInner:
 
 
 def load_wasm_from_mxsc(filename: str) -> KInner:
-    with open(filename, 'r') as f:
+    with open(filename) as f:
         contract_json = json.load(f)
         code_hex = contract_json['code']
         code_bytes = bytes.fromhex(code_hex)

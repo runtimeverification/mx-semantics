@@ -283,7 +283,7 @@ module MAP-BYTES-TO-BYTES-PRIMITIVE-SYMBOLIC  [symbolic]
 
   rule K in_keys{{_M:MapBytesToBytes {{ K <- undef }} }} => false [simplification]
   rule K in_keys{{_M:MapBytesToBytes {{ K <- _ }} }} => true [simplification]
-  rule K1 in_keys{{ M:MapBytesToBytes {{ K2 <- _ }} }}
+  rule K1 in_keys{{ _M:MapBytesToBytes {{ K2 <- _ }} }}
       => true requires K1 ==K K2
       [simplification]
   rule K1 in_keys{{ M:MapBytesToBytes {{ K2 <- _ }} }}

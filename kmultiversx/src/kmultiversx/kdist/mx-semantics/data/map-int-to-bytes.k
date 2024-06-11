@@ -1,7 +1,6 @@
 
 requires "int-type.k"
 requires "bytes-type.k"
-requires "list-int.k"
 
 module MAP-INT-TO-BYTES
   imports private BOOL-SYNTAX

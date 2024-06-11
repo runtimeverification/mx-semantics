@@ -24,6 +24,16 @@ jobs:
           git config user.email devops@runtimeverification.com
       - name: 'Install Poetry'
         uses: Gr1N/setup-poetry@v8
+      - name: 'Install Nix/Cachix'
+        uses: cachix/install-nix-action@v27
+        with:
+          install_url: https://releases.nixos.org/nix/nix-2.22.1/install
+          extra_nix_config: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+      - uses: cachix/cachix-action@v15
+        with:
+          name: k-framework
+          authToken: ${{ secrets.CACHIX_PUBLIC_TOKEN }}
       - name: 'Update poetry files'
         run: |
           PYKWASM_VERSION="$(cat deps/kwasm_release)"

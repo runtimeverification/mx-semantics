@@ -2,9 +2,9 @@
   description = "K Semantics of MultiversX";
 
   inputs = {
-    wasm-semantics.url = "github:runtimeverification/wasm-semantics/v0.1.59";
-    k-framework.url = "github:runtimeverification/k/v7.0.112";
-    pyk.url = "github:runtimeverification/k/v7.0.112?dir=pyk";
+    wasm-semantics.url = "github:runtimeverification/wasm-semantics/v0.1.60";
+    k-framework.url = "github:runtimeverification/k/v7.0.120";
+    pyk.url = "github:runtimeverification/k/v7.0.120?dir=pyk";
     nixpkgs.follows = "k-framework/nixpkgs";
     flake-utils.follows = "k-framework/flake-utils";
     rv-utils.url = "github:runtimeverification/rv-nix-tools";
@@ -116,9 +116,9 @@
               pykwasm = wasm-semantics.packages.${prev.system}.kwasm-pyk;
               hypothesis = prevPython.hypothesis.overridePythonAttrs (old: {
                   propagatedBuildInputs = prev.lib.filter
-                    (x: !(prev.lib.strings.hasInfix "attrs" x.name))
+                    (x: !(prev.lib.strings.hasInfix "attrs" x.name || prev.lib.strings.hasInfix "exceptiongroup" x.name))
                     old.propagatedBuildInputs;
-                  buildInputs = (old.buildInputs or []) ++ [ finalPython.attrs ];
+                  buildInputs = (old.buildInputs or []) ++ [ finalPython.attrs finalPython.exceptiongroup ];
               });
             });
             groups = [ ];

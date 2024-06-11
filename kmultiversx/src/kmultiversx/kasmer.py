@@ -177,7 +177,7 @@ def run_pattern_and_check_exit_code(krun: KRun, conf: Pattern, pipe_stderr: bool
             vm_output=subst['VMOUTPUT_CELL'],
             logging=subst['LOGGING_CELL'],
             final_conf=kast_conf,
-            message='k cell not empty',
+            message='exit status is non-zero',
         )
 
 

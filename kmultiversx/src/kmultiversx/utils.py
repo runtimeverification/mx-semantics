@@ -68,16 +68,11 @@ def krun_config(krun: KRun, conf: KInner, pipe_stderr: bool = False) -> KInner:
     return krun.kore_to_kast(res_conf_kore)
 
 
-def llvm_interpret_raw(definition_dir: Path, kore_input: str, pipe_stderr: bool = False) -> str:
+def llvm_interpret_raw(definition_dir: Path, kore_input: str, pipe_stderr: bool = False) -> CompletedProcess:
     interpreter = definition_dir / 'interpreter'
     args = [str(interpreter), '/dev/stdin', str(-1), '/dev/stdout']
 
-    try:
-        res = run_process(args, input=kore_input, pipe_stderr=pipe_stderr)
-    except CalledProcessError as err:
-        raise RuntimeError(f'Interpreter failed with status {err.returncode}: {err.stderr}') from err
-
-    return res.stdout
+    return run_process(args, input=kore_input, pipe_stderr=pipe_stderr, check=False)
 
 
 class KasmerRunError(Exception):  # noqa: B903

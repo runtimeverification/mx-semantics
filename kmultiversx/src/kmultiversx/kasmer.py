@@ -165,16 +165,10 @@ def run_config_and_check_empty(
 
 
 def run_pattern_and_check_exit_code(krun: KRun, conf: Pattern, pipe_stderr: bool = False) -> None:
-    pattern_out = llvm_interpret_raw(krun.definition_dir, conf.text, pipe_stderr)
+    res = llvm_interpret_raw(krun.definition_dir, conf.text, pipe_stderr)
 
-    final_conf = parse_pattern(pattern_out)
-
-    exit_code_cell = final_conf.arguments[0].arguments[0].arguments[5]
-    assert exit_code_cell.constructor.name == "Lbl'-LT-'exit-code'-GT-'"
-    exit_code = int(exit_code_cell.arguments[0].arguments[0].contents)
-
-    if exit_code != 0:
-        kast_conf = krun.kore_to_kast(KoreParser(pattern_out).pattern())
+    if res.returncode != 0:
+        kast_conf = krun.kore_to_kast(KoreParser(res.stdout).pattern())
         sym_conf, subst = split_config_from(kast_conf)
         k_cell = subst['K_CELL']
         print(krun.pretty_print(k_cell))

@@ -164,26 +164,6 @@ def run_config_and_check_empty(
     return final_conf, sym_conf, subst
 
 
-def run_pattern_and_check_exit_code(kprint: KPrint, conf: Pattern, pipe_stderr: bool = False) -> None:
-    try:
-        res = llvm_interpret_raw(kprint.definition_dir, conf.text, pipe_stderr)
-    except SubprocessError as e:
-        raise AssertionError('Error while trying to invoke the interpreter') from e
-
-    if res.returncode != 0:
-        kast_conf = kprint.kore_to_kast(KoreParser(res.stdout).pattern())
-        sym_conf, subst = split_config_from(kast_conf)
-        k_cell = subst['K_CELL']
-        print(kprint.pretty_print(k_cell))
-        raise KasmerRunError(
-            k_cell=subst['K_CELL'],
-            vm_output=subst['VMOUTPUT_CELL'],
-            logging=subst['LOGGING_CELL'],
-            final_conf=kast_conf,
-            message='exit status is non-zero',
-        )
-
-
 K_STEPS_VAR_KAST = KVariable('K_STEPS')
 K_STEPS_VAR_KORE = _kast_to_kore(K_STEPS_VAR_KAST)
 
@@ -210,7 +190,23 @@ def run_test(kprint: KPrint, sym_conf: Pattern, endpoint: str, args: tuple[str, 
 
     test_conf = sym_conf.top_down(subst_k_cell)
 
-    run_pattern_and_check_exit_code(kprint, test_conf, pipe_stderr=True)
+    try:
+        res = llvm_interpret_raw(kprint.definition_dir, test_conf.text, True)
+    except SubprocessError as e:
+        raise AssertionError('Error while trying to invoke the interpreter') from e
+
+    if res.returncode != 0:
+        kast_conf = kprint.kore_to_kast(KoreParser(res.stdout).pattern())
+        _, subst = split_config_from(kast_conf)
+        k_cell = subst['K_CELL']
+        print(kprint.pretty_print(k_cell))
+        raise KasmerRunError(
+            k_cell=subst['K_CELL'],
+            vm_output=subst['VMOUTPUT_CELL'],
+            logging=subst['LOGGING_CELL'],
+            final_conf=kast_conf,
+            message='exit status is non-zero',
+        )
 
 
 # Test metadata

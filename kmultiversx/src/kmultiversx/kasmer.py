@@ -4,13 +4,17 @@ import glob
 import json
 import sys
 from os.path import join
-from typing import TYPE_CHECKING, Iterable, Mapping, cast
+from subprocess import SubprocessError
+from typing import TYPE_CHECKING, cast
 
 from hypothesis import Phase, Verbosity, given, settings
 from hypothesis.strategies import integers, tuples
 from pyk.cterm import CTerm, cterm_build_claim
 from pyk.kast.inner import KApply, KSequence, KSort, KVariable, Subst
 from pyk.kast.manip import split_config_from
+from pyk.konvert import _kast_to_kore
+from pyk.kore.parser import KoreParser
+from pyk.kore.syntax import App
 from pyk.prelude.collections import list_of, map_of, set_of
 from pyk.prelude.kint import leInt
 from pyk.prelude.ml import mlEqualsTrue
@@ -27,14 +31,23 @@ from kmultiversx.scenario import (
     mandos_argument_to_kbytes,
     wrapBytes,
 )
-from kmultiversx.utils import KasmerRunError, kast_to_json_str, krun_config, load_wasm, read_kasmer_runtime
+from kmultiversx.utils import (
+    KasmerRunError,
+    kast_to_json_str,
+    krun_config,
+    llvm_interpret_raw,
+    load_wasm,
+    read_kasmer_runtime,
+)
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
     from pathlib import Path
 
     from hypothesis.strategies import SearchStrategy
     from pyk.kast.inner import KInner
     from pyk.kast.outer import KClaim
+    from pyk.kore.syntax import Pattern
     from pyk.ktool.kprint import KPrint
     from pyk.ktool.krun import KRun
 
@@ -49,7 +62,7 @@ REC_LIMIT = 4000
 
 def load_input_json(test_dir: str) -> dict:
     try:
-        with open(join(test_dir, INPUT_FILE_NAME), 'r') as f:
+        with open(join(test_dir, INPUT_FILE_NAME)) as f:
             return json.load(f)
     except FileNotFoundError:
         raise FileNotFoundError(f'{INPUT_FILE_NAME!r} not found in "{test_dir!r}"') from None
@@ -151,33 +164,6 @@ def run_config_and_check_empty(
     return final_conf, sym_conf, subst
 
 
-def run_test(krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoint: str, args: tuple[str, ...]) -> None:
-    step = {
-        'tx': {
-            'from': ROOT_ACCT_ADDR,
-            'to': TEST_SC_ADDR,
-            'function': endpoint,
-            'value': '0',
-            'arguments': args,
-            'gasLimit': '5,000,000,000',
-            'gasPrice': '0',
-        },
-        'expect': {'status': '0'},
-    }
-    tx_steps = KSequence([set_exit_code(1)] + get_steps_sc_call(step) + [set_exit_code(0)])
-
-    subst = init_subst.copy()
-    subst['K_CELL'] = tx_steps
-    conf_with_steps = Subst(subst)(sym_conf)
-
-    try:
-        run_config_and_check_empty(krun, conf_with_steps, pipe_stderr=True)
-    except RuntimeError as rte:
-        if rte.args[0].startswith('Command krun exited with code 1'):
-            raise RuntimeError(f'Test failed for input input: {args}') from None
-        raise rte
-
-
 # Test metadata
 
 
@@ -189,7 +175,7 @@ def get_test_endpoints(test_dir: str) -> Mapping[str, tuple[str, ...]]:
     else:
         raise ValueError(f'ABI file not found: {test_dir}/output/?.abi.json')
 
-    with open(abi_path, 'r') as f:
+    with open(abi_path) as f:
         abi_json = json.load(f)
 
     endpoints = {}
@@ -205,10 +191,36 @@ def get_test_endpoints(test_dir: str) -> Mapping[str, tuple[str, ...]]:
     return endpoints
 
 
+K_STEPS_VAR_KAST = KVariable('K_STEPS')
+K_STEPS_VAR_KORE = _kast_to_kore(K_STEPS_VAR_KAST)
+
+
+def run_concrete(
+    kprint: KPrint,
+    test_endpoints: Mapping[str, tuple[str, ...]],
+    sym_conf: KInner,
+    init_subst: dict[str, KInner],
+    verbose: bool = False,
+) -> None:
+    subst = init_subst.copy()
+    subst['K_CELL'] = K_STEPS_VAR_KAST
+    init_conf = Subst(subst)(sym_conf)
+    conf_with_var = kprint.kast_to_kore(init_conf)
+
+    if isinstance(conf_with_var, App) and conf_with_var.symbol == 'inj':
+        # kast_to_kore for some reason sometimes makes a sort injection for the generatedTop cell, which the llvm interpreter rejects
+        conf_with_var = conf_with_var.args[0]
+
+    for endpoint, arg_types in test_endpoints.items():
+        print(f'Testing {endpoint !r}')
+        _test_with_hypothesis(kprint, conf_with_var, endpoint, arg_types, verbose)
+        print(f'Passed {endpoint !r}')
+
+
 # Hypothesis strategies
 
 
-def type_to_strategy(typ: str) -> SearchStrategy[str]:
+def _type_to_strategy(typ: str) -> SearchStrategy[str]:
     if typ == 'BigUint':
         return integers(min_value=0).map(str)
     if typ == 'u32':
@@ -218,16 +230,16 @@ def type_to_strategy(typ: str) -> SearchStrategy[str]:
     raise TypeError(f'Cannot create random {typ}')
 
 
-def arg_types_to_strategy(types: Iterable[str]) -> SearchStrategy[tuple[str, ...]]:
-    strs = (type_to_strategy(t) for t in types)
+def _arg_types_to_strategy(types: Iterable[str]) -> SearchStrategy[tuple[str, ...]]:
+    strs = (_type_to_strategy(t) for t in types)
     return tuples(*strs)
 
 
 # Hypothesis test runner
 
 
-def test_with_hypothesis(
-    krun: KRun, sym_conf: KInner, init_subst: dict[str, KInner], endpoint: str, arg_types: Iterable[str], verbose: bool
+def _test_with_hypothesis(
+    kprint: KPrint, sym_conf: Pattern, endpoint: str, arg_types: Iterable[str], verbose: bool
 ) -> None:
     def test(args: tuple[str, ...]) -> None:
         # set the recursion limit every time because hypothesis changes it
@@ -235,21 +247,21 @@ def test_with_hypothesis(
             sys.setrecursionlimit(REC_LIMIT)
 
         try:
-            run_test(krun, sym_conf, init_subst, endpoint, args)
+            _run_test(kprint, sym_conf, endpoint, args)
         except KasmerRunError as kre:
             message = 'Test failed:'
             message += f'\n\tendpoint: {endpoint}'
-            message += f'\n\tvm output: {krun.pretty_print(kre.vm_output)}'
-            message += f'\n\tlogging: {krun.pretty_print(kre.logging)}'
+            message += f'\n\tvm output: {kprint.pretty_print(kre.vm_output)}'
+            message += f'\n\tlogging: {kprint.pretty_print(kre.logging)}'
 
             if verbose:
-                message += f'\n\tfinal configuration: {krun.pretty_print(kre.final_conf)}'
+                message += f'\n\tfinal configuration: {kprint.pretty_print(kre.final_conf)}'
 
             raise ValueError(message) from None
 
     test.__name__ = endpoint  # show endpoint name in hypothesis logs
 
-    args_strategy = arg_types_to_strategy(arg_types)
+    args_strategy = _arg_types_to_strategy(arg_types)
     given(args_strategy)(
         settings(
             deadline=50000,  # set time limit for individual runs
@@ -260,17 +272,45 @@ def test_with_hypothesis(
     )()
 
 
-def run_concrete(
-    krun: KRun,
-    test_endpoints: Mapping[str, tuple[str, ...]],
-    sym_conf: KInner,
-    init_subst: dict[str, KInner],
-    verbose: bool = False,
-) -> None:
-    for endpoint, arg_types in test_endpoints.items():
-        print(f'Testing {endpoint !r}')
-        test_with_hypothesis(krun, sym_conf, init_subst, endpoint, arg_types, verbose)
-        print(f'Passed {endpoint !r}')
+def _run_test(kprint: KPrint, sym_conf: Pattern, endpoint: str, args: tuple[str, ...]) -> None:
+    step = {
+        'tx': {
+            'from': ROOT_ACCT_ADDR,
+            'to': TEST_SC_ADDR,
+            'function': endpoint,
+            'value': '0',
+            'arguments': args,
+            'gasLimit': '5,000,000,000',
+            'gasPrice': '0',
+        },
+        'expect': {'status': '0'},
+    }
+    tx_steps = KSequence([set_exit_code(1)] + get_steps_sc_call(step) + [set_exit_code(0)])
+
+    def subst_k_cell(p: Pattern) -> Pattern:
+        if p == K_STEPS_VAR_KORE:
+            return kprint.kast_to_kore(tx_steps)
+        return p
+
+    test_conf = sym_conf.top_down(subst_k_cell)
+
+    try:
+        res = llvm_interpret_raw(kprint.definition_dir, test_conf.text, True)
+    except SubprocessError as e:
+        raise AssertionError('Error while trying to invoke the interpreter') from e
+
+    if res.returncode != 0:
+        kast_conf = kprint.kore_to_kast(KoreParser(res.stdout).pattern())
+        _, subst = split_config_from(kast_conf)
+        k_cell = subst['K_CELL']
+        print(kprint.pretty_print(k_cell))
+        raise KasmerRunError(
+            k_cell=subst['K_CELL'],
+            vm_output=subst['VMOUTPUT_CELL'],
+            logging=subst['LOGGING_CELL'],
+            final_conf=kast_conf,
+            message='exit status is non-zero',
+        )
 
 
 # Claim generation

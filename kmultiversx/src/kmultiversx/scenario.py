@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 import tempfile
-from typing import TYPE_CHECKING, Iterable, Optional
+from typing import TYPE_CHECKING
 
 from Cryptodome.Hash import keccak
 from pyk.kast.inner import KApply, KSequence, KToken, Subst
@@ -27,6 +27,8 @@ from kmultiversx.utils import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pyk.kast.inner import KInner
 
 
@@ -137,7 +139,7 @@ def mandos_argument_to_bytes(arg: str | list | dict) -> bytes:
 
 def mandos_string_to_bytes(raw_str: str) -> bytes:
     if raw_str == '':
-        return bytes()
+        return b''
 
     if '|' in raw_str:
         splits = raw_str.split('|')
@@ -147,7 +149,7 @@ def mandos_string_to_bytes(raw_str: str) -> bytes:
         return bytes(bs)
 
     if raw_str == 'false':
-        return bytes()
+        return b''
     if raw_str == 'true':
         return bytes([1])
 
@@ -609,7 +611,7 @@ def get_external_file_path(test_file: str, rel_path_to_new_file: str) -> str:
     return ext_file
 
 
-def get_contract_code(code: str, filename: str) -> Optional[str]:
+def get_contract_code(code: str, filename: str) -> str | None:
     if code[0:5] in ('file:', 'mxsc:'):
         return get_external_file_path(filename, code[5:])
     if code == '':
@@ -668,7 +670,7 @@ def get_steps_validator_reward(step: dict) -> list[KApply]:
     return [KApply('validatorReward', [tx])]
 
 
-def get_steps_new_addresses(new_addresses: Optional[dict]) -> list[KApply]:
+def get_steps_new_addresses(new_addresses: dict | None) -> list[KApply]:
     if new_addresses is None:
         return []
     ret: list[KApply] = []
@@ -719,7 +721,7 @@ def get_steps_check_state(step: dict, filename: str) -> list:
 
 
 def get_steps_as_kseq(filename: str, output_dir: str, args: argparse.Namespace) -> list:
-    with open(filename, 'r') as f:
+    with open(filename) as f:
         mandos_test = json.loads(f.read())
     if 'name' in mandos_test:
         if args.verbose:
@@ -804,9 +806,9 @@ def run_test_file(
 
 
 def log_intermediate_state(krun: KRun, name: str, config: KInner, output_dir: str) -> None:
-    with open('%s/%s' % (output_dir, name), 'w') as f:
+    with open(f'{output_dir}/{name}', 'w') as f:
         f.write(kast_to_json_str(config))
-    with open('%s/%s.pretty.k' % (output_dir, name), 'w') as f:
+    with open(f'{output_dir}/{name}.pretty.k', 'w') as f:
         pretty = krun.pretty_print(config)
         f.write(pretty)
 
@@ -841,7 +843,7 @@ def run_tests() -> None:
             print('Intermediate test outputs stored in:\n%s' % tmpdir)
 
         initial_name = '0000_initial_config'
-        with open('%s/%s' % (tmpdir, initial_name), 'w') as f:
+        with open(f'{tmpdir}/{initial_name}', 'w') as f:
             f.write(kast_to_json_str(template_wasm_config))
 
         run_test_file(krun, template_wasm_config, test, tmpdir, args)

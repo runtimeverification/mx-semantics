@@ -6,9 +6,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
 
 from pyk.kast.inner import KInner, KSort
+from pyk.utils import run_process
 from pykwasm import wasm2kast
 
 if TYPE_CHECKING:
+    from subprocess import CompletedProcess
+
     from pyk.kast.kast import KAst
     from pyk.ktool.krun import KRun
 
@@ -30,7 +33,7 @@ def read_kasmer_runtime() -> KInner:
 
 
 def read_kinner_json(path: Path) -> KInner:
-    with open(str(path), 'r') as f:
+    with open(str(path)) as f:
         config_json = json.load(f)
         return KInner.from_dict(config_json['term'])
 
@@ -53,7 +56,7 @@ def load_wasm(filename: str) -> KInner:
 
 
 def load_wasm_from_mxsc(filename: str) -> KInner:
-    with open(filename, 'r') as f:
+    with open(filename) as f:
         contract_json = json.load(f)
         code_hex = contract_json['code']
         code_bytes = bytes.fromhex(code_hex)
@@ -64,6 +67,13 @@ def krun_config(krun: KRun, conf: KInner, pipe_stderr: bool = False) -> KInner:
     conf_kore = krun.kast_to_kore(conf, sort=GENERATED_TOP_CELL)
     res_conf_kore = krun.run_pattern(conf_kore, pipe_stderr=pipe_stderr)
     return krun.kore_to_kast(res_conf_kore)
+
+
+def llvm_interpret_raw(definition_dir: Path, kore_input: str, pipe_stderr: bool = False) -> CompletedProcess:
+    interpreter = definition_dir / 'interpreter'
+    args = [str(interpreter), '/dev/stdin', '-1', '/dev/stdout']
+
+    return run_process(args, input=kore_input, pipe_stderr=pipe_stderr, check=False)
 
 
 class KasmerRunError(Exception):  # noqa: B903

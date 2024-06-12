@@ -164,11 +164,115 @@ def run_config_and_check_empty(
     return final_conf, sym_conf, subst
 
 
+# Test metadata
+
+
+def get_test_endpoints(test_dir: str) -> Mapping[str, tuple[str, ...]]:
+    abi_paths = glob.glob(test_dir + '/output/*.abi.json')
+    # TODO this loads the first wasm file in the directory. what if there are multiple wasm files?
+    if abi_paths:
+        abi_path = abi_paths[0]
+    else:
+        raise ValueError(f'ABI file not found: {test_dir}/output/?.abi.json')
+
+    with open(abi_path) as f:
+        abi_json = json.load(f)
+
+    endpoints = {}
+    for endpoint in abi_json['endpoints']:
+        name = endpoint['name']
+        if not name.startswith(TEST_PREFIX):
+            continue
+
+        inputs = tuple(i['type'] for i in endpoint['inputs'])
+
+        endpoints[name] = inputs
+
+    return endpoints
+
+
 K_STEPS_VAR_KAST = KVariable('K_STEPS')
 K_STEPS_VAR_KORE = _kast_to_kore(K_STEPS_VAR_KAST)
 
 
-def run_test(kprint: KPrint, sym_conf: Pattern, endpoint: str, args: tuple[str, ...]) -> None:
+def run_concrete(
+    kprint: KPrint,
+    test_endpoints: Mapping[str, tuple[str, ...]],
+    sym_conf: KInner,
+    init_subst: dict[str, KInner],
+    verbose: bool = False,
+) -> None:
+    subst = init_subst.copy()
+    subst['K_CELL'] = K_STEPS_VAR_KAST
+    init_conf = Subst(subst)(sym_conf)
+    conf_with_var = kprint.kast_to_kore(init_conf)
+
+    if isinstance(conf_with_var, App) and conf_with_var.symbol == 'inj':
+        # kast_to_kore for some reason sometimes makes a sort injection for the generatedTop cell, which the llvm interpreter rejects
+        conf_with_var = conf_with_var.args[0]
+
+    for endpoint, arg_types in test_endpoints.items():
+        print(f'Testing {endpoint !r}')
+        _test_with_hypothesis(kprint, conf_with_var, endpoint, arg_types, verbose)
+        print(f'Passed {endpoint !r}')
+
+
+# Hypothesis strategies
+
+
+def _type_to_strategy(typ: str) -> SearchStrategy[str]:
+    if typ == 'BigUint':
+        return integers(min_value=0).map(str)
+    if typ == 'u32':
+        return integers(min_value=0, max_value=4294967295).map(str)
+    if typ == 'u64':
+        return integers(min_value=0, max_value=18446744073709551615).map(str)
+    raise TypeError(f'Cannot create random {typ}')
+
+
+def _arg_types_to_strategy(types: Iterable[str]) -> SearchStrategy[tuple[str, ...]]:
+    strs = (_type_to_strategy(t) for t in types)
+    return tuples(*strs)
+
+
+# Hypothesis test runner
+
+
+def _test_with_hypothesis(
+    kprint: KPrint, sym_conf: Pattern, endpoint: str, arg_types: Iterable[str], verbose: bool
+) -> None:
+    def test(args: tuple[str, ...]) -> None:
+        # set the recursion limit every time because hypothesis changes it
+        if sys.getrecursionlimit() < REC_LIMIT:
+            sys.setrecursionlimit(REC_LIMIT)
+
+        try:
+            _run_test(kprint, sym_conf, endpoint, args)
+        except KasmerRunError as kre:
+            message = 'Test failed:'
+            message += f'\n\tendpoint: {endpoint}'
+            message += f'\n\tvm output: {kprint.pretty_print(kre.vm_output)}'
+            message += f'\n\tlogging: {kprint.pretty_print(kre.logging)}'
+
+            if verbose:
+                message += f'\n\tfinal configuration: {kprint.pretty_print(kre.final_conf)}'
+
+            raise ValueError(message) from None
+
+    test.__name__ = endpoint  # show endpoint name in hypothesis logs
+
+    args_strategy = _arg_types_to_strategy(arg_types)
+    given(args_strategy)(
+        settings(
+            deadline=50000,  # set time limit for individual runs
+            max_examples=50,
+            verbosity=Verbosity.verbose,
+            phases=(Phase.generate, Phase.target, Phase.shrink),
+        )(test)
+    )()
+
+
+def _run_test(kprint: KPrint, sym_conf: Pattern, endpoint: str, args: tuple[str, ...]) -> None:
     step = {
         'tx': {
             'from': ROOT_ACCT_ADDR,
@@ -207,110 +311,6 @@ def run_test(kprint: KPrint, sym_conf: Pattern, endpoint: str, args: tuple[str, 
             final_conf=kast_conf,
             message='exit status is non-zero',
         )
-
-
-# Test metadata
-
-
-def get_test_endpoints(test_dir: str) -> Mapping[str, tuple[str, ...]]:
-    abi_paths = glob.glob(test_dir + '/output/*.abi.json')
-    # TODO this loads the first wasm file in the directory. what if there are multiple wasm files?
-    if abi_paths:
-        abi_path = abi_paths[0]
-    else:
-        raise ValueError(f'ABI file not found: {test_dir}/output/?.abi.json')
-
-    with open(abi_path) as f:
-        abi_json = json.load(f)
-
-    endpoints = {}
-    for endpoint in abi_json['endpoints']:
-        name = endpoint['name']
-        if not name.startswith(TEST_PREFIX):
-            continue
-
-        inputs = tuple(i['type'] for i in endpoint['inputs'])
-
-        endpoints[name] = inputs
-
-    return endpoints
-
-
-# Hypothesis strategies
-
-
-def type_to_strategy(typ: str) -> SearchStrategy[str]:
-    if typ == 'BigUint':
-        return integers(min_value=0).map(str)
-    if typ == 'u32':
-        return integers(min_value=0, max_value=4294967295).map(str)
-    if typ == 'u64':
-        return integers(min_value=0, max_value=18446744073709551615).map(str)
-    raise TypeError(f'Cannot create random {typ}')
-
-
-def arg_types_to_strategy(types: Iterable[str]) -> SearchStrategy[tuple[str, ...]]:
-    strs = (type_to_strategy(t) for t in types)
-    return tuples(*strs)
-
-
-# Hypothesis test runner
-
-
-def test_with_hypothesis(
-    kprint: KPrint, sym_conf: Pattern, endpoint: str, arg_types: Iterable[str], verbose: bool
-) -> None:
-    def test(args: tuple[str, ...]) -> None:
-        # set the recursion limit every time because hypothesis changes it
-        if sys.getrecursionlimit() < REC_LIMIT:
-            sys.setrecursionlimit(REC_LIMIT)
-
-        try:
-            run_test(kprint, sym_conf, endpoint, args)
-        except KasmerRunError as kre:
-            message = 'Test failed:'
-            message += f'\n\tendpoint: {endpoint}'
-            message += f'\n\tvm output: {kprint.pretty_print(kre.vm_output)}'
-            message += f'\n\tlogging: {kprint.pretty_print(kre.logging)}'
-
-            if verbose:
-                message += f'\n\tfinal configuration: {kprint.pretty_print(kre.final_conf)}'
-
-            raise ValueError(message) from None
-
-    test.__name__ = endpoint  # show endpoint name in hypothesis logs
-
-    args_strategy = arg_types_to_strategy(arg_types)
-    given(args_strategy)(
-        settings(
-            deadline=50000,  # set time limit for individual runs
-            max_examples=50,
-            verbosity=Verbosity.verbose,
-            phases=(Phase.generate, Phase.target, Phase.shrink),
-        )(test)
-    )()
-
-
-def run_concrete(
-    kprint: KPrint,
-    test_endpoints: Mapping[str, tuple[str, ...]],
-    sym_conf: KInner,
-    init_subst: dict[str, KInner],
-    verbose: bool = False,
-) -> None:
-    subst = init_subst.copy()
-    subst['K_CELL'] = K_STEPS_VAR_KAST
-    init_conf = Subst(subst)(sym_conf)
-    conf_with_var = kprint.kast_to_kore(init_conf)
-
-    if isinstance(conf_with_var, App) and conf_with_var.symbol == 'inj':
-        # kast_to_kore for some reason sometimes makes a sort injection for the generatedTop cell, which the llvm interpreter rejects
-        conf_with_var = conf_with_var.args[0]
-
-    for endpoint, arg_types in test_endpoints.items():
-        print(f'Testing {endpoint !r}')
-        test_with_hypothesis(kprint, conf_with_var, endpoint, arg_types, verbose)
-        print(f'Passed {endpoint !r}')
 
 
 # Claim generation

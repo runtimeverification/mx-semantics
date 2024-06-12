@@ -10,22 +10,22 @@ module LIST-BYTES
   syntax ListBytes [hook(LIST.List)]
   syntax ListBytes ::= ListBytes ListBytes
           [ left, function, total, hook(LIST.concat),
-            klabel(_ListBytes_), symbol, smtlib(smt_seq_concat),
+            symbol(_ListBytes_), smtlib(smt_seq_concat),
             assoc, unit(.ListBytes), element(ListBytesItem),
             format(%1%n%2)
           ]
   syntax ListBytes ::= ".ListBytes"
-          [ function, total, hook(LIST.unit), klabel(.ListBytes),
-            symbol, smtlib(smt_seq_nil)
+          [ function, total, hook(LIST.unit), symbol(.ListBytes),
+            smtlib(smt_seq_nil)
           ]
   syntax ListBytes ::= ListItem(WrappedBytes)
-          [ function, total, hook(LIST.element), klabel(ListBytesItem),
-            symbol, smtlib(smt_seq_elem)
+          [ function, total, hook(LIST.element), symbol(ListBytesItem),
+            smtlib(smt_seq_elem)
           ]
   syntax WrappedBytes ::= ListBytes "[" Int "]"
-          [ function, hook(LIST.get), klabel(ListBytes:get), symbol ]
+          [ function, hook(LIST.get), symbol(ListBytes:get) ]
   syntax ListBytes ::= ListBytes "[" index: Int "<-" value: WrappedBytes "]"
-          [function, hook(LIST.update), symbol, klabel(ListBytes:set)]
+          [function, hook(LIST.update), symbol(ListBytes:set)]
   syntax ListBytes ::= makeListBytes(length: Int, value: WrappedBytes)
           [function, hook(LIST.make)]
   syntax ListBytes ::= updateList(dest: ListBytes, index: Int, src: ListBytes)
@@ -33,11 +33,11 @@ module LIST-BYTES
   syntax ListBytes ::= fillList(ListBytes, index: Int, length: Int, value: WrappedBytes)
           [function, hook(LIST.fill)]
   syntax ListBytes ::= range(ListBytes, fromFront: Int, fromBack: Int)
-          [function, hook(LIST.range), klabel(ListBytes:range), symbol]
+          [function, hook(LIST.range), symbol(ListBytes:range)]
   syntax Bool ::= WrappedBytes "in" ListBytes
-          [function, total, hook(LIST.in), symbol, klabel(_inListBytes_)]
+          [function, total, hook(LIST.in), symbol(_inListBytes_)]
   syntax Int ::= size(ListBytes)
-          [function, total, hook(LIST.size), symbol, klabel (sizeListBytes), smtlib(smt_seq_len)]
+          [function, total, hook(LIST.size), symbol(sizeListBytes), smtlib(smt_seq_len)]
 endmodule
 
 module LIST-BYTES-EXTENSIONS
@@ -46,15 +46,15 @@ module LIST-BYTES-EXTENSIONS
   imports LIST-BYTES
 
   syntax WrappedBytes ::= ListBytes "[" Int "]" "orDefault" WrappedBytes
-          [ function, total, klabel(ListBytes:getOrDefault), symbol ]
+          [ function, total, symbol(ListBytes:getOrDefault) ]
 
   syntax Bytes ::= ListBytes "{{" Int "}}"
-                 [function, symbol, klabel(ListBytes:primitiveLookup)]
+                 [function, symbol(ListBytes:primitiveLookup)]
 // -----------------------------------------------------------
   rule L:ListBytes {{ I:Int }} => unwrap( L[ I ] )
-  
+
   syntax Bytes ::= ListBytes "{{" Int "}}" "orDefault" Bytes
-                 [ function, total, symbol, klabel(ListBytes:primitiveLookupOrDefault) ]
+                 [ function, total, symbol(ListBytes:primitiveLookupOrDefault) ]
 // -----------------------------------------------------------------------------
   rule L:ListBytes {{ I:Int }} orDefault Value:Bytes
       => unwrap( L [I] orDefault wrap(Value) )
@@ -77,8 +77,15 @@ module LIST-BYTES-EXTENSIONS
     [simplification]
 
   syntax ListBytes ::= ListItemWrap( Bytes )
-      [function, total, symbol, klabel(ListBytesItemWrap)]
+      [function, total, symbol(ListBytesItemWrap)]
   rule ListItemWrap( B:Bytes ) => ListItem(wrap(B))
+
+
+  syntax ListBytes ::= ListBytes "{{" Int "<-" Bytes "}}"
+                 [function, symbol(ListBytes:primitiveSet)]
+// -----------------------------------------------------------
+  rule L:ListBytes {{ I:Int <- V:Bytes }}
+      => L[ I <- wrap(V)]
 
   // Workaround for the Haskell backend missing the range hook.
   // See https://github.com/runtimeverification/haskell-backend/issues/3706
@@ -102,7 +109,7 @@ module LIST-BYTES-EXTENSIONS
       [simplification]
 
   syntax ListBytes ::= rangeTotal(ListBytes, Int, Int)
-      [function, total, klabel(ListBytes:rangeTotal), symbol]
+      [function, total, symbol(ListBytes:rangeTotal)]
 // ----------------------------------------------------------
   rule rangeTotal(L, Front, Back) => range(L, Front, Back)
     requires 0 <=Int Front
@@ -120,5 +127,5 @@ module LIST-BYTES-EXTENSIONS
     requires 0 <=Int Front
      andBool 0 <=Int Back 
      andBool size(L) <Int Front +Int Back
-  
+
 endmodule

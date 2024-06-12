@@ -163,14 +163,14 @@ def run_config_and_check_empty(
     return final_conf, sym_conf, subst
 
 
-def run_pattern_and_check_exit_code(krun: KRun, conf: Pattern, pipe_stderr: bool = False) -> None:
-    res = llvm_interpret_raw(krun.definition_dir, conf.text, pipe_stderr)
+def run_pattern_and_check_exit_code(kprint: KPrint, conf: Pattern, pipe_stderr: bool = False) -> None:
+    res = llvm_interpret_raw(kprint.definition_dir, conf.text, pipe_stderr)
 
     if res.returncode != 0:
-        kast_conf = krun.kore_to_kast(KoreParser(res.stdout).pattern())
+        kast_conf = kprint.kore_to_kast(KoreParser(res.stdout).pattern())
         sym_conf, subst = split_config_from(kast_conf)
         k_cell = subst['K_CELL']
-        print(krun.pretty_print(k_cell))
+        print(kprint.pretty_print(k_cell))
         raise KasmerRunError(
             k_cell=subst['K_CELL'],
             vm_output=subst['VMOUTPUT_CELL'],
@@ -184,7 +184,7 @@ K_STEPS_VAR_KAST = KVariable('K_STEPS')
 K_STEPS_VAR_KORE = _kast_to_kore(K_STEPS_VAR_KAST)
 
 
-def run_test(krun: KRun, sym_conf: Pattern, endpoint: str, args: tuple[str, ...]) -> None:
+def run_test(kprint: KPrint, sym_conf: Pattern, endpoint: str, args: tuple[str, ...]) -> None:
     step = {
         'tx': {
             'from': ROOT_ACCT_ADDR,
@@ -201,13 +201,13 @@ def run_test(krun: KRun, sym_conf: Pattern, endpoint: str, args: tuple[str, ...]
 
     def subst_k_cell(p: Pattern) -> Pattern:
         if p == K_STEPS_VAR_KORE:
-            return krun.kast_to_kore(tx_steps)
+            return kprint.kast_to_kore(tx_steps)
         return p
 
     test_conf = sym_conf.top_down(subst_k_cell)
 
     try:
-        run_pattern_and_check_exit_code(krun, test_conf, pipe_stderr=True)
+        run_pattern_and_check_exit_code(kprint, test_conf, pipe_stderr=True)
     except RuntimeError as rte:
         if rte.args[0].startswith('Command krun exited with code 1'):
             raise RuntimeError(f'Test failed for input input: {args}') from None
@@ -262,22 +262,24 @@ def arg_types_to_strategy(types: Iterable[str]) -> SearchStrategy[tuple[str, ...
 # Hypothesis test runner
 
 
-def test_with_hypothesis(krun: KRun, sym_conf: Pattern, endpoint: str, arg_types: Iterable[str], verbose: bool) -> None:
+def test_with_hypothesis(
+    kprint: KPrint, sym_conf: Pattern, endpoint: str, arg_types: Iterable[str], verbose: bool
+) -> None:
     def test(args: tuple[str, ...]) -> None:
         # set the recursion limit every time because hypothesis changes it
         if sys.getrecursionlimit() < REC_LIMIT:
             sys.setrecursionlimit(REC_LIMIT)
 
         try:
-            run_test(krun, sym_conf, endpoint, args)
+            run_test(kprint, sym_conf, endpoint, args)
         except KasmerRunError as kre:
             message = 'Test failed:'
             message += f'\n\tendpoint: {endpoint}'
-            message += f'\n\tvm output: {krun.pretty_print(kre.vm_output)}'
-            message += f'\n\tlogging: {krun.pretty_print(kre.logging)}'
+            message += f'\n\tvm output: {kprint.pretty_print(kre.vm_output)}'
+            message += f'\n\tlogging: {kprint.pretty_print(kre.logging)}'
 
             if verbose:
-                message += f'\n\tfinal configuration: {krun.pretty_print(kre.final_conf)}'
+                message += f'\n\tfinal configuration: {kprint.pretty_print(kre.final_conf)}'
 
             raise ValueError(message) from None
 
@@ -295,7 +297,7 @@ def test_with_hypothesis(krun: KRun, sym_conf: Pattern, endpoint: str, arg_types
 
 
 def run_concrete(
-    krun: KRun,
+    kprint: KPrint,
     test_endpoints: Mapping[str, tuple[str, ...]],
     sym_conf: KInner,
     init_subst: dict[str, KInner],
@@ -304,7 +306,7 @@ def run_concrete(
     subst = init_subst.copy()
     subst['K_CELL'] = K_STEPS_VAR_KAST
     init_conf = Subst(subst)(sym_conf)
-    conf_with_var = krun.kast_to_kore(init_conf)
+    conf_with_var = kprint.kast_to_kore(init_conf)
 
     if isinstance(conf_with_var, App) and conf_with_var.symbol == 'inj':
         # kast_to_kore for some reason sometimes makes a sort injection for the generatedTop cell, which the llvm interpreter rejects
@@ -312,7 +314,7 @@ def run_concrete(
 
     for endpoint, arg_types in test_endpoints.items():
         print(f'Testing {endpoint !r}')
-        test_with_hypothesis(krun, conf_with_var, endpoint, arg_types, verbose)
+        test_with_hypothesis(kprint, conf_with_var, endpoint, arg_types, verbose)
         print(f'Passed {endpoint !r}')
 
 

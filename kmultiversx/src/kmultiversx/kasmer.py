@@ -4,6 +4,7 @@ import glob
 import json
 import sys
 from os.path import join
+from subprocess import SubprocessError
 from typing import TYPE_CHECKING, cast
 
 from hypothesis import Phase, Verbosity, given, settings
@@ -164,7 +165,10 @@ def run_config_and_check_empty(
 
 
 def run_pattern_and_check_exit_code(kprint: KPrint, conf: Pattern, pipe_stderr: bool = False) -> None:
-    res = llvm_interpret_raw(kprint.definition_dir, conf.text, pipe_stderr)
+    try:
+        res = llvm_interpret_raw(kprint.definition_dir, conf.text, pipe_stderr)
+    except SubprocessError as e:
+        raise AssertionError('Error while trying to invoke the interpreter') from e
 
     if res.returncode != 0:
         kast_conf = kprint.kore_to_kast(KoreParser(res.stdout).pattern())
@@ -206,12 +210,7 @@ def run_test(kprint: KPrint, sym_conf: Pattern, endpoint: str, args: tuple[str, 
 
     test_conf = sym_conf.top_down(subst_k_cell)
 
-    try:
-        run_pattern_and_check_exit_code(kprint, test_conf, pipe_stderr=True)
-    except RuntimeError as rte:
-        if rte.args[0].startswith('Command krun exited with code 1'):
-            raise RuntimeError(f'Test failed for input input: {args}') from None
-        raise rte
+    run_pattern_and_check_exit_code(kprint, test_conf, pipe_stderr=True)
 
 
 # Test metadata

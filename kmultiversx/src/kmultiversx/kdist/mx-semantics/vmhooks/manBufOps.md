@@ -33,9 +33,8 @@ module MANBUFOPS
  // ---------------------------------------------------------------
     rule [getBuffer]:
         <instrs> #getBuffer(BUFFER_IDX) => .K ... </instrs>
-        <bytesStack> STACK => HEAP{{BUFFER_IDX}} orDefault .Bytes : STACK </bytesStack>
-        <bufferHeap> HEAP </bufferHeap>
-      requires #validBufferId(BUFFER_IDX, HEAP)
+        <bytesStack> STACK => Bs : STACK </bytesStack>
+        <bufferHeap> ... wrap(BUFFER_IDX) Int2Bytes|-> wrap(Bs:Bytes) ... </bufferHeap>
     
     rule [getBuffer-not-found]:
         <instrs> #getBuffer(BUFFER_IDX)

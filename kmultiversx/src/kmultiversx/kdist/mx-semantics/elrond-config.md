@@ -77,7 +77,7 @@ module ELROND-CONFIG
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> wrap(0) Int2Int|-> wrap(MEMADDR) </memAddrs>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
            ...
          </moduleInst>
          <memInst>
@@ -92,7 +92,7 @@ module ELROND-CONFIG
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> wrap(0) Int2Int|-> wrap(MEMADDR) </memAddrs>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
            ...
          </moduleInst>
          <memInst>
@@ -126,7 +126,7 @@ module ELROND-CONFIG
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> wrap(0) Int2Int|-> wrap(MEMADDR) </memAddrs>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
            ...
          </moduleInst>
          <memInst>
@@ -144,7 +144,7 @@ module ELROND-CONFIG
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> wrap(0) Int2Int|-> wrap(MEMADDR) </memAddrs>
+           <memAddrs> 0 |-> MEMADDR </memAddrs>
            ...
          </moduleInst>
          <memInst>
@@ -773,7 +773,7 @@ Initialize the call state and invoke the endpoint function:
             </moduleInst>
             ...
           </wasm>
-          <bigIntHeap> _ => .MapIntToInt </bigIntHeap>
+          <bigIntHeap> _ => .Map </bigIntHeap>
           <bufferHeap> _ => .MapIntToBytes </bufferHeap>
           <bytesStack> _ => .BytesStack </bytesStack>
           <contractModIdx> MODIDX:Int </contractModIdx>

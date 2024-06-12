@@ -71,7 +71,7 @@ def krun_config(krun: KRun, conf: KInner, pipe_stderr: bool = False) -> KInner:
 
 def llvm_interpret_raw(definition_dir: Path, kore_input: str, pipe_stderr: bool = False) -> CompletedProcess:
     interpreter = definition_dir / 'interpreter'
-    args = [str(interpreter), '/dev/stdin', str(-1), '/dev/stdout']
+    args = [str(interpreter), '/dev/stdin', '-1', '/dev/stdout']
 
     return run_process(args, input=kore_input, pipe_stderr=pipe_stderr, check=False)
 

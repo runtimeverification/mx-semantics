@@ -6,7 +6,6 @@ import sys
 from os.path import join
 from typing import TYPE_CHECKING, cast
 
-import pyk.kllvm.load_static  # noqa: F401
 from hypothesis import Phase, Verbosity, given, settings
 from hypothesis.strategies import integers, tuples
 from pyk.cterm import CTerm, cterm_build_claim

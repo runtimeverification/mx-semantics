@@ -1000,7 +1000,7 @@ subdirectory = "pyk"
 
 [[package]]
 name = "pykwasm"
-version = "0.1.62"
+version = "0.1.63"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -1016,8 +1016,8 @@ pyk = {git = "https://github.com/runtimeverification/k.git", tag = "v7.0.120", s
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/wasm-semantics.git"
-reference = "v0.1.62"
-resolved_reference = "1cd40684278953bbf617a0896c931bc4f8f32834"
+reference = "v0.1.63"
+resolved_reference = "da84992337b4d4cd9b8798722d294c4c12d410e3"
 subdirectory = "pykwasm"
 
 [[package]]
@@ -1294,4 +1294,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "7972bd74e566c0266416c2a3de7c954f77d861e912a29b8f2cdab93321573716"
+content-hash = "b718bab1de1bee850d5bfbddf3e6b69c796f6eef541d123dd6fbca9d024abbb3"

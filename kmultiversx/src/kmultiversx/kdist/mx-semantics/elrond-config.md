@@ -775,7 +775,7 @@ Initialize the call state and invoke the endpoint function:
             ...
           </wasm>
           <bigIntHeap> _ => .Map </bigIntHeap>
-          <bufferHeap> _ => .MapIntToBytes </bufferHeap>
+          <bufferHeap> _ => .Map </bufferHeap>
           <bytesStack> _ => .BytesStack </bytesStack>
           <contractModIdx> MODIDX:Int </contractModIdx>
           <asyncCalls> _ => .ListAsyncCall </asyncCalls>

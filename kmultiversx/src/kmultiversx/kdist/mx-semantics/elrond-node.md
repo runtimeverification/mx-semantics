@@ -5,13 +5,11 @@ Elrond Node
 requires "wasm-semantics/wasm.md"
 requires "data/async-call.k"
 requires "data/list-bytes.k"
-requires "data/map-int-to-bytes.k"
 
 module ELROND-NODE
     imports DOMAINS
     imports ASYNC-CALL
     imports LIST-BYTES
-    imports MAP-INT-TO-BYTES
     imports WASM
 
     configuration
@@ -37,7 +35,7 @@ module ELROND-NODE
           // every contract call uses its own wasm module instance, managed data heaps, and bytesStack.
           <wasm/>
           <bigIntHeap> .Map   </bigIntHeap>
-          <bufferHeap> .MapIntToBytes </bufferHeap>
+          <bufferHeap> .Map </bufferHeap>
           <bytesStack> .BytesStack </bytesStack>
           <contractModIdx> .Int </contractModIdx>
           <asyncCalls> .ListAsyncCall </asyncCalls>

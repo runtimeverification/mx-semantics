@@ -34,6 +34,7 @@ module MANBUFOPS
         <bytesStack> STACK => {HEAP[BUFFER_IDX] orDefault .Bytes}:>Bytes : STACK </bytesStack>
         <bufferHeap> HEAP:Map </bufferHeap>
       requires #validBufferId(BUFFER_IDX, HEAP:Map) andBool isBytes(HEAP[BUFFER_IDX] orDefault .Bytes)
+      [preserves-definedness]
     
     rule [getBuffer-not-found]:
         <instrs> #getBuffer(BUFFER_IDX)

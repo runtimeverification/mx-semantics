@@ -59,10 +59,6 @@ def KMap(  # noqa: N802
     return res
 
 
-def KMapBytesToBytes(kitem_pairs: list[tuple[KInner, KInner]]) -> KInner:  # noqa: N802
-    return KMap(kitem_pairs, empty_map='.MapBytesToBytes', map_item='_Bytes2Bytes|->_', map_concat='_MapBytesToBytes_')
-
-
 def KList(  # noqa: N802
     items: Iterable[KInner], list_item: str = 'ListItem', empty: str = '.List', concat: str = '_List_'
 ) -> KInner:
@@ -311,8 +307,7 @@ def mandos_to_set_account(address: str, sections: dict, filename: Path, output_d
     storage_pairs = [
         (mandos_argument_to_kbytes(k), mandos_argument_to_kbytes(v)) for (k, v) in sections.get('storage', {}).items()
     ]
-    wrapped_pairs = [(wrapBytes(k), wrapBytes(v)) for (k, v) in storage_pairs]
-    storage_value = KMapBytesToBytes(wrapped_pairs)
+    storage_value = KMap(storage_pairs)
 
     set_account_steps = [
         KApply('setAccount', [address_value, nonce_value, balance_value, code_value, owner_value, storage_value])
@@ -422,8 +417,7 @@ def mandos_to_check_account(address: str, sections: dict, filename: Path) -> lis
             k_bytes = mandos_argument_to_kbytes(k)
             v_bytes = mandos_argument_to_kbytes(v)
             storage_pairs.append((k_bytes, v_bytes))
-        wrapped_pairs = [(wrapBytes(k), wrapBytes(v)) for (k, v) in storage_pairs]
-        storage_value = KMapBytesToBytes(wrapped_pairs)
+        storage_value = KMap(storage_pairs)
         k_steps.append(KApply('checkAccountStorage', [address_value, storage_value]))
     if ('code' in sections) and (sections['code'] != '*'):
         code_path_ = get_contract_code(sections['code'], filename)

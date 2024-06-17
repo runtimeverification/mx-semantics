@@ -11,7 +11,6 @@ module ESDT
     imports ELROND-NODE
     imports SWITCH-SYNTAX
     imports LIST-BYTES-EXTENSIONS
-    imports MAP-BYTES-TO-BYTES-PRIMITIVE
 
     syntax Bytes ::= "#esdtSCAddress"   [macro]
  // -------------------------------------------

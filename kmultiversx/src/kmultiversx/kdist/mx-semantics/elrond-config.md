@@ -33,7 +33,6 @@ module ELROND-CONFIG
     imports ELROND-NODE
     imports ESDT
     imports LIST-BYTES
-    imports MAP-BYTES-TO-BYTES-PRIMITIVE
     imports SWITCH
 
     configuration
@@ -188,7 +187,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
-           <storage> STORAGE => STORAGE{{KEY <- undef}} </storage>
+           <storage> STORAGE => STORAGE[KEY <- undef] </storage>
            ...
          </account>
          requires VALUE ==K .Bytes
@@ -197,7 +196,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <callee> CALLEE </callee>
          <account>
            <address> CALLEE </address>
-           <storage> STORAGE => STORAGE{{KEY <- VALUE}} </storage>
+           <storage> STORAGE => STORAGE[KEY <- VALUE] </storage>
            ...
          </account>
          requires VALUE =/=K .Bytes
@@ -241,21 +240,23 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
         // <bytesStack> ADDR : _ : _ </bytesStack>
       [owise]
 
-    syntax Bytes ::= #lookupStorage ( MapBytesToBytes , key: Bytes ) [function, total]
+    syntax Bytes ::= #lookupStorage ( Map , key: Bytes ) [function, total]
  // ---------------------------------------------------------------
-    rule #lookupStorage(STORAGE, KEY) => STORAGE{{KEY}} orDefault .Bytes
+    rule #lookupStorage(STORAGE, KEY) => {STORAGE[KEY] orDefault .Bytes}:>Bytes
+        requires isBytes(STORAGE[KEY] orDefault .Bytes)
+    rule #lookupStorage(_STORAGE, _KEY) => .Bytes  [owise]
 
-    syntax Int ::= #storageStatus ( MapBytesToBytes , key : Bytes , val : Bytes ) [function, total]
+    syntax Int ::= #storageStatus ( Map , key : Bytes , val : Bytes ) [function, total]
                  | #StorageUnmodified () [function, total]
                  | #StorageModified   () [function, total]
                  | #StorageAdded      () [function, total]
                  | #StorageDeleted    () [function, total]
  // -----------------------------------------------------------
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL  ==K .Bytes andBool notBool KEY in_keys{{STOR}}
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL =/=K .Bytes andBool         KEY in_keys{{STOR}} andBool STOR{{KEY}}  ==K VAL
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageModified  () requires VAL =/=K .Bytes andBool         KEY in_keys{{STOR}} andBool STOR{{KEY}} =/=K VAL
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageAdded     () requires VAL =/=K .Bytes andBool notBool KEY in_keys{{STOR}}
-    rule #storageStatus(STOR, KEY,  VAL) => #StorageDeleted   () requires VAL  ==K .Bytes andBool         KEY in_keys{{STOR}}
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL  ==K .Bytes andBool notBool KEY in_keys(STOR)
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageUnmodified() requires VAL =/=K .Bytes andBool         KEY in_keys(STOR) andBool STOR[KEY]  ==K VAL
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageModified  () requires VAL =/=K .Bytes andBool         KEY in_keys(STOR) andBool STOR[KEY] =/=K VAL
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageAdded     () requires VAL =/=K .Bytes andBool notBool KEY in_keys(STOR)
+    rule #storageStatus(STOR, KEY,  VAL) => #StorageDeleted   () requires VAL  ==K .Bytes andBool         KEY in_keys(STOR)
 
     rule #StorageUnmodified() => 0
     rule #StorageModified  () => 1
@@ -502,7 +503,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <instrs> #waitCommands ... </instrs>
       [priority(61)]
 
-    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, Code, Bytes, MapBytesToBytes )  [klabel(setAccountFields), symbol]
+    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, Code, Bytes, Map )  [klabel(setAccountFields), symbol]
                          | setAccountCode      ( Bytes, Code )  [klabel(setAccountCode), symbol]
                          | setAccountOwner     ( Bytes, Bytes )
  // ---------------------------------------------------------------

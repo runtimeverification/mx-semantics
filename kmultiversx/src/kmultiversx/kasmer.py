@@ -23,7 +23,7 @@ from pykwasm.kwasm_ast import KInt
 
 from kmultiversx.scenario import (
     KList,
-    KMapBytesToBytes,
+    KMap,
     KWasmString,
     ListBytes,
     get_steps_sc_call,
@@ -84,7 +84,7 @@ def deploy_test(krun: KRun, test_wasm: KInner, contract_wasms: dict[bytes, KInne
             token(100000),
             KApply('.Code', []),
             token(b''),
-            KMapBytesToBytes([]),
+            KMap([]),
         ],
     )
 

@@ -117,8 +117,9 @@ module ELROND-CONFIG
       requires #signed(i32 , LENGTH) <Int 0
 
     rule [memLoad-zero-length]:
-        <instrs> #memLoad(_, 0) => .K ... </instrs>
+        <instrs> #memLoad(_, LENGTH) => .K ... </instrs>
         <bytesStack> STACK => .Bytes : STACK </bytesStack>
+      requires LENGTH ==Int 0
 
     rule [memLoad-bad-bounds]:
          <instrs> #memLoad(OFFSET, LENGTH) => #throwException(ExecutionFailed, "mem load: bad bounds") ... </instrs>

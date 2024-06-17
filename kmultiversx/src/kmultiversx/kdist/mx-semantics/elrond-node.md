@@ -156,23 +156,22 @@ Storage maps byte arrays to byte arrays.
     rule [appendToOutAccount]:
         <commands> appendToOutAccount(ACC, T) => .K ... </commands>
         <outputAccounts>
-          ...
-          ACC |-> (OA => appendToOutTransfers(OA, T))
-          ...
+          OAs => OAs [ ACC <- appendToOutTransfers(
+                                { OAs [ ACC ] orDefault OutputAccount(ACC, .List) }:>OutputAccount,
+                                T
+                              ) ]
         </outputAccounts>
       requires nonZeroOutputTransfer(T)
-      [priority(60)]
-
-    rule [appendToOutAccount-new-item]:
-        <commands> appendToOutAccount(ACC, T) => .K ... </commands>
-        <outputAccounts> OAs => OAs [ ACC <- OutputAccount(ACC, ListItem(T))] </outputAccounts>
-      requires nonZeroOutputTransfer(T)
-      [priority(61)]
+       andBool isOutputAccount( OAs [ ACC ] orDefault OutputAccount(ACC, .List) ) 
+      [priority(60), preserves-definedness]
+      // Preserving definedness
+      // - Map[_<-_], Map[_]orDefault_ and appendToOutTransfers are total
+      // - {_}:>OutputAccount is checked
 
     rule [appendToOutAccount-zero]:
         <commands> appendToOutAccount(_, T) => .K ... </commands>
       requires notBool nonZeroOutputTransfer(T)
-      [priority(61)]
+      [priority(60)]
 
     syntax TransferValue ::= Int            // EGLD transfer
                            | List

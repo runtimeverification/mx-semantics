@@ -588,35 +588,32 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
 ```k
     rule [testapi-startPrank]:
         <instrs> hostCall ( "env" , "startPrank" , [ i32  .ValTypes ] -> [ .ValTypes ] )
-              => #startPrank(getBuffer(ADDR_HANDLE)) ...
+              => #getBuffer(ADDR_HANDLE)
+              ~> #startPrank ...
         </instrs>
         <locals>
           0 |-> <i32> ADDR_HANDLE
         </locals>
         <callee> #kasmerRunner </callee>
 
-    syntax InternalInstr ::= #startPrank(BytesResult)
+    syntax InternalInstr ::= "#startPrank"
  // -------------------------------------------------
     rule [startPrank]:
-        <instrs> #startPrank(ADDR:Bytes) => .K ... </instrs>
+        <instrs> #startPrank => .K ... </instrs>
+        <bytesStack> ADDR:Bytes : S => S </bytesStack>
         <callee> #kasmerRunner => ADDR </callee>
         <prank> false => true </prank>
 
     rule [startPrank-not-allowed]:
-        <instrs> #startPrank(_:Bytes)
+        <instrs> #startPrank
               => #throwException(ExecutionFailed, "Only the test contract can start a prank and the test contract can't start a prank while already pranking")
                  ...
         </instrs>
+        <bytesStack> _:Bytes : S => S </bytesStack>
         <callee> ADDR </callee>
         <prank> PRANK </prank>
       requires ADDR =/=K #kasmerRunner
         orBool PRANK
-
-    rule [startPrank-err]:
-        <instrs> #startPrank(Err(MSG))
-              => #throwException(ExecutionFailed, MSG)
-                 ...
-        </instrs>
 
     rule [testapi-stopPrank]:
         <instrs> hostCall ( "env" , "stopPrank" , [ .ValTypes ] -> [ .ValTypes ] )

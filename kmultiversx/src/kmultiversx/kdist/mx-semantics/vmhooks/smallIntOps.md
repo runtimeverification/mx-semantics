@@ -57,6 +57,9 @@ module SMALLINTOPS
                   ...
          </instrs>
          <locals> 0 |-> <i64> VALUE </locals>
+      requires definedUnsigned(i64, VALUE)
+      [preserves-definedness]
+      // Preserving definedness: definedUnsigned(_) ensures #unsigned(_) is defined
 
     // extern void smallIntFinishSigned(void* context, long long value);
     rule <instrs> hostCall("env", "smallIntFinishSigned", [ i64 .ValTypes ] -> [ .ValTypes ])
@@ -64,6 +67,10 @@ module SMALLINTOPS
                   ...
          </instrs>
          <locals> 0 |-> <i64> VALUE </locals>
+      requires definedSigned(i64, VALUE)
+      [preserves-definedness]
+      // Preserving definedness: definedSigned(_) ensures #signed(_) is defined
+
 
     // extern int32_t smallIntStorageStoreUnsigned(void *context, int32_t keyOffset, int32_t keyLength, long long value);
     rule <instrs> hostCall("env", "smallIntStorageStoreUnsigned", [ i32 i32 i64 .ValTypes ] -> [ i32 .ValTypes ])

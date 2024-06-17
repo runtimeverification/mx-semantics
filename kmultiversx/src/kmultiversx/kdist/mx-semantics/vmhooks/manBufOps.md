@@ -169,6 +169,8 @@ module MANBUFOPS
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> DEST_IDX </locals>
          <callArgs> ARGS </callArgs>
       requires #validArgIdx(ARG_IDX, ARGS)
+      [preserves-definedness]
+      // Preserving definedness: #validArgIdx(_) ensures Map {{ }} is defined
 
  // extern int32_t   mBufferAppend(void* context, int32_t accumulatorHandle, int32_t dataHandle);
     rule <instrs> hostCall("env", "mBufferAppend", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 

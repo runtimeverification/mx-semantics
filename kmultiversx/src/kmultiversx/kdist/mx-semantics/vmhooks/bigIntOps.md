@@ -341,16 +341,17 @@ module BIGINTOPS
 
     // extern int32_t bigIntSign(void* context, int32_t op);
     rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => i32.const #bigIntSign(V)
+               => i32.const #bigIntSign(HEAP{{IDX}} orDefault 0)
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
-         <bigIntHeap> ... wrap(IDX) Int2Int|-> wrap(V) </bigIntHeap>
-      [preserves-definedness]
+         <bigIntHeap> HEAP </bigIntHeap>
+      requires IDX in_keys{{HEAP}}
+      [preserves-definedness] // TODO maybe we don't need this anymore since everything is total
       // Preserving definedness:
       //  - #bigIntSign is total
       //  - in_keys is total
-      //  - _{{_ <- _}} is total
+      //  - _{{_}} orDefault _ is total
 
     rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle")

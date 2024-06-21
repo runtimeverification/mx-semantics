@@ -45,7 +45,7 @@ def main() -> None:
     )
 
     for definition_dir, output_path in targets:
-        esdt_wasm = load_wasm(str(args.esdt_wasm_path))
+        esdt_wasm = load_wasm(args.esdt_wasm_path)
 
         krun = KRun(definition_dir)
         config = load_runtime(krun, esdt_wasm)

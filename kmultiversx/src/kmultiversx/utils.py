@@ -33,7 +33,7 @@ def read_kasmer_runtime() -> KInner:
 
 
 def read_kinner_json(path: Path) -> KInner:
-    with open(str(path)) as f:
+    with path.open() as f:
         config_json = json.load(f)
         return KInner.from_dict(config_json['term'])
 
@@ -50,17 +50,17 @@ def flatten(l: list[list[T]]) -> list[T]:
     return [item for sublist in l for item in sublist]
 
 
-def load_wasm(filename: str) -> KInner:
-    with open(filename, 'rb') as f:
-        return wasm2kast.wasm2kast(f, filename)
+def load_wasm(file_path: Path) -> KInner:
+    with file_path.open(mode='rb') as f:
+        return wasm2kast.wasm2kast(f, str(file_path))
 
 
-def load_wasm_from_mxsc(filename: str) -> KInner:
-    with open(filename) as f:
+def load_wasm_from_mxsc(file_path: Path) -> KInner:
+    with file_path.open() as f:
         contract_json = json.load(f)
         code_hex = contract_json['code']
         code_bytes = bytes.fromhex(code_hex)
-        return wasm2kast.wasm2kast(BytesIO(code_bytes), filename)
+        return wasm2kast.wasm2kast(BytesIO(code_bytes), str(file_path))
 
 
 def krun_config(krun: KRun, conf: KInner, pipe_stderr: bool = False) -> KInner:

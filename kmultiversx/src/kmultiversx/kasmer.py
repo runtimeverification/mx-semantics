@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import glob
 import json
 import sys
 from pathlib import Path
@@ -150,7 +149,7 @@ def run_config_and_check_empty(
 
 
 def get_test_endpoints(test_dir: Path) -> Mapping[str, tuple[str, ...]]:
-    abi_paths = glob.glob(str(test_dir) + '/output/*.abi.json')
+    abi_paths = list(test_dir.glob('./output/*.abi.json'))
     # Test contracts are not supposed to be multi-contract, there should be only 1 abi file
     if abi_paths:
         abi_path = Path(abi_paths[0])

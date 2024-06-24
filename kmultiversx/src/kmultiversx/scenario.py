@@ -456,7 +456,7 @@ def mandos_to_deploy_tx(tx: dict, filename: Path, output_dir: Path) -> KInner:
     gas_price = mandos_int_to_kint(tx.get('gasPrice', '0'), default_when_empty=0)
 
     code = get_contract_code(tx['contractCode'], filename)
-    assert isinstance(code, Path)
+    assert code is not None
     module = file_to_module_decl(code, output_dir)
 
     return KApply('deployTx', [sender, value, module, arguments, gas_limit, gas_price])

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import glob
 import json
 import sys
-from os.path import join
+from pathlib import Path
 from subprocess import SubprocessError
 from typing import TYPE_CHECKING, cast
 
@@ -42,7 +41,6 @@ from kmultiversx.utils import (
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
-    from pathlib import Path
 
     from hypothesis.strategies import SearchStrategy
     from pyk.kast.inner import KInner
@@ -60,25 +58,8 @@ TEST_SC_ADDR = 'sc:k-test'
 REC_LIMIT = 4000
 
 
-def load_input_json(test_dir: str) -> dict:
-    try:
-        with open(join(test_dir, INPUT_FILE_NAME)) as f:
-            return json.load(f)
-    except FileNotFoundError:
-        raise FileNotFoundError(f'{INPUT_FILE_NAME!r} not found in "{test_dir!r}"') from None
-
-
-def find_test_wasm_path(test_dir: str) -> str:
-    test_wasm_path = glob.glob(test_dir + '/output/*.wasm')
-    # TODO this loads the first wasm file in the directory. what if there are multiple wasm files?
-    if test_wasm_path:
-        return test_wasm_path[0]
-    else:
-        raise ValueError(f'WASM file not found: {test_dir}/output/?.wasm')
-
-
-def load_contract_wasms(contract_wasm_paths: Iterable[str]) -> dict[bytes, KInner]:
-    contract_wasm_modules = {bytes(f, 'ascii'): load_wasm(f) for f in contract_wasm_paths}
+def load_contract_wasms(contract_wasm_paths: Iterable[Path]) -> dict[bytes, KInner]:
+    contract_wasm_modules = {bytes(str(f), 'ascii'): load_wasm(f) for f in contract_wasm_paths}
 
     return contract_wasm_modules
 
@@ -167,15 +148,15 @@ def run_config_and_check_empty(
 # Test metadata
 
 
-def get_test_endpoints(test_dir: str) -> Mapping[str, tuple[str, ...]]:
-    abi_paths = glob.glob(test_dir + '/output/*.abi.json')
-    # TODO this loads the first wasm file in the directory. what if there are multiple wasm files?
+def get_test_endpoints(test_dir: Path) -> Mapping[str, tuple[str, ...]]:
+    abi_paths = list(test_dir.glob('./output/*.abi.json'))
+    # Test contracts are not supposed to be multi-contract, there should be only 1 abi file
     if abi_paths:
-        abi_path = abi_paths[0]
+        abi_path = Path(abi_paths[0])
     else:
         raise ValueError(f'ABI file not found: {test_dir}/output/?.abi.json')
 
-    with open(abi_path) as f:
+    with abi_path.open() as f:
         abi_json = json.load(f)
 
     endpoints = {}

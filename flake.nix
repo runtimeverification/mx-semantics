@@ -2,7 +2,7 @@
   description = "K Semantics of MultiversX";
 
   inputs = {
-    wasm-semantics.url = "github:runtimeverification/wasm-semantics/v0.1.70";
+    wasm-semantics.url = "github:runtimeverification/wasm-semantics/v0.1.71";
     k-framework.url = "github:runtimeverification/k/v7.1.30";
     pyk.url = "github:runtimeverification/k/v7.1.30?dir=pyk";
     nixpkgs.follows = "k-framework/nixpkgs";

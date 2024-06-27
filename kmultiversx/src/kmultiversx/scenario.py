@@ -304,7 +304,7 @@ def mandos_to_set_account(address: str, sections: dict, filename: Path, output_d
         if code_path is not None:
             code_value = file_to_module_decl(code_path, output_dir)
 
-    storage_pairs = [
+    storage_pairs: list[tuple[KInner, KInner]] = [
         (mandos_argument_to_kbytes(k), mandos_argument_to_kbytes(v)) for (k, v) in sections.get('storage', {}).items()
     ]
     storage_value = KMap(storage_pairs)
@@ -412,7 +412,7 @@ def mandos_to_check_account(address: str, sections: dict, filename: Path) -> lis
         k_steps.append(KApply('checkAccountBalance', [address_value, balance_value]))
     if ('storage' in sections) and (sections['storage'] != '*'):
         # TODO move storage map creation to a function and reuse in mandos_to_set_account
-        storage_pairs = []
+        storage_pairs: list[tuple[KInner, KInner]] = []
         for k, v in sections['storage'].items():
             k_bytes = mandos_argument_to_kbytes(k)
             v_bytes = mandos_argument_to_kbytes(v)

@@ -2,9 +2,9 @@
   description = "K Semantics of MultiversX";
 
   inputs = {
-    wasm-semantics.url = "github:runtimeverification/wasm-semantics/v0.1.68";
-    k-framework.url = "github:runtimeverification/k/v7.1.21";
-    pyk.url = "github:runtimeverification/k/v7.1.21?dir=pyk";
+    wasm-semantics.url = "github:runtimeverification/wasm-semantics/v0.1.70";
+    k-framework.url = "github:runtimeverification/k/v7.1.30";
+    pyk.url = "github:runtimeverification/k/v7.1.30?dir=pyk";
     nixpkgs.follows = "k-framework/nixpkgs";
     flake-utils.follows = "k-framework/flake-utils";
     rv-utils.url = "github:runtimeverification/rv-nix-tools";
@@ -112,14 +112,19 @@
             };
             overrides = poetry2nix.overrides.withDefaults
             (finalPython: prevPython: {
-              pyk = nixpkgs-pyk.pyk-python310;
-              pykwasm = wasm-semantics.packages.${prev.system}.kwasm-pyk;
-              hypothesis = prevPython.hypothesis.overridePythonAttrs (old: {
+              kframework = nixpkgs-pyk.pyk-python310.overridePythonAttrs
+                (old: {
                   propagatedBuildInputs = prev.lib.filter
-                    (x: !(prev.lib.strings.hasInfix "attrs" x.name || prev.lib.strings.hasInfix "exceptiongroup" x.name))
-                    old.propagatedBuildInputs;
-                  buildInputs = (old.buildInputs or []) ++ [ finalPython.attrs finalPython.exceptiongroup ];
-              });
+                    (x: !(prev.lib.strings.hasInfix "hypothesis" x.name))
+                    old.propagatedBuildInputs ++ [ finalPython.hypothesis ];
+                });
+              pykwasm =
+                wasm-semantics.packages.${prev.system}.kwasm-pyk.overridePythonAttrs
+                  (old: {
+                    propagatedBuildInputs = prev.lib.filter
+                      (x: !(prev.lib.strings.hasInfix "kframework" x.name))
+                      old.propagatedBuildInputs ++ [ finalPython.kframework ];
+                  });
             });
             groups = [ ];
             checkGroups = [ ];

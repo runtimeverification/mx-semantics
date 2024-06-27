@@ -112,8 +112,19 @@
             };
             overrides = poetry2nix.overrides.withDefaults
             (finalPython: prevPython: {
-              pyk = nixpkgs-pyk.pyk-python310;
-              pykwasm = wasm-semantics.packages.${prev.system}.kwasm-pyk;
+              kframework = nixpkgs-pyk.pyk-python310.overridePythonAttrs
+                (old: {
+                  propagatedBuildInputs = prev.lib.filter
+                    (x: !(prev.lib.strings.hasInfix "hypothesis" x.name))
+                    old.propagatedBuildInputs ++ [ finalPython.hypothesis ];
+                });
+              pykwasm =
+                wasm-semantics.packages.${prev.system}.kwasm-pyk.overridePythonAttrs
+                  (old: {
+                    propagatedBuildInputs = prev.lib.filter
+                      (x: !(prev.lib.strings.hasInfix "kframework" x.name))
+                      old.propagatedBuildInputs ++ [ finalPython.kframework ];
+                  });
             });
             groups = [ ];
             checkGroups = [ ];

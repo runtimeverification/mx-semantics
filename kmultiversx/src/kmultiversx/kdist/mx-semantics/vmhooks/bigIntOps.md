@@ -30,10 +30,11 @@ module BIGINT-HELPERS
       //  - Int2Bytes is total
       //  - in_keys is total
       //  - '_{{_}} orDefault' is total
-      
+
     rule <instrs> #getBigInt(BIGINT_IDX, _SIGN) => #throwException(ExecutionFailed, "no bigInt under the given handle") ... </instrs>
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool( BIGINT_IDX in_keys( HEAP ) )
+        orBool notBool isInt(HEAP [ BIGINT_IDX ] orDefault 0)
 
     syntax InternalInstr ::= #getBigIntOrCreate ( idx : Int ,  Signedness )
  // ---------------------------------------------------------------
@@ -54,6 +55,7 @@ module BIGINT-HELPERS
         <bytesStack> STACK => Int2Bytes(0, BE, SIGN) : STACK </bytesStack>
         <bigIntHeap> HEAP </bigIntHeap>
       requires notBool( BIGINT_IDX in_keys( HEAP ) )
+        orBool notBool isInt(HEAP [ BIGINT_IDX ] orDefault 0)
 
     syntax InternalInstr ::= #setBigIntFromBytesStack ( idx: Int , Signedness )
                            | #setBigInt ( idx: Int , value: Bytes , Signedness )
@@ -99,7 +101,7 @@ module BIGINT-HELPERS
     // L and R gets closer at each iteration, eventuallly L == R holds
     rule #Ceil(sqrtBS(@X:Int, @L:Int, @R:Int)) => #Ceil(@X) #And #Ceil(@L) #And #Ceil(@R)
                                              #And {(@L <=Int @R) #Equals true}   [simplification]
-    
+
     // value in the middle for binary search
     syntax Int ::= bsMid(Int, Int)         [function, total]
     rule bsMid(X,Y) => (X +Int Y +Int 1) /Int 2
@@ -113,9 +115,9 @@ module BIGINTOPS
      imports BIGINT-HELPERS
 
     // extern int32_t bigIntNew(void* context, long long smallValue);
-    rule <instrs> hostCall("env", "bigIntNew", [ i64 .ValTypes ] -> [ i32 .ValTypes ]) 
-               => i32.const #newKey(HEAP) 
-                  ... 
+    rule <instrs> hostCall("env", "bigIntNew", [ i64 .ValTypes ] -> [ i32 .ValTypes ])
+               => i32.const #newKey(HEAP)
+                  ...
          </instrs>
          <locals> 0 |-> <i64> INITIAL </locals>
          <bigIntHeap> HEAP => HEAP [ #newKey(HEAP) <- #signed(i64, INITIAL) ] </bigIntHeap>
@@ -172,7 +174,7 @@ module BIGINTOPS
         </instrs>
         <locals> 0 |-> <i32> IDX </locals>
         <bigIntHeap> HEAP </bigIntHeap>
-      requires notBool( IDX in_keys(HEAP))
+      requires notBool(IDX in_keys(HEAP))
 
     // extern int32_t bigIntGetUnsignedBytes(void* context, int32_t reference, int32_t byteOffset);
     rule <instrs> hostCall("env", "bigIntGetUnsignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -241,7 +243,7 @@ module BIGINTOPS
       //  - _{{_ <- _}} is total
       //  - _{{_}} orDefault _ is total
 
-   // TODO a lot of code duplication in the error cases. 
+   // TODO a lot of code duplication in the error cases.
    // use sth like #getBigInt that checks existence
     rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
@@ -250,6 +252,8 @@ module BIGINTOPS
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (OP1_IDX in_keys(HEAP))
         orBool notBool (OP2_IDX in_keys(HEAP))
+        orBool notBool isInt(HEAP[OP1_IDX] orDefault 0)
+        orBool notBool isInt(HEAP[OP2_IDX] orDefault 0)
 
     // extern void bigIntSub(void* context, int32_t destination, int32_t op1, int32_t op2);
     rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => .K ... </instrs>
@@ -275,6 +279,8 @@ module BIGINTOPS
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (OP1_IDX in_keys(HEAP))
         orBool notBool (OP2_IDX in_keys(HEAP))
+        orBool notBool isInt(HEAP[OP1_IDX] orDefault 0)
+        orBool notBool isInt(HEAP[OP2_IDX] orDefault 0)
 
     // extern void bigIntMul(void* context, int32_t destination, int32_t op1, int32_t op2);
     rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => .K ... </instrs>
@@ -300,6 +306,8 @@ module BIGINTOPS
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (OP1_IDX in_keys(HEAP))
         orBool notBool (OP2_IDX in_keys(HEAP))
+        orBool notBool isInt(HEAP[OP1_IDX] orDefault 0)
+        orBool notBool isInt(HEAP[OP2_IDX] orDefault 0)
 
     // extern void bigIntTDiv(void* context, int32_t destination, int32_t op1, int32_t op2);
     rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => .K ... </instrs>
@@ -325,6 +333,8 @@ module BIGINTOPS
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (OP1_IDX in_keys(HEAP))
         orBool notBool (OP2_IDX in_keys(HEAP))
+        orBool notBool isInt(HEAP[OP1_IDX] orDefault 0)
+        orBool notBool isInt(HEAP[OP2_IDX] orDefault 0)
 
     rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "division by 0") ...
@@ -333,21 +343,24 @@ module BIGINTOPS
          <bigIntHeap> HEAP </bigIntHeap>
       requires OP1_IDX in_keys(HEAP)
        andBool OP2_IDX in_keys(HEAP)
+       andBool isInt(HEAP[OP1_IDX] orDefault 0)
        andBool (HEAP[OP2_IDX] orDefault 0) ==K 0
 
     // extern int32_t bigIntSign(void* context, int32_t op);
     rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
-               => i32.const #bigIntSign(HEAP[IDX] orDefault 0)
+               => i32.const #bigIntSign({HEAP[IDX] orDefault 0}:>Int)
                   ...
          </instrs>
          <locals> 0 |-> <i32> IDX </locals>
          <bigIntHeap> HEAP </bigIntHeap>
-      requires IDX in_keys[HEAP]
-      [preserves-definedness] // TODO maybe we don't need this anymore since everything is total
+      requires IDX in_keys(HEAP)
+        andBool isInt(HEAP[IDX] orDefault 0)
+      [preserves-definedness]
       // Preserving definedness:
       //  - #bigIntSign is total
       //  - in_keys is total
       //  - _[_] orDefault _ is total
+      //  - {HEAP[IDX] orDefault 0}:>Int is defined (checked isInt)
 
     rule <instrs> hostCall("env", "bigIntSign", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle")
@@ -356,6 +369,7 @@ module BIGINTOPS
          <locals> 0 |-> <i32> IDX </locals>
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (IDX in_keys(HEAP))
+        orBool notBool isInt(HEAP[IDX] orDefault 0)
 
     // extern int32_t bigIntCmp(void* context, int32_t op1, int32_t op2);
     rule <instrs> hostCall("env", "bigIntCmp", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -383,6 +397,8 @@ module BIGINTOPS
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (OP1_IDX in_keys(HEAP))
         orBool notBool (OP2_IDX in_keys(HEAP))
+        orBool notBool isInt(HEAP[OP1_IDX] orDefault 0)
+        orBool notBool isInt(HEAP[OP2_IDX] orDefault 0)
 
     // extern void bigIntFinishUnsigned(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntFinishUnsigned", [ i32 .ValTypes ] -> [ .ValTypes ])
@@ -614,5 +630,3 @@ module BIGINTOPS
 
 endmodule
 ```
-
-

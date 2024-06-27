@@ -33,7 +33,8 @@ module MANBUFOPS
         <instrs> #getBuffer(BUFFER_IDX) => .K ... </instrs>
         <bytesStack> STACK => {HEAP[BUFFER_IDX] orDefault .Bytes}:>Bytes : STACK </bytesStack>
         <bufferHeap> HEAP:Map </bufferHeap>
-      requires #validBufferId(BUFFER_IDX, HEAP:Map) andBool isBytes(HEAP[BUFFER_IDX] orDefault .Bytes)
+      requires #validBufferId(BUFFER_IDX, HEAP:Map)
+        andBool isBytes(HEAP[BUFFER_IDX] orDefault .Bytes)
       [preserves-definedness]
     
     rule [getBuffer-not-found]:
@@ -43,6 +44,7 @@ module MANBUFOPS
         </instrs>
         <bufferHeap> HEAP </bufferHeap>
       requires notBool #validBufferId(BUFFER_IDX, HEAP)
+        orBool notBool isBytes(HEAP[BUFFER_IDX] orDefault .Bytes)
 
     syntax InternalInstr ::= #setBufferFromBytesStack ( idx: Int )
                            | #setBuffer ( idx: Int , value: Bytes )

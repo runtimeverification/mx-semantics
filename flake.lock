@@ -1190,11 +1190,6 @@
           "k-framework",
           "nixpkgs"
         ],
-        "nixpkgs-pyk": [
-          "wasm-semantics",
-          "pyk",
-          "nixpkgs"
-        ],
         "poetry2nix": [
           "wasm-semantics",
           "pyk",
@@ -1208,16 +1203,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1719567796,
-        "narHash": "sha256-bdHLWISf05tOLdkwz5MfzfP+0FTsVp5ZNP0OaSqdSE4=",
+        "lastModified": 1719571417,
+        "narHash": "sha256-koPqrkCF6ZOZuIYuaDw8xTB8WYXbuLtggzXGWJPA4Sk=",
         "owner": "runtimeverification",
         "repo": "wasm-semantics",
-        "rev": "2ef1bfca7c00be7bb72ca08257677fb162818bf6",
+        "rev": "fd9c3f516d4d5125f8d00d35113cec54eef6197b",
         "type": "github"
       },
       "original": {
         "owner": "runtimeverification",
-        "ref": "v0.1.72",
+        "ref": "v0.1.73",
         "repo": "wasm-semantics",
         "type": "github"
       }

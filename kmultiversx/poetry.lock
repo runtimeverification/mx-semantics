@@ -996,7 +996,7 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pykwasm"
-version = "0.1.72"
+version = "0.1.73"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -1012,8 +1012,8 @@ py-wasm = {git = "https://github.com/runtimeverification/py-wasm.git", tag = "0.
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/wasm-semantics.git"
-reference = "v0.1.72"
-resolved_reference = "2ef1bfca7c00be7bb72ca08257677fb162818bf6"
+reference = "v0.1.73"
+resolved_reference = "fd9c3f516d4d5125f8d00d35113cec54eef6197b"
 subdirectory = "pykwasm"
 
 [[package]]
@@ -1290,4 +1290,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "1fee180d2e2168d0006b387c611a3eb5be3534c10257eccb87dfe80097e051af"
+content-hash = "66358aa96c5fa93683e63ca697e4c77c5d607fdd0396581515cfa8ac87f3eb29"

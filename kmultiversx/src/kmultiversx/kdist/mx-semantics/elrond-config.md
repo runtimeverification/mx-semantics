@@ -6,11 +6,11 @@ Combine Elrond node with Wasm.
 ```k
 
 // TODO: #or patterns are currently not supported in the Booster backend. PR k#4363 aims to resolve
-// this with a desugaring pass in the K frontend, but this solution may not handle rule labels properly. 
-// In PR #267, we worked around this by either duplicating rules or commenting out cells that contain #or patterns. 
+// this with a desugaring pass in the K frontend, but this solution may not handle rule labels properly.
+// In PR #267, we worked around this by either duplicating rules or commenting out cells that contain #or patterns.
 // The duplicated rules have labels ending with '-instrs-empty' and '-instrs-wait'.
-// 
-// Once the issue with #or patterns is resolved in a way that supports rule labels, 
+//
+// Once the issue with #or patterns is resolved in a way that supports rule labels,
 // de-duplicate these rules and re-enable the commented-out #or patterns.
 //
 // K PR : https://github.com/runtimeverification/k/pull/4363
@@ -604,9 +604,9 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
       [priority(60)]
 
     rule [transferFundsH]:
-        <commands> transferFundsH(ACCTFROM, ACCTTO, VALUE) 
+        <commands> transferFundsH(ACCTFROM, ACCTTO, VALUE)
                 => appendToOutAccount(ACCTTO, OutputTransfer(ACCTFROM, VALUE))
-                   ... 
+                   ...
         </commands>
         <account>
           <address> ACCTFROM </address>
@@ -647,7 +647,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
  // -------------------------------------------------------------------------------------
     rule callContract(TO, FUNCNAME:String, VMINPUT)
       => callContract(TO, #quoteUnparseWasmString(FUNCNAME), VMINPUT)
-    
+
     rule [callContract]:
         <commands> callContract(TO, FUNCNAME:WasmStringToken,
                                 <vmInput>

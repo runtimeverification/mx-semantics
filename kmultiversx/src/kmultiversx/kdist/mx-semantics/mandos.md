@@ -111,7 +111,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             #fi
         requires notBool Key in_keys(M)
     rule #removeEmptyBytes(Key |-> Value M)
-        =>  #if Value ==K wrap(.Bytes)
+        =>  #if Value ==K .Bytes
             #then #removeEmptyBytes(M)
             #else Key |-> Value #removeEmptyBytes(M)
             #fi
@@ -122,18 +122,18 @@ Only take the next step once both the Elrond node and Wasm are done executing.
  // ----------------------------------------------------------------------------------------
     rule #removeReservedKeys(.Map)
         => .Map
-    rule #removeReservedKeys(wrap(Key) |-> Value M)
+    rule #removeReservedKeys(Key |-> Value M)
         =>  #if #hasPrefix(Bytes2String(Key), "ELROND")
             #then #removeReservedKeys(M)
-            #else wrap(Key) |-> Value #removeReservedKeys(M)
+            #else Key |-> Value #removeReservedKeys(M)
             #fi
-        requires notBool wrap(Key) in_keys(M)
-    rule #removeReservedKeys(wrap(Key) |-> Value M)
+        requires notBool Key in_keys(M)
+    rule #removeReservedKeys(Key |-> Value M)
         =>  #if #hasPrefix(Bytes2String(Key), "ELROND")
             #then #removeReservedKeys(M)
-            #else wrap(Key) |-> Value #removeReservedKeys(M)
+            #else Key |-> Value #removeReservedKeys(M)
             #fi
-        requires notBool wrap(Key) in_keys(M)
+        requires notBool Key in_keys(M)
         [simplification]
 ```
 
@@ -779,7 +779,7 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
          <account>
            <address> TO </address>
             <storage> STOR
-                   => STOR[String2Bytes("ELRONDreward") 
+                   => STOR[String2Bytes("ELRONDreward")
                            <- #incBytes(#lookupStorage(STOR, String2Bytes("ELRONDreward")), VAL)]
             </storage>
             <balance> TO_BAL => TO_BAL +Int VAL </balance>

@@ -54,7 +54,7 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <commands> (.K => createAccount(ADDR)
-                      ~> setAccountFields(ADDR, NONCE, BALANCE, .Code, .Bytes, .MapBytesToBytes )
+                      ~> setAccountFields(ADDR, NONCE, BALANCE, .Code, .Bytes, .Map )
                     ) ...
         </commands>
 
@@ -200,7 +200,7 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
         <bytesStack> ADDR : KEY : VALUE : _ </bytesStack>
          <account>
            <address> ADDR </address>
-           <storage> STORAGE => STORAGE{{KEY <- undef}} </storage>
+           <storage> STORAGE => STORAGE[KEY <- undef] </storage>
            ...
          </account>
          requires VALUE ==K .Bytes
@@ -211,7 +211,7 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
         <bytesStack> ADDR : KEY : VALUE : _ </bytesStack>
          <account>
            <address> ADDR </address>
-           <storage> STORAGE => STORAGE{{KEY <- VALUE}} </storage>
+           <storage> STORAGE => STORAGE[KEY <- VALUE] </storage>
            ...
          </account>
          requires VALUE =/=K .Bytes

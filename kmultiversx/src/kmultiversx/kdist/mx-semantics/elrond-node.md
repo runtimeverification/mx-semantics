@@ -5,15 +5,11 @@ Elrond Node
 requires "wasm-semantics/wasm.md"
 requires "data/async-call.k"
 requires "data/list-bytes.k"
-requires "data/map-bytes-to-bytes.k"
-requires "data/map-int-to-bytes.k"
 
 module ELROND-NODE
     imports DOMAINS
     imports ASYNC-CALL
     imports LIST-BYTES
-    imports MAP-BYTES-TO-BYTES
-    imports MAP-INT-TO-BYTES
     imports WASM
 
     configuration
@@ -38,8 +34,8 @@ module ELROND-NODE
           // executional
           // every contract call uses its own wasm module instance, managed data heaps, and bytesStack.
           <wasm/>
-          <bigIntHeap> .MapIntToInt   </bigIntHeap>
-          <bufferHeap> .MapIntToBytes </bufferHeap>
+          <bigIntHeap> .Map   </bigIntHeap>
+          <bufferHeap> .Map </bufferHeap>
           <bytesStack> .BytesStack </bytesStack>
           <contractModIdx> .Int </contractModIdx>
           <asyncCalls> .ListAsyncCall </asyncCalls>
@@ -78,7 +74,7 @@ If the account is not a contract, `ownerAddress` is `.Bytes`.
 Storage maps byte arrays to byte arrays.
 
 ```k
-             <storage> .MapBytesToBytes </storage>
+             <storage> .Map </storage>
            </account>
          </accounts>
          <previousBlockInfo>

@@ -100,40 +100,40 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### Helper Functions
 
 ```k
-    syntax MapBytesToBytes  ::= #removeEmptyBytes ( MapBytesToBytes ) [function]
+    syntax Map  ::= #removeEmptyBytes ( Map ) [function]
  // ----------------------------------------------------------------------------------------
-    rule #removeEmptyBytes(.MapBytesToBytes)
-        => .MapBytesToBytes
-    rule #removeEmptyBytes(Key Bytes2Bytes|-> Value M)
-        =>  #if Value ==K wrap(.Bytes)
+    rule #removeEmptyBytes(.Map)
+        => .Map
+    rule #removeEmptyBytes(Key |-> Value M)
+        =>  #if Value ==K .Bytes
             #then #removeEmptyBytes(M)
-            #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
+            #else Key |-> Value #removeEmptyBytes(M)
             #fi
         requires notBool Key in_keys(M)
-    rule #removeEmptyBytes(Key Bytes2Bytes|-> Value M)
-        =>  #if Value ==K wrap(.Bytes)
+    rule #removeEmptyBytes(Key |-> Value M)
+        =>  #if Value ==K .Bytes
             #then #removeEmptyBytes(M)
-            #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
+            #else Key |-> Value #removeEmptyBytes(M)
             #fi
         requires notBool Key in_keys(M)
         [simplification]
 
-    syntax MapBytesToBytes  ::= #removeReservedKeys ( MapBytesToBytes ) [function]
+    syntax Map  ::= #removeReservedKeys ( Map ) [function]
  // ----------------------------------------------------------------------------------------
-    rule #removeReservedKeys(.MapBytesToBytes)
-        => .MapBytesToBytes
-    rule #removeReservedKeys(wrap(Key) Bytes2Bytes|-> Value M)
+    rule #removeReservedKeys(.Map)
+        => .Map
+    rule #removeReservedKeys(Key |-> Value M)
         =>  #if #hasPrefix(Bytes2String(Key), "ELROND")
             #then #removeReservedKeys(M)
-            #else wrap(Key) Bytes2Bytes|-> Value #removeReservedKeys(M)
+            #else Key |-> Value #removeReservedKeys(M)
             #fi
-        requires notBool wrap(Key) in_keys(M)
-    rule #removeReservedKeys(wrap(Key) Bytes2Bytes|-> Value M)
+        requires notBool Key in_keys(M)
+    rule #removeReservedKeys(Key |-> Value M)
         =>  #if #hasPrefix(Bytes2String(Key), "ELROND")
             #then #removeReservedKeys(M)
-            #else wrap(Key) Bytes2Bytes|-> Value #removeReservedKeys(M)
+            #else Key |-> Value #removeReservedKeys(M)
             #fi
-        requires notBool wrap(Key) in_keys(M)
+        requires notBool Key in_keys(M)
         [simplification]
 ```
 
@@ -142,10 +142,10 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ```k
     syntax Step ::= setAccount    (
                         address: Address, nonce: Int, balance: Int, code: Code,
-                        owner: Address, storage: MapBytesToBytes )  [klabel(setAccount), symbol]
+                        owner: Address, storage: Map )  [klabel(setAccount), symbol]
                   | setAccountAux (
                         address: Bytes, nonce: Int, balance: Int, code: Code,
-                        owner: Bytes, storage: MapBytesToBytes )      [klabel(setAccountAux), symbol]
+                        owner: Bytes, storage: Map )      [klabel(setAccountAux), symbol]
                   | createAndSetAccountWithEmptyCode       ( Bytes, Int, Int, Map )
                   | createAndSetAccountAfterInitCodeModule ( Bytes, Int, Int, Map )
  // -------------------------------------------------------------------------------
@@ -461,8 +461,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <instrs> .K </instrs>
       [priority(61)]
 
-    syntax Step ::= checkAccountStorage    ( Address, MapBytesToBytes ) [klabel(checkAccountStorage), symbol]
-                  | checkAccountStorageAux ( Bytes, MapBytesToBytes )   [klabel(checkAccountStorageAux), symbol]
+    syntax Step ::= checkAccountStorage    ( Address, Map ) [klabel(checkAccountStorage), symbol]
+                  | checkAccountStorageAux ( Bytes, Map )   [klabel(checkAccountStorageAux), symbol]
  // ------------------------------------------------------------------------------------------------
     rule <k> checkAccountStorage(ADDRESS, STORAGE)
              => checkAccountStorageAux(#address2Bytes(ADDRESS), STORAGE) ... </k>
@@ -779,8 +779,8 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
          <account>
            <address> TO </address>
             <storage> STOR
-                   => STOR{{String2Bytes("ELRONDreward") 
-                           <- #incBytes(#lookupStorage(STOR, String2Bytes("ELRONDreward")), VAL)}}
+                   => STOR[String2Bytes("ELRONDreward")
+                           <- #incBytes(#lookupStorage(STOR, String2Bytes("ELRONDreward")), VAL)]
             </storage>
             <balance> TO_BAL => TO_BAL +Int VAL </balance>
             ...

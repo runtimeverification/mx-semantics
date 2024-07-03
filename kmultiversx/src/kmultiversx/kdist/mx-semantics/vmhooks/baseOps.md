@@ -38,7 +38,7 @@ module BASEOPS
            0 |-> <i32> ADDROFFSET
          </locals>
 
-    syntax InternalInstr ::= "#checkIsSmartContract"  [klabel(checkIsSmartContract), symbol]
+    syntax InternalInstr ::= "#checkIsSmartContract"  [symbol(checkIsSmartContract)]
  // ------------------------------------------------
     rule [checkIsSmartContract-code]:
          <instrs> #checkIsSmartContract => i32.const 1 ... </instrs>
@@ -279,7 +279,7 @@ module BASEOPS
           2 |-> <i32> TOKEN_LEN
         </locals>
 
-    syntax InternalInstr ::= "#getCurrentESDTNFTNonce"    [klabel(getCurrentESDTNFTNonce), symbol]
+    syntax InternalInstr ::= "#getCurrentESDTNFTNonce"    [symbol(getCurrentESDTNFTNonce)]
  // ----------------------------------------------------------------------------------------------
     rule [getCurrentESDTNFTNonce]:
         <instrs> #getCurrentESDTNFTNonce => i64.const LAST_NONCE ... </instrs>
@@ -496,7 +496,7 @@ If the call is successful; outputs and logs in the VM output are merged to the c
 If the result is a failure; `resolveErrorFromOutput` throws a new exception.
 
 ```k
-    syntax InternalInstr ::= "#finishExecuteOnDestContext"  [klabel(finishExecuteOnDestContext), symbol]
+    syntax InternalInstr ::= "#finishExecuteOnDestContext"  [symbol(finishExecuteOnDestContext)]
  // ------------------------------------------------------
     rule [finishExecuteOnDestContext-ok]:
         <instrs> #finishExecuteOnDestContext

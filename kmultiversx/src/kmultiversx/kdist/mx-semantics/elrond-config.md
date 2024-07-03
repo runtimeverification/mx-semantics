@@ -268,7 +268,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ### Integer Operation
 
 ```k
-    syntax Int ::= #cmpInt ( Int , Int ) [function, total, symbol, klabel(cmpInt), smtlib(cmpInt)]
+    syntax Int ::= #cmpInt ( Int , Int ) [function, total, symbol(cmpInt), smtlib(cmpInt)]
  // -----------------------------------------------------------
     rule #cmpInt(I1, I2) => -1 requires I1  <Int I2
     rule #cmpInt(I1, I2) =>  1 requires I1  >Int I2
@@ -347,7 +347,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 ### Log
 
 ```k
-    syntax LogEntry ::= logEntry ( Bytes , Bytes , ListBytes , Bytes ) [klabel(logEntry), symbol]
+    syntax LogEntry ::= logEntry ( Bytes , Bytes , ListBytes , Bytes ) [symbol(logEntry)]
  // ----------------------------------------------------------------------------------------
 
     syntax InternalInstr ::= #getArgsFromMemory    ( Int , Int , Int )
@@ -456,7 +456,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
 
     rule #isSmartContract(_) => false              [owise]
 
-    syntax InternalCmd ::= createAccount ( Bytes ) [klabel(createAccount), symbol]
+    syntax InternalCmd ::= createAccount ( Bytes ) [symbol(createAccount)]
  // ------------------------------------------------------------------------------
     // ignore if the account already exists
     rule [createAccount-existing-instrs-empty]:
@@ -503,8 +503,8 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
          <instrs> #waitCommands ... </instrs>
       [priority(61)]
 
-    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, Code, Bytes, Map )  [klabel(setAccountFields), symbol]
-                         | setAccountCode      ( Bytes, Code )  [klabel(setAccountCode), symbol]
+    syntax InternalCmd ::= setAccountFields    ( Bytes, Int, Int, Code, Bytes, Map )  [symbol(setAccountFields)]
+                         | setAccountCode      ( Bytes, Code )  [symbol(setAccountCode)]
                          | setAccountOwner     ( Bytes, Bytes )
  // ---------------------------------------------------------------
     rule [setAccountFields-instrs-empty]:

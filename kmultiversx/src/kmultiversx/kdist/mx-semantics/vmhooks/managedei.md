@@ -361,7 +361,7 @@ module MANAGEDEI
         </instrs>
         <locals> 0 |-> <i32> TOKEN_IDX </locals>
 
-    syntax InternalInstr ::= "#getESDTLocalRoles"     [klabel(getESDTLocalRoles), symbol]
+    syntax InternalInstr ::= "#getESDTLocalRoles"     [symbol(getESDTLocalRoles)]
  // ---------------------------------------------
     rule [getESDTLocalRoles-aux]:
         <instrs> #getESDTLocalRoles

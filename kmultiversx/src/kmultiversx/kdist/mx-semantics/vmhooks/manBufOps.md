@@ -22,8 +22,10 @@ module MANBUFOPS
 
     syntax BytesResult ::= getBuffer(Int)                                   [function, total]
  // ---------------------------------------------------------------------------------------------
-    rule [[ getBuffer(BUFFER_IDX) => {Bs}:>BytesResult ]]
-      <bufferHeap> ... BUFFER_IDX |-> Bs:Bytes ... </bufferHeap>
+    rule [[ getBuffer(BUFFER_IDX) => {HEAP[BUFFER_IDX]}:>BytesResult ]]
+        <bufferHeap> HEAP </bufferHeap>
+      requires #validBufferId(BUFFER_IDX, HEAP)
+      [preserves-definedness]
 
     rule getBuffer(_) => {Err("no managed buffer under the given handle")}:>BytesResult [owise]
 
@@ -31,12 +33,11 @@ module MANBUFOPS
  // ---------------------------------------------------------------
     rule [getBuffer]:
         <instrs> #getBuffer(BUFFER_IDX) => .K ... </instrs>
-        <bytesStack> STACK => {HEAP[BUFFER_IDX] orDefault .Bytes}:>Bytes : STACK </bytesStack>
+        <bytesStack> STACK => {HEAP[BUFFER_IDX]}:>Bytes : STACK </bytesStack>
         <bufferHeap> HEAP:Map </bufferHeap>
       requires #validBufferId(BUFFER_IDX, HEAP:Map)
-        andBool isBytes(HEAP[BUFFER_IDX] orDefault .Bytes)
       [preserves-definedness]
-    
+
     rule [getBuffer-not-found]:
         <instrs> #getBuffer(BUFFER_IDX)
               => #throwException(ExecutionFailed, "no managed buffer under the given handle")
@@ -44,7 +45,6 @@ module MANBUFOPS
         </instrs>
         <bufferHeap> HEAP </bufferHeap>
       requires notBool #validBufferId(BUFFER_IDX, HEAP)
-        orBool notBool isBytes(HEAP[BUFFER_IDX] orDefault .Bytes)
 
     syntax InternalInstr ::= #setBufferFromBytesStack ( idx: Int )
                            | #setBuffer ( idx: Int , value: Bytes )
@@ -61,7 +61,7 @@ module MANBUFOPS
                => #getBuffer(DEST_IDX)
                ~> #appendBytes
                ~> #setBufferFromBytesStack( DEST_IDX )
-                  ... 
+                  ...
          </instrs>
 
     syntax InternalInstr ::= #sliceBytes( Int , Int )
@@ -82,90 +82,90 @@ module MANBUFOPS
 
 ```k
  // extern int32_t   mBufferSetBytes(void* context, int32_t mBufferHandle, int32_t dataOffset, int32_t dataLength);
-    rule <instrs> hostCall("env", "mBufferSetBytes", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
-               => #memLoad(OFFSET, LENGTH) 
-               ~> #setBufferFromBytesStack ( ARG_IDX ) 
+    rule <instrs> hostCall("env", "mBufferSetBytes", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
+               => #memLoad(OFFSET, LENGTH)
+               ~> #setBufferFromBytesStack ( ARG_IDX )
                ~> #dropBytes
                ~> i32 . const 0
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH </locals>
 
  // extern int32_t   mBufferGetBytes(void* context, int32_t mBufferHandle, int32_t resultOffset);
-    rule <instrs> hostCall ( "env" , "mBufferGetBytes" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] ) 
-               => #getBuffer( BUFF_IDX ) 
-               ~> #memStoreFromBytesStack ( DEST_OFFSET ) 
+    rule <instrs> hostCall ( "env" , "mBufferGetBytes" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] )
+               => #getBuffer( BUFF_IDX )
+               ~> #memStoreFromBytesStack ( DEST_OFFSET )
                ~> #dropBytes
                ~> i32 . const 0
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> DEST_OFFSET </locals>
 
  // extern int32_t   mBufferFromBigIntUnsigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
-    rule <instrs> hostCall("env", "mBufferFromBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
-               => #getBigInt(BIG_IDX, Unsigned) 
-               ~> #setBufferFromBytesStack ( BUFF_IDX ) 
+    rule <instrs> hostCall("env", "mBufferFromBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
+               => #getBigInt(BIG_IDX, Unsigned)
+               ~> #setBufferFromBytesStack ( BUFF_IDX )
                ~> #dropBytes
                ~> i32 . const 0
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> BIG_IDX </locals>
 
  // extern int32_t   mBufferFromBigIntSigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
-    rule <instrs> hostCall("env", "mBufferFromBigIntSigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
-               => #getBigInt(BIG_IDX, Signed) 
-               ~> #setBufferFromBytesStack ( BUFF_IDX ) 
+    rule <instrs> hostCall("env", "mBufferFromBigIntSigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
+               => #getBigInt(BIG_IDX, Signed)
+               ~> #setBufferFromBytesStack ( BUFF_IDX )
                ~> #dropBytes
                ~> i32 . const 0
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> BIG_IDX </locals>
 
  // extern int32_t   mBufferStorageStore(void* context, int32_t keyHandle, int32_t sourceHandle);
-    rule <instrs> hostCall("env", "mBufferStorageStore", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
-               => #getBuffer(KEY_IDX) 
-               ~> #getBuffer(VAL_IDX) 
+    rule <instrs> hostCall("env", "mBufferStorageStore", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
+               => #getBuffer(KEY_IDX)
+               ~> #getBuffer(VAL_IDX)
                ~> #storageStore
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> VAL_IDX </locals>
 
  // extern int32_t   mBufferStorageLoad(void* context, int32_t keyHandle, int32_t destinationHandle);
-    rule <instrs> hostCall("env", "mBufferStorageLoad", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+    rule <instrs> hostCall("env", "mBufferStorageLoad", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
                => #getBuffer(KEY_IDX)
                ~> #storageLoad
                ~> #setBufferFromBytesStack(DEST_IDX)
                ~> #dropBytes
                ~> i32 . const 0
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> DEST_IDX </locals>
 
  // extern int32_t   mBufferToBigIntUnsigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
-    rule <instrs> hostCall("env", "mBufferToBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+    rule <instrs> hostCall("env", "mBufferToBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
                => #getBuffer(KEY_IDX)
                ~> #setBigIntFromBytesStack(DEST_IDX, Unsigned)
                ~> #dropBytes
                ~> i32 . const 0
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> DEST_IDX </locals>
 
  // extern int32_t   mBufferToBigIntSigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
-    rule <instrs> hostCall("env", "mBufferToBigIntSigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+    rule <instrs> hostCall("env", "mBufferToBigIntSigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
                => #getBuffer(KEY_IDX)
                ~> #setBigIntFromBytesStack(DEST_IDX, Signed)
                ~> #dropBytes
                ~> i32 . const 0
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> DEST_IDX </locals>
 
  // extern int32_t   mBufferGetArgument(void* context, int32_t id, int32_t destinationHandle);
-    rule <instrs> hostCall("env", "mBufferGetArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+    rule <instrs> hostCall("env", "mBufferGetArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
                => #setBuffer(DEST_IDX, ARGS {{ ARG_IDX }})
                ~> i32 . const 0
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> DEST_IDX </locals>
          <callArgs> ARGS </callArgs>
@@ -174,7 +174,7 @@ module MANBUFOPS
       // Preserving definedness: #validArgIdx(_) ensures Map {{ }} is defined
 
  // extern int32_t   mBufferAppend(void* context, int32_t accumulatorHandle, int32_t dataHandle);
-    rule <instrs> hostCall("env", "mBufferAppend", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+    rule <instrs> hostCall("env", "mBufferAppend", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
                => #getBuffer(DATA_IDX)
                ~> #appendBytesToBuffer( ACC_IDX )
                ~> #dropBytes
@@ -185,7 +185,7 @@ module MANBUFOPS
 
 
  // extern int32_t   mBufferEq(void* context, int32_t mBufferHandle1, int32_t mBufferHandle2);
-    rule <instrs> hostCall ( "env" , "mBufferEq" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] ) 
+    rule <instrs> hostCall ( "env" , "mBufferEq" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] )
                => #getBuffer(BUFF1_IDX)
                ~> #getBuffer(BUFF2_IDX)
                ~> #bytesEqual
@@ -198,30 +198,30 @@ module MANBUFOPS
 
 
  // extern int32_t   mBufferAppendBytes(void* context, int32_t accumulatorHandle, int32_t dataOffset, int32_t dataLength);
-    rule <instrs> hostCall("env", "mBufferAppendBytes", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+    rule <instrs> hostCall("env", "mBufferAppendBytes", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
                => #memLoad( OFFSET , LENGTH )
                ~> #appendBytesToBuffer( BUFF_IDX )
                ~> #dropBytes
                ~> i32 . const 0
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH </locals>
 
  // extern int32_t   mBufferGetLength(void* context, int32_t mBufferHandle);
-    rule <instrs> hostCall("env", "mBufferGetLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+    rule <instrs> hostCall("env", "mBufferGetLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ] )
                => #getBuffer( BUFF_IDX )
                ~> #returnLength
                ~> #dropBytes
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> BUFF_IDX </locals>
 
  // extern int32_t   mBufferGetByteSlice(void* context, int32_t sourceHandle, int32_t startingPosition, int32_t sliceLength, int32_t resultOffset);
-    rule <instrs> hostCall("env", "mBufferGetByteSlice", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
+    rule <instrs> hostCall("env", "mBufferGetByteSlice", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] )
                => #getBuffer( SRC_BUFF_IDX )
                ~> #mBufferGetByteSliceH( OFFSET , LENGTH , DEST_OFFSET )
                ~> #dropBytes
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> SRC_BUFF_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH  3 |-> <i32> DEST_OFFSET </locals>
 
@@ -240,14 +240,14 @@ module MANBUFOPS
     rule <instrs> #mBufferGetByteSliceH( OFFSET , LENGTH , _DEST_OFFSET )
                => i32 . const 1
                   ...
-         </instrs> 
+         </instrs>
          <bytesStack> BS : _ </bytesStack>
          requires notBool( #sliceBytesInBounds( BS , OFFSET , LENGTH ) )
 
  // extern int32_t   mBufferNew(void* context);
-    rule <instrs> hostCall("env", "mBufferNew", [ .ValTypes ] -> [ i32 .ValTypes ] ) 
-               => i32.const #newKey(HEAP) 
-                  ... 
+    rule <instrs> hostCall("env", "mBufferNew", [ .ValTypes ] -> [ i32 .ValTypes ] )
+               => i32.const #newKey(HEAP)
+                  ...
          </instrs>
          <bufferHeap> HEAP => HEAP[#newKey(HEAP) <- .Bytes] </bufferHeap>
 
@@ -257,7 +257,7 @@ module MANBUFOPS
               ~> #setBufferFromBytesStack( #newKey(HEAP) )
               ~> #dropBytes
               ~> i32 . const #newKey(HEAP)
-                 ... 
+                 ...
          </instrs>
          <locals> 0 |-> <i32> OFFSET  1 |-> <i32> LENGTH </locals>
          <bufferHeap> HEAP => HEAP[#newKey(HEAP) <- .Bytes] </bufferHeap>
@@ -265,7 +265,7 @@ module MANBUFOPS
  // extern void      managedCaller(void* context, int32_t destinationHandle);
     rule <instrs> hostCall("env", "managedCaller", [ i32 .ValTypes ] -> [ .ValTypes ] )
                => #setBuffer( DEST_IDX , CALLER )
-                 ... 
+                 ...
          </instrs>
          <locals> 0 |-> <i32> DEST_IDX </locals>
          <caller> CALLER </caller>
@@ -277,7 +277,7 @@ module MANBUFOPS
                ~> #storageLoadFromAddress
                ~> #setBufferFromBytesStack( DEST_IDX )
                ~> #dropBytes
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> ADDR_IDX  1 |-> <i32> KEY_IDX  2 |-> <i32> DEST_IDX </locals>
 
@@ -288,7 +288,7 @@ module MANBUFOPS
                => #getBuffer( SRC_IDX )
                ~> #appendToOutFromBytesStack
                ~> i32 . const 0
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> SRC_IDX </locals>
 
@@ -297,7 +297,7 @@ module MANBUFOPS
                => #getBuffer( SRC_IDX )
                ~> #mBufferCopyByteSliceH( OFFSET , LENGTH , DEST_IDX )
                ~> #dropBytes
-                  ... 
+                  ...
          </instrs>
          <locals> 0 |-> <i32> SRC_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH  3 |-> <i32> DEST_IDX </locals>
 
@@ -308,14 +308,14 @@ module MANBUFOPS
                ~> #setBufferFromBytesStack( DEST_IDX )
                ~> i32 . const 0
                   ...
-         </instrs> 
+         </instrs>
          <bytesStack> BS : _ </bytesStack>
          requires #sliceBytesInBounds( BS , OFFSET , LENGTH )
 
     rule <instrs> #mBufferCopyByteSliceH( OFFSET , LENGTH , _DEST_OFFSET )
                => i32 . const 1
                   ...
-         </instrs> 
+         </instrs>
          <bytesStack> BS : _ </bytesStack>
          requires notBool( #sliceBytesInBounds( BS , OFFSET , LENGTH ) )
 

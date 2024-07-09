@@ -106,7 +106,7 @@ def llvm_target(main_file_name: str, main_module: str, syntax_module: str, libra
             'include_dirs': [src_dir],
             'md_selector': 'k',
             'hook_namespaces': ['KRYPTO'],
-            'opt_level': 2,
+            # 'opt_level': 2,
             'ccopts': ccopts(plugin_dir),
             'llvm_kompile_type': LLVMKompileType.C if library else LLVMKompileType.MAIN,
         },

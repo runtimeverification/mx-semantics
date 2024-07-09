@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from pyk.kbuild.utils import k_version, sync_files
 from pyk.kdist.api import Target
-from pyk.ktool.kompile import PykBackend, kompile
+from pyk.ktool.kompile import LLVMKompileType, PykBackend, kompile
 from pyk.utils import run_process
 
 if TYPE_CHECKING:
@@ -107,7 +107,8 @@ def llvm_target(main_file_name: str, main_module: str, syntax_module: str, libra
             'md_selector': 'k',
             'hook_namespaces': ['KRYPTO'],
             'opt_level': 2,
-            'ccopts': ccopts(plugin_dir)
+            'ccopts': ccopts(plugin_dir),
+            'llvm_kompile_type': LLVMKompileType.C if library else LLVMKompileType.MAIN,
         },
     )
 

@@ -78,7 +78,7 @@ class KompileTarget(Target):
         return ('mx-semantics.source', 'mx-semantics.plugin')
 
 
-def llvm_target(main_file_name: str, main_module: str, syntax_module: str) -> KompileTarget:
+def llvm_target(main_file_name: str, main_module: str, syntax_module: str, library: bool) -> KompileTarget:
     def ccopts(plugin_dir: Path) -> list[str]:
         return [
                 '-g',
@@ -130,8 +130,9 @@ def haskell_target(main_file_name: str, main_module: str, syntax_module: str) ->
 __TARGETS__: Final = {
     'source': SourceTarget(),
     'plugin': PluginTarget(),
-    'llvm-mandos': llvm_target('mandos.md', 'MANDOS', 'MANDOS-SYNTAX'),
-    'llvm-kasmer': llvm_target('kasmer.md', 'KASMER', 'KASMER-SYNTAX'),
+    'llvm-mandos': llvm_target('mandos.md', 'MANDOS', 'MANDOS-SYNTAX', False),
+    'llvm-kasmer': llvm_target('kasmer.md', 'KASMER', 'KASMER-SYNTAX', False),
+    'llvm-kasmer-library': llvm_target('kasmer.md', 'KASMER', 'KASMER-SYNTAX', True),
     'haskell-mandos': haskell_target('mandos.md', 'MANDOS', 'MANDOS-SYNTAX'),
     'haskell-kasmer': haskell_target('kasmer.md', 'KASMER', 'KASMER-SYNTAX'),
 }

@@ -53,5 +53,5 @@ module ASYNC-CALL
   syntax Bool ::= AsyncCall "in" ListAsyncCall
           [function, total, hook(LIST.in), symbol(_inListAsyncCall_)]
   syntax Int ::= size(ListAsyncCall)
-          [function, total, hook(LIST.size), klabel (sizeListAsyncCall), smtlib(smt_seq_len)]
+          [function, total, hook(LIST.size), symbol(sizeListAsyncCall), smtlib(smt_seq_len)]
 endmodule

@@ -529,7 +529,7 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
           0 |-> <i32> P
         </locals>
 
-    syntax InternalInstr ::= #assert(Int)     [symbol, klabel(kasmerAssert)]
+    syntax InternalInstr ::= #assert(Int)     [symbol(kasmerAssert)]
  // -------------------------------------------------------------------------
     rule [kasmerAssert-true]:
         <instrs> #assert( I ) => .K ... </instrs>
@@ -550,7 +550,7 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
           0 |-> <i32> P
         </locals>
 
-    syntax IternalInstr ::= #assume(Int)     [symbol, klabel(kasmerAssume)]
+    syntax IternalInstr ::= #assume(Int)     [symbol(kasmerAssume)]
  // ------------------------------------------------------------------------
     rule [kasmerAssume-true]:
         <instrs> #assume(P) => .K ... </instrs>
@@ -561,7 +561,7 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
       requires P ==Int 0
 
     syntax InternalInstr ::= "#endFoundryImmediately"
-        [symbol, klabel(endFoundryImmediately)]
+        [symbol(endFoundryImmediately)]
  // ------------------------------------------------------
     rule [endFoundryImmediately]:
         (<callState>

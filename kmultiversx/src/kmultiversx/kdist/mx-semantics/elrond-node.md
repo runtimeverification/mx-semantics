@@ -5,15 +5,11 @@ Elrond Node
 requires "wasm-semantics/wasm.md"
 requires "data/async-call.k"
 requires "data/list-bytes.k"
-requires "data/map-bytes-to-bytes.k"
-requires "data/map-int-to-bytes.k"
 
 module ELROND-NODE
     imports DOMAINS
     imports ASYNC-CALL
     imports LIST-BYTES
-    imports MAP-BYTES-TO-BYTES
-    imports MAP-INT-TO-BYTES
     imports WASM
 
     configuration
@@ -38,8 +34,8 @@ module ELROND-NODE
           // executional
           // every contract call uses its own wasm module instance, managed data heaps, and bytesStack.
           <wasm/>
-          <bigIntHeap> .MapIntToInt   </bigIntHeap>
-          <bufferHeap> .MapIntToBytes </bufferHeap>
+          <bigIntHeap> .Map   </bigIntHeap>
+          <bufferHeap> .Map </bufferHeap>
           <bytesStack> .BytesStack </bytesStack>
           <contractModIdx> .Int </contractModIdx>
           <asyncCalls> .ListAsyncCall </asyncCalls>
@@ -78,7 +74,7 @@ If the account is not a contract, `ownerAddress` is `.Bytes`.
 Storage maps byte arrays to byte arrays.
 
 ```k
-             <storage> .MapBytesToBytes </storage>
+             <storage> .Map </storage>
            </account>
          </accounts>
          <previousBlockInfo>
@@ -103,20 +99,20 @@ Storage maps byte arrays to byte arrays.
 
     syntax VmInputCell
 
-    syntax ReturnCode    ::= "OK"          [klabel(OK), symbol]
+    syntax ReturnCode    ::= "OK"          [symbol(OK)]
                            | ExceptionCode
-    syntax ExceptionCode ::= "FunctionNotFound"         [klabel(FunctionNotFound), symbol]         
-                           | "FunctionWrongSignature"   [klabel(FunctionWrongSignature), symbol]
-                           | "ContractNotFound"         [klabel(ContractNotFound), symbol]
-                           | "UserError"                [klabel(UserError), symbol]
-                           | "OutOfGas"                 [klabel(OutOfGas), symbol]
-                           | "AccountCollision"         [klabel(AccountCollision), symbol]
-                           | "OutOfFunds"               [klabel(OutOfFunds), symbol]
-                           | "CallStackOverFlow"        [klabel(CallStackOverFlow), symbol]
-                           | "ContractInvalid"          [klabel(ContractInvalid), symbol]
-                           | "ExecutionFailed"          [klabel(ExecutionFailed), symbol]
-                           | "UpgradeFailed"            [klabel(UpgradeFailed), symbol]
-                           | "SimulateFailed"           [klabel(SimulateFailed), symbol]
+    syntax ExceptionCode ::= "FunctionNotFound"         [symbol(FunctionNotFound)]         
+                           | "FunctionWrongSignature"   [symbol(FunctionWrongSignature)]
+                           | "ContractNotFound"         [symbol(ContractNotFound)]
+                           | "UserError"                [symbol(UserError)]
+                           | "OutOfGas"                 [symbol(OutOfGas)]
+                           | "AccountCollision"         [symbol(AccountCollision)]
+                           | "OutOfFunds"               [symbol(OutOfFunds)]
+                           | "CallStackOverFlow"        [symbol(CallStackOverFlow)]
+                           | "ContractInvalid"          [symbol(ContractInvalid)]
+                           | "ExecutionFailed"          [symbol(ExecutionFailed)]
+                           | "UpgradeFailed"            [symbol(UpgradeFailed)]
+                           | "SimulateFailed"           [symbol(SimulateFailed)]
 
     syntax Int ::= ReturnCode2Int( ReturnCode )     [function, total]
  // -----------------------------------------------------------------
@@ -135,12 +131,12 @@ Storage maps byte arrays to byte arrays.
     rule ReturnCode2Int( SimulateFailed         ) => 12
 
 
-    syntax VMOutput ::= ".VMOutput"  [klabel(.VMOutput), symbol]
+    syntax VMOutput ::= ".VMOutput"  [symbol(.VMOutput)]
                       | VMOutput( returnCode: ReturnCode , returnMessage: Bytes , out: ListBytes, logs: List, outputAccounts: Map )
-                        [klabel(VMOutput), symbol]
+                        [symbol(VMOutput)]
 
-    syntax OutputAccount ::= OutputAccount ( addr: Bytes, transfers: List )             [klabel(OutputAccount), symbol]
-    syntax OutputTransfer ::= OutputTransfer ( sender: Bytes, value: TransferValue )    [klabel(OutputTransfer), symbol]
+    syntax OutputAccount ::= OutputAccount ( addr: Bytes, transfers: List )             [symbol(OutputAccount)]
+    syntax OutputTransfer ::= OutputTransfer ( sender: Bytes, value: TransferValue )    [symbol(OutputTransfer)]
 
     syntax Bool ::= nonZeroOutputTransfer(OutputTransfer)      [function, total]
  // ---------------------------------------------------------------------------
@@ -151,7 +147,7 @@ Storage maps byte arrays to byte arrays.
  // -------------------------------------------------------------------------------------------------
     rule appendToOutTransfers(OutputAccount( A, Ts ), T) => OutputAccount(A, Ts ListItem(T))
 
-    syntax InternalCmd ::= appendToOutAccount(Bytes, OutputTransfer)    [klabel(appendToOutAccount), symbol]
+    syntax InternalCmd ::= appendToOutAccount(Bytes, OutputTransfer)    [symbol(appendToOutAccount)]
  // -------------------------------------------------------------------------------------------------
     rule [appendToOutAccount]:
         <commands> appendToOutAccount(ACC, T) => .K ... </commands>
@@ -188,13 +184,13 @@ Storage maps byte arrays to byte arrays.
     rule #address2Bytes(ADDR:WasmStringToken) => String2Bytes(#parseWasmString(ADDR))
     rule #address2Bytes(ADDR:Bytes) => ADDR
 
-    syntax Code ::= ".Code" [klabel(.Code), symbol]
+    syntax Code ::= ".Code" [symbol(.Code)]
                   | ModuleDecl
  // ----------------------------------------------
 
-    syntax ESDTTransfer ::= esdtTransfer( tokenName : Bytes , tokenValue : Int , tokenNonce : Int )    [klabel(esdtTransfer), symbol]
+    syntax ESDTTransfer ::= esdtTransfer( tokenName : Bytes , tokenValue : Int , tokenNonce : Int )    [symbol(esdtTransfer)]
 
-    syntax ESDTMetadata ::= ".esdtMetadata"       [klabel(.esdtMetadata), symbol]
+    syntax ESDTMetadata ::= ".esdtMetadata"       [symbol(.esdtMetadata)]
                           | esdtMetadata(
                                 name: Bytes,
                                 nonce: Int,
@@ -202,7 +198,7 @@ Storage maps byte arrays to byte arrays.
                                 royalties: Int,
                                 hash: Bytes,
                                 uris: ListBytes,
-                                attributes: Bytes )      [klabel(esdtMetadata), symbol]
+                                attributes: Bytes )      [symbol(esdtMetadata)]
 ```
 
 ### Bytes Stack
@@ -255,7 +251,7 @@ Storage maps byte arrays to byte arrays.
 The `<callStack>` cell stores a list of previous contract execution states. These internal commands manages the callstack when calling and returning from a contract.
 
 ```k
-    syntax InternalCmd ::= "pushCallState"  [klabel(pushCallState), symbol]
+    syntax InternalCmd ::= "pushCallState"  [symbol(pushCallState)]
  // ---------------------------------------
     rule [pushCallState]:
          <commands> pushCallState => .K ... </commands>
@@ -263,7 +259,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
          CALLSTATE:CallStateCell
       [priority(60)]
 
-    syntax InternalCmd ::= "popCallState"  [klabel(popCallState), symbol]
+    syntax InternalCmd ::= "popCallState"  [symbol(popCallState)]
  // --------------------------------------
     rule [popCallState]:
          <commands> popCallState => .K ... </commands>
@@ -271,7 +267,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
          (_:CallStateCell => CALLSTATE)
       [priority(60)]
 
-    syntax InternalCmd ::= "dropCallState"  [klabel(dropCallState), symbol]
+    syntax InternalCmd ::= "dropCallState"  [symbol(dropCallState)]
  // ---------------------------------------
     rule [dropCallState]:
          <commands> dropCallState => .K ... </commands>
@@ -287,7 +283,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax Accounts ::= "{" AccountsCellFragment "}"
  // --------------------------------------------------------
 
-    syntax InternalCmd ::= "pushWorldState"  [klabel(pushWorldState), symbol]
+    syntax InternalCmd ::= "pushWorldState"  [symbol(pushWorldState)]
  // ---------------------------------------
     rule [pushWorldState]:
          <commands> pushWorldState => .K ... </commands>
@@ -295,7 +291,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
          <accounts>       ACCTDATA </accounts>
       [priority(60)]
 
-    syntax InternalCmd ::= "popWorldState"  [klabel(popWorldState), symbol]
+    syntax InternalCmd ::= "popWorldState"  [symbol(popWorldState)]
  // --------------------------------------
     rule [popWorldState]:
          <commands> popWorldState => .K ... </commands>
@@ -303,7 +299,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
          <accounts>       _ => ACCTDATA </accounts>
       [priority(60)]
 
-    syntax InternalCmd ::= "dropWorldState"  [klabel(dropWorldState), symbol]
+    syntax InternalCmd ::= "dropWorldState"  [symbol(dropWorldState)]
  // ---------------------------------------
     rule [dropWorldState]:
          <commands> dropWorldState => .K ... </commands>
@@ -340,7 +336,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     syntax InternalCmd ::= #exception( ExceptionCode , Bytes )
  // ---------------------------------------------------
 
-    syntax BuiltinFunction ::= "#notBuiltin"                           [klabel(#notBuiltin),symbol]
+    syntax BuiltinFunction ::= "#notBuiltin"                           [symbol(#notBuiltin)]
                              | toBuiltinFunction(String)               [function, total]
                              | toBuiltinFunction(WasmStringToken)      [function, total]
  // --------------------------------------------------------------------------
@@ -358,7 +354,7 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
     rule BuiltinFunction2Bytes(#notBuiltin) => b""
 
     syntax InternalCmd ::= processBuiltinFunction(BuiltinFunction, Bytes, Bytes, VmInputCell)
-      [klabel(processBuiltinFunction),symbol]
+      [symbol(processBuiltinFunction)]
 
     syntax InternalCmd ::= checkBool(Bool, String)    [symbol(checkBool)]
  // -----------------------------------------------------------------------------
@@ -368,10 +364,10 @@ The `<callStack>` cell stores a list of previous contract execution states. Thes
          <commands> checkBool(B, ERR) => #exception(ExecutionFailed, String2Bytes(ERR)) ... </commands> requires notBool B
 
     syntax WasmCell
-    syntax InternalCmd ::= newWasmInstance(Bytes, ModuleDecl)  [klabel(newWasmInstance), symbol]
+    syntax InternalCmd ::= newWasmInstance(Bytes, ModuleDecl)  [symbol(newWasmInstance)]
                          | mkCall( Bytes, WasmString, VmInputCell )
 
-    syntax InternalCmd ::= "resetCallstate"      [klabel(resetCallState), symbol]
+    syntax InternalCmd ::= "resetCallstate"      [symbol(resetCallState)]
  // ---------------------------------------------------------------------------
     rule [resetCallstate]:
         <commands> resetCallstate => .K ... </commands>

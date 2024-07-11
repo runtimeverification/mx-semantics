@@ -65,7 +65,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         <instrs> .K </instrs>
       [priority(60)]
 
-    syntax Step ::= "setExitCode" Int     [klabel(setExitCode), symbol]
+    syntax Step ::= "setExitCode" Int     [symbol(setExitCode)]
  // -------------------------------------------------------------------
     rule <k> setExitCode I => .K ... </k>
          <commands> .K </commands>
@@ -84,7 +84,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <commands> .K </commands>
       [owise]
 
-    syntax Step ::= "register" String [klabel(register), symbol]
+    syntax Step ::= "register" String [symbol(register)]
  // ------------------------------------------------------------
     rule <k> register NAME => .K ... </k>
          <moduleRegistry> REG => REG [NAME <- IDX -Int 1] </moduleRegistry>
@@ -93,47 +93,47 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <instrs> .K </instrs>
       [priority(60)]
 
-    syntax Step ::= checkFailed(Step)     [klabel(checkFailed), symbol]
+    syntax Step ::= checkFailed(Step)     [symbol(checkFailed)]
 
 ```
 
 ### Helper Functions
 
 ```k
-    syntax MapBytesToBytes  ::= #removeEmptyBytes ( MapBytesToBytes ) [function]
+    syntax Map  ::= #removeEmptyBytes ( Map ) [function]
  // ----------------------------------------------------------------------------------------
-    rule #removeEmptyBytes(.MapBytesToBytes)
-        => .MapBytesToBytes
-    rule #removeEmptyBytes(Key Bytes2Bytes|-> Value M)
-        =>  #if Value ==K wrap(.Bytes)
+    rule #removeEmptyBytes(.Map)
+        => .Map
+    rule #removeEmptyBytes(Key |-> Value M)
+        =>  #if Value ==K .Bytes
             #then #removeEmptyBytes(M)
-            #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
+            #else Key |-> Value #removeEmptyBytes(M)
             #fi
         requires notBool Key in_keys(M)
-    rule #removeEmptyBytes(Key Bytes2Bytes|-> Value M)
-        =>  #if Value ==K wrap(.Bytes)
+    rule #removeEmptyBytes(Key |-> Value M)
+        =>  #if Value ==K .Bytes
             #then #removeEmptyBytes(M)
-            #else Key Bytes2Bytes|-> Value #removeEmptyBytes(M)
+            #else Key |-> Value #removeEmptyBytes(M)
             #fi
         requires notBool Key in_keys(M)
         [simplification]
 
-    syntax MapBytesToBytes  ::= #removeReservedKeys ( MapBytesToBytes ) [function]
+    syntax Map  ::= #removeReservedKeys ( Map ) [function]
  // ----------------------------------------------------------------------------------------
-    rule #removeReservedKeys(.MapBytesToBytes)
-        => .MapBytesToBytes
-    rule #removeReservedKeys(wrap(Key) Bytes2Bytes|-> Value M)
+    rule #removeReservedKeys(.Map)
+        => .Map
+    rule #removeReservedKeys(Key |-> Value M)
         =>  #if #hasPrefix(Bytes2String(Key), "ELROND")
             #then #removeReservedKeys(M)
-            #else wrap(Key) Bytes2Bytes|-> Value #removeReservedKeys(M)
+            #else Key |-> Value #removeReservedKeys(M)
             #fi
-        requires notBool wrap(Key) in_keys(M)
-    rule #removeReservedKeys(wrap(Key) Bytes2Bytes|-> Value M)
+        requires notBool Key in_keys(M)
+    rule #removeReservedKeys(Key |-> Value M)
         =>  #if #hasPrefix(Bytes2String(Key), "ELROND")
             #then #removeReservedKeys(M)
-            #else wrap(Key) Bytes2Bytes|-> Value #removeReservedKeys(M)
+            #else Key |-> Value #removeReservedKeys(M)
             #fi
-        requires notBool wrap(Key) in_keys(M)
+        requires notBool Key in_keys(M)
         [simplification]
 ```
 
@@ -142,10 +142,10 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ```k
     syntax Step ::= setAccount    (
                         address: Address, nonce: Int, balance: Int, code: Code,
-                        owner: Address, storage: MapBytesToBytes )  [klabel(setAccount), symbol]
+                        owner: Address, storage: Map )  [symbol(setAccount)]
                   | setAccountAux (
                         address: Bytes, nonce: Int, balance: Int, code: Code,
-                        owner: Bytes, storage: MapBytesToBytes )      [klabel(setAccountAux), symbol]
+                        owner: Bytes, storage: Map )      [symbol(setAccountAux)]
                   | createAndSetAccountWithEmptyCode       ( Bytes, Int, Int, Map )
                   | createAndSetAccountAfterInitCodeModule ( Bytes, Int, Int, Map )
  // -------------------------------------------------------------------------------
@@ -163,8 +163,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <instrs> .K </instrs>
       [priority(60)]
 
-    syntax Step ::= setEsdtBalance   ( Bytes , Bytes, Int, ESDTMetadata, Int )     [klabel(setEsdtBalance), symbol]
-                  | setEsdtBalanceAux( Bytes , Bytes,      ESDTMetadata, Int )     [klabel(setEsdtBalanceAux), symbol]
+    syntax Step ::= setEsdtBalance   ( Bytes , Bytes, Int, ESDTMetadata, Int )     [symbol(setEsdtBalance)]
+                  | setEsdtBalanceAux( Bytes , Bytes,      ESDTMetadata, Int )     [symbol(setEsdtBalanceAux)]
  // ------------------------------------------------
     rule <k> setEsdtBalance( ADDR , TokId , Nonce, Metadata, Value )
           => setEsdtBalanceAux(ADDR, keyWithNonce(TokId, Nonce), Metadata, Value) ...
@@ -208,7 +208,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
       [priority(61)]
 
 
-    syntax Step ::= setEsdtLastNonce ( Bytes , Bytes, Int )     [klabel(setEsdtLastNonce), symbol]
+    syntax Step ::= setEsdtLastNonce ( Bytes , Bytes, Int )     [symbol(setEsdtLastNonce)]
  // ----------------------------------------------------------------------------
     rule [setEsdtLastNonce-existing]:
         <k> setEsdtLastNonce(ADDR, TOK, NONCE) => .K ... </k>
@@ -244,7 +244,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
       [priority(61)]
 
     syntax Step ::= setEsdtRoles( Bytes , Bytes , Set )
-        [klabel(setEsdtRoles), symbol]
+        [symbol(setEsdtRoles)]
  // ----------------------------------------------------------------------------
     rule [setEsdtRoles-existing]:
         <k> setEsdtRoles(ADDR, TOK, ROLES) => .K ... </k>
@@ -280,7 +280,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
       [priority(61)]
 
     syntax Step ::= checkEsdtRoles( Bytes , Bytes , Set )
-        [klabel(checkEsdtRoles), symbol]
+        [symbol(checkEsdtRoles)]
  // ----------------------------------------------------------------------------
     rule [checkEsdtRoles]:
         <k> checkEsdtRoles(ADDR, TOK, ROLES) => .K ... </k>
@@ -297,8 +297,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         <instrs> .K </instrs>
       [priority(60)]
 
-    syntax Step ::= newAddress    ( Address, Int, Address ) [klabel(newAddress), symbol]
-                  | newAddressAux ( Bytes, Int, Bytes )     [klabel(newAddressAux), symbol]
+    syntax Step ::= newAddress    ( Address, Int, Address ) [symbol(newAddress)]
+                  | newAddressAux ( Bytes, Int, Bytes )     [symbol(newAddressAux)]
  // ---------------------------------------------------------------------------------------
     rule <k> newAddress(CREATOR, NONCE, NEW)
           => newAddressAux(#address2Bytes(CREATOR), NONCE, #address2Bytes(NEW)) ... </k>
@@ -315,13 +315,13 @@ Only take the next step once both the Elrond node and Wasm are done executing.
     syntax AddressNonce ::= tuple( Bytes , Int )
  // ----------------------------------------------
 
-    syntax Step      ::= setCurBlockInfo  ( BlockInfo ) [klabel(setCurBlockInfo), symbol]
-                       | setPrevBlockInfo ( BlockInfo ) [klabel(setPrevBlockInfo), symbol]
-    syntax BlockInfo ::= blockTimestamp  ( Int )   [klabel(blockTimestamp), symbol]
-                       | blockNonce      ( Int )   [klabel(blockNonce), symbol]
-                       | blockRound      ( Int )   [klabel(blockRound), symbol]
-                       | blockEpoch      ( Int )   [klabel(blockEpoch), symbol]
-                       | blockRandomSeed ( Bytes ) [klabel(blockRandomSeed), symbol]
+    syntax Step      ::= setCurBlockInfo  ( BlockInfo ) [symbol(setCurBlockInfo)]
+                       | setPrevBlockInfo ( BlockInfo ) [symbol(setPrevBlockInfo)]
+    syntax BlockInfo ::= blockTimestamp  ( Int )   [symbol(blockTimestamp)]
+                       | blockNonce      ( Int )   [symbol(blockNonce)]
+                       | blockRound      ( Int )   [symbol(blockRound)]
+                       | blockEpoch      ( Int )   [symbol(blockEpoch)]
+                       | blockRandomSeed ( Bytes ) [symbol(blockRandomSeed)]
  // --------------------------------------------------------------------------------
     rule <k> setCurBlockInfo(blockTimestamp(TIMESTAMP)) => .K ... </k>
          <curBlockTimestamp> _ => TIMESTAMP </curBlockTimestamp>
@@ -387,8 +387,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### Step type: checkState
 
 ```k
-    syntax Step ::= checkAccountNonce    ( Address, Int ) [klabel(checkAccountNonce), symbol]
-                  | checkAccountNonceAux ( Bytes, Int )   [klabel(checkAccountNonceAux), symbol]
+    syntax Step ::= checkAccountNonce    ( Address, Int ) [symbol(checkAccountNonce)]
+                  | checkAccountNonceAux ( Bytes, Int )   [symbol(checkAccountNonceAux)]
  // --------------------------------------------------------------------------------------------
     rule <k> checkAccountNonce(ADDRESS, NONCE)
              => checkAccountNonceAux(#address2Bytes(ADDRESS), NONCE) ... </k>
@@ -406,8 +406,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <instrs> .K </instrs>
       [priority(60)]
 
-    syntax Step ::= checkAccountBalance    ( Address, Int ) [klabel(checkAccountBalance), symbol]
-                  | checkAccountBalanceAux ( Bytes, Int )   [klabel(checkAccountBalanceAux), symbol]
+    syntax Step ::= checkAccountBalance    ( Address, Int ) [symbol(checkAccountBalance)]
+                  | checkAccountBalanceAux ( Bytes, Int )   [symbol(checkAccountBalanceAux)]
  // ------------------------------------------------------------------------------------------------
     rule <k> checkAccountBalance(ADDRESS, BALANCE)
              => checkAccountBalanceAux(#address2Bytes(ADDRESS), BALANCE) ... </k>
@@ -425,8 +425,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <instrs> .K </instrs>
       [priority(60)]
 
-    syntax Step ::= checkAccountESDTBalance    ( Bytes, Bytes, Int, Int ) [klabel(checkAccountESDTBalance), symbol]
-                  | checkAccountESDTBalanceAux ( Bytes, Bytes, Int )      [klabel(checkAccountESDTBalanceAux), symbol]
+    syntax Step ::= checkAccountESDTBalance    ( Bytes, Bytes, Int, Int ) [symbol(checkAccountESDTBalance)]
+                  | checkAccountESDTBalanceAux ( Bytes, Bytes, Int )      [symbol(checkAccountESDTBalanceAux)]
  // ------------------------------------------------------------------------------------------------
     rule <k> checkAccountESDTBalance(ADDRESS, TOKEN, NONCE, BALANCE)
           => checkAccountESDTBalanceAux(ADDRESS, keyWithNonce(TOKEN, NONCE), BALANCE) ... </k>
@@ -461,8 +461,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <instrs> .K </instrs>
       [priority(61)]
 
-    syntax Step ::= checkAccountStorage    ( Address, MapBytesToBytes ) [klabel(checkAccountStorage), symbol]
-                  | checkAccountStorageAux ( Bytes, MapBytesToBytes )   [klabel(checkAccountStorageAux), symbol]
+    syntax Step ::= checkAccountStorage    ( Address, Map ) [symbol(checkAccountStorage)]
+                  | checkAccountStorageAux ( Bytes, Map )   [symbol(checkAccountStorageAux)]
  // ------------------------------------------------------------------------------------------------
     rule <k> checkAccountStorage(ADDRESS, STORAGE)
              => checkAccountStorageAux(#address2Bytes(ADDRESS), STORAGE) ... </k>
@@ -481,8 +481,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
         requires #removeReservedKeys(ACCTSTORAGE) ==K #removeEmptyBytes(STORAGE)
       [priority(60)]
 
-    syntax Step ::= checkAccountCode    ( Address, String ) [klabel(checkAccountCode), symbol]
-                  | checkAccountCodeAux ( Bytes, String )   [klabel(checkAccountCodeAux), symbol]
+    syntax Step ::= checkAccountCode    ( Address, String ) [symbol(checkAccountCode)]
+                  | checkAccountCodeAux ( Bytes, String )   [symbol(checkAccountCodeAux)]
  // ---------------------------------------------------------------------------------------------
     rule <k> checkAccountCode(ADDRESS, CODEPATH)
              => checkAccountCodeAux(#address2Bytes(ADDRESS), CODEPATH) ... </k>
@@ -519,8 +519,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
       requires CODEPATH ==K #getModuleCodePath(CODE)
       [priority(60)]
 
-    syntax Step ::= checkedAccount    ( Address ) [klabel(checkedAccount), symbol]
-                  | checkedAccountAux ( Bytes )   [klabel(checkedAccountAux), symbol]
+    syntax Step ::= checkedAccount    ( Address ) [symbol(checkedAccount)]
+                  | checkedAccountAux ( Bytes )   [symbol(checkedAccountAux)]
  // ---------------------------------------------------------------------------------
     rule <k> checkedAccount(ADDRESS)
              => checkedAccountAux(#address2Bytes(ADDRESS)) ... </k>
@@ -534,7 +534,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <instrs> .K </instrs>
       [priority(60)]
 
-    syntax Step ::= checkNoAdditionalAccounts( Set ) [klabel(checkNoAdditionalAccounts), symbol]
+    syntax Step ::= checkNoAdditionalAccounts( Set ) [symbol(checkNoAdditionalAccounts)]
  // ---------------------------------------------------------------------------------------
     rule <k> checkNoAdditionalAccounts(EXPECTED) => .K ... </k>
          <checkedAccounts> CHECKEDACCTS </checkedAccounts>
@@ -543,7 +543,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
       requires EXPECTED ==K CHECKEDACCTS
       [priority(60)]
 
-    syntax Step ::= "clearCheckedAccounts" [klabel(clearCheckedAccounts), symbol]
+    syntax Step ::= "clearCheckedAccounts" [symbol(clearCheckedAccounts)]
  // -----------------------------------------------------------------------------
     rule <k> clearCheckedAccounts => .K ... </k>
          <checkedAccounts> _ => .Set </checkedAccounts>
@@ -555,8 +555,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 ### Step type: scCall
 
 ```k
-    syntax Step ::= callTx    (from: Address, to: Address, value: Int, esdtValue: List, func: WasmString, args: ListBytes, gasLimit: Int, gasPrice: Int) [klabel(callTx), symbol]
-                  | callTxAux (from: Bytes,   to: Bytes,   value: Int, esdtValue: List, func: WasmString, args: ListBytes, gasLimit: Int, gasPrice: Int) [klabel(callTxAux), symbol]
+    syntax Step ::= callTx    (from: Address, to: Address, value: Int, esdtValue: List, func: WasmString, args: ListBytes, gasLimit: Int, gasPrice: Int) [symbol(callTx)]
+                  | callTxAux (from: Bytes,   to: Bytes,   value: Int, esdtValue: List, func: WasmString, args: ListBytes, gasLimit: Int, gasPrice: Int) [symbol(callTxAux)]
  // ----------------------------------------------------------------------------------------------------------------------------------------------------------
     rule [callTx]:
         <k> callTx(FROM, TO, VALUE, ESDT, FUNCTION, ARGS, GASLIMIT, GASPRICE)
@@ -604,7 +604,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
             <txHash> HASH </txHash>
           </vmInput>
 
-    syntax Step ::= checkExpectOut ( ListBytes ) [klabel(checkExpectOut), symbol]
+    syntax Step ::= checkExpectOut ( ListBytes ) [symbol(checkExpectOut)]
  // --------------------------------------------------------------------------
     rule <k> checkExpectOut(OUT) => .K ... </k>
          <vmOutput> VMOutput(... out: OUT) </vmOutput>
@@ -612,7 +612,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <instrs> .K </instrs>
       [priority(60)]
 
-    syntax Step ::= checkExpectStatus ( ReturnCode ) [klabel(checkExpectStatus), symbol]
+    syntax Step ::= checkExpectStatus ( ReturnCode ) [symbol(checkExpectStatus)]
  // ------------------------------------------------------------------------------------
     rule <k> checkExpectStatus(RETURNCODE) => .K ... </k>
          <vmOutput> VMOutput(... returnCode: RETURNCODE) </vmOutput>
@@ -620,7 +620,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <instrs> .K </instrs>
       [priority(60)]
 
-    syntax Step ::= checkExpectMessage ( Bytes ) [klabel(checkExpectMessage), symbol]
+    syntax Step ::= checkExpectMessage ( Bytes ) [symbol(checkExpectMessage)]
  // ---------------------------------------------------------------------------------
     rule <k> checkExpectMessage(MSG) => .K ... </k>
          <vmOutput> VMOutput(... returnMessage: MSG) </vmOutput>
@@ -628,7 +628,7 @@ Only take the next step once both the Elrond node and Wasm are done executing.
          <instrs> .K </instrs>
       [priority(60)]
 
-    syntax Step ::= checkExpectLogs ( List ) [klabel(checkExpectLogs), symbol]
+    syntax Step ::= checkExpectLogs ( List ) [symbol(checkExpectLogs)]
  // --------------------------------------------------------------------------
     rule <k> checkExpectLogs(LOGS) => .K ... </k>
          <vmOutput> VMOutput(... logs: LOGS) </vmOutput>
@@ -648,8 +648,8 @@ Only take the next step once both the Elrond node and Wasm are done executing.
 TODO make sure that none of the state changes are persisted -- [Doc](https://docs.multiversx.com/developers/scenario-reference/structure#step-type-scquery)
 
 ```k
-    syntax Step ::= queryTx    (to: Address, func: WasmString, args: ListBytes) [klabel(queryTx), symbol]
-                  | queryTxAux (to: Bytes,   func: WasmString, args: ListBytes) [klabel(queryTxAux), symbol]
+    syntax Step ::= queryTx    (to: Address, func: WasmString, args: ListBytes) [symbol(queryTx)]
+                  | queryTxAux (to: Bytes,   func: WasmString, args: ListBytes) [symbol(queryTxAux)]
  // ---------------------------------------------------------------------------------------------------
     rule <k> queryTx(TO, FUNCTION, ARGS) => queryTxAux(#address2Bytes(TO), FUNCTION, ARGS) ... </k>
          <commands> .K </commands>
@@ -681,8 +681,8 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
 ### Step type: scDeploy
 
 ```k
-    syntax Step ::= deployTx    ( Address, Int, ModuleDecl, ListBytes, Int, Int ) [klabel(deployTx), symbol]
-                  | deployTxAux (   Bytes, Int, ModuleDecl, ListBytes, Int, Int )   [klabel(deployTxAux), symbol]
+    syntax Step ::= deployTx    ( Address, Int, ModuleDecl, ListBytes, Int, Int ) [symbol(deployTx)]
+                  | deployTxAux (   Bytes, Int, ModuleDecl, ListBytes, Int, Int )   [symbol(deployTxAux)]
  // ------------------------------------------------------------------------------------------------------
     rule <k> deployTx(FROM, VALUE, MODULE, ARGS, GASLIMIT, GASPRICE)
           => deployTxAux(#address2Bytes(FROM), VALUE, MODULE, ARGS, GASLIMIT, GASPRICE) ... 
@@ -729,15 +729,15 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
 ### Step type: transfer
 
 ```k
-    syntax Step ::= transfer(TransferTx) [klabel(transfer), symbol]
+    syntax Step ::= transfer(TransferTx) [symbol(transfer)]
  // -----------------------------------------------------
     rule <k> transfer(TX) => TX ... </k>
          <commands> .K </commands>
          <instrs> .K </instrs>
       [priority(60)]
 
-    syntax TransferTx ::= transferTx    ( from: Address, to: Bytes, value: Int ) [klabel(transferTx), symbol]
-                        | transferTxAux ( from: Bytes, to: Bytes, value: Int )   [klabel(transferTxAux), symbol]
+    syntax TransferTx ::= transferTx    ( from: Address, to: Bytes, value: Int ) [symbol(transferTx)]
+                        | transferTxAux ( from: Bytes, to: Bytes, value: Int )   [symbol(transferTxAux)]
  // ------------------------------------------------------------------------------------------------------------
     rule <k> transferTx(FROM, TO, VAL) 
           => transferTxAux(#address2Bytes(FROM), #address2Bytes(TO), VAL) ...
@@ -760,15 +760,15 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
 ### Step type: validatorReward
 
 ```k
-    syntax Step ::= validatorReward(ValidatorRewardTx) [klabel(validatorReward), symbol]
+    syntax Step ::= validatorReward(ValidatorRewardTx) [symbol(validatorReward)]
  // ------------------------------------------------------------------------------------
     rule <k> validatorReward(TX) => TX ... </k>
          <commands> .K </commands>
          <instrs> .K </instrs>
       [priority(60)]
 
-    syntax ValidatorRewardTx ::= validatorRewardTx    ( to: Address, value: Int) [klabel(validatorRewardTx), symbol]
-                               | validatorRewardTxAux ( to: Bytes, value: Int )  [klabel(validatorRewardTxAux), symbol]
+    syntax ValidatorRewardTx ::= validatorRewardTx    ( to: Address, value: Int) [symbol(validatorRewardTx)]
+                               | validatorRewardTxAux ( to: Bytes, value: Int )  [symbol(validatorRewardTxAux)]
  // -------------------------------------------------------------------------------------------------------------------
     rule <k> validatorRewardTx(TO, VAL) => validatorRewardTxAux(#address2Bytes(TO), VAL) ... </k>
          <commands> .K </commands>
@@ -779,8 +779,8 @@ TODO make sure that none of the state changes are persisted -- [Doc](https://doc
          <account>
            <address> TO </address>
             <storage> STOR
-                   => STOR{{String2Bytes("ELRONDreward") 
-                           <- #incBytes(#lookupStorage(STOR, String2Bytes("ELRONDreward")), VAL)}}
+                   => STOR[String2Bytes("ELRONDreward")
+                           <- #incBytes(#lookupStorage(STOR, String2Bytes("ELRONDreward")), VAL)]
             </storage>
             <balance> TO_BAL => TO_BAL +Int VAL </balance>
             ...

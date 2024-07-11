@@ -1,6 +1,6 @@
 setExitCode 1
 
-setAccount("testDeployer", 0, 2 ^Int 256, .Code, .Bytes, .MapBytesToBytes)
+setAccount("testDeployer", 0, 2 ^Int 256, .Code, .Bytes, .Map)
 newAddress("testDeployer", 0, "testContract")
 
 deployTx(
@@ -332,7 +332,7 @@ checkExpectStatus(OK)
 checkExpectOut(ListItemWrap(Int2Bytes(777, BE, Signed)))
 checkAccountBalance("testDeployer", 0)
 
-setAccount("testCaller", 0, 0, .Code, .Bytes, .MapBytesToBytes)
+setAccount("testCaller", 0, 0, .Code, .Bytes, .Map)
 setEsdtBalance(b"\"testCaller\"", b"my-tok", 0, .esdtMetadata, 20)
 setEsdtBalance(b"\"testCaller\"", b"my-tok-2", 0, .esdtMetadata, 20)
 

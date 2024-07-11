@@ -15,11 +15,11 @@ requires "elrond-node.md"
 
 module SWITCH-SYNTAX
 
-    syntax InternalCmd ::= "#endWasm"     [klabel(#endWasm), symbol]
-                         | "#waitWasm"    [klabel(#waitWasm), symbol]
-                         | "#setVMOutput" [klabel(#setVMOutput), symbol]
+    syntax InternalCmd ::= "#endWasm"     [symbol(#endWasm)]
+                         | "#waitWasm"    [symbol(#waitWasm)]
+                         | "#setVMOutput" [symbol(#setVMOutput)]
 
-    syntax InternalInstr ::= "#waitCommands"    [klabel(#waitCommands), symbol]
+    syntax InternalInstr ::= "#waitCommands"    [symbol(#waitCommands)]
 
 endmodule
 

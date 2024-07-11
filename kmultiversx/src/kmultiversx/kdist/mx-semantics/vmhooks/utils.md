@@ -63,7 +63,7 @@ module UTILS-CEILS
         [simplification]
 
     syntax KItem ::= List "{{" Int "}}"
-        [function, total, klabel(listLookupTotal), symbol, no-evaluators]
+        [function, total, symbol(listLookupTotal), no-evaluators]
  // ---------------------------------------------------------------------------------
     rule L:List{{Index:Int}}
         => L[Index]

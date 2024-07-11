@@ -1,6 +1,6 @@
 setExitCode 1
 
-setAccount("testDeployer", 0, 0, .Code, .Bytes, .MapBytesToBytes)
+setAccount("testDeployer", 0, 0, .Code, .Bytes, .Map)
 newAddress("testDeployer", 0, "testContract")
 
 deployTx(
@@ -18,7 +18,7 @@ deployTx(
   , 0
 )
 
-setAccount("testCaller", 0, 100, .Code, .Bytes, .MapBytesToBytes)
+setAccount("testCaller", 0, 100, .Code, .Bytes, .Map)
 setEsdtBalance(b"\"testCaller\"", b"my-tok", 0, .esdtMetadata, 20)
 
 callTx(

@@ -12,7 +12,7 @@ from pyk.prelude.utils import token
 
 from kmultiversx import scenario
 from kmultiversx.kasmer import run_config_and_check_empty
-from kmultiversx.scenario import KMapBytesToBytes
+from kmultiversx.scenario import KMap
 from kmultiversx.utils import (
     GENERATED_TOP_CELL,
     RUNTIME_KASMER_JSON_PATH,
@@ -65,7 +65,7 @@ def load_runtime(krun: KRun, esdt_wasm: KInner) -> KInner:
             token(0),
             esdt_wasm,
             token(b''),
-            KMapBytesToBytes([]),
+            KMap([]),
         ],
     )
     conf_with_steps = Subst(subst)(conf)

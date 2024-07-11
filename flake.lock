@@ -34,17 +34,17 @@
         "xbyak": "xbyak"
       },
       "locked": {
-        "lastModified": 1720022499,
-        "narHash": "sha256-sDQjr//zKKbBVIHcFg8L6Fmd51IJza5OxHcdMek7olI=",
+        "lastModified": 1719223290,
+        "narHash": "sha256-1MV742sYLt4Vtc5mwHwO66Cst0Zxm0gX85+1NNNtIRI=",
         "owner": "runtimeverification",
         "repo": "blockchain-k-plugin",
-        "rev": "b24fa372ca127d51cdc185e431d0ccf471980c04",
+        "rev": "98b82c75eaae9771f472e2fa6cb2d63808734791",
         "type": "github"
       },
       "original": {
         "owner": "runtimeverification",
         "repo": "blockchain-k-plugin",
-        "rev": "b24fa372ca127d51cdc185e431d0ccf471980c04",
+        "rev": "98b82c75eaae9771f472e2fa6cb2d63808734791",
         "type": "github"
       }
     },

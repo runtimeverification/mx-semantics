@@ -52,9 +52,7 @@ module LIST-BYTES-EXTENSIONS
                  [function, symbol(ListBytes:primitiveLookup)]
 // -----------------------------------------------------------
   rule L:ListBytes {{ I:Int }} => unwrap( L[ I ] )
-       requires 0 -Int size(L) <=Int I
-        andBool I <Int size(L)
-       [preserves-definedness] // side conditions ensure L[_] called at defined points
+       [preserves-definedness] // defined or undefined on both sides
 
   syntax Bytes ::= ListBytes "{{" Int "}}" "orDefault" Bytes
                  [ function, total, symbol(ListBytes:primitiveLookupOrDefault) ]

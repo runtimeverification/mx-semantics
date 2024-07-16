@@ -52,6 +52,7 @@ module LIST-BYTES-EXTENSIONS
                  [function, symbol(ListBytes:primitiveLookup)]
 // -----------------------------------------------------------
   rule L:ListBytes {{ I:Int }} => unwrap( L[ I ] )
+       [preserves-definedness] // defined or undefined on both sides
 
   syntax Bytes ::= ListBytes "{{" Int "}}" "orDefault" Bytes
                  [ function, total, symbol(ListBytes:primitiveLookupOrDefault) ]
@@ -113,19 +114,19 @@ module LIST-BYTES-EXTENSIONS
 // ----------------------------------------------------------
   rule rangeTotal(L, Front, Back) => range(L, Front, Back)
     requires 0 <=Int Front
-     andBool 0 <=Int Back 
+     andBool 0 <=Int Back
      andBool size(L) >=Int Front +Int Back
 
   rule rangeTotal(L, Front, Back) => rangeTotal(L, 0, Back)
     requires Front <Int 0
-  
+
   rule rangeTotal(L, Front, Back) => rangeTotal(L, Front, 0)
     requires 0 <=Int Front
      andBool Back <Int 0
-  
+
   rule rangeTotal(L, Front, Back) => .ListBytes
     requires 0 <=Int Front
-     andBool 0 <=Int Back 
+     andBool 0 <=Int Back
      andBool size(L) <Int Front +Int Back
 
 endmodule

@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
-from subprocess import SubprocessError
+from subprocess import CalledProcessError
 from typing import TYPE_CHECKING, cast
 
-from hypothesis import Phase, Verbosity, given, settings
 from hypothesis.strategies import integers, tuples
 from pyk.cterm import CTerm, cterm_build_claim
 from pyk.kast.inner import KApply, KSequence, KSort, KVariable, Subst
 from pyk.kast.manip import split_config_from
 from pyk.konvert import _kast_to_kore
+from pyk.konvert._kast_to_kore import _kvariable_to_kore
 from pyk.kore.parser import KoreParser
 from pyk.kore.syntax import App
+from pyk.ktool.kfuzz import KFuzz
 from pyk.prelude.collections import list_of, map_of, set_of
 from pyk.prelude.kint import leInt
 from pyk.prelude.ml import mlEqualsTrue
@@ -30,14 +30,7 @@ from kmultiversx.scenario import (
     mandos_argument_to_kbytes,
     wrapBytes,
 )
-from kmultiversx.utils import (
-    KasmerRunError,
-    kast_to_json_str,
-    krun_config,
-    llvm_interpret_raw,
-    load_wasm,
-    read_kasmer_runtime,
-)
+from kmultiversx.utils import KasmerRunError, kast_to_json_str, krun_config, load_wasm, read_kasmer_runtime
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
@@ -194,7 +187,7 @@ def run_concrete(
 
     for endpoint, arg_types in test_endpoints.items():
         print(f'Testing {endpoint !r}')
-        _test_with_hypothesis(kprint, conf_with_var, endpoint, arg_types, verbose)
+        _test_with_kfuzz(kprint, conf_with_var, endpoint, arg_types, verbose)
         print(f'Passed {endpoint !r}')
 
 
@@ -219,79 +212,45 @@ def _arg_types_to_strategy(types: Iterable[str]) -> SearchStrategy[tuple[str, ..
 # Hypothesis test runner
 
 
-def _test_with_hypothesis(
-    kprint: KPrint, sym_conf: Pattern, endpoint: str, arg_types: Iterable[str], verbose: bool
-) -> None:
-    def test(args: tuple[str, ...]) -> None:
-        # set the recursion limit every time because hypothesis changes it
-        if sys.getrecursionlimit() < REC_LIMIT:
-            sys.setrecursionlimit(REC_LIMIT)
-
-        try:
-            _run_test(kprint, sym_conf, endpoint, args)
-        except KasmerRunError as kre:
-            message = 'Test failed:'
-            message += f'\n\tendpoint: {endpoint}'
-            message += f'\n\tvm output: {kprint.pretty_print(kre.vm_output)}'
-            message += f'\n\tlogging: {kprint.pretty_print(kre.logging)}'
-
-            if verbose:
-                message += f'\n\tfinal configuration: {kprint.pretty_print(kre.final_conf)}'
-
-            raise ValueError(message) from None
-
-    test.__name__ = endpoint  # show endpoint name in hypothesis logs
-
+def _test_with_kfuzz(kprint: KPrint, sym_conf: Pattern, endpoint: str, arg_types: Iterable[str], verbose: bool) -> None:
     args_strategy = _arg_types_to_strategy(arg_types)
-    given(args_strategy)(
-        settings(
-            deadline=50000,  # set time limit for individual runs
-            max_examples=50,
-            verbosity=Verbosity.verbose,
-            phases=(Phase.generate, Phase.target, Phase.shrink),
-        )(test)
-    )()
 
+    def _make_k_steps(args: tuple[str, ...]) -> Pattern:
+        step = {
+            'tx': {
+                'from': ROOT_ACCT_ADDR,
+                'to': TEST_SC_ADDR,
+                'function': endpoint,
+                'value': '0',
+                'arguments': args,
+                'gasLimit': '5,000,000,000',
+                'gasPrice': '0',
+            },
+            'expect': {'status': '0'},
+        }
+        return kprint.kast_to_kore(KSequence([set_exit_code(1)] + get_steps_sc_call(step) + [set_exit_code(0)]))
 
-def _run_test(kprint: KPrint, sym_conf: Pattern, endpoint: str, args: tuple[str, ...]) -> None:
-    step = {
-        'tx': {
-            'from': ROOT_ACCT_ADDR,
-            'to': TEST_SC_ADDR,
-            'function': endpoint,
-            'value': '0',
-            'arguments': args,
-            'gasLimit': '5,000,000,000',
-            'gasPrice': '0',
-        },
-        'expect': {'status': '0'},
-    }
-    tx_steps = KSequence([set_exit_code(1)] + get_steps_sc_call(step) + [set_exit_code(0)])
+    subst_strat = {_kvariable_to_kore(KVariable('K_STEPS')): args_strategy.map(_make_k_steps)}
 
-    def subst_k_cell(p: Pattern) -> Pattern:
-        if p == K_STEPS_VAR_KORE:
-            return kprint.kast_to_kore(tx_steps)
-        return p
-
-    test_conf = sym_conf.top_down(subst_k_cell)
-
+    kfuzz = KFuzz(kprint.definition_dir)
     try:
-        res = llvm_interpret_raw(kprint.definition_dir, test_conf.text, True)
-    except SubprocessError as e:
-        raise AssertionError('Error while trying to invoke the interpreter') from e
-
-    if res.returncode != 0:
-        kast_conf = kprint.kore_to_kast(KoreParser(res.stdout).pattern())
+        kfuzz.fuzz_with_exit_code(sym_conf, subst_strat)
+    except CalledProcessError as err:
+        kast_conf = kprint.kore_to_kast(KoreParser(err.stdout).pattern())
         _, subst = split_config_from(kast_conf)
         k_cell = subst['K_CELL']
         print(kprint.pretty_print(k_cell))
-        raise KasmerRunError(
-            k_cell=subst['K_CELL'],
-            vm_output=subst['VMOUTPUT_CELL'],
-            logging=subst['LOGGING_CELL'],
-            final_conf=kast_conf,
-            message='exit status is non-zero',
-        )
+        vm_output = subst['VMOUTPUT_CELL']
+        logging = subst['LOGGING_CELL']
+        message = 'Test failed:'
+        message += f'\n\tendpoint: {endpoint}'
+        message += f'\n\tvm output: {kprint.pretty_print(vm_output)}'
+        message += f'\n\tlogging: {kprint.pretty_print(logging)}'
+
+        if verbose:
+            message += f'\n\tfinal configuration: {kprint.pretty_print(kast_conf)}'
+
+        raise ValueError(message) from err
 
 
 # Claim generation

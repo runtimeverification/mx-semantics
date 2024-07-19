@@ -47,6 +47,12 @@ module LIST-BYTES-EXTENSIONS
 
   syntax WrappedBytes ::= ListBytes "[" Int "]" "orDefault" WrappedBytes
           [ function, total, symbol(ListBytes:getOrDefault) ]
+// ---------------------------------------------------------------------
+  rule L:ListBytes[I:Int] orDefault _:WrappedBytes => L[I]
+    requires 0 -Int size(L) <=Int I andBool I <Int size(L)
+
+  rule L:ListBytes[I:Int] orDefault D:WrappedBytes => D
+    requires notBool (0 -Int size(L) <=Int I andBool I <Int size(L))
 
   syntax Bytes ::= ListBytes "{{" Int "}}"
                  [function, symbol(ListBytes:primitiveLookup)]
@@ -59,23 +65,6 @@ module LIST-BYTES-EXTENSIONS
 // -----------------------------------------------------------------------------
   rule L:ListBytes {{ I:Int }} orDefault Value:Bytes
       => unwrap( L [I] orDefault wrap(Value) )
-
-  rule ListItem(V:WrappedBytes) _:ListBytes [0] orDefault _:WrappedBytes
-      => V
-  rule _:ListBytes ListItem(V:WrappedBytes) [-1] orDefault _:WrappedBytes
-      => V
-  rule .ListBytes [_:Int] orDefault D:WrappedBytes => D
-
-  rule ListItem(_:WrappedBytes) L:ListBytes [I:Int] orDefault D:WrappedBytes
-      => L[I -Int 1] orDefault D
-    requires 0 <Int I
-  rule L:ListBytes ListItem(_:WrappedBytes) [I:Int] orDefault D:WrappedBytes
-      => L[I +Int 1] orDefault D
-    requires I <Int 0
-
-  rule L:ListBytes[I:Int] orDefault D:WrappedBytes => D
-    requires notBool (0 -Int size(L) <=Int I andBool I <Int size(L))
-    [simplification]
 
   syntax ListBytes ::= ListItemWrap( Bytes )
       [function, total, symbol(ListBytesItemWrap)]

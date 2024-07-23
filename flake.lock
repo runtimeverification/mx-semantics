@@ -320,16 +320,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1721644933,
-        "narHash": "sha256-8ku/32NalM5lBBrjZx/bCMdeUqK007vPFj0CA0wKsRM=",
+        "lastModified": 1721728967,
+        "narHash": "sha256-B6+8uI2l51/n9+Tfme1y7C9YvZ7vGfjP/leHxegE9NM=",
         "owner": "runtimeverification",
         "repo": "k",
-        "rev": "de70d79a0ffa6813d0ec9b6268e4eff3b7ca988f",
+        "rev": "a62cd7b10d3d0648e0cb587eff374cebd4293dfb",
         "type": "github"
       },
       "original": {
         "owner": "runtimeverification",
-        "ref": "v7.1.72",
+        "ref": "v7.1.76",
         "repo": "k",
         "type": "github"
       }
@@ -359,16 +359,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1721644933,
-        "narHash": "sha256-8ku/32NalM5lBBrjZx/bCMdeUqK007vPFj0CA0wKsRM=",
+        "lastModified": 1721728967,
+        "narHash": "sha256-B6+8uI2l51/n9+Tfme1y7C9YvZ7vGfjP/leHxegE9NM=",
         "owner": "runtimeverification",
         "repo": "k",
-        "rev": "de70d79a0ffa6813d0ec9b6268e4eff3b7ca988f",
+        "rev": "a62cd7b10d3d0648e0cb587eff374cebd4293dfb",
         "type": "github"
       },
       "original": {
         "owner": "runtimeverification",
-        "ref": "v7.1.72",
+        "ref": "v7.1.76",
         "repo": "k",
         "type": "github"
       }
@@ -407,16 +407,16 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1721505758,
-        "narHash": "sha256-eZak/AaPOGTeiihbDWRCe4SeQfC9br1GCynx1neIL/Q=",
+        "lastModified": 1721723305,
+        "narHash": "sha256-o2fmSDY7quhyUPieiMotHVAeIdfbh0IPTD+YSzb1EjM=",
         "owner": "runtimeverification",
         "repo": "llvm-backend",
-        "rev": "548a54ccb12c9f3fff37914d46f0879a88f41590",
+        "rev": "a77c3ece39529bf3e5364719154ac60b80d17db6",
         "type": "github"
       },
       "original": {
         "owner": "runtimeverification",
-        "ref": "v0.1.60",
+        "ref": "v0.1.61",
         "repo": "llvm-backend",
         "type": "github"
       }
@@ -439,16 +439,16 @@
         "utils": "utils_2"
       },
       "locked": {
-        "lastModified": 1721505758,
-        "narHash": "sha256-eZak/AaPOGTeiihbDWRCe4SeQfC9br1GCynx1neIL/Q=",
+        "lastModified": 1721723305,
+        "narHash": "sha256-o2fmSDY7quhyUPieiMotHVAeIdfbh0IPTD+YSzb1EjM=",
         "owner": "runtimeverification",
         "repo": "llvm-backend",
-        "rev": "548a54ccb12c9f3fff37914d46f0879a88f41590",
+        "rev": "a77c3ece39529bf3e5364719154ac60b80d17db6",
         "type": "github"
       },
       "original": {
         "owner": "runtimeverification",
-        "ref": "v0.1.60",
+        "ref": "v0.1.61",
         "repo": "llvm-backend",
         "type": "github"
       }
@@ -716,17 +716,17 @@
       },
       "locked": {
         "dir": "pyk",
-        "lastModified": 1721644933,
-        "narHash": "sha256-8ku/32NalM5lBBrjZx/bCMdeUqK007vPFj0CA0wKsRM=",
+        "lastModified": 1721728967,
+        "narHash": "sha256-B6+8uI2l51/n9+Tfme1y7C9YvZ7vGfjP/leHxegE9NM=",
         "owner": "runtimeverification",
         "repo": "k",
-        "rev": "de70d79a0ffa6813d0ec9b6268e4eff3b7ca988f",
+        "rev": "a62cd7b10d3d0648e0cb587eff374cebd4293dfb",
         "type": "github"
       },
       "original": {
         "dir": "pyk",
         "owner": "runtimeverification",
-        "ref": "v7.1.72",
+        "ref": "v7.1.76",
         "repo": "k",
         "type": "github"
       }
@@ -1137,16 +1137,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1721679966,
-        "narHash": "sha256-7edxmlZgr2BORHeRKRe9NVIbq4yhFc6SDV5qGY0ClU8=",
+        "lastModified": 1721733808,
+        "narHash": "sha256-W473OzgO5juvn+Ycm6zHM+h+EjKyCMc3pF0vlyODSPs=",
         "owner": "runtimeverification",
         "repo": "wasm-semantics",
-        "rev": "f0734bc8c1a7beb3efd8ebc678c7b2e33c1af783",
+        "rev": "7459c5ba7ab16e98edc086e9ba772f52dc7f47ad",
         "type": "github"
       },
       "original": {
         "owner": "runtimeverification",
-        "ref": "v0.1.90",
+        "ref": "v0.1.91",
         "repo": "wasm-semantics",
         "type": "github"
       }

@@ -12,7 +12,7 @@
     poetry2nix.follows = "pyk/poetry2nix";
     blockchain-k-plugin = {
       url =
-        "github:runtimeverification/blockchain-k-plugin/8031e7be727e903b817fff6639a9d3a4bbe82f11";
+        "github:runtimeverification/blockchain-k-plugin/f4c41bfa5e44f5bc29e5d9151557ce735bcde087";
       inputs.flake-utils.follows = "k-framework/flake-utils";
       inputs.nixpkgs.follows = "k-framework/nixpkgs";
     };

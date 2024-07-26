@@ -22,10 +22,8 @@ module MANBUFOPS
 
     syntax BytesResult ::= getBuffer(Int)                                   [function, total]
  // ---------------------------------------------------------------------------------------------
-    rule [[ getBuffer(BUFFER_IDX) => {HEAP[BUFFER_IDX]}:>BytesResult ]]
-        <bufferHeap> HEAP </bufferHeap>
-      requires #validBufferId(BUFFER_IDX, HEAP)
-      [preserves-definedness]
+    rule [[ getBuffer(BUFFER_IDX) => {Bs}:>BytesResult ]]
+      <bufferHeap> ... BUFFER_IDX |-> Bs:Bytes ... </bufferHeap>
 
     rule getBuffer(_) => {Err("no managed buffer under the given handle")}:>BytesResult [owise]
 
@@ -33,11 +31,12 @@ module MANBUFOPS
  // ---------------------------------------------------------------
     rule [getBuffer]:
         <instrs> #getBuffer(BUFFER_IDX) => .K ... </instrs>
-        <bytesStack> STACK => {HEAP[BUFFER_IDX]}:>Bytes : STACK </bytesStack>
+        <bytesStack> STACK => {HEAP[BUFFER_IDX] orDefault .Bytes}:>Bytes : STACK </bytesStack>
         <bufferHeap> HEAP:Map </bufferHeap>
       requires #validBufferId(BUFFER_IDX, HEAP:Map)
+        andBool isBytes(HEAP[BUFFER_IDX] orDefault .Bytes)
       [preserves-definedness]
-
+    
     rule [getBuffer-not-found]:
         <instrs> #getBuffer(BUFFER_IDX)
               => #throwException(ExecutionFailed, "no managed buffer under the given handle")
@@ -45,6 +44,7 @@ module MANBUFOPS
         </instrs>
         <bufferHeap> HEAP </bufferHeap>
       requires notBool #validBufferId(BUFFER_IDX, HEAP)
+        orBool notBool isBytes(HEAP[BUFFER_IDX] orDefault .Bytes)
 
     syntax InternalInstr ::= #setBufferFromBytesStack ( idx: Int )
                            | #setBuffer ( idx: Int , value: Bytes )

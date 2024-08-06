@@ -76,31 +76,22 @@ module ELROND-CONFIG
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           <memAddrs> ListItem(MEMADDR) </memAddrs>
            ...
          </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <msize> SIZE </msize>
-           ...
-         </memInst>
+         <mems> MEMS </mems>
       requires 0 <=Int #signed(i32 , OFFSET)
-       andBool #signed(i32 , OFFSET) +Int lengthBytes(BS) >Int (SIZE *Int #pageSize())
+       andBool (#let memInst(_, SIZE, _) = MEMS[MEMADDR] #in #signed(i32 , OFFSET) +Int lengthBytes(BS) >Int (SIZE *Int #pageSize()))
 
     rule <instrs> #memStore(OFFSET, BS) => .K ... </instrs>
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           <memAddrs> ListItem(MEMADDR) </memAddrs>
            ...
          </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <msize> SIZE </msize>
-           <mdata> DATA => #setBytesRange(DATA, OFFSET, BS) </mdata>
-           ...
-         </memInst>
-      requires #signed(i32 , OFFSET) +Int lengthBytes(BS) <=Int (SIZE *Int #pageSize())
+         <mems> MEMS => MEMS [ MEMADDR <- #let memInst(MAX, SIZE, DATA) = MEMS[MEMADDR] #in memInst(MAX, SIZE, #setBytesRange(DATA, OFFSET, BS)) ] </mems>
+      requires (#let memInst(_, SIZE, _) = MEMS[MEMADDR] #in #signed(i32 , OFFSET) +Int lengthBytes(BS) <=Int (SIZE *Int #pageSize()))
        andBool 0 <=Int #signed(i32 , OFFSET)
       [preserves-definedness] // setBytesRange total, MEMADDR key existed prior in <mems> map
 
@@ -125,36 +116,27 @@ module ELROND-CONFIG
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           <memAddrs> ListItem(MEMADDR) </memAddrs>
            ...
          </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <msize> SIZE </msize>
-           ...
-         </memInst>
+         <mems> MEMS </mems>
       requires #signed(i32 , LENGTH) >Int 0
        andBool (#signed(i32 , OFFSET) <Int 0
-         orBool #signed(i32 , OFFSET) +Int #signed(i32 , LENGTH) >Int (SIZE *Int #pageSize()))
+         orBool (#let memInst(_, SIZE, _) = MEMS[MEMADDR] #in #signed(i32 , OFFSET) +Int #signed(i32 , LENGTH) >Int (SIZE *Int #pageSize())))
 
     rule [memLoad]:
          <instrs> #memLoad(OFFSET, LENGTH) => .K ... </instrs>
-         <bytesStack> STACK => #getBytesRange(DATA, OFFSET, LENGTH) : STACK </bytesStack>
+         <bytesStack> STACK => #getBytesRange((#let memInst(_, _, DATA) = MEMS[MEMADDR] #in DATA), OFFSET, LENGTH) : STACK </bytesStack>
          <contractModIdx> MODIDX:Int </contractModIdx>
          <moduleInst>
            <modIdx> MODIDX </modIdx>
-           <memAddrs> 0 |-> MEMADDR </memAddrs>
+           <memAddrs> ListItem(MEMADDR) </memAddrs>
            ...
          </moduleInst>
-         <memInst>
-           <mAddr> MEMADDR </mAddr>
-           <msize> SIZE </msize>
-           <mdata> DATA </mdata>
-           ...
-         </memInst>
+         <mems> MEMS </mems>
       requires #signed(i32 , LENGTH) >Int 0
        andBool #signed(i32 , OFFSET) >=Int 0
-       andBool #signed(i32 , OFFSET) +Int #signed(i32 , LENGTH) <=Int (SIZE *Int #pageSize())
+       andBool (#let memInst(_, SIZE, _) = MEMS[MEMADDR] #in #signed(i32 , OFFSET) +Int #signed(i32 , LENGTH) <=Int (SIZE *Int #pageSize()))
 
     rule [memLoad-owise]:
         <instrs> #memLoad(_, _) => #throwException(ExecutionFailed, "mem load: memory instance not found") ... </instrs>

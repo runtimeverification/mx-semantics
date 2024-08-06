@@ -23,7 +23,7 @@ module BASEOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> RESULTOFFSET
+           ListItem(<i32> RESULTOFFSET)
          </locals>
          <callee> CALLEE </callee>
 
@@ -35,7 +35,7 @@ module BASEOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> ADDROFFSET
+           ListItem(<i32> ADDROFFSET)
          </locals>
 
     syntax InternalInstr ::= "#checkIsSmartContract"  [symbol(checkIsSmartContract)]
@@ -67,8 +67,8 @@ module BASEOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> ADDROFFSET
-           1 |-> <i32> RESULTOFFSET
+           ListItem(<i32> ADDROFFSET)
+           ListItem(<i32> RESULTOFFSET)
          </locals>
 
     syntax InternalInstr ::= "#getExternalBalance"
@@ -95,10 +95,10 @@ module BASEOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> DSTOFFSET
-           1 |-> <i32> VALUEOFFSET
-           2 |-> <i32> DATAOFFSET
-           3 |-> <i32> LENGTH
+           ListItem(<i32> DSTOFFSET)
+           ListItem(<i32> VALUEOFFSET)
+           ListItem(<i32> DATAOFFSET)
+           ListItem(<i32> LENGTH)
          </locals>
 
     syntax InternalInstr ::= "#transferValue"
@@ -119,14 +119,14 @@ module BASEOPS
     rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ]) 
                => i32.const lengthBytes( ARGS {{ IDX }} ) ...
          </instrs>
-         <locals> 0 |-> <i32> IDX:Int </locals>
+         <locals> ListItem(<i32> IDX:Int) </locals>
          <callArgs> ARGS:ListBytes </callArgs>
       requires #validArgIdx(IDX, ARGS)
 
     rule <instrs> hostCall("env", "getArgumentLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
                => #throwException(ExecutionFailed, "invalid argument") ... 
          </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
+         <locals> ListItem(<i32> IDX) </locals>
          <callArgs> ARGS </callArgs>
       requires notBool #validArgIdx(IDX, ARGS)
 
@@ -137,8 +137,8 @@ module BASEOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> IDX
-           1 |-> <i32> OFFSET
+           ListItem(<i32> IDX)
+           ListItem(<i32> OFFSET)
          </locals>
          <callArgs> ARGS </callArgs>
       requires #validArgIdx(IDX, ARGS)
@@ -147,8 +147,8 @@ module BASEOPS
                => #throwException(ExecutionFailed, "invalid argument") ...
          </instrs>
          <locals>
-           0 |-> <i32> IDX
-           1 |-> <i32> _OFFSET
+           ListItem(<i32> IDX)
+           ListItem(<i32> _OFFSET)
          </locals>
          <callArgs> ARGS </callArgs>
       requires notBool #validArgIdx(IDX, ARGS)
@@ -165,10 +165,10 @@ module BASEOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLENGTH
-           2 |-> <i32> VALOFFSET
-           3 |-> <i32> VALLENGTH
+           ListItem(<i32> KEYOFFSET)
+           ListItem(<i32> KEYLENGTH)
+           ListItem(<i32> VALOFFSET)
+           ListItem(<i32> VALLENGTH)
          </locals>
 
     // extern int32_t storageLoadLength(void *context, int32_t keyOffset, int32_t keyLength );
@@ -180,8 +180,8 @@ module BASEOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLENGTH
+           ListItem(<i32> KEYOFFSET)
+           ListItem(<i32> KEYLENGTH)
          </locals>
 
     // extern int32_t storageLoad(void *context, int32_t keyOffset, int32_t keyLength , int32_t dataOffset);
@@ -194,9 +194,9 @@ module BASEOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLENGTH
-           2 |-> <i32> VALOFFSET
+           ListItem(<i32> KEYOFFSET)
+           ListItem(<i32> KEYLENGTH)
+           ListItem(<i32> VALOFFSET)
          </locals>
 
     // extern void getCaller(void *context, int32_t resultOffset);
@@ -204,7 +204,7 @@ module BASEOPS
                => #memStore(OFFSET, CALLER)
                   ...
          </instrs>
-         <locals> 0 |-> <i32> OFFSET </locals>
+         <locals> ListItem(<i32> OFFSET) </locals>
          <caller> CALLER </caller>
 
     // extern void checkNoPayment(void *context);
@@ -237,7 +237,7 @@ module BASEOPS
               ~> i32.const lengthBytes(TOKENNAME)
                 ...
         </instrs>
-        <locals> 0 |-> <i32> OFFSET </locals>
+        <locals> ListItem(<i32> OFFSET) </locals>
         <esdtTransfers> ListItem( esdtTransfer( TOKENNAME , _VALUE , _NONCE ) ) </esdtTransfers>
 
     rule [getESDTTokenName-too-many]:
@@ -245,7 +245,7 @@ module BASEOPS
               => #throwException(ExecutionFailed, "too many ESDT transfers")
                 ...
         </instrs>
-        <locals> 0 |-> <i32> _ </locals>
+        <locals> ListItem(<i32> _) </locals>
         <esdtTransfers> ESDTs </esdtTransfers>
       requires size(ESDTs) >Int 1
 
@@ -254,7 +254,7 @@ module BASEOPS
               => #throwException(ExecutionFailed, "invalid token index")
                 ...
         </instrs>
-        <locals> 0 |-> <i32> _ </locals>
+        <locals> ListItem(<i32> _) </locals>
         <esdtTransfers> .List </esdtTransfers>
 
     // extern int32_t   getNumESDTTransfers(void* context);
@@ -274,9 +274,9 @@ module BASEOPS
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> ADDR_OFFSET
-          1 |-> <i32> TOKEN_OFFSET
-          2 |-> <i32> TOKEN_LEN
+          ListItem(<i32> ADDR_OFFSET)
+          ListItem(<i32> TOKEN_OFFSET)
+          ListItem(<i32> TOKEN_LEN)
         </locals>
 
     syntax InternalInstr ::= "#getCurrentESDTNFTNonce"    [symbol(getCurrentESDTNFTNonce)]
@@ -306,11 +306,11 @@ module BASEOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> NUMTOPICS
-           1 |-> <i32> TOPICLENGTHOFFSET
-           2 |-> <i32> TOPICOFFSET
-           3 |-> <i32> DATAOFFSET
-           4 |-> <i32> DATALENGTH
+           ListItem(<i32> NUMTOPICS)
+           ListItem(<i32> TOPICLENGTHOFFSET)
+           ListItem(<i32> TOPICOFFSET)
+           ListItem(<i32> DATAOFFSET)
+           ListItem(<i32> DATALENGTH)
          </locals>
  
     // extern void returnData(void* context, int32_t dataOffset, int32_t length);
@@ -319,8 +319,8 @@ module BASEOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> OFFSET
-           1 |-> <i32> LENGTH
+           ListItem(<i32> OFFSET)
+           ListItem(<i32> LENGTH)
          </locals>
 
     syntax InternalInstr ::= #returnData ( Int, Int )
@@ -338,8 +338,8 @@ module BASEOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> OFFSET
-           1 |-> <i32> LENGTH
+           ListItem(<i32> OFFSET)
+           ListItem(<i32> LENGTH)
          </locals>
  
     syntax InternalInstr ::= "#signalError"
@@ -375,7 +375,7 @@ module BASEOPS
                => #memStore(OFFSET, SEED)
                   ...
          </instrs>
-         <locals> 0 |-> <i32> OFFSET </locals>
+         <locals> ListItem(<i32> OFFSET) </locals>
          <curBlockRandomSeed> SEED </curBlockRandomSeed>
  
     // extern long long getPrevBlockTimestamp(void *context);
@@ -399,7 +399,7 @@ module BASEOPS
                => #memStore(OFFSET, SEED)
                   ...
          </instrs>
-         <locals> 0 |-> <i32> OFFSET </locals>
+         <locals> ListItem(<i32> OFFSET) </locals>
          <prevBlockRandomSeed> SEED </prevBlockRandomSeed>
 
  // extern int32_t   validateTokenIdentifier(void* context, int32_t tokenIdHandle);
@@ -407,7 +407,7 @@ module BASEOPS
               => i32 . const #bool( #validateToken(TokId) )
                  ...
         </instrs>
-        <locals> 0 |-> <i32> ID_IDX </locals>
+        <locals> ListItem(<i32> ID_IDX) </locals>
         <bufferHeap> ... ID_IDX |-> TokId ... </bufferHeap>
 
   // TODO check arguments and handle errors if any

@@ -63,9 +63,9 @@ module CRYPTOEI
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> DATAOFFSET
-           1 |-> <i32> LENGTH
-           2 |-> <i32> RESULTOFFSET
+           ListItem(<i32> DATAOFFSET)
+           ListItem(<i32> LENGTH)
+           ListItem(<i32> RESULTOFFSET)
          </locals>
 
     // extern int32_t managedSha256(void* context, int32_t inputHandle, int32_t outputHandle);
@@ -74,7 +74,7 @@ module CRYPTOEI
               => #hashManBuffer(DATA, DEST, #sha256FromBytesStack)
                  ...
         </instrs>
-        <locals> 0 |-> <i32> DATA 1 |-> <i32> DEST </locals>
+        <locals> ListItem(<i32> DATA) ListItem(<i32> DEST) </locals>
 
 
     // extern int32_t keccak256(void *context, int32_t dataOffset, int32_t length, int32_t resultOffset);
@@ -83,9 +83,9 @@ module CRYPTOEI
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> DATAOFFSET
-           1 |-> <i32> LENGTH
-           2 |-> <i32> RESULTOFFSET
+           ListItem(<i32> DATAOFFSET)
+           ListItem(<i32> LENGTH)
+           ListItem(<i32> RESULTOFFSET)
          </locals>
 
     // extern int32_t managedKeccak256(void* context, int32_t inputHandle, int32_t outputHandle);
@@ -94,7 +94,7 @@ module CRYPTOEI
               => #hashManBuffer(DATA, DEST, #keccakFromBytesStack)
                  ...
         </instrs>
-        <locals> 0 |-> <i32> DATA 1 |-> <i32> DEST </locals>
+        <locals> ListItem(<i32> DATA) ListItem(<i32> DEST) </locals>
 
 endmodule
 ```

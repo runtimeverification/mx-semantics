@@ -17,7 +17,7 @@ module SMALLINTOPS
               => #returnIfUInt64(Bytes2Int(ARGS {{ ARG_IDX }} orDefault b"", BE, Unsigned), "argument out of range")
                  ...
         </instrs>
-        <locals> 0 |-> <i32> ARG_IDX </locals>
+        <locals> ListItem(<i32> ARG_IDX) </locals>
         <callArgs> ARGS </callArgs>
       requires #validArgIdx(ARG_IDX, ARGS)
 
@@ -26,7 +26,7 @@ module SMALLINTOPS
               => #throwException(ExecutionFailed, "argument index out of range")
                  ...
         </instrs>
-        <locals> 0 |-> <i32> ARG_IDX </locals>
+        <locals> ListItem(<i32> ARG_IDX) </locals>
         <callArgs> ARGS </callArgs>
       requires notBool #validArgIdx(ARG_IDX, ARGS)
 
@@ -37,7 +37,7 @@ module SMALLINTOPS
               => #returnIfSInt64(Bytes2Int(ARGS {{ ARG_IDX }} orDefault b"", BE, Signed), "argument out of range")
                  ...
         </instrs>
-        <locals> 0 |-> <i32> ARG_IDX </locals>
+        <locals> ListItem(<i32> ARG_IDX) </locals>
         <callArgs> ARGS </callArgs>
       requires #validArgIdx(ARG_IDX, ARGS)
 
@@ -46,7 +46,7 @@ module SMALLINTOPS
               => #throwException(ExecutionFailed, "argument index out of range")
                  ...
         </instrs>
-        <locals> 0 |-> <i32> ARG_IDX </locals>
+        <locals> ListItem(<i32> ARG_IDX) </locals>
         <callArgs> ARGS </callArgs>
       requires notBool #validArgIdx(ARG_IDX, ARGS)
 
@@ -56,7 +56,7 @@ module SMALLINTOPS
                => #appendToOut(Int2Bytes(#unsigned(i64, VALUE), BE, Unsigned))
                   ...
          </instrs>
-         <locals> 0 |-> <i64> VALUE </locals>
+         <locals> ListItem(<i64> VALUE) </locals>
       requires definedUnsigned(i64, VALUE)
       [preserves-definedness]
       // Preserving definedness: definedUnsigned(_) ensures #unsigned(_) is defined
@@ -66,7 +66,7 @@ module SMALLINTOPS
                => #appendToOut(Int2Bytes(#signed(i64, VALUE), BE, Signed))
                   ...
          </instrs>
-         <locals> 0 |-> <i64> VALUE </locals>
+         <locals> ListItem(<i64> VALUE) </locals>
       requires definedSigned(i64, VALUE)
       [preserves-definedness]
       // Preserving definedness: definedSigned(_) ensures #signed(_) is defined
@@ -80,9 +80,9 @@ module SMALLINTOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLEN
-           2 |-> <i64> VALUE
+           ListItem(<i32> KEYOFFSET)
+           ListItem(<i32> KEYLEN)
+           ListItem(<i64> VALUE)
          </locals>
 
     // extern int32_t smallIntStorageStoreSigned(void *context, int32_t keyOffset, int32_t keyLength, long long value);
@@ -93,9 +93,9 @@ module SMALLINTOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLEN
-           2 |-> <i64> VALUE
+           ListItem(<i32> KEYOFFSET)
+           ListItem(<i32> KEYLEN)
+           ListItem(<i64> VALUE)
          </locals>
 
     // extern long long smallIntStorageLoadUnsigned(void *context, int32_t keyOffset, int32_t keyLength);
@@ -106,8 +106,8 @@ module SMALLINTOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLENGTH
+           ListItem(<i32> KEYOFFSET)
+           ListItem(<i32> KEYLENGTH)
          </locals>
 
     // extern long long smallIntStorageLoadSigned(void *context, int32_t keyOffset, int32_t keyLength);
@@ -118,8 +118,8 @@ module SMALLINTOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLENGTH
+           ListItem(<i32> KEYOFFSET)
+           ListItem(<i32> KEYLENGTH)
          </locals>
 
 endmodule

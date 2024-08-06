@@ -40,9 +40,9 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> ADDR_HANDLE
-          1 |-> <i64> NONCE
-          2 |-> <i32> BALANCE_HANDLE
+          ListItem(<i32> ADDR_HANDLE)
+          ListItem(<i64> NONCE)
+          ListItem(<i32> BALANCE_HANDLE)
         </locals>
         <callee> #kasmerRunner </callee>
 
@@ -76,9 +76,9 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> OWNER_HANDLE
-          1 |-> <i64> NONCE
-          2 |-> <i32> ADDR_HANDLE
+          ListItem(<i32> OWNER_HANDLE)
+          ListItem(<i64> NONCE)
+          ListItem(<i32> ADDR_HANDLE)
         </locals>
         <callee> #kasmerRunner </callee>
 
@@ -114,12 +114,12 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> OWNER_HANDLE
-          1 |-> <i64> GAS_LIMIT
-          2 |-> <i32> VALUE_HANDLE
-          3 |-> <i32> CODE_PATH_HANDLE
-          4 |-> <i32> ARGS_HANDLE
-          5 |-> <i32> RESULT_ADDR_HANDLE
+          ListItem(<i32> OWNER_HANDLE)
+          ListItem(<i64> GAS_LIMIT)
+          ListItem(<i32> VALUE_HANDLE)
+          ListItem(<i32> CODE_PATH_HANDLE)
+          ListItem(<i32> ARGS_HANDLE)
+          ListItem(<i32> RESULT_ADDR_HANDLE)
         </locals>
         <callee> #kasmerRunner </callee>
 
@@ -169,9 +169,9 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> OWNER_HANDLE
-          1 |-> <i32> KEY_HANDLE
-          2 |-> <i32> DEST_HANDLE
+          ListItem(<i32> OWNER_HANDLE)
+          ListItem(<i32> KEY_HANDLE)
+          ListItem(<i32> DEST_HANDLE)
         </locals>
         <callee> #kasmerRunner </callee>
 
@@ -187,9 +187,9 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> ADDR_HANDLE
-          1 |-> <i32> KEY_HANDLE
-          2 |-> <i32> VAL_HANDLE
+          ListItem(<i32> ADDR_HANDLE)
+          ListItem(<i32> KEY_HANDLE)
+          ListItem(<i32> VAL_HANDLE)
         </locals>
         <callee> #kasmerRunner </callee>
 
@@ -228,8 +228,8 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
               => #setBalance(getBuffer(ADDR_HANDLE), getBigInt(VAL_HANDLE)) ...
         </instrs>
         <locals>
-          0 |-> <i32> ADDR_HANDLE
-          1 |-> <i32> VAL_HANDLE
+          ListItem(<i32> ADDR_HANDLE)
+          ListItem(<i32> VAL_HANDLE)
         </locals>
         <callee> #kasmerRunner </callee>
 
@@ -287,9 +287,9 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> ADDR_HANDLE
-          1 |-> <i32> TOK_ID_HANDLE
-          2 |-> <i32> VAL_HANDLE
+          ListItem(<i32> ADDR_HANDLE)
+          ListItem(<i32> TOK_ID_HANDLE)
+          ListItem(<i32> VAL_HANDLE)
         </locals>
         <callee> #kasmerRunner </callee>
 
@@ -379,10 +379,10 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> ADDR_HANDLE
-          1 |-> <i32> TOK_ID_HANDLE
-          2 |-> <i32> ROLE
-          3 |-> <i32> P
+          ListItem(<i32> ADDR_HANDLE)
+          ListItem(<i32> TOK_ID_HANDLE)
+          ListItem(<i32> ROLE)
+          ListItem(<i32> P)
         </locals>
 
     syntax InternalInstr ::= #setESDTRole(ESDTLocalRole, Bool)
@@ -461,9 +461,9 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> ADDR_HANDLE
-          1 |-> <i32> TOK_ID_HANDLE
-          2 |-> <i32> ROLE
+          ListItem(<i32> ADDR_HANDLE)
+          ListItem(<i32> TOK_ID_HANDLE)
+          ListItem(<i32> ROLE)
         </locals>
 
     syntax InternalInstr ::= #checkESDTRole(ESDTLocalRole)
@@ -507,7 +507,7 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
               => .K ...
         </instrs>
         <locals>
-          0 |-> <i64> TIMESTAMP
+          ListItem(<i64> TIMESTAMP)
         </locals>
         <curBlockTimestamp> _ => TIMESTAMP </curBlockTimestamp>
         <logging> S
@@ -526,7 +526,7 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
               => #assert( P ) ...
         </instrs>
         <locals>
-          0 |-> <i32> P
+          ListItem(<i32> P)
         </locals>
 
     syntax InternalInstr ::= #assert(Int)     [symbol(kasmerAssert)]
@@ -547,7 +547,7 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
               => #assume(P) ...
         </instrs>
         <locals>
-          0 |-> <i32> P
+          ListItem(<i32> P)
         </locals>
 
     syntax IternalInstr ::= #assume(Int)     [symbol(kasmerAssume)]
@@ -592,7 +592,7 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
               ~> #startPrank ...
         </instrs>
         <locals>
-          0 |-> <i32> ADDR_HANDLE
+          ListItem(<i32> ADDR_HANDLE)
         </locals>
         <callee> #kasmerRunner </callee>
 
@@ -619,7 +619,7 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
         <instrs> hostCall ( "env" , "stopPrank" , [ .ValTypes ] -> [ .ValTypes ] )
               => .K ...
         </instrs>
-        <locals> .Map </locals>
+        <locals> .List </locals>
         <callee> _ => #kasmerRunner </callee>
         <prank> true => false </prank>
 
@@ -627,7 +627,7 @@ Only the `#kasmerRunner` account can execute these commands/host functions.
         <instrs> hostCall ( "env" , "stopPrank" , [ .ValTypes ] -> [ .ValTypes ] )
               => #throwException(ExecutionFailed, "Cannot stop prank while not in a prank") ...
         </instrs>
-        <locals> .Map </locals>
+        <locals> .List </locals>
         <prank> false </prank>
       [owise]
 

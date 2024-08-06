@@ -89,7 +89,7 @@ module MANBUFOPS
                ~> i32 . const 0
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH </locals>
+         <locals> ListItem(<i32> ARG_IDX)  ListItem(<i32> OFFSET)  ListItem(<i32> LENGTH) </locals>
 
  // extern int32_t   mBufferGetBytes(void* context, int32_t mBufferHandle, int32_t resultOffset);
     rule <instrs> hostCall ( "env" , "mBufferGetBytes" , [ i32  i32  .ValTypes ] -> [ i32  .ValTypes ] ) 
@@ -99,7 +99,7 @@ module MANBUFOPS
                ~> i32 . const 0
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> DEST_OFFSET </locals>
+         <locals> ListItem(<i32> BUFF_IDX)  ListItem(<i32> DEST_OFFSET) </locals>
 
  // extern int32_t   mBufferFromBigIntUnsigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
     rule <instrs> hostCall("env", "mBufferFromBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
@@ -109,7 +109,7 @@ module MANBUFOPS
                ~> i32 . const 0
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> BIG_IDX </locals>
+         <locals> ListItem(<i32> BUFF_IDX)  ListItem(<i32> BIG_IDX) </locals>
 
  // extern int32_t   mBufferFromBigIntSigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
     rule <instrs> hostCall("env", "mBufferFromBigIntSigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
@@ -119,7 +119,7 @@ module MANBUFOPS
                ~> i32 . const 0
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> BIG_IDX </locals>
+         <locals> ListItem(<i32> BUFF_IDX)  ListItem(<i32> BIG_IDX) </locals>
 
  // extern int32_t   mBufferStorageStore(void* context, int32_t keyHandle, int32_t sourceHandle);
     rule <instrs> hostCall("env", "mBufferStorageStore", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
@@ -128,7 +128,7 @@ module MANBUFOPS
                ~> #storageStore
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> VAL_IDX </locals>
+         <locals> ListItem(<i32> KEY_IDX)  ListItem(<i32> VAL_IDX) </locals>
 
  // extern int32_t   mBufferStorageLoad(void* context, int32_t keyHandle, int32_t destinationHandle);
     rule <instrs> hostCall("env", "mBufferStorageLoad", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
@@ -139,7 +139,7 @@ module MANBUFOPS
                ~> i32 . const 0
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> DEST_IDX </locals>
+         <locals> ListItem(<i32> KEY_IDX)  ListItem(<i32> DEST_IDX) </locals>
 
  // extern int32_t   mBufferToBigIntUnsigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
     rule <instrs> hostCall("env", "mBufferToBigIntUnsigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
@@ -149,7 +149,7 @@ module MANBUFOPS
                ~> i32 . const 0
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> DEST_IDX </locals>
+         <locals> ListItem(<i32> KEY_IDX)  ListItem(<i32> DEST_IDX) </locals>
 
  // extern int32_t   mBufferToBigIntSigned(void* context, int32_t mBufferHandle, int32_t bigIntHandle);
     rule <instrs> hostCall("env", "mBufferToBigIntSigned", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
@@ -159,7 +159,7 @@ module MANBUFOPS
                ~> i32 . const 0
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> KEY_IDX  1 |-> <i32> DEST_IDX </locals>
+         <locals> ListItem(<i32> KEY_IDX)  ListItem(<i32> DEST_IDX) </locals>
 
  // extern int32_t   mBufferGetArgument(void* context, int32_t id, int32_t destinationHandle);
     rule <instrs> hostCall("env", "mBufferGetArgument", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
@@ -167,7 +167,7 @@ module MANBUFOPS
                ~> i32 . const 0
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> DEST_IDX </locals>
+         <locals> ListItem(<i32> ARG_IDX)  ListItem(<i32> DEST_IDX) </locals>
          <callArgs> ARGS </callArgs>
       requires #validArgIdx(ARG_IDX, ARGS)
       [preserves-definedness]
@@ -181,7 +181,7 @@ module MANBUFOPS
                ~> i32 . const 0
                   ...
          </instrs>
-         <locals> 0 |-> <i32> ACC_IDX  1 |-> <i32> DATA_IDX </locals>
+         <locals> ListItem(<i32> ACC_IDX)  ListItem(<i32> DATA_IDX) </locals>
 
 
  // extern int32_t   mBufferEq(void* context, int32_t mBufferHandle1, int32_t mBufferHandle2);
@@ -193,7 +193,7 @@ module MANBUFOPS
                ~> #dropBytes
                   ...
          </instrs>
-         <locals> 0 |-> <i32> BUFF1_IDX  1 |-> <i32> BUFF2_IDX </locals>
+         <locals> ListItem(<i32> BUFF1_IDX)  ListItem(<i32> BUFF2_IDX) </locals>
 
 
 
@@ -205,7 +205,7 @@ module MANBUFOPS
                ~> i32 . const 0
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> BUFF_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH </locals>
+         <locals> ListItem(<i32> BUFF_IDX)  ListItem(<i32> OFFSET)  ListItem(<i32> LENGTH) </locals>
 
  // extern int32_t   mBufferGetLength(void* context, int32_t mBufferHandle);
     rule <instrs> hostCall("env", "mBufferGetLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
@@ -214,7 +214,7 @@ module MANBUFOPS
                ~> #dropBytes
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> BUFF_IDX </locals>
+         <locals> ListItem(<i32> BUFF_IDX) </locals>
 
  // extern int32_t   mBufferGetByteSlice(void* context, int32_t sourceHandle, int32_t startingPosition, int32_t sliceLength, int32_t resultOffset);
     rule <instrs> hostCall("env", "mBufferGetByteSlice", [ i32 i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ] ) 
@@ -223,7 +223,7 @@ module MANBUFOPS
                ~> #dropBytes
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> SRC_BUFF_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH  3 |-> <i32> DEST_OFFSET </locals>
+         <locals> ListItem(<i32> SRC_BUFF_IDX)  ListItem(<i32> OFFSET)  ListItem(<i32> LENGTH)  ListItem(<i32> DEST_OFFSET) </locals>
 
 
     syntax InternalInstr ::= #mBufferGetByteSliceH( Int , Int , Int )
@@ -259,7 +259,7 @@ module MANBUFOPS
               ~> i32 . const #newKey(HEAP)
                  ... 
          </instrs>
-         <locals> 0 |-> <i32> OFFSET  1 |-> <i32> LENGTH </locals>
+         <locals> ListItem(<i32> OFFSET)  ListItem(<i32> LENGTH) </locals>
          <bufferHeap> HEAP => HEAP[#newKey(HEAP) <- .Bytes] </bufferHeap>
 
  // extern void      managedCaller(void* context, int32_t destinationHandle);
@@ -267,7 +267,7 @@ module MANBUFOPS
                => #setBuffer( DEST_IDX , CALLER )
                  ... 
          </instrs>
-         <locals> 0 |-> <i32> DEST_IDX </locals>
+         <locals> ListItem(<i32> DEST_IDX) </locals>
          <caller> CALLER </caller>
 
  // extern void      mBufferStorageLoadFromAddress(void* context, int32_t addressHandle, int32_t keyHandle, int32_t destinationHandle);
@@ -279,7 +279,7 @@ module MANBUFOPS
                ~> #dropBytes
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> ADDR_IDX  1 |-> <i32> KEY_IDX  2 |-> <i32> DEST_IDX </locals>
+         <locals> ListItem(<i32> ADDR_IDX)  ListItem(<i32> KEY_IDX)  ListItem(<i32> DEST_IDX) </locals>
 
 
 
@@ -290,7 +290,7 @@ module MANBUFOPS
                ~> i32 . const 0
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> SRC_IDX </locals>
+         <locals> ListItem(<i32> SRC_IDX) </locals>
 
  // extern int32_t   mBufferCopyByteSlice(void* context, int32_t sourceHandle, int32_t startingPosition, int32_t sliceLength, int32_t destinationHandle);
     rule <instrs> hostCall ( "env" , "mBufferCopyByteSlice" , [ i32  i32  i32  i32  .ValTypes ] -> [ i32  .ValTypes ] )
@@ -299,7 +299,7 @@ module MANBUFOPS
                ~> #dropBytes
                   ... 
          </instrs>
-         <locals> 0 |-> <i32> SRC_IDX  1 |-> <i32> OFFSET  2 |-> <i32> LENGTH  3 |-> <i32> DEST_IDX </locals>
+         <locals> ListItem(<i32> SRC_IDX)  ListItem(<i32> OFFSET)  ListItem(<i32> LENGTH)  ListItem(<i32> DEST_IDX) </locals>
 
     syntax InternalInstr ::= #mBufferCopyByteSliceH( Int , Int , Int )
  // ------------------------------------------------------------------

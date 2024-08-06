@@ -119,7 +119,7 @@ module BIGINTOPS
                => i32.const #newKey(HEAP)
                   ...
          </instrs>
-         <locals> 0 |-> <i64> INITIAL </locals>
+         <locals> ListItem(<i64> INITIAL) </locals>
          <bigIntHeap> HEAP => HEAP [ #newKey(HEAP) <- #signed(i64, INITIAL) ] </bigIntHeap>
       requires definedSigned(i64, INITIAL)
       [preserves-definedness]
@@ -135,7 +135,7 @@ module BIGINTOPS
                ~> #dropBytes
                   ...
          </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
+         <locals> ListItem(<i32> IDX) </locals>
 
     // extern int32_t bigIntSignedByteLength(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntSignedByteLength", [ i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -144,7 +144,7 @@ module BIGINTOPS
                ~> #dropBytes
                   ...
          </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
+         <locals> ListItem(<i32> IDX) </locals>
 
  // extern long long bigIntGetInt64(void* context, int32_t destinationHandle);
     rule [bigIntGetInt64]:
@@ -152,7 +152,7 @@ module BIGINTOPS
               => i64 . const V
                  ...
         </instrs>
-        <locals> 0 |-> <i32> IDX </locals>
+        <locals> ListItem(<i32> IDX) </locals>
         <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
       requires V <=Int maxSInt64
        andBool minSInt64 <=Int V
@@ -161,7 +161,7 @@ module BIGINTOPS
         <instrs> hostCall ("env", "bigIntGetInt64", [i32 .ValTypes ] -> [i64  .ValTypes ] )
               => #throwException(ExecutionFailed, "big int cannot be represented as int64") ...
         </instrs>
-        <locals> 0 |-> <i32> IDX </locals>
+        <locals> ListItem(<i32> IDX) </locals>
         <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
       requires V >Int maxSInt64
         orBool minSInt64 >Int V
@@ -172,7 +172,7 @@ module BIGINTOPS
               ~> i64 . const 0
                  ...
         </instrs>
-        <locals> 0 |-> <i32> IDX </locals>
+        <locals> ListItem(<i32> IDX) </locals>
         <bigIntHeap> HEAP </bigIntHeap>
       requires notBool(IDX in_keys(HEAP))
 
@@ -184,7 +184,7 @@ module BIGINTOPS
                ~> #dropBytes
                   ...
          </instrs>
-         <locals> 0 |-> <i32> IDX  1 |-> <i32> OFFSET </locals>
+         <locals> ListItem(<i32> IDX)  ListItem(<i32> OFFSET) </locals>
 
     // extern int32_t bigIntGetSignedBytes(void* context, int32_t reference, int32_t byteOffset);
     rule <instrs> hostCall("env", "bigIntGetSignedBytes", [ i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -194,7 +194,7 @@ module BIGINTOPS
                ~> #dropBytes
                   ...
          </instrs>
-         <locals> 0 |-> <i32> IDX  1 |-> <i32> OFFSET </locals>
+         <locals> ListItem(<i32> IDX)  ListItem(<i32> OFFSET) </locals>
 
     // extern void bigIntSetUnsignedBytes(void* context, int32_t destination, int32_t byteOffset, int32_t byteLength);
     rule <instrs> hostCall("env", "bigIntSetUnsignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
@@ -203,7 +203,7 @@ module BIGINTOPS
                ~> #dropBytes
                   ...
          </instrs>
-         <locals> 0 |-> <i32> IDX 1 |-> <i32> OFFSET 2 |-> <i32> LENGTH </locals>
+         <locals> ListItem(<i32> IDX) ListItem(<i32> OFFSET) ListItem(<i32> LENGTH) </locals>
 
     // extern void bigIntSetSignedBytes(void* context, int32_t destination, int32_t byteOffset, int32_t byteLength);
     rule <instrs> hostCall("env", "bigIntSetSignedBytes", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
@@ -212,14 +212,14 @@ module BIGINTOPS
                ~> #dropBytes
                   ...
          </instrs>
-         <locals> 0 |-> <i32> IDX 1 |-> <i32> OFFSET 2 |-> <i32> LENGTH </locals>
+         <locals> ListItem(<i32> IDX) ListItem(<i32> OFFSET) ListItem(<i32> LENGTH) </locals>
 
  // extern void      bigIntSetInt64(void* context, int32_t destinationHandle, long long value);
     rule <instrs> hostCall ( "env" , "bigIntSetInt64" , [ i32  i64  .ValTypes ] -> [ .ValTypes ] )
                => #setBigIntValue(DEST_IDX, #signed(i64, VALUE))
                   ...
          </instrs>
-         <locals> 0 |-> <i32> DEST_IDX 1 |-> <i64> VALUE </locals>
+         <locals> ListItem(<i32> DEST_IDX) ListItem(<i64> VALUE) </locals>
       requires definedSigned(i64, VALUE)
       [preserves-definedness]
       // Preserving definedness:
@@ -228,7 +228,7 @@ module BIGINTOPS
 
     // extern void bigIntAdd(void* context, int32_t destination, int32_t op1, int32_t op2);
     rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => .K ... </instrs>
-         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <locals> ListItem(<i32> DST)  ListItem(<i32> OP1_IDX)  ListItem(<i32> OP2_IDX) </locals>
          <bigIntHeap> HEAP
                    => HEAP [ DST <- ({HEAP[OP1_IDX] orDefault 0}:>Int) +Int ({HEAP[OP2_IDX] orDefault 0}:>Int) ]
          </bigIntHeap>
@@ -248,7 +248,7 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntAdd", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
          </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <locals> ListItem(<i32> _DST)  ListItem(<i32> OP1_IDX)  ListItem(<i32> OP2_IDX) </locals>
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (OP1_IDX in_keys(HEAP))
         orBool notBool (OP2_IDX in_keys(HEAP))
@@ -257,7 +257,7 @@ module BIGINTOPS
 
     // extern void bigIntSub(void* context, int32_t destination, int32_t op1, int32_t op2);
     rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => .K ... </instrs>
-         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <locals> ListItem(<i32> DST)  ListItem(<i32> OP1_IDX)  ListItem(<i32> OP2_IDX) </locals>
          <bigIntHeap> HEAP
                    => HEAP [ DST <- ({HEAP[OP1_IDX] orDefault 0}:>Int) -Int ({HEAP[OP2_IDX] orDefault 0}:>Int) ]
          </bigIntHeap>
@@ -275,7 +275,7 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntSub", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
          </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <locals> ListItem(<i32> _DST)  ListItem(<i32> OP1_IDX)  ListItem(<i32> OP2_IDX) </locals>
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (OP1_IDX in_keys(HEAP))
         orBool notBool (OP2_IDX in_keys(HEAP))
@@ -284,7 +284,7 @@ module BIGINTOPS
 
     // extern void bigIntMul(void* context, int32_t destination, int32_t op1, int32_t op2);
     rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => .K ... </instrs>
-         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <locals> ListItem(<i32> DST)  ListItem(<i32> OP1_IDX)  ListItem(<i32> OP2_IDX) </locals>
          <bigIntHeap> HEAP
                    => HEAP [ DST <- ({HEAP[OP1_IDX] orDefault 0}:>Int) *Int ({HEAP[OP2_IDX] orDefault 0}:>Int) ]
          </bigIntHeap>
@@ -302,7 +302,7 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntMul", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
          </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <locals> ListItem(<i32> _DST)  ListItem(<i32> OP1_IDX)  ListItem(<i32> OP2_IDX) </locals>
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (OP1_IDX in_keys(HEAP))
         orBool notBool (OP2_IDX in_keys(HEAP))
@@ -311,7 +311,7 @@ module BIGINTOPS
 
     // extern void bigIntTDiv(void* context, int32_t destination, int32_t op1, int32_t op2);
     rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ]) => .K ... </instrs>
-         <locals> 0 |-> <i32> DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <locals> ListItem(<i32> DST)  ListItem(<i32> OP1_IDX)  ListItem(<i32> OP2_IDX) </locals>
          <bigIntHeap> HEAP
                    => HEAP [ DST <- ({HEAP[OP1_IDX] orDefault 0}:>Int) /Int ({HEAP[OP2_IDX] orDefault 0}:>Int) ]
          </bigIntHeap>
@@ -329,7 +329,7 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
          </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <locals> ListItem(<i32> _DST)  ListItem(<i32> OP1_IDX)  ListItem(<i32> OP2_IDX) </locals>
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (OP1_IDX in_keys(HEAP))
         orBool notBool (OP2_IDX in_keys(HEAP))
@@ -339,7 +339,7 @@ module BIGINTOPS
     rule <instrs> hostCall("env", "bigIntTDiv", [ i32 i32 i32 .ValTypes ] -> [ .ValTypes ])
                => #throwException(ExecutionFailed, "division by 0") ...
          </instrs>
-         <locals> 0 |-> <i32> _DST  1 |-> <i32> OP1_IDX  2 |-> <i32> OP2_IDX </locals>
+         <locals> ListItem(<i32> _DST)  ListItem(<i32> OP1_IDX)  ListItem(<i32> OP2_IDX) </locals>
          <bigIntHeap> HEAP </bigIntHeap>
       requires OP1_IDX in_keys(HEAP)
        andBool OP2_IDX in_keys(HEAP)
@@ -351,7 +351,7 @@ module BIGINTOPS
                => i32.const #bigIntSign({HEAP[IDX] orDefault 0}:>Int)
                   ...
          </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
+         <locals> ListItem(<i32> IDX) </locals>
          <bigIntHeap> HEAP </bigIntHeap>
       requires IDX in_keys(HEAP)
         andBool isInt(HEAP[IDX] orDefault 0)
@@ -366,7 +366,7 @@ module BIGINTOPS
                => #throwException(ExecutionFailed, "no bigInt under the given handle")
                   ...
          </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
+         <locals> ListItem(<i32> IDX) </locals>
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (IDX in_keys(HEAP))
         orBool notBool isInt(HEAP[IDX] orDefault 0)
@@ -376,7 +376,7 @@ module BIGINTOPS
                => i32.const #cmpInt({HEAP [OP1_IDX] orDefault 0}:>Int, {HEAP [OP2_IDX] orDefault 0}:>Int)
                   ...
          </instrs>
-         <locals> 0 |-> <i32> OP1_IDX  1 |-> <i32> OP2_IDX </locals>
+         <locals> ListItem(<i32> OP1_IDX)  ListItem(<i32> OP2_IDX) </locals>
          <bigIntHeap> HEAP </bigIntHeap>
       requires OP1_IDX in_keys(HEAP)
        andBool OP2_IDX in_keys(HEAP)
@@ -393,7 +393,7 @@ module BIGINTOPS
                => #throwException(ExecutionFailed, "no bigInt under the given handle")
                   ...
          </instrs>
-         <locals> 0 |-> <i32> OP1_IDX  1 |-> <i32> OP2_IDX </locals>
+         <locals> ListItem(<i32> OP1_IDX)  ListItem(<i32> OP2_IDX) </locals>
          <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (OP1_IDX in_keys(HEAP))
         orBool notBool (OP2_IDX in_keys(HEAP))
@@ -406,7 +406,7 @@ module BIGINTOPS
                ~> #appendToOutFromBytesStack
                   ...
          </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
+         <locals> ListItem(<i32> IDX) </locals>
 
     // extern void bigIntFinishSigned(void* context, int32_t reference);
     rule <instrs> hostCall("env", "bigIntFinishSigned", [ i32 .ValTypes ] -> [ .ValTypes ])
@@ -414,7 +414,7 @@ module BIGINTOPS
                ~> #appendToOutFromBytesStack
                   ...
          </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
+         <locals> ListItem(<i32> IDX) </locals>
 
     // extern int32_t bigIntStorageStoreUnsigned(void *context, int32_t keyOffset, int32_t keyLength, int32_t source);
     rule <instrs> hostCall("env", "bigIntStorageStoreUnsigned", [ i32 i32 i32 .ValTypes ] -> [ i32 .ValTypes ])
@@ -424,9 +424,9 @@ module BIGINTOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLENGTH
-           2 |-> <i32> BIGINTIDX
+           ListItem(<i32> KEYOFFSET)
+           ListItem(<i32> KEYLENGTH)
+           ListItem(<i32> BIGINTIDX)
          </locals>
 
     // extern int32_t bigIntStorageLoadUnsigned(void *context, int32_t keyOffset, int32_t keyLength, int32_t destination);
@@ -439,14 +439,14 @@ module BIGINTOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> KEYOFFSET
-           1 |-> <i32> KEYLENGTH
-           2 |-> <i32> DEST
+           ListItem(<i32> KEYOFFSET)
+           ListItem(<i32> KEYLENGTH)
+           ListItem(<i32> DEST)
          </locals>
 
     // extern void bigIntGetUnsignedArgument(void *context, int32_t id, int32_t destination);
     rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  .K ... </instrs>
-         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
+         <locals> ListItem(<i32> ARG_IDX)  ListItem(<i32> BIG_IDX) </locals>
          <callArgs> ARGS </callArgs>
          <bigIntHeap> HEAP => HEAP [ BIG_IDX <- Bytes2Int(ARGS {{ ARG_IDX }}, BE, Unsigned) ] </bigIntHeap>
       requires #validArgIdx(ARG_IDX, ARGS)
@@ -460,13 +460,13 @@ module BIGINTOPS
     // If ARG_IDX is invalid (out of bounds) just ignore
     // https://github.com/multiversx/mx-chain-vm-go/blob/ea3d78d34c35f7ef9c1a9ea4fce8288608763229/vmhost/vmhooks/bigIntOps.go#L68
     rule <instrs> hostCall("env", "bigIntGetUnsignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  .K ... </instrs>
-         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> _BIG_IDX </locals>
+         <locals> ListItem(<i32> ARG_IDX)  ListItem(<i32> _BIG_IDX) </locals>
          <callArgs> ARGS </callArgs>
       requires notBool #validArgIdx(ARG_IDX, ARGS)
 
     // extern void bigIntGetSignedArgument(void *context, int32_t id, int32_t destination);
     rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  .K ... </instrs>
-         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> BIG_IDX </locals>
+         <locals> ListItem(<i32> ARG_IDX)  ListItem(<i32> BIG_IDX) </locals>
          <callArgs> ARGS </callArgs>
          <bigIntHeap> HEAP => HEAP [ BIG_IDX <- Bytes2Int(ARGS {{ ARG_IDX }}, BE, Signed) ] </bigIntHeap>
       requires #validArgIdx(ARG_IDX, ARGS)
@@ -477,13 +477,13 @@ module BIGINTOPS
       //  - _{{_ <- _}} is total
 
     rule <instrs> hostCall("env", "bigIntGetSignedArgument", [ i32 i32 .ValTypes ] -> [ .ValTypes ]) =>  .K ... </instrs>
-         <locals> 0 |-> <i32> ARG_IDX  1 |-> <i32> _BIG_IDX </locals>
+         <locals> ListItem(<i32> ARG_IDX)  ListItem(<i32> _BIG_IDX) </locals>
          <callArgs> ARGS </callArgs>
       requires notBool #validArgIdx(ARG_IDX, ARGS)
 
     // extern void bigIntGetCallValue(void *context, int32_t destination);
     rule <instrs> hostCall("env", "bigIntGetCallValue", [ i32 .ValTypes ] -> [ .ValTypes ]) => .K ... </instrs>
-         <locals> 0 |-> <i32> IDX </locals>
+         <locals> ListItem(<i32> IDX) </locals>
          <bigIntHeap> HEAP => HEAP [ IDX <- VALUE ] </bigIntHeap>
          <callValue> VALUE </callValue>
 
@@ -496,8 +496,8 @@ module BIGINTOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> ADDROFFSET
-           1 |-> <i32> RESULT
+           ListItem(<i32> ADDROFFSET)
+           ListItem(<i32> RESULT)
          </locals>
 
     // extern void bigIntGetESDTExternalBalance(void* context, int32_t addressOffset, int32_t tokenIDOffset, int32_t tokenIDLen, long long nonce, int32_t resultHandle);
@@ -512,11 +512,11 @@ module BIGINTOPS
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> ADDR_OFFSET
-           1 |-> <i32> TOK_ID_OFFSET
-           2 |-> <i32> TOK_ID_LEN
-           3 |-> <i64> NONCE
-           4 |-> <i32> RES_HANDLE
+           ListItem(<i32> ADDR_OFFSET)
+           ListItem(<i32> TOK_ID_OFFSET)
+           ListItem(<i32> TOK_ID_LEN)
+           ListItem(<i64> NONCE)
+           ListItem(<i32> RES_HANDLE)
          </locals>
 
     syntax InternalInstr ::= #bigIntGetESDTExternalBalance(Int)
@@ -553,7 +553,7 @@ module BIGINTOPS
         <instrs> hostCall ( "env" , "bigIntIsInt64" , [ i32  .ValTypes ] -> [ i32  .ValTypes ] )
               => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
         </instrs>
-        <locals> 0 |-> <i32> IDX </locals>
+        <locals> ListItem(<i32> IDX) </locals>
         <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (IDX in_keys( HEAP ))
 
@@ -562,7 +562,7 @@ module BIGINTOPS
               => i32.const #bool( minSInt64 <=Int V andBool V <=Int maxSInt64 )
                  ...
         </instrs>
-        <locals> 0 |-> <i32> IDX </locals>
+        <locals> ListItem(<i32> IDX) </locals>
         <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
 
  // extern void      bigIntSqrt(void* context, int32_t destinationHandle, int32_t opHandle);
@@ -570,7 +570,7 @@ module BIGINTOPS
         <instrs> hostCall ( "env" , "bigIntSqrt" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
               => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
         </instrs>
-        <locals> 0 |-> <i32> _DEST  1 |-> <i32> IDX </locals>
+        <locals> ListItem(<i32> _DEST)  ListItem(<i32> IDX) </locals>
         <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (IDX in_keys( HEAP ))
 
@@ -579,7 +579,7 @@ module BIGINTOPS
               => #throwException(ExecutionFailed, "bad bounds (lower)")
                  ...
         </instrs>
-        <locals> 0 |-> <i32> _DEST  1 |-> <i32> IDX </locals>
+        <locals> ListItem(<i32> _DEST)  ListItem(<i32> IDX) </locals>
         <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
       requires V <Int 0
 
@@ -588,7 +588,7 @@ module BIGINTOPS
               => #setBigIntValue(DEST, sqrtInt(V))
                  ...
         </instrs>
-        <locals> 0 |-> <i32> DEST  1 |-> <i32> IDX </locals>
+        <locals> ListItem(<i32> DEST)  ListItem(<i32> IDX) </locals>
         <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
       requires 0 <=Int V
 
@@ -597,7 +597,7 @@ module BIGINTOPS
         <instrs> hostCall ( "env" , "bigIntAbs" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
               => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
         </instrs>
-        <locals> 0 |-> <i32> _DEST  1 |-> <i32> IDX </locals>
+        <locals> ListItem(<i32> _DEST)  ListItem(<i32> IDX) </locals>
         <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (IDX in_keys( HEAP ))
 
@@ -606,7 +606,7 @@ module BIGINTOPS
               => #setBigIntValue(DEST, absInt(V))
                  ...
         </instrs>
-        <locals> 0 |-> <i32> DEST  1 |-> <i32> IDX </locals>
+        <locals> ListItem(<i32> DEST)  ListItem(<i32> IDX) </locals>
         <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
 
 
@@ -615,7 +615,7 @@ module BIGINTOPS
         <instrs> hostCall ( "env" , "bigIntNeg" , [ i32  i32  .ValTypes ] -> [ .ValTypes ] )
               => #throwException(ExecutionFailed, "no bigInt under the given handle") ...
         </instrs>
-        <locals> 0 |-> <i32> _DEST  1 |-> <i32> IDX </locals>
+        <locals> ListItem(<i32> _DEST)  ListItem(<i32> IDX) </locals>
         <bigIntHeap> HEAP </bigIntHeap>
       requires notBool (IDX in_keys( HEAP ))
 
@@ -624,7 +624,7 @@ module BIGINTOPS
               => #setBigIntValue(DEST, 0 -Int V)
                  ...
         </instrs>
-        <locals> 0 |-> <i32> DEST  1 |-> <i32> IDX </locals>
+        <locals> ListItem(<i32> DEST)  ListItem(<i32> IDX) </locals>
         <bigIntHeap> ... IDX |-> V ... </bigIntHeap>
 
 

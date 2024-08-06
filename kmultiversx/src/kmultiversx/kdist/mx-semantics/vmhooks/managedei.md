@@ -18,7 +18,7 @@ module MANAGEDEI
                => #setBuffer( DEST_IDX , OWNER )
                   ...
          </instrs>
-         <locals> 0 |-> <i32> DEST_IDX </locals>
+         <locals> ListItem(<i32> DEST_IDX) </locals>
          <callee> CALLEE </callee>
          <account>
             <address> CALLEE </address>
@@ -38,7 +38,7 @@ module MANAGEDEI
                => #setBuffer(RES_IDX, HASH) ...
          </instrs>
          <txHash> HASH </txHash>
-         <locals>  0 |-> <i32> RES_IDX  </locals>
+         <locals>  ListItem(<i32> RES_IDX)  </locals>
 
  // extern void      managedSignalError(void* context, int32_t errHandle);
     rule <instrs> hostCall ( "env" , "managedSignalError" , [ i32  .ValTypes ] -> [ .ValTypes ] )
@@ -46,7 +46,7 @@ module MANAGEDEI
                ~> #signalError
                   ...
          </instrs>
-         <locals>  0 |-> <i32> ERR_IDX  </locals>
+         <locals>  ListItem(<i32> ERR_IDX)  </locals>
 
  // extern void      managedGetMultiESDTCallValue(void* context, int32_t multiCallValueHandle);
     rule <instrs> hostCall ( "env" , "managedGetMultiESDTCallValue" , [ i32  .ValTypes ] -> [ .ValTypes ] )
@@ -55,7 +55,7 @@ module MANAGEDEI
                ~> #dropBytes
                   ...
          </instrs>
-         <locals>  0 |-> <i32> DEST_IDX  </locals>
+         <locals>  ListItem(<i32> DEST_IDX)  </locals>
          <esdtTransfers> ESDTS </esdtTransfers>
   
  // extern int32_t   managedMultiTransferESDTNFTExecute(void* context, int32_t dstHandle, int32_t tokenTransfersHandle, long long gasLimit, int32_t functionHandle, int32_t argumentsHandle);
@@ -71,11 +71,11 @@ module MANAGEDEI
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> DEST_IDX
-          1 |-> <i32> TRANSFERS_IDX
-          2 |-> <i64> GAS_LIMIT
-          3 |-> <i32> FUNC_IDX
-          4 |-> <i32> ARGS_IDX
+          ListItem(<i32> DEST_IDX)
+          ListItem(<i32> TRANSFERS_IDX)
+          ListItem(<i64> GAS_LIMIT)
+          ListItem(<i32> FUNC_IDX)
+          ListItem(<i32> ARGS_IDX)
         </locals>
         
  // extern void      managedSCAddress(void* context, int32_t destinationHandle);
@@ -83,7 +83,7 @@ module MANAGEDEI
                => #setBuffer( DEST_IDX , CALLEE )
                   ...
          </instrs>
-         <locals> 0 |-> <i32> DEST_IDX </locals>
+         <locals> ListItem(<i32> DEST_IDX) </locals>
          <callee> CALLEE </callee>
 
  // extern int32_t managedTransferValueExecute(void* context, int32_t dstHandle, int32_t valueHandle, long long gasLimit, int32_t functionHandle, int32_t argumentsHandle);
@@ -98,11 +98,11 @@ module MANAGEDEI
                   ...
          </instrs>
          <locals>
-           0 |-> <i32> DEST_IDX
-           1 |-> <i32> VALUE_IDX
-           2 |-> <i64> GAS_LIMIT
-           3 |-> <i32> FUNC_IDX
-           4 |-> <i32> ARGS_IDX
+           ListItem(<i32> DEST_IDX)
+           ListItem(<i32> VALUE_IDX)
+           ListItem(<i64> GAS_LIMIT)
+           ListItem(<i32> FUNC_IDX)
+           ListItem(<i32> ARGS_IDX)
          </locals>
 
  // extern int32_t managedExecuteOnDestContext(void* context, long long gas, int32_t addressHandle, int32_t valueHandle, int32_t functionHandle, int32_t argumentsHandle, int32_t resultHandle);
@@ -120,12 +120,12 @@ module MANAGEDEI
                  ...
         </instrs>
         <locals>
-          0 |-> <i64> GAS_LIMIT
-          1 |-> <i32> DEST_IDX
-          2 |-> <i32> VALUE_IDX
-          3 |-> <i32> FUNC_IDX
-          4 |-> <i32> ARGS_IDX
-          5 |-> <i32> RES_IDX
+          ListItem(<i64> GAS_LIMIT)
+          ListItem(<i32> DEST_IDX)
+          ListItem(<i32> VALUE_IDX)
+          ListItem(<i32> FUNC_IDX)
+          ListItem(<i32> ARGS_IDX)
+          ListItem(<i32> RES_IDX)
         </locals>
         <out> OUT </out>
 
@@ -167,17 +167,17 @@ module MANAGEDEI
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> DEST_IDX
-          1 |-> <i32> VALUE_IDX
-          2 |-> <i32> FUNC_IDX
-          3 |-> <i32> ARGS_IDX
-          4 |-> <i32> SUCC_OFF
-          5 |-> <i32> SUCC_LEN
-          6 |-> <i32> ERR_OFF
-          7 |-> <i32> ERR_LEN
-          8 |-> <i64> GAS
-          9 |-> <i64> CB_GAS
-          10 |-> <i32> CB_CLOSURE_IDX
+          ListItem(<i32> DEST_IDX)
+          ListItem(<i32> VALUE_IDX)
+          ListItem(<i32> FUNC_IDX)
+          ListItem(<i32> ARGS_IDX)
+          ListItem(<i32> SUCC_OFF)
+          ListItem(<i32> SUCC_LEN)
+          ListItem(<i32> ERR_OFF)
+          ListItem(<i32> ERR_LEN)
+          ListItem(<i64> GAS)
+          ListItem(<i64> CB_GAS)
+          ListItem(<i32> CB_CLOSURE_IDX)
         </locals>
 
  // extern void managedAsyncCall(void* context, int32_t destHandle, int32_t valueHandle, int32_t functionHandle, int32_t argumentsHandle);
@@ -198,10 +198,10 @@ module MANAGEDEI
                  
         </instrs>
         <locals>
-          0 |-> <i32> DEST_IDX
-          1 |-> <i32> VALUE_IDX
-          2 |-> <i32> FUNC_IDX
-          3 |-> <i32> ARGS_IDX
+          ListItem(<i32> DEST_IDX)
+          ListItem(<i32> VALUE_IDX)
+          ListItem(<i32> FUNC_IDX)
+          ListItem(<i32> ARGS_IDX)
         </locals>
         <gasProvided> GAS </gasProvided>
 
@@ -214,7 +214,7 @@ module MANAGEDEI
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> DEST_IDX
+          ListItem(<i32> DEST_IDX)
         </locals>
         <callType> AsynchronousCallBack </callType>
         <callStack>
@@ -232,7 +232,7 @@ module MANAGEDEI
                  ...
         </instrs>
         <locals>
-          0 |-> <i32> _DEST_IDX
+          ListItem(<i32> _DEST_IDX)
         </locals>
       [owise]
 
@@ -241,7 +241,7 @@ module MANAGEDEI
                => #setBuffer(BUF_IDX, SEED)
                   ...
          </instrs>
-         <locals> 0 |-> <i32> BUF_IDX </locals>
+         <locals> ListItem(<i32> BUF_IDX) </locals>
          <curBlockRandomSeed> SEED </curBlockRandomSeed>
 
  // extern void managedGetPrevBlockRandomSeed(void* context, int32_t resultHandle);
@@ -250,7 +250,7 @@ module MANAGEDEI
               => #setBuffer(BUF_IDX, SEED)
                  ...
         </instrs>
-        <locals> 0 |-> <i32> BUF_IDX </locals>
+        <locals> ListItem(<i32> BUF_IDX) </locals>
         <prevBlockRandomSeed> SEED </prevBlockRandomSeed>
 
 
@@ -270,10 +270,9 @@ module MANAGEDEI
                  ...
         </instrs>
         <locals>
-          ...
-          0 |-> <i32> ADDR_IDX
-          1 |-> <i32> TOK_IDX
-          2 |-> <i64> NONCE
+          ListItem(<i32> ADDR_IDX)
+          ListItem(<i32> TOK_IDX)
+          ListItem(<i64> NONCE)
           ...
         </locals>
 
@@ -294,15 +293,17 @@ module MANAGEDEI
         </instrs>
         <bytesStack> TOKEN : ADDR : REST => REST </bytesStack>
         <locals>
-          ...
-          3 |-> <i32> VAL_IDX
-          4 |-> <i32> PROPS_IDX
-          5 |-> <i32> HASH_IDX
-          6 |-> <i32> NAME_IDX
-          7 |-> <i32> ATTRS_IDX
-          8 |-> <i32> CREATOR_IDX
-          9 |-> <i32> ROYL_IDX
-          10 |-> <i32> URIS_IDX
+          ListItem(_)
+          ListItem(_)
+          ListItem(_)
+          ListItem(<i32> VAL_IDX)
+          ListItem(<i32> PROPS_IDX)
+          ListItem(<i32> HASH_IDX)
+          ListItem(<i32> NAME_IDX)
+          ListItem(<i32> ATTRS_IDX)
+          ListItem(<i32> CREATOR_IDX)
+          ListItem(<i32> ROYL_IDX)
+          ListItem(<i32> URIS_IDX)
           ...
         </locals>
         <account>
@@ -334,9 +335,11 @@ module MANAGEDEI
         </instrs>
         <bytesStack> TOKEN : ADDR : REST => REST </bytesStack>
         <locals>
-          ...
-          3 |-> <i32> VAL_IDX
-          4 |-> <i32> PROPS_IDX
+          ListItem(_)
+          ListItem(_)
+          ListItem(_)
+          ListItem(<i32> VAL_IDX)
+          ListItem(<i32> PROPS_IDX)
           ...
         </locals>
         <account>
@@ -359,7 +362,7 @@ module MANAGEDEI
               ~> #dropBytes
                  ...
         </instrs>
-        <locals> 0 |-> <i32> TOKEN_IDX </locals>
+        <locals> ListItem(<i32> TOKEN_IDX) </locals>
 
     syntax InternalInstr ::= "#getESDTLocalRoles"     [symbol(getESDTLocalRoles)]
  // ---------------------------------------------

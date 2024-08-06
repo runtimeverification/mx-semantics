@@ -581,7 +581,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           <balance> ORIGFROM </balance>
           ...
         </account>
-       // <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires VALUE <=Int ORIGFROM
       [priority(60)]
 
@@ -600,7 +600,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           <balance> ORIGTO => ORIGTO +Int VALUE </balance>
           ...
         </account>
-       // <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
       [priority(60), preserves-definedness]
       // Preserving definedness:
@@ -614,7 +614,7 @@ TODO: Implement [reserved keys and read-only runtimes](https://github.com/Elrond
           <balance> ORIGFROM </balance>
           ...
         </account>
-       // <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires VALUE >Int ORIGFROM
       [priority(60)]
 

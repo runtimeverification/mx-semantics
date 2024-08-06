@@ -65,7 +65,7 @@ module ESDT
           </esdtData> => .Bag)
           ...
         </account>
-        // <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule [removeEmptyNft-skip-instrs-empty]:
@@ -98,7 +98,7 @@ module ESDT
           </esdtData>
           ...
         </account>
-        // <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       requires VALUE <=Int ORIGFROM
       [priority(60)]
 
@@ -130,7 +130,7 @@ module ESDT
           </esdtData>
           ...
         </account>
-        // <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule [addToESDTBalance-new-esdtData]:
@@ -144,7 +144,7 @@ module ESDT
           </esdtData>)
           ...
         </account>
-        // <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(61), preserves-definedness]
       // preserves-definedness:
       //  - ACCT exists prior so the account map is defined
@@ -192,7 +192,7 @@ module ESDT
           </esdtData>
           ...
         </account>
-        // <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule [moveNFTToDestination-self]:
@@ -205,7 +205,7 @@ module ESDT
           </esdtData>
           ...
         </account>
-        // <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(60)]
 
     rule [moveNFTToDestination-new]:
@@ -230,7 +230,7 @@ module ESDT
           </esdtData>)
           ...
         </account>
-        // <instrs> (#waitCommands ~> _) #Or .K </instrs>
+        <instrs> (#waitCommands ~> _) #Or .K </instrs>
       [priority(61)]
 ```
 

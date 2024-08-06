@@ -25,16 +25,6 @@ jobs:
           git config user.email devops@runtimeverification.com
       - name: 'Install Poetry'
         uses: Gr1N/setup-poetry@v8
-      - name: 'Install Nix/Cachix'
-        uses: cachix/install-nix-action@v27
-        with:
-          install_url: https://releases.nixos.org/nix/nix-2.22.1/install
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-      - uses: cachix/cachix-action@v15
-        with:
-          name: k-framework
-          authToken: ${{ secrets.CACHIX_PUBLIC_TOKEN }}
       - name: 'Update poetry files'
         run: |
           PYKWASM_VERSION="$(cat deps/kwasm_release)"
@@ -51,16 +41,5 @@ jobs:
           BKP_VERSION=$(git -C kmultiversx/src/kmultiversx/kdist/plugin rev-parse HEAD)
           echo ${BKP_VERSION} > deps/blockchain-k-plugin_release
           git add deps/blockchain-k-plugin_release && git commit -m "deps/blockchain-k-plugin_release: sync release file version ${BKP_VERSION}" || true
-      - name: 'Update Nix flake inputs'
-        run: |
-          K_VERSION="$(cat deps/k_release)"
-          PYKWASM_VERSION="$(cat deps/kwasm_release)"
-          BKP_VERSION="$(cat deps/blockchain-k-plugin_release)"
-          sed -i 's!    k-framework.url = "github:runtimeverification/k/v[[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+"!    k-framework.url = "github:runtimeverification/k/'"v${K_VERSION}"'"!' flake.nix
-          sed -i 's!    pyk.url = "github:runtimeverification/k/v[[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+?dir=pyk"!    pyk.url = "github:runtimeverification/k/'"v${K_VERSION}"'?dir=pyk"!' flake.nix
-          sed -i 's!    wasm-semantics.url = "github:runtimeverification/wasm-semantics/v[[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+"!    wasm-semantics.url = "github:runtimeverification/wasm-semantics/'"v${PYKWASM_VERSION}"'"!' flake.nix
-          sed -i 's!        "github:runtimeverification/blockchain-k-plugin/.*";!        "github:runtimeverification/blockchain-k-plugin/'"${BKP_VERSION}"'";!' flake.nix
-          nix flake update
-          git add flake.nix flake.lock && git commit -m 'flake.{nix,lock}: update Nix derivations' || true
       - name: 'Push updates'
         run: git push

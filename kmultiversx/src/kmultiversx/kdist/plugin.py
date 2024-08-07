@@ -61,9 +61,9 @@ class PluginTarget(Target):
 
 
 class KompileTarget(Target):
-    _kompile_args: Callable[[Path], Mapping[str, Any]]
+    _kompile_args: Callable[[Path, Path], Mapping[str, Any]]
 
-    def __init__(self, kompile_args: Callable[[Path], Mapping[str, Any]]):
+    def __init__(self, kompile_args: Callable[[Path, Path], Mapping[str, Any]]):
         self._kompile_args = kompile_args
 
     def build(self, output_dir: Path, deps: dict[str, Path], args: dict[str, Any], verbose: bool) -> None:

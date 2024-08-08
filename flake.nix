@@ -115,8 +115,9 @@
               kframework = nixpkgs-pyk.pyk-python310.overridePythonAttrs
                 (old: {
                   propagatedBuildInputs = prev.lib.filter
-                    (x: !(prev.lib.strings.hasInfix "hypothesis" x.name))
-                    old.propagatedBuildInputs ++ [ finalPython.hypothesis ];
+                    (x: !(prev.lib.strings.hasInfix "hypothesis" x.name)
+                      && !(prev.lib.strings.hasInfix "cmd2" x.name))
+                    old.propagatedBuildInputs ++ [ finalPython.hypothesis finalPython.cmd2 ];
                 });
               pykwasm =
                 wasm-semantics.packages.${prev.system}.kwasm-pyk.overridePythonAttrs
@@ -125,6 +126,13 @@
                       (x: !(prev.lib.strings.hasInfix "kframework" x.name))
                       old.propagatedBuildInputs ++ [ finalPython.kframework ];
                   });
+              cmd2 = prevPython.cmd2.overridePythonAttrs
+                (old: {
+                  propagatedBuildInputs = prev.lib.filter
+                    (x: !(prev.lib.strings.hasInfix "attrs" x.name))
+                    old.propagatedBuildInputs ++ [ finalPython.attrs ];
+                });
+
             });
             groups = [ ];
             checkGroups = [ ];

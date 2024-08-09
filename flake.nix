@@ -2,9 +2,9 @@
   description = "K Semantics of MultiversX";
 
   inputs = {
-    wasm-semantics.url = "github:runtimeverification/wasm-semantics/v0.1.95";
-    k-framework.url = "github:runtimeverification/k/v7.1.85";
-    pyk.url = "github:runtimeverification/k/v7.1.85?dir=pyk";
+    wasm-semantics.url = "github:runtimeverification/wasm-semantics/v0.1.97";
+    k-framework.url = "github:runtimeverification/k/v7.1.93";
+    pyk.url = "github:runtimeverification/k/v7.1.93?dir=pyk";
     nixpkgs.follows = "k-framework/nixpkgs";
     flake-utils.follows = "k-framework/flake-utils";
     rv-utils.url = "github:runtimeverification/rv-nix-tools";
@@ -115,8 +115,9 @@
               kframework = nixpkgs-pyk.pyk-python310.overridePythonAttrs
                 (old: {
                   propagatedBuildInputs = prev.lib.filter
-                    (x: !(prev.lib.strings.hasInfix "hypothesis" x.name))
-                    old.propagatedBuildInputs ++ [ finalPython.hypothesis ];
+                    (x: !(prev.lib.strings.hasInfix "hypothesis" x.name)
+                      && !(prev.lib.strings.hasInfix "cmd2" x.name))
+                    old.propagatedBuildInputs ++ [ finalPython.hypothesis finalPython.cmd2 ];
                 });
               pykwasm =
                 wasm-semantics.packages.${prev.system}.kwasm-pyk.overridePythonAttrs
@@ -125,6 +126,13 @@
                       (x: !(prev.lib.strings.hasInfix "kframework" x.name))
                       old.propagatedBuildInputs ++ [ finalPython.kframework ];
                   });
+              cmd2 = prevPython.cmd2.overridePythonAttrs
+                (old: {
+                  propagatedBuildInputs = prev.lib.filter
+                    (x: !(prev.lib.strings.hasInfix "attrs" x.name))
+                    old.propagatedBuildInputs ++ [ finalPython.attrs ];
+                });
+
             });
             groups = [ ];
             checkGroups = [ ];

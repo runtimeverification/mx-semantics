@@ -70,13 +70,12 @@
               secp256k1
               nixpkgs-pyk.pyk-python310
               k-framework.packages.${system}.k
-              kmultiversx-pyk 
+              kmultiversx-pyk
               cmake
               openssl.dev
               clang
               mpfr
               pkg-config
-              procps
               llvmPackages.llvm
             ];
 

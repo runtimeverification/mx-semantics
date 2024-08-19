@@ -18,8 +18,8 @@
     };
   };
 
-  outputs =
-    { self, k-framework, nixpkgs, flake-utils, rv-utils, pyk, nixpkgs-pyk, poetry2nix, wasm-semantics, blockchain-k-plugin }@inputs:
+  outputs = { self, k-framework, nixpkgs, flake-utils, rv-utils, pyk
+    , nixpkgs-pyk, poetry2nix, wasm-semantics, blockchain-k-plugin }@inputs:
     let
       overlay = (final: prev:
         let
@@ -38,18 +38,18 @@
 
           python310-pyk = nixpkgs-pyk.python310;
 
-          poetry2nix = inputs.poetry2nix.lib.mkPoetry2Nix { pkgs = nixpkgs-pyk; };
+          poetry2nix =
+            inputs.poetry2nix.lib.mkPoetry2Nix { pkgs = nixpkgs-pyk; };
         in {
           kmultiversx-src = prev.stdenv.mkDerivation {
             name = "kmultiversx-${self.rev or "dirty"}-src";
-            src = prev.lib.cleanSource
-              (prev.nix-gitignore.gitignoreSourcePure [
-                ./.gitignore
-                ".github/"
-                "result*"
-                "*.nix"
-                "deps/"
-              ] ./.);
+            src = prev.lib.cleanSource (prev.nix-gitignore.gitignoreSourcePure [
+              ./.gitignore
+              ".github/"
+              "result*"
+              "*.nix"
+              "deps/"
+            ] ./.);
             dontBuild = true;
 
             installPhase = ''
@@ -110,21 +110,28 @@
               cleaner = poetry2nix.cleanPythonSources;
             };
             overrides = poetry2nix.overrides.withDefaults
-            (finalPython: prevPython: {
-              kframework = nixpkgs-pyk.pyk-python310.overridePythonAttrs
-                (old: {
+              (finalPython: prevPython: {
+                cmd2 = prevPython.cmd2.overridePythonAttrs (old: {
                   propagatedBuildInputs = prev.lib.filter
-                    (x: !(prev.lib.strings.hasInfix "hypothesis" x.name))
-                    old.propagatedBuildInputs ++ [ finalPython.hypothesis ];
+                    (x: !(prev.lib.strings.hasInfix "attrs" x.name))
+                    old.propagatedBuildInputs ++ [ finalPython.attrs ];
                 });
-              pykwasm =
-                wasm-semantics.packages.${prev.system}.kwasm-pyk.overridePythonAttrs
+                kframework = nixpkgs-pyk.pyk-python310.overridePythonAttrs
+                  (old: {
+                    propagatedBuildInputs = prev.lib.filter (x:
+                      !(prev.lib.strings.hasInfix "hypothesis" x.name)
+                      && !(prev.lib.strings.hasInfix "cmd2" x.name))
+                      old.propagatedBuildInputs
+                      ++ [ finalPython.hypothesis finalPython.cmd2 ];
+                  });
+                pykwasm =
+                  wasm-semantics.packages.${prev.system}.kwasm-pyk.overridePythonAttrs
                   (old: {
                     propagatedBuildInputs = prev.lib.filter
                       (x: !(prev.lib.strings.hasInfix "kframework" x.name))
                       old.propagatedBuildInputs ++ [ finalPython.kframework ];
                   });
-            });
+              });
             groups = [ ];
             checkGroups = [ ];
             postInstall = ''
@@ -142,17 +149,14 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [
-            blockchain-k-plugin.overlay
-            overlay
-          ];
+          overlays = [ blockchain-k-plugin.overlay overlay ];
         };
       in {
         packages = rec {
           inherit (pkgs) kmultiversx kmultiversx-pyk;
           default = pkgs.kmultiversx;
         };
-    }) // {
-      overlays.default = overlay;
-    };
+      }) // {
+        overlays.default = overlay;
+      };
 }

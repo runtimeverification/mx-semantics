@@ -71,6 +71,7 @@
               nixpkgs-pyk.pyk-python310
               k-framework.packages.${system}.k
               kmultiversx-pyk
+              boost
               cmake
               openssl.dev
               clang

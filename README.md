@@ -26,7 +26,6 @@ sudo apt-get install --yes               \
                      curl                \
                      wget                \
                      libcrypto++-dev     \
-                     libprocps-dev       \
                      libsecp256k1-dev    \
                      libssl-dev          \
                      python3             \
@@ -45,7 +44,7 @@ bash <(curl https://kframework.org/install)
 ```
 Once `kup` is installed, to get the correct version of K run:
 ```bash
-kup install k.openssl.procps.secp256k1 --version v$(cat deps/k_release)
+kup install k.openssl.secp256k1 --version v$(cat deps/k_release)
 ```
 
 #### Poetry

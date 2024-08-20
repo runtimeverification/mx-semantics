@@ -10,7 +10,6 @@ RUN    apt-get update                      \
                        curl                \
                        wget                \
                        libcrypto++-dev     \
-                       libprocps-dev       \
                        libsecp256k1-dev    \
                        libssl-dev          \
                        pandoc              \

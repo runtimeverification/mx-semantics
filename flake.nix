@@ -28,14 +28,6 @@
           ] ./.);
 
           version = self.rev or "dirty";
-
-          # nixpkgs-pyk = import inputs.nixpkgs-pyk {
-          #   system = prev.system;
-          #   overlays = [ pyk.overlay ];
-          # };
-
-          # python310-pyk = nixpkgs-pyk.python310;
-
           poetry2nix =
             inputs.poetry2nix.lib.mkPoetry2Nix { pkgs = prev; };
         in {
@@ -110,11 +102,6 @@
             };
             overrides = poetry2nix.overrides.withDefaults
               (finalPython: prevPython: {
-                # cmd2 = prevPython.cmd2.overridePythonAttrs (old: {
-                #   propagatedBuildInputs = prev.lib.filter
-                #     (x: !(prev.lib.strings.hasInfix "attrs" x.name))
-                #     old.propagatedBuildInputs ++ [ finalPython.attrs ];
-                # });
                 kframework = prev.pyk-python310.overridePythonAttrs
                   (old: {
                     propagatedBuildInputs = prev.lib.filter (x:

@@ -2,14 +2,12 @@
   description = "K Semantics of MultiversX";
 
   inputs = {
-    wasm-semantics.url = "github:runtimeverification/wasm-semantics/v0.1.95";
-    k-framework.url = "github:runtimeverification/k/v7.1.85";
-    pyk.url = "github:runtimeverification/k/v7.1.85?dir=pyk";
+    wasm-semantics.url = "github:runtimeverification/wasm-semantics/v0.1.103";
+    k-framework.follows = "wasm-semantics/k-framework";
     nixpkgs.follows = "k-framework/nixpkgs";
     flake-utils.follows = "k-framework/flake-utils";
-    rv-utils.url = "github:runtimeverification/rv-nix-tools";
-    nixpkgs-pyk.follows = "pyk/nixpkgs";
-    poetry2nix.follows = "pyk/poetry2nix";
+    rv-utils.follows = "k-framework/rv-utils";
+    poetry2nix.follows = "k-framework/poetry2nix";
     blockchain-k-plugin = {
       url =
         "github:runtimeverification/blockchain-k-plugin/300c9cf567eba4c8c88675ff67ebd859795ee169";
@@ -18,8 +16,8 @@
     };
   };
 
-  outputs = { self, k-framework, nixpkgs, flake-utils, rv-utils, pyk
-    , nixpkgs-pyk, poetry2nix, wasm-semantics, blockchain-k-plugin }@inputs:
+  outputs = { self, k-framework, nixpkgs, flake-utils, rv-utils
+    , poetry2nix, wasm-semantics, blockchain-k-plugin }@inputs:
     let
       overlay = (final: prev:
         let
@@ -31,15 +29,15 @@
 
           version = self.rev or "dirty";
 
-          nixpkgs-pyk = import inputs.nixpkgs-pyk {
-            system = prev.system;
-            overlays = [ pyk.overlay ];
-          };
+          # nixpkgs-pyk = import inputs.nixpkgs-pyk {
+          #   system = prev.system;
+          #   overlays = [ pyk.overlay ];
+          # };
 
-          python310-pyk = nixpkgs-pyk.python310;
+          # python310-pyk = nixpkgs-pyk.python310;
 
           poetry2nix =
-            inputs.poetry2nix.lib.mkPoetry2Nix { pkgs = nixpkgs-pyk; };
+            inputs.poetry2nix.lib.mkPoetry2Nix { pkgs = prev; };
         in {
           kmultiversx-src = prev.stdenv.mkDerivation {
             name = "kmultiversx-${self.rev or "dirty"}-src";
@@ -68,7 +66,7 @@
 
             buildInputs = with final; [
               secp256k1
-              nixpkgs-pyk.pyk-python310
+              prev.python310
               k-framework.packages.${system}.k
               kmultiversx-pyk
               boost
@@ -102,7 +100,7 @@
           };
 
           kmultiversx-pyk = poetry2nix.mkPoetryApplication {
-            python = nixpkgs-pyk.python310;
+            python = prev.python310;
             projectDir = ./kmultiversx;
             src = rv-utils.lib.mkSubdirectoryAppSrc {
               pkgs = import nixpkgs { system = prev.system; };
@@ -112,12 +110,12 @@
             };
             overrides = poetry2nix.overrides.withDefaults
               (finalPython: prevPython: {
-                cmd2 = prevPython.cmd2.overridePythonAttrs (old: {
-                  propagatedBuildInputs = prev.lib.filter
-                    (x: !(prev.lib.strings.hasInfix "attrs" x.name))
-                    old.propagatedBuildInputs ++ [ finalPython.attrs ];
-                });
-                kframework = nixpkgs-pyk.pyk-python310.overridePythonAttrs
+                # cmd2 = prevPython.cmd2.overridePythonAttrs (old: {
+                #   propagatedBuildInputs = prev.lib.filter
+                #     (x: !(prev.lib.strings.hasInfix "attrs" x.name))
+                #     old.propagatedBuildInputs ++ [ finalPython.attrs ];
+                # });
+                kframework = prev.pyk-python310.overridePythonAttrs
                   (old: {
                     propagatedBuildInputs = prev.lib.filter (x:
                       !(prev.lib.strings.hasInfix "hypothesis" x.name)
@@ -125,19 +123,23 @@
                       old.propagatedBuildInputs
                       ++ [ finalPython.hypothesis finalPython.cmd2 ];
                   });
-                pykwasm =
-                  wasm-semantics.packages.${prev.system}.kwasm-pyk.overridePythonAttrs
+                pykwasm = wasm-semantics.packages.${prev.system}.kwasm-pyk.overridePythonAttrs
                   (old: {
                     propagatedBuildInputs = prev.lib.filter
                       (x: !(prev.lib.strings.hasInfix "kframework" x.name))
                       old.propagatedBuildInputs ++ [ finalPython.kframework ];
                   });
+                py-wasm = prevPython.py-wasm.overridePythonAttrs
+                  (old: {
+                    buildInputs = (old.buildInputs or [ ])
+                      ++ [ prevPython.setuptools ];
+                  });
               });
             groups = [ ];
             checkGroups = [ ];
             postInstall = ''
-              mkdir -p $out/${nixpkgs-pyk.python310.sitePackages}/kmultiversx/kdist/plugin
-              cp -r ${prev.blockchain-k-plugin-src}/* $out/${nixpkgs-pyk.python310.sitePackages}/kmultiversx/kdist/plugin/
+              mkdir -p $out/${prev.python310.sitePackages}/kmultiversx/kdist/plugin
+              cp -r ${prev.blockchain-k-plugin-src}/* $out/${prev.python310.sitePackages}/kmultiversx/kdist/plugin/
             '';
           };
         });
@@ -150,7 +152,7 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [ blockchain-k-plugin.overlay overlay ];
+          overlays = [ k-framework.overlays.pyk blockchain-k-plugin.overlay overlay ];
         };
       in {
         packages = rec {

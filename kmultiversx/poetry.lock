@@ -591,13 +591,13 @@ colors = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "kframework"
-version = "7.1.85"
+version = "7.1.129"
 description = ""
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "kframework-7.1.85-py3-none-any.whl", hash = "sha256:4c4d7483cc6874337369ffca071df6ed3b46ee05e550ea057f0be8153e7fb76c"},
-    {file = "kframework-7.1.85.tar.gz", hash = "sha256:2d7c2e14a7bd561091326e41605f6056eb4da5da00f7b1348272890864971904"},
+    {file = "kframework-7.1.129-py3-none-any.whl", hash = "sha256:640b8485da1704384e25c8570f64c4a4ed9586d0510a9abdca845e908816296b"},
+    {file = "kframework-7.1.129.tar.gz", hash = "sha256:52aeae85efeb7c16c5aff3b985860b6290d10072c3bebdd2acfae7c2b13e65ef"},
 ]
 
 [package.dependencies]
@@ -1016,7 +1016,7 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pykwasm"
-version = "0.1.95"
+version = "0.1.103"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -1025,15 +1025,15 @@ develop = false
 
 [package.dependencies]
 cytoolz = "^0.12.1"
-kframework = "7.1.85"
+kframework = "7.1.129"
 numpy = "^1.24.2"
 py-wasm = {git = "https://github.com/runtimeverification/py-wasm.git", tag = "0.2.1"}
 
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/wasm-semantics.git"
-reference = "v0.1.95"
-resolved_reference = "c8e8bc61eabc3707857af1e022bae21a8f6195ca"
+reference = "v0.1.103"
+resolved_reference = "af8f0e84ff1ef344dadfb040128a8fdc8825d8ac"
 subdirectory = "pykwasm"
 
 [[package]]
@@ -1319,4 +1319,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "952f2fbe2acb41be847c5dc632dea9d1cb719c392e20eb51528c9b1c02594f7c"
+content-hash = "31db8a3f923e935e73cee0aaa89e02fb1e2f64619481a16d64bb88c91fc23eb7"

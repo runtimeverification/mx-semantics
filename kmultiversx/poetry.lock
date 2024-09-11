@@ -591,13 +591,13 @@ colors = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "kframework"
-version = "7.1.137"
+version = "7.1.140"
 description = ""
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "kframework-7.1.137-py3-none-any.whl", hash = "sha256:81ed5aca60b2b44127d6b9799e71287a8ac0977498d67afafc39dec95199740e"},
-    {file = "kframework-7.1.137.tar.gz", hash = "sha256:c3d4cea933087672b614a6438f34e8d2fc095534ddaf726eebfeaa1d54a64b4c"},
+    {file = "kframework-7.1.140-py3-none-any.whl", hash = "sha256:416e0488bff3977e006541e36e8e7b1178d1692e6bc3c2e6bb6cabcf578da397"},
+    {file = "kframework-7.1.140.tar.gz", hash = "sha256:336a1905994db38145ee0503196b5d3ea183b45503e5a6c76bf3728d81eae2f2"},
 ]
 
 [package.dependencies]
@@ -672,13 +672,13 @@ files = [
 
 [[package]]
 name = "mdit-py-plugins"
-version = "0.4.1"
+version = "0.4.2"
 description = "Collection of plugins for markdown-it-py"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mdit_py_plugins-0.4.1-py3-none-any.whl", hash = "sha256:1020dfe4e6bfc2c79fb49ae4e3f5b297f5ccd20f010187acc52af2921e27dc6a"},
-    {file = "mdit_py_plugins-0.4.1.tar.gz", hash = "sha256:834b8ac23d1cd60cec703646ffd22ae97b7955a6d596eb1d304be1e251ae499c"},
+    {file = "mdit_py_plugins-0.4.2-py3-none-any.whl", hash = "sha256:0c673c3f889399a33b95e88d2f0d111b4447bdfea7f237dab2d488f459835636"},
+    {file = "mdit_py_plugins-0.4.2.tar.gz", hash = "sha256:5f2cd1fdb606ddf152d37ec30e46101a60512bc0e5fa1a7002c36647b09e26b5"},
 ]
 
 [package.dependencies]
@@ -1018,7 +1018,7 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pykwasm"
-version = "0.1.105"
+version = "0.1.106"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -1027,15 +1027,15 @@ develop = false
 
 [package.dependencies]
 cytoolz = "^0.12.1"
-kframework = "7.1.137"
+kframework = "7.1.140"
 numpy = "^1.24.2"
 py-wasm = {git = "https://github.com/runtimeverification/py-wasm.git", tag = "0.2.1"}
 
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/wasm-semantics.git"
-reference = "v0.1.105"
-resolved_reference = "fd23f082451d010971ec2127a0c0019bb75e8922"
+reference = "v0.1.106"
+resolved_reference = "bf1af3f2a32fda39238047b7e0f34bec7ef26c0a"
 subdirectory = "pykwasm"
 
 [[package]]
@@ -1050,24 +1050,24 @@ files = [
 
 [[package]]
 name = "pyreadline3"
-version = "3.4.1"
+version = "3.4.2"
 description = "A python implementation of GNU readline."
 optional = false
 python-versions = "*"
 files = [
-    {file = "pyreadline3-3.4.1-py3-none-any.whl", hash = "sha256:b0efb6516fd4fb07b45949053826a62fa4cb353db5be2bbb4a7aa1fdd1e345fb"},
-    {file = "pyreadline3-3.4.1.tar.gz", hash = "sha256:6f3d1f7b8a31ba32b73917cefc1f28cc660562f39aea8646d30bd6eff21f7bae"},
+    {file = "pyreadline3-3.4.2-py3-none-any.whl", hash = "sha256:39182cb0b3e510ad0865411e302b6dab5cc5012f8068d9dcf2f7d01b5442b07f"},
+    {file = "pyreadline3-3.4.2.tar.gz", hash = "sha256:1a2c35e7a8f52709e46934d8b5f04a8b54e22e9b9fc83b9336a4a8330a9a1d2b"},
 ]
 
 [[package]]
 name = "pytest"
-version = "8.3.2"
+version = "8.3.3"
 description = "pytest: simple powerful testing with Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pytest-8.3.2-py3-none-any.whl", hash = "sha256:4ba08f9ae7dcf84ded419494d229b48d0903ea6407b030eaec46df5e6a73bba5"},
-    {file = "pytest-8.3.2.tar.gz", hash = "sha256:c132345d12ce551242c87269de812483f5bcc87cdbb4722e48487ba194f9fdce"},
+    {file = "pytest-8.3.3-py3-none-any.whl", hash = "sha256:a6853c7375b2663155079443d2e45de913a911a11d669df02a50814944db57b2"},
+    {file = "pytest-8.3.3.tar.gz", hash = "sha256:70b98107bd648308a7952b06e6ca9a50bc660be218d53c257cc1fc94fda10181"},
 ]
 
 [package.dependencies]
@@ -1152,13 +1152,13 @@ tokenize-rt = ">=5.2.0"
 
 [[package]]
 name = "rich"
-version = "13.8.0"
+version = "13.8.1"
 description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
 optional = false
 python-versions = ">=3.7.0"
 files = [
-    {file = "rich-13.8.0-py3-none-any.whl", hash = "sha256:2e85306a063b9492dffc86278197a60cbece75bcb766022f3436f567cae11bdc"},
-    {file = "rich-13.8.0.tar.gz", hash = "sha256:a5ac1f1cd448ade0d59cc3356f7db7a7ccda2c8cbae9c7a90c28ff463d3e91f4"},
+    {file = "rich-13.8.1-py3-none-any.whl", hash = "sha256:1760a3c0848469b97b558fc61c85233e3dafb69c7a071b4d60c38099d3cd4c06"},
+    {file = "rich-13.8.1.tar.gz", hash = "sha256:8260cda28e3db6bf04d2d1ef4dbc03ba80a824c88b0e7668a0f23126a424844a"},
 ]
 
 [package.dependencies]
@@ -1321,4 +1321,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "6a2f400111258200d46684fa8048be7c83f4e6f862e6536d3da6344eecb38080"
+content-hash = "c0dd5c3722d90b88ff6b591dacafbd2d38ebff7c268f6fd6d4b60cc72244ac39"

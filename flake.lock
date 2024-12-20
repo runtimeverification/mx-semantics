@@ -357,16 +357,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1733859752,
-        "narHash": "sha256-wRfMUdf8hQWLEbtwTihnGvlUssU55NVm30LOrAXS7jU=",
+        "lastModified": 1734443427,
+        "narHash": "sha256-IVE4m5PzItHrzJrEh5JOaP3WEzkXCmCj4FzclvkkTi0=",
         "owner": "runtimeverification",
         "repo": "k",
-        "rev": "c8d0bee9b64f0e83a4db805575699bae040abbf1",
+        "rev": "06a03e825b9ca8ef030e4b9014c2a0767cccdf5a",
         "type": "github"
       },
       "original": {
         "owner": "runtimeverification",
-        "ref": "v7.1.186",
+        "ref": "v7.1.191",
         "repo": "k",
         "type": "github"
       }
@@ -438,16 +438,16 @@
         "utils": "utils_2"
       },
       "locked": {
-        "lastModified": 1733763903,
-        "narHash": "sha256-wvkNjv30PWyswJA2+1XnNSydCX+jXAiaaGovz2z/5Lw=",
+        "lastModified": 1730229432,
+        "narHash": "sha256-2Y4U7TCmSf9NAZCBmvXiHLOXrHxpiRgIpw5ERYDdNSM=",
         "owner": "runtimeverification",
         "repo": "llvm-backend",
-        "rev": "b16e56c905b7dc4db70ac7c0ec00abc18831500d",
+        "rev": "d5eab4b0f0e610bc60843ebb482f79c043b92702",
         "type": "github"
       },
       "original": {
         "owner": "runtimeverification",
-        "ref": "v0.1.113",
+        "ref": "v0.1.103",
         "repo": "llvm-backend",
         "type": "github"
       }
@@ -941,16 +941,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1733907780,
-        "narHash": "sha256-BL04FOTMAAMpnUpT+37kwpbL33KeEP4lDgfCj3ug58M=",
+        "lastModified": 1734727344,
+        "narHash": "sha256-duzDD3gQzYYaf1/ulC11IEKM1NEnhPxHQNBBdZgbREQ=",
         "owner": "runtimeverification",
         "repo": "wasm-semantics",
-        "rev": "0aa9aa4eddd59265a4b1415327db683197a32010",
+        "rev": "0d2891f6516804ca26f7da0524d2933ddef906e7",
         "type": "github"
       },
       "original": {
         "owner": "runtimeverification",
-        "ref": "v0.1.117",
+        "ref": "v0.1.118",
         "repo": "wasm-semantics",
         "type": "github"
       }

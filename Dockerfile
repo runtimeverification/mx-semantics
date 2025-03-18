@@ -18,7 +18,7 @@ RUN    apt-get update                      \
                        python3-venv        \
                        wabt
 
-RUN    curl -sSL https://install.python-poetry.org | POETRY_HOME=/usr python3 - \
+RUN    curl -sSL https://install.python-poetry.org | POETRY_HOME=/usr POETRY_VERSION=1.8.3 python3 - \
     && poetry --version
 
 ARG USER=github-user

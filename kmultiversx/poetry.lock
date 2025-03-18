@@ -865,14 +865,14 @@ i18n = ["Babel (>=2.7)"]
 
 [[package]]
 name = "kframework"
-version = "7.1.222"
+version = "7.1.228"
 description = ""
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "kframework-7.1.222-py3-none-any.whl", hash = "sha256:ae137f8d004d7dbed5650cb1d5d56db1aa7be5360ec3109ba504a714db146229"},
-    {file = "kframework-7.1.222.tar.gz", hash = "sha256:987cbeaa889493b922d207a713381d9fd79e201dcfc7a974468123260ddbad4e"},
+    {file = "kframework-7.1.228-py3-none-any.whl", hash = "sha256:f1a2f15bdb7ce3af4206b7e14b5bbdfea41ff09c99893f3edbdbf0b4767a0338"},
+    {file = "kframework-7.1.228.tar.gz", hash = "sha256:2f9925f4509325d8d77997428875876d1476c2a6d2d63bfed86c128741475ef3"},
 ]
 
 [package.dependencies]
@@ -882,6 +882,7 @@ cookiecutter = ">=2.6.0,<3.0.0"
 filelock = ">=3.9.0,<4.0.0"
 graphviz = ">=0.20.1,<0.21.0"
 hypothesis = ">=6.103.1,<7.0.0"
+networkx = ">=3.4.2,<4.0.0"
 psutil = ">=5.9.5,<6.0.0"
 pybind11 = ">=2.10.3,<3.0.0"
 pytest = "*"
@@ -1117,6 +1118,26 @@ files = [
     {file = "mypy_extensions-1.0.0-py3-none-any.whl", hash = "sha256:4392f6c0eb8a5668a69e23d168ffa70f0be9ccfd32b5cc2d26a34ae5b844552d"},
     {file = "mypy_extensions-1.0.0.tar.gz", hash = "sha256:75dbf8955dc00442a438fc4d0666508a9a97b6bd41aa2f0ffe9d2f2725af0782"},
 ]
+
+[[package]]
+name = "networkx"
+version = "3.4.2"
+description = "Python package for creating and manipulating graphs and networks"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "networkx-3.4.2-py3-none-any.whl", hash = "sha256:df5d4365b724cf81b8c6a7312509d0c22386097011ad1abe274afd5e9d3bbc5f"},
+    {file = "networkx-3.4.2.tar.gz", hash = "sha256:307c3669428c5362aab27c8a1260aa8f47c4e91d3891f48be0141738d8d053e1"},
+]
+
+[package.extras]
+default = ["matplotlib (>=3.7)", "numpy (>=1.24)", "pandas (>=2.0)", "scipy (>=1.10,!=1.11.0,!=1.11.1)"]
+developer = ["changelist (==0.5)", "mypy (>=1.1)", "pre-commit (>=3.2)", "rtoml"]
+doc = ["intersphinx-registry", "myst-nb (>=1.1)", "numpydoc (>=1.8.0)", "pillow (>=9.4)", "pydata-sphinx-theme (>=0.15)", "sphinx (>=7.3)", "sphinx-gallery (>=0.16)", "texext (>=0.6.7)"]
+example = ["cairocffi (>=1.7)", "contextily (>=1.6)", "igraph (>=0.11)", "momepy (>=0.7.2)", "osmnx (>=1.9)", "scikit-learn (>=1.5)", "seaborn (>=0.13)"]
+extra = ["lxml (>=4.6)", "pydot (>=3.0.1)", "pygraphviz (>=1.14)", "sympy (>=1.10)"]
+test = ["pytest (>=7.2)", "pytest-cov (>=4.0)"]
 
 [[package]]
 name = "numpy"
@@ -1388,7 +1409,7 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pykwasm"
-version = "0.1.121"
+version = "0.1.122"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -1398,15 +1419,15 @@ develop = false
 
 [package.dependencies]
 cytoolz = "^0.12.1"
-kframework = "7.1.222"
+kframework = "7.1.228"
 numpy = "^1.24.2"
 py-wasm = {git = "https://github.com/runtimeverification/py-wasm.git", tag = "0.2.1"}
 
 [package.source]
 type = "git"
 url = "https://github.com/runtimeverification/wasm-semantics.git"
-reference = "v0.1.121"
-resolved_reference = "38ad95a53114dc6e9a1bccb72bc168179c42c477"
+reference = "v0.1.122"
+resolved_reference = "7759548bb5958eb95c82af4c369d96c9a1fdd110"
 subdirectory = "pykwasm"
 
 [[package]]
@@ -1919,4 +1940,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "da169de4485bf6cd967daae8e2d563c5450bc4b3de1e29c42a974354946e6fa2"
+content-hash = "e99937b6fdbbb193df024250c252a2e35fc79ae44ef335f3fc65836cd38bf192"

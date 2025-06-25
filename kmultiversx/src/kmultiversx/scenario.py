@@ -12,9 +12,9 @@ from Cryptodome.Hash import keccak
 from pyk.cli.utils import file_path
 from pyk.kast.inner import KApply, KSequence, KToken, Subst
 from pyk.kast.manip import split_config_from
+from pyk.kast.prelude.collections import set_of
 from pyk.kdist import kdist
 from pyk.ktool.krun import KRun
-from pyk.prelude.collections import set_of
 from pyk.utils import abs_or_rel_to, check_file_path
 from pykwasm.kwasm_ast import KBytes, KInt, KString
 

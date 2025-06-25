@@ -2,7 +2,7 @@
   description = "K Semantics of MultiversX";
 
   inputs = {
-    wasm-semantics.url = "github:runtimeverification/wasm-semantics/v0.1.106";
+    wasm-semantics.url = "github:runtimeverification/wasm-semantics/v0.1.128";
     k-framework.follows = "wasm-semantics/k-framework";
     nixpkgs.follows = "k-framework/nixpkgs";
     flake-utils.follows = "k-framework/flake-utils";
@@ -10,7 +10,7 @@
     poetry2nix.follows = "k-framework/poetry2nix";
     blockchain-k-plugin = {
       url =
-        "github:runtimeverification/blockchain-k-plugin/c9264b240c00d1f6cc20e22aac83c94d1a499138";
+        "github:runtimeverification/blockchain-k-plugin/1fda07d61df64ef9ae2ea87e6f767a02d30d4599";
       inputs.flake-utils.follows = "k-framework/flake-utils";
       inputs.nixpkgs.follows = "k-framework/nixpkgs";
     };

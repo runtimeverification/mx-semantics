@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 from pyk.cli.utils import ensure_dir_path, file_path
 from pyk.kast.inner import KApply, Subst
 from pyk.kast.manip import split_config_from
+from pyk.kast.prelude.utils import token
 from pyk.kdist import kdist
 from pyk.ktool.krun import KRun
-from pyk.prelude.utils import token
 
 from kmultiversx import scenario
 from kmultiversx.kasmer import run_config_and_check_empty
